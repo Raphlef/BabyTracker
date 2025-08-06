@@ -8,6 +8,8 @@ data class SleepEvent(
     override val babyId: String,
     override val timestamp: Date = Date(), // Represents sleep start time
     override val notes: String? = null,
+    val isSleeping: Boolean = false,
+    val beginTime: Date? = null,
     val endTime: Date? = null, // Sleep end time, nullable if currently sleeping
     val durationMinutes: Long? = null // Can be calculated or directly stored
     // val location: String? = null // e.g., "Crib", "Stroller"
