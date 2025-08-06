@@ -52,6 +52,12 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.navigation.compose)
+    implementation(libs.navigation.compose)
+    implementation(libs.hilt.navigation.compose)
+
+    //icons
+    implementation(libs.material.icons.core) // Or the latest version
+    implementation(libs.material.icons.extended) // For a wider selection, including all themes
 
     // VieModel
     implementation(libs.lifecycle.viewmodel.compose)

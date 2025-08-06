@@ -1,5 +1,7 @@
 package com.example.babytracker.data.event
 
+import com.example.babytracker.data.BreastSide
+import com.example.babytracker.data.FeedType
 import java.util.Date
 import java.util.UUID
 
