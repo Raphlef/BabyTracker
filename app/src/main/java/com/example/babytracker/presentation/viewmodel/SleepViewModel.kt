@@ -1,9 +1,10 @@
 package com.example.babytracker.presentation.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.babytracker.data.DiaperType
-import com.example.babytracker.data.SleepEvent
+import com.example.babytracker.data.event.SleepEvent
 import com.example.babytracker.data.FirebaseRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,7 +17,7 @@ import kotlin.concurrent.timer
 
 @HiltViewModel
 class SleepViewModel @Inject constructor(
-    private val repository: FirebaseRepository
+    private val eventViewModel: EventViewModel
 ) : ViewModel() {
 
     // --- UI State for Input Fields ---
@@ -31,8 +32,8 @@ class SleepViewModel @Inject constructor(
     private val _endTime = MutableStateFlow(null as Date?)
     val endTime: StateFlow<Date?> = _endTime.asStateFlow()
 
-    private val _durationMinutes = MutableStateFlow(0)
-    val durationMinutes: StateFlow<Int> = _durationMinutes.asStateFlow()
+    private val _durationMinutes = MutableStateFlow(0L)
+    val durationMinutes: StateFlow<Long> = _durationMinutes.asStateFlow()
     // --- State for UI feedback ---
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
@@ -78,28 +79,32 @@ class SleepViewModel @Inject constructor(
         _errorMessage.value = null
         _saveSuccess.value = false
 
-        viewModelScope.launch {
-            try {
-                val endTime = Calendar.getInstance().apply {
-                    time = state.startTime!!
-                    add(Calendar.MINUTE, state.duration)
-                }.time
+        val currentBeginTime = _beginTime.value
+        val currentEndTime = _endTime.value
+        val currentDuratioNMinute = _durationMinutes.value
+        val currentIsSleeping = _isSleeping.value
+        val currentNotes = _notes.value.takeIf { it.isNotBlank() }
 
-                repository.addEvent(
-                    SleepEvent(
-                        babyId = babyId,
-                        timestamp = state.startTime!!,
-                        endTime = endTime,
-                        duration = state.duration
-                    )
-                )
-                // Réinitialiser
-                _state.value = SleepState()
-            } catch (e: Exception) {
-                _state.value = _state.value.copy(error = e.message)
-            } finally {
-                _state.value = _state.value.copy(isLoading = false)
+        viewModelScope.launch {
+            eventViewModel.addSleepEvent(
+                babyId = babyId,
+                notes = currentNotes,
+                beginTime = currentBeginTime,
+                endTime = currentEndTime,
+                durationMinutes = currentDuratioNMinute,
+                isSleeping = currentIsSleeping
+            )
+            // A simple way if EventViewModel's _errorMessage is observable:
+            if (eventViewModel.errorMessage.value == null) { // Check error state from EventViewModel AFTER the call
+                Log.d("DiaperViewModel", "Delegated diaper event addition. Assuming success if no immediate error from EventViewModel.")
+                _saveSuccess.value = true // Signal UI
+                // Optionally reset fields here after successful save
+                // resetInputFields()
+            } else {
+                // Error was set by EventViewModel, this VM might not need to set its own _errorMessage
+                _errorMessage.value = eventViewModel.errorMessage.value ?: "Failed to save diaper event."
             }
+            _isSaving.value = false
         }
     }
 

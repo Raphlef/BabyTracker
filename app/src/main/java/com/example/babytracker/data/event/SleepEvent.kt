@@ -6,7 +6,7 @@ import java.util.UUID
 data class SleepEvent(
     override val id: String = UUID.randomUUID().toString(),
     override val babyId: String,
-    override val timestamp: Date = Date(), // Represents sleep start time
+    override val timestamp: Date = Date(),
     override val notes: String? = null,
     val isSleeping: Boolean = false,
     val beginTime: Date? = null,

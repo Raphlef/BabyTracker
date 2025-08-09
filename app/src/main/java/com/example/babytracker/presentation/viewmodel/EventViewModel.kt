@@ -140,7 +140,7 @@ class EventViewModel @Inject constructor(
     suspend fun addSleepEvent(
         babyId: String,
         isSleeping: Boolean,
-        startTime: Date,
+        beginTime: Date?,
         endTime: Date?, // Nullable as per SleepEvent definition
         durationMinutes: Long?, // Nullable as per SleepEvent definition
         notes: String?,
@@ -159,9 +159,10 @@ class EventViewModel @Inject constructor(
 
         val event = SleepEvent(
             babyId = babyId,
-            timestamp = startTime, // timestamp in SleepEvent is the start time
+            timestamp = Date(),
+            beginTime = beginTime,
             endTime = endTime,
-            isSleeping=isSleeping,
+            isSleeping= isSleeping,
             durationMinutes = durationMinutes,
             notes = notes,
         )
