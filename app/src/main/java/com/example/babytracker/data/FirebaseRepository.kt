@@ -33,7 +33,22 @@ class FirebaseRepository @Inject constructor() {
         private const val BABIES_COLLECTION = "babies"
         private const val EVENTS_COLLECTION = "events"
     }
+    // Méthodes d'authentification
+    suspend fun login(email: String, password: String) {
+        auth.signInWithEmailAndPassword(email, password).await()
+    }
 
+    suspend fun register(email: String, password: String) {
+        auth.createUserWithEmailAndPassword(email, password).await()
+    }
+
+    fun isUserLoggedIn(): Boolean {
+        return auth.currentUser != null
+    }
+
+    fun getCurrentUserId(): String? {
+        return auth.currentUser?.uid
+    }
     // --- Baby Methods ---
 
     suspend fun addOrUpdateBaby(baby: Baby): Result<Unit> {
@@ -203,41 +218,6 @@ class FirebaseRepository @Inject constructor() {
         }
     }
 
-    suspend fun getFeedingEvents(babyId: String): List<FeedingEvent> {
-        return db.collection("feedingEvents")
-            .whereEqualTo("babyId", babyId)
-            .orderBy("timestamp", Query.Direction.DESCENDING)
-            .get()
-            .await()
-            .toObjects(FeedingEvent::class.java)
-    }
-
-    suspend fun getDiaperEvents(babyId: String): List<DiaperEvent> {
-        return db.collection("diaperEvents")
-            .whereEqualTo("babyId", babyId)
-            .orderBy("timestamp", Query.Direction.DESCENDING)
-            .get()
-            .await()
-            .toObjects(DiaperEvent::class.java)
-    }
-
-    suspend fun getSleepEvents(babyId: String): List<SleepEvent> {
-        return db.collection("sleepEvents")
-            .whereEqualTo("babyId", babyId)
-            .orderBy("timestamp", Query.Direction.DESCENDING)
-            .get()
-            .await()
-            .toObjects(SleepEvent::class.java)
-    }
-
-    suspend fun getGrowthEvents(babyId: String): List<GrowthEvent> {
-        return db.collection("growthEvents")
-            .whereEqualTo("babyId", babyId)
-            .orderBy("timestamp", Query.Direction.ASCENDING)
-            .get()
-            .await()
-            .toObjects(GrowthEvent::class.java)
-    }
     // --- Helper to convert data class to Map for Firestore ---
     // You might need to make these more robust or use a library for complex objects
     private fun FeedingEvent.asMap(): Map<String, Any?> {
@@ -290,6 +270,10 @@ class FirebaseRepository @Inject constructor() {
 
     suspend fun getDiaperEvents(babyId: String, limit: Long = 20): Result<List<DiaperEvent>> {
         return getEventsByType(babyId, "DIAPER", DiaperEvent::class.java, limit)
+    }
+
+    suspend fun getGrowthEvents(babyId: String, limit: Long = 20): Result<List<GrowthEvent>> {
+        return getEventsByType(babyId, "GROWTH", GrowthEvent::class.java, limit)
     }
 
     suspend fun getSleepEvents(babyId: String, limit: Long = 20): Result<List<SleepEvent>> {

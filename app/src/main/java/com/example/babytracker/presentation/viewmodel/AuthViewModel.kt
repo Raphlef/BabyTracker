@@ -53,6 +53,11 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
+
+    fun logout() {
+        // TODO: Implémenter la déconnexion
+        _state.value = AuthState(isUserLoggedIn = false)
+    }
 }
 
 data class AuthState(
@@ -60,5 +65,6 @@ data class AuthState(
     val password: String = "",
     val isLoading: Boolean = false,
     val isAuthenticated: Boolean = false,
+    val isUserLoggedIn: Boolean = false,
     val error: String? = null
 )
