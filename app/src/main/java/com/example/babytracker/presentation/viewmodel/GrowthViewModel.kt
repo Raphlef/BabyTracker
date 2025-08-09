@@ -3,38 +3,34 @@ package com.example.babytracker.presentation.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.babytracker.data.DiaperType
-import com.example.babytracker.data.FeedType
-import com.example.babytracker.data.event.SleepEvent
+import com.example.babytracker.data.event.GrowthEvent
 import com.example.babytracker.data.FirebaseRepository
+import com.github.mikephil.charting.data.LineData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.*
+import java.util.Date
 import javax.inject.Inject
-import kotlin.concurrent.timer
 
 @HiltViewModel
-class SleepViewModel @Inject constructor(
+class GrowthViewModel @Inject constructor(
     private val eventViewModel: EventViewModel
 ) : ViewModel() {
 
     // --- UI State for Input Fields ---
     private val _notes = MutableStateFlow("")
     val notes: StateFlow<String> = _notes.asStateFlow()
-    private val _isSleeping = MutableStateFlow(false)
-    val isSleeping: StateFlow<Boolean> = _isSleeping.asStateFlow()
 
-    private val _beginTime = MutableStateFlow(null as Date?)
-    val beginTime: StateFlow<Date?> = _beginTime.asStateFlow()
+    private val _weightKg = MutableStateFlow(0.0)
+    val weightKg: StateFlow<Double?> = _weightKg.asStateFlow()
 
-    private val _endTime = MutableStateFlow(null as Date?)
-    val endTime: StateFlow<Date?> = _endTime.asStateFlow()
+    private val _heightCm = MutableStateFlow(0.0)
+    val heightCm: StateFlow<Double?> = _heightCm.asStateFlow()
 
-    private val _durationMinutes = MutableStateFlow(0L)
-    val durationMinutes: StateFlow<Long> = _durationMinutes.asStateFlow()
+    private val _headCircumferenceCm = MutableStateFlow(0.0)
+    val headCircumferenceCm: StateFlow<Double?> = _headCircumferenceCm.asStateFlow()
 
     // --- State for UI feedback ---
     private val _isSaving = MutableStateFlow(false)
@@ -46,33 +42,25 @@ class SleepViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    // Necessary local var
-    private var timer: Timer? = null
-
     // --- Event Handlers for UI ---
 
     fun onNotesChanged(newNotes: String) {
         _notes.value = newNotes
     }
-    fun startSleep() {
-        startTimer()
-        _isSleeping.value = true
-        _beginTime.value=Date()
+
+    fun setWeight(newWeight: Double) {
+        _weightKg.value = newWeight
     }
 
-    fun stopSleep() {
-        timer?.cancel()
-        _isSleeping.value = false
-        _endTime.value=Date()
+    fun setHeight(newHeight: Double) {
+        _heightCm.value = newHeight
     }
 
-    private fun startTimer() {
-        timer = timer(period = 60000) { // Toutes les minutes
-            _durationMinutes.value= _durationMinutes.value+1
-        }
+    fun setHeadCircumferenceCm(newHeadCircumferenceCm: Double) {
+        _headCircumferenceCm.value = newHeadCircumferenceCm
     }
 
-    fun saveSleepEvent(babyId: String) {
+    fun saveGrowthEvent(babyId: String) {
         if (babyId.isBlank()) {
             _errorMessage.value = "Baby ID is missing."
             return
@@ -82,20 +70,18 @@ class SleepViewModel @Inject constructor(
         _errorMessage.value = null
         _saveSuccess.value = false
 
-        val currentBeginTime = _beginTime.value
-        val currentEndTime = _endTime.value
-        val currentDuratioNMinute = _durationMinutes.value
-        val currentIsSleeping = _isSleeping.value
+        val currentHeightCm = _heightCm.value
+        val currentWeightKg = _weightKg.value
+        val currentHeadCircumferenceCm = _headCircumferenceCm.value
         val currentNotes = _notes.value.takeIf { it.isNotBlank() }
 
         viewModelScope.launch {
-            eventViewModel.addSleepEvent(
+            eventViewModel.addGrowthEvent(
                 babyId = babyId,
                 notes = currentNotes,
-                beginTime = currentBeginTime,
-                endTime = currentEndTime,
-                durationMinutes = currentDuratioNMinute,
-                isSleeping = currentIsSleeping
+                heightCm = currentHeightCm,
+                weightKg = currentWeightKg,
+                headCircumferenceCm = currentHeadCircumferenceCm,
             )
             // A simple way if EventViewModel's _errorMessage is observable:
             if (eventViewModel.errorMessage.value == null) { // Check error state from EventViewModel AFTER the call
@@ -111,10 +97,6 @@ class SleepViewModel @Inject constructor(
         }
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        timer?.cancel()
-    }
     fun resetSaveSuccess() {
         _saveSuccess.value = false
     }
@@ -125,14 +107,15 @@ class SleepViewModel @Inject constructor(
 
     // Optional: Function to reset all input fields
     fun resetInputFields() {
-        _isSleeping.value = false
-        _beginTime.value = null
-        _endTime.value = null
-        _durationMinutes.value = 0L
+        _heightCm.value = 0.0
+        _weightKg.value = 0.0
+        _headCircumferenceCm.value = 0.0
         _notes.value = ""
         _errorMessage.value = null
         _saveSuccess.value = false
     }
-    // TODO: Ajouter le chargement des sessions de sommeil passées
-    // TODO: Calculer la moyenne du temps de sommeil
+
+
+    // TODO: Ajouter le calcul des percentiles selon les courbes OMS
+    // TODO: Implémenter la génération des courbes de croissance
 }

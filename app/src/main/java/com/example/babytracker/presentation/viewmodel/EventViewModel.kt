@@ -17,6 +17,7 @@ import android.util.Log
 import com.example.babytracker.data.BreastSide
 import com.example.babytracker.data.DiaperType
 import com.example.babytracker.data.FeedType
+import com.example.babytracker.data.event.GrowthEvent
 import com.example.babytracker.data.event.SleepEvent
 
 @HiltViewModel
@@ -136,7 +137,51 @@ class EventViewModel @Inject constructor(
             // TODO: Actualiser la liste des événements
         }
     }
+    suspend fun addGrowthEvent(
+        babyId: String,
+        weightKg: Double?,
+        heightCm: Double?,
+        headCircumferenceCm: Double?,
+        notes: String?,
+        measurementDate: Date = Date() // Allow specifying measurement date, defaults to now
+    ): Result<Unit> {
+        if (babyId.isBlank()) {
+            Log.w("EventViewModel", "addGrowthEvent called with blank babyId")
+            return Result.failure(IllegalArgumentException("Baby ID cannot be blank for GrowthEvent."))
+        }
 
+        if (weightKg == null && heightCm == null && headCircumferenceCm == null) {
+            Log.w("EventViewModel", "addGrowthEvent called with no measurement values.")
+            // You might want to return Result.failure here if at least one measurement is required.
+            // For now, allowing it, but it's probably not a useful event.
+            // return Result.failure(IllegalArgumentException("At least one growth measurement (weight, height, or head circumference) is required."))
+        }
+
+        val event = GrowthEvent(
+            babyId = babyId,
+            timestamp = measurementDate, // Use provided measurementDate
+            notes = notes,
+            weightKg = weightKg,
+            heightCm = heightCm,
+            headCircumferenceCm = headCircumferenceCm
+        )
+
+        val repoResult = repository.addEvent(event)
+
+        return repoResult.fold(
+            onSuccess = {
+                Log.d("EventViewModel", "Growth event added successfully for baby $babyId. Refreshing events.")
+                loadEvents(babyId) // Refresh the main events list
+                _errorMessage.value = null // Clear any previous general error on success
+                Result.success(Unit)
+            },
+            onFailure = { exception ->
+                Log.e("EventViewModel", "Error adding growth event for baby $babyId: ${exception.message}", exception)
+                _errorMessage.value = "Failed to add growth event: ${exception.localizedMessage}"
+                Result.failure(exception)
+            }
+        )
+    }
     suspend fun addSleepEvent(
         babyId: String,
         isSleeping: Boolean,
