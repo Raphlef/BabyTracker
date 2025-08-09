@@ -17,9 +17,10 @@ import com.example.babytracker.ui.components.BottomNavBar
 import com.example.babytracker.ui.components.TopAppBar
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import com.example.babytracker.presentation.feeding.FeedingScreen
+import com.example.babytracker.presentation.growth.GrowthScreen
 import com.example.babytracker.presentation.navigation.Screen
 import com.example.babytracker.presentation.sleep.SleepScreen
-
+import androidx.compose.runtime.saveable.Saver
 @Composable
 fun DashboardScreen(
     navController: NavController,
@@ -39,7 +40,12 @@ fun DashboardScreen(
         mutableStateOf<Screen>(bottomNavScreens.firstOrNull() ?: Screen.Feeding) // Default to Feeding or first
     }
     Scaffold(
-        topBar = { TopAppBar() },
+        topBar = {
+            TopAppBar(
+                title = "BabyTracking",
+                navController = navController,
+            )
+         },
         bottomBar = {
             BottomNavBar(
                 navController = navController,
@@ -65,7 +71,6 @@ fun DashboardScreen(
 }
 // Custom Saver for Screen (if Screen is a sealed class with objects)
 // Put this in a relevant place, maybe near your Screen definition or in a utils file
-import androidx.compose.runtime.saveable.Saver
 
 val ScreenSaver = Saver<Screen, String>(
     save = { it.route }, // Save the route string

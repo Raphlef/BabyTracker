@@ -203,7 +203,41 @@ class FirebaseRepository @Inject constructor() {
         }
     }
 
+    suspend fun getFeedingEvents(babyId: String): List<FeedingEvent> {
+        return db.collection("feedingEvents")
+            .whereEqualTo("babyId", babyId)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .get()
+            .await()
+            .toObjects(FeedingEvent::class.java)
+    }
 
+    suspend fun getDiaperEvents(babyId: String): List<DiaperEvent> {
+        return db.collection("diaperEvents")
+            .whereEqualTo("babyId", babyId)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .get()
+            .await()
+            .toObjects(DiaperEvent::class.java)
+    }
+
+    suspend fun getSleepEvents(babyId: String): List<SleepEvent> {
+        return db.collection("sleepEvents")
+            .whereEqualTo("babyId", babyId)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .get()
+            .await()
+            .toObjects(SleepEvent::class.java)
+    }
+
+    suspend fun getGrowthEvents(babyId: String): List<GrowthEvent> {
+        return db.collection("growthEvents")
+            .whereEqualTo("babyId", babyId)
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+            .get()
+            .await()
+            .toObjects(GrowthEvent::class.java)
+    }
     // --- Helper to convert data class to Map for Firestore ---
     // You might need to make these more robust or use a library for complex objects
     private fun FeedingEvent.asMap(): Map<String, Any?> {

@@ -32,7 +32,6 @@ data class BottomNavItem(
 )
 @Composable
 fun BottomNavBar(
-
     navController: NavController, // Keep for other potential navigation actions
     screensForBottomNav: List<Screen>, // Pass the list of screens to display in the bar
     selectedScreen: Screen,           // The currently selected screen object
