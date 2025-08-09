@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
@@ -38,11 +40,13 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun BabyTrackerApp() {
     val navController = rememberNavController()
-    val authViewModel: AuthViewModel = hiltViewModel()
+    val viewModel: AuthViewModel = hiltViewModel()
 
+    // Collect state from StateFlow
+    val state by viewModel.state.collectAsState()
     NavHost(
         navController = navController,
-        startDestination = if (authViewModel.isUserLoggedIn) "dashboard" else "auth"
+        startDestination = if (state.isAuthenticated) "dashboard" else "auth"
     ) {
         composable("auth") {
             AuthScreen(
@@ -50,7 +54,9 @@ fun BabyTrackerApp() {
             )
         }
         composable("dashboard") {
-            DashboardScreen()
+            DashboardScreen(
+                navController = navController,
+            )
         }
     }
 }
