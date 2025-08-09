@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.babytracker.data.DiaperType
+import com.example.babytracker.data.FeedType
 import com.example.babytracker.data.event.SleepEvent
 import com.example.babytracker.data.FirebaseRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -112,7 +113,24 @@ class SleepViewModel @Inject constructor(
         super.onCleared()
         timer?.cancel()
     }
+    fun resetSaveSuccess() {
+        _saveSuccess.value = false
+    }
 
+    fun clearErrorMessage() {
+        _errorMessage.value = null
+    }
+
+    // Optional: Function to reset all input fields
+    fun resetInputFields() {
+        _isSleeping.value = false
+        _beginTime.value = null
+        _endTime.value = null
+        _durationMinutes.value = 0L
+        _notes.value = ""
+        _errorMessage.value = null
+        _saveSuccess.value = false
+    }
     // TODO: Ajouter le chargement des sessions de sommeil passées
     // TODO: Calculer la moyenne du temps de sommeil
 }

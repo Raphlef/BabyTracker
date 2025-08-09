@@ -21,7 +21,12 @@ fun SleepScreen(
     viewModel: SleepViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+
+    val isSleeping by viewModel.isSleeping.collectAsState()
+    val beginTime by viewModel.beginTime.collectAsState()
+    val endTime by viewModel.endTime.collectAsState()
+    val durationMinutes by viewModel.durationMinutes.collectAsState()
+    val notes by viewModel.notes.collectAsState()
 
     val isSaving by viewModel.isSaving.collectAsState()
     val saveSuccess by viewModel.saveSuccess.collectAsState()
@@ -36,17 +41,18 @@ fun SleepScreen(
 
     val dateFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
 
-    LaunchedEffect(state.saveSuccess) {
-        if (state.saveSuccess) {
+    LaunchedEffect(saveSuccess) {
+        if (saveSuccess) {
             snackbarHostState.showSnackbar("Sleep event saved!", duration = SnackbarDuration.Short)
-            viewModel.resetState()
+            viewModel.resetInputFields() // Clear the form
+            viewModel.resetSaveSuccess() // Reset the flag
         }
     }
 
-    LaunchedEffect(state.error) {
-        state.error?.let {
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
             snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Long)
-            viewModel.clearError()
+            viewModel.clearErrorMessage() // Clear the error message after showing
         }
     }
 
@@ -64,9 +70,9 @@ fun SleepScreen(
         ) {
             Text("Log Sleep", style = MaterialTheme.typography.headlineSmall)
 
-            if (state.isSleeping) {
-                Text("Sleep started at: ${dateFormat.format(state.startTime)}")
-                Text("Duration so far: ${state.duration} minutes")
+            if (isSleeping) {
+                Text("Sleep started at: ${dateFormat.format(beginTime)}")
+                Text("Duration so far: ${durationMinutes} minutes")
 
                 Button(
                     onClick = { viewModel.stopSleep() },
@@ -75,11 +81,11 @@ fun SleepScreen(
                     Text("Stop Sleep")
                 }
             } else {
-                Text("Last sleep duration: ${state.duration} minutes")
-                state.startTime?.let {
+                Text("Last sleep duration: ${durationMinutes} minutes")
+                beginTime?.let {
                     Text("Started at: ${dateFormat.format(it)}")
                 }
-                state.endTime?.let {
+                endTime?.let {
                     Text("Ended at: ${dateFormat.format(it)}")
                 }
 
@@ -92,7 +98,7 @@ fun SleepScreen(
             }
 
             OutlinedTextField(
-                value = state.notes ?: "",
+                value = notes ?: "",
                 onValueChange = { viewModel.onNotesChanged(it) },
                 label = { Text("Notes (optional)") },
                 modifier = Modifier.fillMaxWidth()
@@ -104,14 +110,14 @@ fun SleepScreen(
                         viewModel.saveSleepEvent(currentBabyId)
                     } else {
                         scope.launch {
-                            snackbarHostState.showSnackbar("Please select a baby first.", SnackbarDuration.Short)
+                            snackbarHostState.showSnackbar("Please select a baby first.", duration = SnackbarDuration.Short)
                         }
                     }
                 },
-                enabled = !state.isSleeping && state.duration > 0 && !state.isSaving,
+                enabled = !isSleeping && durationMinutes > 0 && !isSaving,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                if (state.isSaving) {
+                if (isSaving) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Saving...")
