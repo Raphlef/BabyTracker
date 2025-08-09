@@ -17,6 +17,7 @@ import android.util.Log
 import com.example.babytracker.data.BreastSide
 import com.example.babytracker.data.DiaperType
 import com.example.babytracker.data.FeedType
+import com.example.babytracker.data.event.SleepEvent
 
 @HiltViewModel
 class EventViewModel @Inject constructor(
@@ -136,6 +137,52 @@ class EventViewModel @Inject constructor(
         }
     }
 
+    suspend fun addSleepEvent(
+        babyId: String,
+        isSleeping: Boolean,
+        startTime: Date,
+        endTime: Date?, // Nullable as per SleepEvent definition
+        durationMinutes: Long?, // Nullable as per SleepEvent definition
+        notes: String?,
+    ): Result<Unit> { // Return Result<Unit> for success/failure feedback
+        if (babyId.isBlank()) {
+            Log.w("EventViewModel", "addSleepEvent called with blank babyId")
+            // Not setting _errorMessage here as the caller (SleepViewModel) will handle Result.failure
+            return Result.failure(IllegalArgumentException("Baby ID cannot be blank for SleepEvent."))
+        }
+        if (durationMinutes == null && endTime == null) {
+            Log.w("EventViewModel", "addSleepEvent called with no duration and no end time.")
+            // Decide if this is an error or just a warning. For now, let's allow it if an explicit
+            // duration isn't required and endTime might be set later (though our current flow sets endTime).
+        }
+
+
+        val event = SleepEvent(
+            babyId = babyId,
+            timestamp = startTime, // timestamp in SleepEvent is the start time
+            endTime = endTime,
+            isSleeping=isSleeping,
+            durationMinutes = durationMinutes,
+            notes = notes,
+        )
+
+        // The actual call to the repository
+        val repoResult = repository.addEvent(event) // Assuming addEvent handles any Event type
+
+        return repoResult.fold(
+            onSuccess = {
+                Log.d("EventViewModel", "Sleep event added successfully for baby $babyId. Refreshing events.")
+                loadEvents(babyId) // Refresh the main events list
+                _errorMessage.value = null // Clear any previous general error on success
+                Result.success(Unit)
+            },
+            onFailure = { exception ->
+                Log.e("EventViewModel", "Error adding sleep event for baby $babyId: ${exception.message}", exception)
+                _errorMessage.value = "Failed to add sleep event: ${exception.localizedMessage}" // Set general error
+                Result.failure(exception)
+            }
+        )
+    }
     fun addDiaperEvent(
         babyId: String,
         diaperType: DiaperType,
