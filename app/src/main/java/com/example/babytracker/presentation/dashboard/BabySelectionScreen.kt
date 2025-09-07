@@ -1,5 +1,6 @@
 package com.example.babytracker.presentation.dashboard
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -15,48 +16,104 @@ import com.example.babytracker.presentation.viewmodel.BabyViewModel
 
 @Composable
 fun BabySelectionScreen(
-    onBabySelected: () -> Unit,
-    viewModel: BabyViewModel = hiltViewModel()
+    babyViewModel: BabyViewModel = hiltViewModel(),
+    onAddBaby: () -> Unit,
+    onContinue: (String) -> Unit
 ) {
-    val state by viewModel.babies.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    LaunchedEffect(Unit) {
+        babyViewModel.loadBabies()
+    }
+    val babies by babyViewModel.babies.collectAsState()
+    val selectedBaby by babyViewModel.selectedBaby.collectAsState()
+    val scope = rememberCoroutineScope()
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        if (isLoading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Sélectionner un bébé",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        if (babies.isEmpty()) {
+            EmptyBabiesView(onAddBaby)
         } else {
-            if (state.isEmpty()) {
-                EmptyBabiesView(onAddBaby = { /* TODO: Ouvrir l'ajout de bébé */ })
-            } else {
-                LazyColumn {
-                    items(state.size) { index ->
-                        BabyItem(
-                            baby = state[index],
-                            onClick = {
-                                viewModel.selectBaby(state[index])
-                                onBabySelected()
-                            }
-                        )
-                    }
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(babies.size) { index ->
+                    val baby = babies[index]
+                    BabyItem(
+                        baby = baby,
+                        selected = baby == selectedBaby,
+                        onClick = { babyViewModel.selectBaby(baby) }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                OutlinedButton(
+                    onClick = onAddBaby,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Ajouter un bébé")
+                    Spacer(Modifier.width(8.dp))
+                    Text("Ajouter")
+                }
+
+                Button(
+                    onClick = { selectedBaby?.id?.let { onContinue(it) } },
+                    enabled = selectedBaby != null,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Continuer")
                 }
             }
         }
     }
-
-    // TODO: Ajouter un FloatingActionButton pour ajouter un nouveau bébé
 }
 
 @Composable
-fun BabyItem(baby: Baby, onClick: () -> Unit) {
+fun BabyItem(
+    baby: Baby,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
     Card(
-        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .clickable { onClick() },
+        elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 8.dp else 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+            else MaterialTheme.colorScheme.surface
+        )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(baby.name, style = MaterialTheme.typography.headlineSmall)
-            // TODO: Afficher plus de détails (âge, dernière activité)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            RadioButton(
+                selected = selected,
+                onClick = onClick,
+                colors = RadioButtonDefaults.colors(
+                    selectedColor = MaterialTheme.colorScheme.primary
+                )
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(text = baby.name.ifEmpty { "Bébé sans nom" }, style = MaterialTheme.typography.titleMedium)
+                // TODO: ajouter date de naissance ou autre info utile
+            }
         }
     }
 }
@@ -71,9 +128,17 @@ fun EmptyBabiesView(onAddBaby: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Aucun bébé enregistré", style = MaterialTheme.typography.titleMedium)
-        Text("Commencez par ajouter un bébé", style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Commencez par ajouter un bébé pour suivre sa croissance et ses événements.",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(horizontal = 24.dp),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = onAddBaby) {
+            Icon(Icons.Filled.Add, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
             Text("Ajouter un bébé")
         }
     }

@@ -24,6 +24,7 @@ import androidx.compose.runtime.saveable.Saver
 @Composable
 fun DashboardScreen(
     navController: NavController,
+    babyId: String,
     viewModel: BabyViewModel = hiltViewModel()
 ) {
 

@@ -1,22 +1,46 @@
 package com.example.babytracker.presentation.dashboard
 
+import android.app.DatePickerDialog
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.babytracker.data.Gender
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
+import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
 fun AddBabyScreen(
-    onComplete: () -> Unit,
+    onBabyAdded: () -> Unit,
+    onCancel: () -> Unit,
     viewModel: BabyViewModel = hiltViewModel()
 ) {
     var name by remember { mutableStateOf("") }
-    var birthDate by remember { mutableStateOf(Date()) }
+    var birthDate by remember { mutableStateOf(Calendar.getInstance()) }
+    var gender by remember { mutableStateOf(Gender.UNKNOWN) }
+    var showError by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
+    val birthDateString = dateFormat.format(birthDate.time)
+
+    val datePickerDialog = DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            birthDate.set(year, month, dayOfMonth)
+        },
+        birthDate.get(Calendar.YEAR),
+        birthDate.get(Calendar.MONTH),
+        birthDate.get(Calendar.DAY_OF_MONTH)
+    )
+
+    val genders = Gender.values()
 
     Column(
         modifier = Modifier
@@ -29,25 +53,96 @@ fun AddBabyScreen(
 
         OutlinedTextField(
             value = name,
-            onValueChange = { name = it },
+            onValueChange = {
+                name = it
+                if (showError) showError = false
+            },
             label = { Text("Nom du bébé") },
+            isError = showError,
             modifier = Modifier.fillMaxWidth()
         )
+        if (showError) {
+            Text("Le nom est obligatoire", color = MaterialTheme.colorScheme.error)
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // TODO: Ajouter un sélecteur de date
+        Button(onClick = { datePickerDialog.show() }) {
+            Text("Date de naissance : $birthDateString")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        GenderDropdown(
+            gender = gender,
+            onGenderSelected = { gender = it },
+            genders = genders
+        )
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        Button(
-            onClick = {
-                viewModel.addBaby(name, birthDate.time)
-                onComplete()
-            },
-            modifier = Modifier.align(Alignment.End)
+        Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(
+                onClick = onCancel,
+                modifier = Modifier.padding(end = 8.dp)
+            ) {
+                Text("Annuler")
+            }
+            Button(
+                onClick = {
+                    if (name.isBlank()) {
+                        showError = true
+                        return@Button
+                    }
+                    viewModel.addBaby(name.trim(), birthDate.timeInMillis, gender)
+                    onBabyAdded()
+                }
+            ) {
+                Text("Enregistrer")
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GenderDropdown(
+    gender: Gender,
+    onGenderSelected: (Gender) -> Unit,
+    genders: Array<Gender>
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
+    ) {
+        OutlinedTextField(
+            value = gender.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() },
+            onValueChange = {},
+            label = { Text("Genre") },
+            readOnly = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = true } // << rendre le champ cliquable sur toute la zone
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.fillMaxWidth() // ← important
         ) {
-            Text("Enregistrer")
+            genders.forEach { g ->
+                DropdownMenuItem(
+                    text = {
+                        Text(g.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() })
+                    },
+                    onClick = {
+                        onGenderSelected(g)
+                        expanded = false
+                    }
+                )
+            }
         }
     }
 }
