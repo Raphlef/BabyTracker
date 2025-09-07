@@ -21,11 +21,14 @@ import com.example.babytracker.presentation.growth.GrowthScreen
 import com.example.babytracker.presentation.navigation.Screen
 import com.example.babytracker.presentation.sleep.SleepScreen
 import androidx.compose.runtime.saveable.Saver
+import com.example.babytracker.presentation.viewmodel.AuthViewModel
+
 @Composable
 fun DashboardScreen(
     navController: NavController,
     babyId: String,
-    viewModel: BabyViewModel = hiltViewModel()
+    viewModel: BabyViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
 
     // Define which screens appear in the bottom nav bar
@@ -45,8 +48,17 @@ fun DashboardScreen(
             TopAppBar(
                 title = "BabyTracking",
                 navController = navController,
+                onLogout = {
+                    authViewModel.logout()
+                    navController.navigate("auth") {
+                        popUpTo("dashboard/{babyId}") { inclusive = true }
+                    }
+                },
+                onNavigateSettings = {
+                    navController.navigate("settings")
+                }
             )
-         },
+        },
         bottomBar = {
             BottomNavBar(
                 navController = navController,

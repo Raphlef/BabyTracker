@@ -16,8 +16,13 @@ fun TopAppBar(
     title: String,
     navController: NavController? = null,
     showBackButton: Boolean = false,
+    onLogout: (() -> Unit)? = null,          // Callback déconnexion
+    onNavigateSettings: (() -> Unit)? = null, // Callback navigation settings
     actions: @Composable () -> Unit = {}
 ) {
+
+    var showMenu by remember { mutableStateOf(false) }
+
     CenterAlignedTopAppBar(
         title = { Text(title) },
         navigationIcon = {
@@ -31,15 +36,12 @@ fun TopAppBar(
             }
         },
         actions = {
-            var showMenu by remember { mutableStateOf(false) }
-
             IconButton(onClick = { showMenu = true }) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
                     contentDescription = stringResource(R.string.more_options)
                 )
             }
-
             DropdownMenu(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false }
@@ -50,7 +52,18 @@ fun TopAppBar(
                 )
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.settings)) },
-                    onClick = { /* TODO: Naviguer vers les paramètres */ }
+                    onClick = {
+                        showMenu = false
+                        onNavigateSettings?.invoke()
+                    }
+                )
+
+                DropdownMenuItem(
+                    text = { Text("Déconnexion") },
+                    onClick = {
+                        showMenu = false
+                        onLogout?.invoke()
+                    }
                 )
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.collaborators)) },

@@ -19,6 +19,7 @@ import com.example.babytracker.presentation.auth.AuthScreen
 import com.example.babytracker.presentation.dashboard.AddBabyScreen
 import com.example.babytracker.presentation.dashboard.BabySelectionScreen
 import com.example.babytracker.presentation.dashboard.DashboardScreen
+import com.example.babytracker.presentation.settings.SettingsScreen
 import com.example.babytracker.presentation.viewmodel.AuthViewModel
 import com.example.babytracker.ui.theme.BabyTrackerTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -81,6 +82,11 @@ fun BabyTrackerApp() {
             DashboardScreen(
                 navController = navController,
                 babyId = babyId
+            )
+        }
+        composable("settings") {
+            SettingsScreen(
+                navController = navController
             )
         }
     }
