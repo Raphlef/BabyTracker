@@ -13,6 +13,7 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.toObject
 import com.google.firebase.firestore.toObjects
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeout
 import java.util.Date // Keep this if your Baby class uses it directly
 import java.util.UUID
 import javax.inject.Inject
@@ -112,8 +113,9 @@ class FirebaseRepository @Inject constructor(
 
     suspend fun deleteBaby(babyId: String): Result<Unit> {
         return try {
-            // Optional: Also delete all associated events (more complex, consider a Cloud Function for this)
-            db.collection(BABIES_COLLECTION).document(babyId).delete().await()
+            withTimeout(10000L) { // timeout à 10 secondes
+                db.collection(BABIES_COLLECTION).document(babyId).delete().await()
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error deleting baby: $babyId", e)

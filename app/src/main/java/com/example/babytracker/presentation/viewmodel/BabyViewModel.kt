@@ -80,5 +80,21 @@ class BabyViewModel @Inject constructor(
         }
     }
 
+    fun deleteBaby(babyId: String) {
+        _isLoading.value = true
+        viewModelScope.launch {
+            try {
+                repository.deleteBaby(babyId)
+                loadBabies()
+                if (_selectedBaby.value?.id == babyId) {
+                    _selectedBaby.value = null
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Erreur lors de la suppression: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
     // TODO: Ajouter des méthodes pour gérer les événements (alimentation, couches, etc.)
 }

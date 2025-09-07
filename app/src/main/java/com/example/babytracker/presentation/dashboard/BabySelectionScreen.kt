@@ -20,12 +20,19 @@ fun BabySelectionScreen(
     onAddBaby: () -> Unit,
     onContinue: (String) -> Unit
 ) {
-    LaunchedEffect(Unit) {
-        babyViewModel.loadBabies()
-    }
+
     val babies by babyViewModel.babies.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
+    val isLoading by babyViewModel.isLoading.collectAsState()
     val scope = rememberCoroutineScope()
+
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    val babyToDelete = selectedBaby
+
+    // Forcer le chargement de la liste à chaque affichage de l’écran
+    LaunchedEffect(babyViewModel) {
+        babyViewModel.loadBabies()
+    }
 
     Column(
         modifier = Modifier
@@ -38,7 +45,11 @@ fun BabySelectionScreen(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        if (babies.isEmpty()) {
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (babies.isEmpty()) {
             EmptyBabiesView(onAddBaby)
         } else {
             LazyColumn(
@@ -71,6 +82,18 @@ fun BabySelectionScreen(
                 }
 
                 Button(
+                    onClick = {
+                        if (selectedBaby != null) {
+                            showDeleteDialog = true
+                        }
+                    },
+                    enabled = selectedBaby != null,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Supprimer")
+                }
+
+                Button(
                     onClick = { selectedBaby?.id?.let { onContinue(it) } },
                     enabled = selectedBaby != null,
                     modifier = Modifier.weight(1f)
@@ -79,6 +102,29 @@ fun BabySelectionScreen(
                 }
             }
         }
+    }
+    // Dialog de confirmation suppression
+    if (showDeleteDialog && babyToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Confirmer la suppression") },
+            text = { Text("Voulez-vous vraiment supprimer ${babyToDelete.name}?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        babyViewModel.deleteBaby(babyToDelete.id)
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("Oui")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Non")
+                }
+            }
+        )
     }
 }
 
