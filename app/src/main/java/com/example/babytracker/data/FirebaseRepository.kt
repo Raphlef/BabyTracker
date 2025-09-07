@@ -1,6 +1,10 @@
 package com.example.babytracker.data
 
+import android.content.Context
 import android.util.Log // For logging
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.preferencesDataStore
 import com.example.babytracker.data.event.DiaperEvent
 import com.example.babytracker.data.event.Event
 import com.example.babytracker.data.event.FeedingEvent
@@ -12,29 +16,28 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.toObject
 import com.google.firebase.firestore.toObjects
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
 import java.util.Date // Keep this if your Baby class uses it directly
 import java.util.UUID
 import javax.inject.Inject
 
-// Assuming your Event classes and enums are in the same package or imported
-// For example:
-// import com.example.babytracker.data.Event
-// import com.example.babytracker.data.FeedingEvent
-// import com.example.babytracker.data.DiaperEvent
-// ... and so on
+private val Context.dataStore by preferencesDataStore(name = "user_prefs")
 
 class FirebaseRepository @Inject constructor(
 
     private val auth: FirebaseAuth,
-    private val db: FirebaseFirestore
+    private val db: FirebaseFirestore,
+    private val context: Context
 ) {
     private val TAG = "FirebaseRepository"
 
     companion object {
         private const val BABIES_COLLECTION = "babies"
         private const val EVENTS_COLLECTION = "events"
+        private val REMEMBER_ME_KEY = booleanPreferencesKey("remember_me")
     }
     // Méthodes d'authentification
     suspend fun login(email: String, password: String) {
@@ -52,8 +55,24 @@ class FirebaseRepository @Inject constructor(
     fun getCurrentUserId(): String? {
         return auth.currentUser?.uid
     }
-    // --- Baby Methods ---
+    suspend fun saveUserSession() {
+        context.dataStore.edit { prefs ->
+            prefs[REMEMBER_ME_KEY] = true
+        }
+    }
+    suspend fun clearUserSession() {
+        context.dataStore.edit { prefs ->
+            prefs.remove(REMEMBER_ME_KEY)
+        }
+        auth.signOut()
+    }
 
+    fun getUserSession(): Flow<Boolean> {
+        return context.dataStore.data.map { prefs ->
+            prefs[REMEMBER_ME_KEY] ?: false
+        }
+    }
+    // --- Baby Methods ---
     suspend fun addOrUpdateBaby(baby: Baby): Result<Unit> {
         return try {
             val userId = auth.currentUser?.uid

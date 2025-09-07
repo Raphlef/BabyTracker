@@ -26,14 +26,26 @@ class AuthViewModel @Inject constructor(
         _state.value = _state.value.copy(password = password)
     }
 
+    fun onRememberMeChanged(value: Boolean) {
+        _state.value = _state.value.copy(rememberMe = value)
+    }
+
     fun login() {
         _state.value = _state.value.copy(isLoading = true, error = null)
         viewModelScope.launch {
             try {
                 repository.login(_state.value.email, _state.value.password)
+                // Si Remember Me est activé, stocker la session/token via repo ou DataStore
+                if (_state.value.rememberMe) {
+                    repository.saveUserSession()
+                }
                 _state.value = _state.value.copy(isAuthenticated = true)
-            } catch (e: Exception) {
-                _state.value = _state.value.copy(error = "Échec de la connexion: ${e.message}")
+            }  catch (e: Exception) {
+                _state.value = _state.value.copy(
+                    error = "Échec de la connexion : ${e.message}",
+                    isLoading = false,
+                    isAuthenticated = false
+                )
             } finally {
                 _state.value = _state.value.copy(isLoading = false)
             }
@@ -67,14 +79,17 @@ class AuthViewModel @Inject constructor(
     }
 
     fun logout() {
-        // TODO: Implémenter la déconnexion
-        _state.value = AuthState(isUserLoggedIn = false)
+        viewModelScope.launch {
+            repository.clearUserSession()
+            _state.value = AuthState() // Reset complet de l’état, déconnecté
+        }
     }
 }
 
 data class AuthState(
     val email: String = "",
     val password: String = "",
+    val rememberMe: Boolean = false,
     val isLoading: Boolean = false,
     val isAuthenticated: Boolean = false,
     val isUserLoggedIn: Boolean = false,

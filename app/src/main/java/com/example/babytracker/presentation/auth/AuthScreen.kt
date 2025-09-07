@@ -17,6 +17,9 @@ fun AuthScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
+    // Gérer la sélection de "Remember Me" localement
+    var rememberMe by remember { mutableStateOf(false) }
+
     // Redirection après connexion réussie
     LaunchedEffect(state.isAuthenticated) {
         if (state.isAuthenticated) {
@@ -53,6 +56,24 @@ fun AuthScreen(
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Case à cocher "Se souvenir de moi"
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Checkbox(
+                checked = rememberMe,
+                onCheckedChange = {
+                    rememberMe = it
+                    viewModel.onRememberMeChanged(it) // à implémenter dans ViewModel
+                }
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("Se souvenir de moi")
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
 

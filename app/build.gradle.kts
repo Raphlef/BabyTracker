@@ -87,5 +87,6 @@ dependencies {
 
     kapt(libs.hilt.compiler)
 
+    implementation(libs.androidx.datastore.preferences)
 
 }
