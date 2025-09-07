@@ -15,7 +15,17 @@ fun SettingsScreen(
     navController: NavController,
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
+    var emailToShow by remember { mutableStateOf("") }
     val state by authViewModel.state.collectAsState()
+
+    // Récupère email Firebase si pas déjà dans state.email
+    LaunchedEffect(state.email) {
+        emailToShow = if (state.email.isNotBlank()) {
+            state.email
+        } else {
+            authViewModel.getCurrentUserEmail() ?: "Non connecté"
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -35,7 +45,7 @@ fun SettingsScreen(
         ) {
             Text(text = "Utilisateur connecté :")
             Text(
-                text = state.email.ifEmpty { "Non connecté" },
+                text = emailToShow,
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )

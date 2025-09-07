@@ -40,6 +40,10 @@ class AuthViewModel @Inject constructor(
         _state.value = _state.value.copy(rememberMe = value)
     }
 
+    fun getCurrentUserEmail(): String? {
+        return repository.getCurrentUserEmail()
+    }
+
     fun login() {
         _state.value = _state.value.copy(isLoading = true, error = null)
         viewModelScope.launch {

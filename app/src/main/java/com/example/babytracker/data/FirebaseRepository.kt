@@ -52,7 +52,9 @@ class FirebaseRepository @Inject constructor(
     fun isUserLoggedIn(): Boolean {
         return auth.currentUser != null
     }
-
+    fun getCurrentUserEmail(): String? {
+        return auth.currentUser?.email
+    }
     // Lit la préférence rememberMe en DataStore (suspend)
     suspend fun isRemembered(): Boolean {
         return context.dataStore.data.map { prefs ->
