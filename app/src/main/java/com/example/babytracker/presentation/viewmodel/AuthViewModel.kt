@@ -41,6 +41,18 @@ class AuthViewModel @Inject constructor(
     }
 
     fun register() {
+        val email = _state.value.email.trim()
+        val password = _state.value.password
+
+        if (email.isEmpty()) {
+            _state.value = _state.value.copy(error = "Email ne peut pas être vide")
+            return
+        }
+
+        if (password.isEmpty()) {
+            _state.value = _state.value.copy(error = "Mot de passe ne peut pas être vide")
+            return
+        }
         _state.value = _state.value.copy(isLoading = true, error = null)
         viewModelScope.launch {
             try {
