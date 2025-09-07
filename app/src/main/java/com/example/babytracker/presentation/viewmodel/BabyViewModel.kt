@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.util.Log // For logging errors
+import com.example.babytracker.data.Gender
 
 @HiltViewModel
 class BabyViewModel @Inject constructor(
@@ -64,15 +65,15 @@ class BabyViewModel @Inject constructor(
         _selectedBaby.value = baby
     }
 
-    fun addBaby(name: String, birthDate: Long) {
+    fun addBaby(name: String, birthDate: Long, gender: Gender = Gender.UNKNOWN) {
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                val newBaby = Baby(name = name, birthDate = birthDate)
+                val newBaby = Baby(name = name, birthDate = birthDate, gender = gender)
                 repository.addOrUpdateBaby(newBaby)
                 loadBabies() // Recharger la liste
             } catch (e: Exception) {
-                // TODO: Gérer l'erreur
+                _errorMessage.value = "Failed to add baby: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
