@@ -17,6 +17,7 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.toObject
 import com.google.firebase.firestore.toObjects
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
@@ -52,6 +53,12 @@ class FirebaseRepository @Inject constructor(
         return auth.currentUser != null
     }
 
+    // Lit la préférence rememberMe en DataStore (suspend)
+    suspend fun isRemembered(): Boolean {
+        return context.dataStore.data.map { prefs ->
+            prefs[REMEMBER_ME_KEY] ?: false
+        }.first()
+    }
     fun getCurrentUserId(): String? {
         return auth.currentUser?.uid
     }

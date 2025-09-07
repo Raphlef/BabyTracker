@@ -15,6 +15,16 @@ class AuthViewModel @Inject constructor(
     private val repository: FirebaseRepository
 ) : ViewModel() {
 
+    init {
+        viewModelScope.launch {
+            val userLoggedIn = repository.isUserLoggedIn()
+            val remembered = repository.isRemembered()
+            if (userLoggedIn && remembered) {
+                // Session valide et souvenue => connecté automatiquement
+                _state.value = _state.value.copy(isAuthenticated = true)
+            }
+        }
+    }
     private val _state = MutableStateFlow(AuthState())
     val state: StateFlow<AuthState> = _state.asStateFlow()
 
