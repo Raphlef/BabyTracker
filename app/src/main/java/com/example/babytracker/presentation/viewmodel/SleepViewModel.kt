@@ -18,7 +18,7 @@ import kotlin.concurrent.timer
 
 @HiltViewModel
 class SleepViewModel @Inject constructor(
-    private val eventViewModel: EventViewModel
+    private val repository: FirebaseRepository
 ) : ViewModel() {
 
     // --- UI State for Input Fields ---
@@ -89,24 +89,26 @@ class SleepViewModel @Inject constructor(
         val currentNotes = _notes.value.takeIf { it.isNotBlank() }
 
         viewModelScope.launch {
-            eventViewModel.addSleepEvent(
+            val event = SleepEvent(
                 babyId = babyId,
                 notes = currentNotes,
                 beginTime = currentBeginTime,
                 endTime = currentEndTime,
                 durationMinutes = currentDuratioNMinute,
-                isSleeping = currentIsSleeping
+                isSleeping = currentIsSleeping,
+                timestamp = Date()
             )
-            // A simple way if EventViewModel's _errorMessage is observable:
-            if (eventViewModel.errorMessage.value == null) { // Check error state from EventViewModel AFTER the call
-                Log.d("DiaperViewModel", "Delegated diaper event addition. Assuming success if no immediate error from EventViewModel.")
-                _saveSuccess.value = true // Signal UI
-                // Optionally reset fields here after successful save
-                // resetInputFields()
-            } else {
-                // Error was set by EventViewModel, this VM might not need to set its own _errorMessage
-                _errorMessage.value = eventViewModel.errorMessage.value ?: "Failed to save diaper event."
-            }
+            val result = repository.addEvent(event)
+            result.fold(
+                onSuccess = {
+                    Log.d("SleepViewModel", "Sleep event saved successfully.")
+                    _saveSuccess.value = true
+                    _errorMessage.value = null
+                },
+                onFailure = {
+                    _errorMessage.value = "Failed to save sleep event: ${it.localizedMessage}"
+                }
+            )
             _isSaving.value = false
         }
     }

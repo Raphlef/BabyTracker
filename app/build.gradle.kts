@@ -3,6 +3,9 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
+    id("dagger.hilt.android.plugin")
+    kotlin("kapt")
+    id("kotlin-kapt")
 }
 
 android {
@@ -54,6 +57,7 @@ dependencies {
     implementation(libs.navigation.compose)
     implementation(libs.navigation.compose)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.hilt.android)
 
     //icons
     implementation(libs.material.icons.core) // Or the latest version
@@ -80,6 +84,8 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    kapt(libs.hilt.compiler)
 
 
 }

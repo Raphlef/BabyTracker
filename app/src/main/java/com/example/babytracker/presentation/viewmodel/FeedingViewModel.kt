@@ -14,10 +14,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.util.Log
+import com.example.babytracker.data.FirebaseRepository
 
 @HiltViewModel
 class FeedingViewModel @Inject constructor(
-    private val eventViewModel: EventViewModel // Inject the shared EventViewModel
+    private val repository: FirebaseRepository
 ) : ViewModel() {
 
     // --- UI State for Input Fields ---
@@ -117,26 +118,8 @@ class FeedingViewModel @Inject constructor(
             }
         }
 
-        // Call the shared EventViewModel to add the event
-        // This leverages the existing repository call and error handling in EventViewModel
         viewModelScope.launch {
-            // Re-fetch the addFeedingEvent function from the general EventViewModel
-            // Note: This relies on EventViewModel being correctly implemented to handle Result
-            // and update its own error/loading states if necessary, or this ViewModel
-            // can observe EventViewModel's error state.
-            // For simplicity here, we assume EventViewModel's addFeedingEvent handles its own Result.
-
-            // To properly get feedback from eventViewModel.addFeedingEvent, it should ideally
-            // return a Result or have observable states for its own save operations.
-            // If eventViewModel.addFeedingEvent is a simple fire-and-forget that updates
-            // a shared list, this ViewModel might not get direct success/failure for *this specific* add.
-
-            // Let's assume a slightly different approach where this VM constructs the event
-            // and the EventViewModel has a more direct way to signal completion for THIS add,
-            // or this VM calls the repository IF it's decided that specific viewmodels handle their own saves.
-
-            // Given the previous correction to EventViewModel:
-            eventViewModel.addFeedingEvent(
+            val event = FeedingEvent(
                 babyId = babyId,
                 feedType = currentFeedType,
                 notes = currentNotes,
@@ -144,26 +127,16 @@ class FeedingViewModel @Inject constructor(
                 durationMinutes = currentDurationMinutes,
                 breastSide = currentBreastSide
             )
-
-            // How do we know if eventViewModel.addFeedingEvent succeeded or failed HERE?
-            // Option A: EventViewModel's addFeedingEvent returns a Result.
-            // Option B: Observe EventViewModel's _errorMessage and a potential _lastEventAddedSuccessfully flag.
-            // Option C: This FeedingViewModel calls the repository directly (less centralized).
-
-            // For now, let's assume if eventViewModel.addFeedingEvent doesn't throw an immediate error
-            // (or if it handles its own error display), we can proceed.
-            // A more robust solution would involve EventViewModel providing clearer feedback.
-
-            // A simple way if EventViewModel's _errorMessage is observable:
-            if (eventViewModel.errorMessage.value == null) { // Check error state from EventViewModel AFTER the call
-                Log.d("FeedingViewModel", "Delegated feeding event addition. Assuming success if no immediate error from EventViewModel.")
-                _saveSuccess.value = true // Signal UI
-                // Optionally reset fields here after successful save
-                // resetInputFields()
-            } else {
-                // Error was set by EventViewModel, this VM might not need to set its own _errorMessage
-                _errorMessage.value = eventViewModel.errorMessage.value ?: "Failed to save feeding event."
-            }
+            val result = repository.addEvent(event)
+            result.fold(
+                onSuccess = {
+                    Log.d("FeedingViewModel", "Feeding event saved successfully.")
+                    _saveSuccess.value = true
+                },
+                onFailure = {
+                    _errorMessage.value = "Failed to save feeding event: ${it.localizedMessage}"
+                }
+            )
             _isSaving.value = false
         }
     }

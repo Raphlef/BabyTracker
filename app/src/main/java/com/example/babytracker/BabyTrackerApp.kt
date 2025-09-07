@@ -1,5 +1,6 @@
 package com.example.babytracker
 
+import android.app.Application
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,6 +20,7 @@ import com.example.babytracker.presentation.dashboard.DashboardScreen
 import com.example.babytracker.presentation.viewmodel.AuthViewModel
 import com.example.babytracker.ui.theme.BabyTrackerTheme
 import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.HiltAndroidApp
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -59,4 +61,8 @@ fun BabyTrackerApp() {
             )
         }
     }
+}
+@HiltAndroidApp
+class BabyTrackerApplication : Application(){
+
 }

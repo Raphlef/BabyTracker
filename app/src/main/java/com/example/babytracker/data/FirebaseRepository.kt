@@ -24,9 +24,11 @@ import javax.inject.Inject
 // import com.example.babytracker.data.DiaperEvent
 // ... and so on
 
-class FirebaseRepository @Inject constructor() {
-    private val db = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
+class FirebaseRepository @Inject constructor(
+
+    private val auth: FirebaseAuth,
+    private val db: FirebaseFirestore
+) {
     private val TAG = "FirebaseRepository"
 
     companion object {
