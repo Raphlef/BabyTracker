@@ -54,15 +54,9 @@ fun BabyTrackerApp() {
     // Collect state from StateFlow
     val state by viewModel.state.collectAsState()
 
-    val startDestination = when {
-        !state.isAuthenticated -> "auth"
-        state.firstBabyId != null  -> "dashboard/${state.firstBabyId}"
-        else                       -> "baby_selection"
-    }
-
     NavHost(
         navController = navController,
-        startDestination = startDestination
+        startDestination = "auth"
     ) {
         composable("auth") {
             AuthScreen(
