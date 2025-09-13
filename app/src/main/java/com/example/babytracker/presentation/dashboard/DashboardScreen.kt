@@ -65,19 +65,18 @@ fun DashboardScreen(
 
     // Load all babies – ensure BabyViewModel manages this
     val babies by viewModel.babies.collectAsState()
-    var selectedBaby by remember { mutableStateOf<Baby?>(null) }
+    val selectedBaby by viewModel.selectedBaby.collectAsState()
 
     // Initialize selectedBaby on first composition
     LaunchedEffect(babies, initialBabyId) {
-        if (selectedBaby == null && babies.isNotEmpty()) {
-            val toSelect = babies.find { it.id == initialBabyId } ?: babies.first()
+        if (babies.isNotEmpty() && selectedBaby == null) {
+            val toSelect = initialBabyId?.let { id ->
+                babies.find { it.id == id }
+            } ?: babies.first()
             viewModel.selectBaby(toSelect)
         }
     }
 
-    LaunchedEffect(selectedBaby) {
-        selectedBaby?.let { viewModel.selectBaby(it) }
-    }
     // Define which screens appear in the bottom nav bar
     val bottomNavScreens = listOf(
         Screen.Feeding,
@@ -136,7 +135,6 @@ fun DashboardScreen(
                     items(babies) { baby ->
                         OutlinedButton(
                             onClick = {
-                                selectedBaby = baby
                                 viewModel.selectBaby(baby) },
                             modifier = Modifier.height(36.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
