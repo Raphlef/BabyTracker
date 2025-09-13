@@ -12,6 +12,7 @@ import com.example.babytracker.data.event.GrowthEvent
 import com.example.babytracker.data.event.PumpingEvent
 import com.example.babytracker.data.event.SleepEvent
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.snapshots
@@ -244,7 +245,54 @@ class FirebaseRepository @Inject constructor(
         // Commit batch single write
         batch.commit().await()
     }
+    suspend fun findUserIdByEmail(email: String): String? {
+        val snapshot = db.collection("users")
+            .whereEqualTo("email", email)
+            .limit(1)
+            .get()
+            .await()
+        return snapshot.documents.firstOrNull()?.id
+    }
 
+    /**
+     * Invite un collaborateur à un bébé en ajoutant son userId
+     * à la liste collaboratorIds du document Baby.
+     */
+    suspend fun addCollaboratorToBaby(babyId: String, collaboratorEmail: String) {
+        // 1. Trouver l'utilisateur
+        val userId = findUserIdByEmail(collaboratorEmail)
+            ?: throw IllegalArgumentException("Aucun utilisateur avec cet email")
+        // 2. Référence du document Baby
+        val babyRef = db.collection(BABIES_COLLECTION).document(babyId)
+        // 3. Transaction pour ajouter sans écraser
+        db.runTransaction { tx ->
+            val snapshot = tx.get(babyRef)
+            // Récupérer ou initialiser la liste
+            val current = snapshot.get("collaboratorIds") as? List<String> ?: emptyList()
+            if (!current.contains(userId)) {
+                tx.update(
+                    babyRef,
+                    "collaboratorIds", current + userId,
+                    "updatedAt", System.currentTimeMillis()
+                )
+            }
+        }.await()
+    }
+    /**
+     * Récupère la liste des utilisateurs correspondant aux IDs fournis.
+     * Retourne une liste vide si ids est vide.
+     */
+    suspend fun getUsersByIds(ids: List<String>): List<User> {
+        if (ids.isEmpty()) return emptyList()
+        // Firestore limite whereIn à 10 éléments.
+        return ids.chunked(10).flatMap { chunk ->
+            db.collection("users")
+                .whereIn(FieldPath.documentId(), chunk)
+                .get()
+                .await()
+                .toObjects(User::class.java)
+        }
+    }
     // --- Event Methods ---
 
     /**

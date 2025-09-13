@@ -18,6 +18,7 @@ fun TopAppBar(
     showBackButton: Boolean = false,
     onLogout: (() -> Unit)? = null,          // Callback déconnexion
     onNavigateSettings: (() -> Unit)? = null, // Callback navigation settings
+    onNavigateCollaborators: (() -> Unit)? = null,// Callback navigation collaborateurs
     actions: @Composable () -> Unit = {}
 ) {
 
@@ -51,23 +52,25 @@ fun TopAppBar(
                     onClick = { /* TODO: Implémenter l'export */ }
                 )
                 DropdownMenuItem(
+                    text = { Text(stringResource(R.string.collaborators)) },
+                    onClick = {
+                        showMenu = false
+                        onNavigateCollaborators?.invoke()
+                    }
+                )
+                DropdownMenuItem(
                     text = { Text(stringResource(R.string.settings)) },
                     onClick = {
                         showMenu = false
                         onNavigateSettings?.invoke()
                     }
                 )
-
                 DropdownMenuItem(
                     text = { Text("Déconnexion") },
                     onClick = {
                         showMenu = false
                         onLogout?.invoke()
                     }
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.collaborators)) },
-                    onClick = { /* TODO: Gérer les collaborateurs */ }
                 )
             }
 

@@ -87,7 +87,9 @@ fun DashboardScreen(
 
     // Manage selectedScreen state here, defaulting to the first item in bottomNavScreens
     var selectedScreen by rememberSaveable(stateSaver = ScreenSaver) { // Use custom saver for Screen
-        mutableStateOf<Screen>(bottomNavScreens.firstOrNull() ?: Screen.Feeding) // Default to Feeding or first
+        mutableStateOf<Screen>(
+            bottomNavScreens.firstOrNull() ?: Screen.Feeding
+        ) // Default to Feeding or first
     }
     Scaffold(
         topBar = {
@@ -102,6 +104,9 @@ fun DashboardScreen(
                 },
                 onNavigateSettings = {
                     navController.navigate("settings")
+                },
+                onNavigateCollaborators = {
+                    navController.navigate("collaborators/{babyId}")
                 }
             )
         },
@@ -113,7 +118,7 @@ fun DashboardScreen(
                 onScreenSelected = { newScreen -> selectedScreen = newScreen }
             )
         }
-    ) { padding  ->
+    ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
             if (babies.isNotEmpty()) {
                 // Baby selector with "Add Baby" button
@@ -128,7 +133,8 @@ fun DashboardScreen(
                     items(babies) { baby ->
                         OutlinedButton(
                             onClick = {
-                                viewModel.selectBaby(baby) },
+                                viewModel.selectBaby(baby)
+                            },
                             modifier = Modifier.height(36.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 containerColor = if (baby == selectedBaby)
@@ -210,10 +216,12 @@ fun BabySelector(
     selectedBaby: Baby?,
     onBabySelected: (Baby) -> Unit
 ) {
-    Row(modifier = Modifier
-        .fillMaxWidth()
-        .horizontalScroll(rememberScrollState())
-        .padding(8.dp)) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(8.dp)
+    ) {
         babies.forEach { baby ->
             OutlinedButton(
                 onClick = { onBabySelected(baby) },
@@ -241,7 +249,11 @@ fun BabyInfoBar(baby: Baby) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("Nom: ${baby.name}", style = MaterialTheme.typography.titleMedium)
-            Text("Naissance: ${java.text.SimpleDateFormat("dd/MM/yyyy").format(java.util.Date(baby.birthDate))}", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "Naissance: ${
+                    java.text.SimpleDateFormat("dd/MM/yyyy").format(java.util.Date(baby.birthDate))
+                }", style = MaterialTheme.typography.bodyMedium
+            )
             Text("Genre: ${baby.gender.name}")
             // Add more info if needed (photo, notes, etc.)
         }
@@ -258,7 +270,15 @@ val ScreenSaver = Saver<Screen, String>(
         // This requires you to have a way to get all possible Screen objects
         // or to check against each known object.
         // For example:
-        listOf(Screen.Feeding, Screen.Diaper, Screen.Sleep, Screen.Growth, Screen.Dashboard, Screen.Auth, Screen.BabySelection)
+        listOf(
+            Screen.Feeding,
+            Screen.Diaper,
+            Screen.Sleep,
+            Screen.Growth,
+            Screen.Dashboard,
+            Screen.Auth,
+            Screen.BabySelection
+        )
             .find { it.route == route } ?: Screen.Feeding // Default if not found
     }
 )

@@ -25,6 +25,7 @@ import com.example.babytracker.presentation.baby.AddBabyScreen
 import com.example.babytracker.presentation.baby.BabySelectionScreen
 import com.example.babytracker.presentation.baby.EditBabyScreen
 import com.example.babytracker.presentation.dashboard.DashboardScreen
+import com.example.babytracker.presentation.settings.CollaboratorsScreen
 import com.example.babytracker.presentation.settings.SettingsScreen
 import com.example.babytracker.presentation.viewmodel.AuthViewModel
 import com.example.babytracker.ui.theme.BabyTrackerTheme
@@ -123,6 +124,17 @@ fun BabyTrackerApp() {
         composable("settings") {
             SettingsScreen(
                 navController = navController
+            )
+        }
+        composable(
+            route = "collaborators/{babyId}",
+            arguments = listOf(navArgument("babyId") {
+                type = NavType.StringType
+            })
+        ) { backStackEntry ->
+            CollaboratorsScreen(
+                navController = navController,
+                babyViewModel = hiltViewModel()       // pass same VM if needed
             )
         }
     }

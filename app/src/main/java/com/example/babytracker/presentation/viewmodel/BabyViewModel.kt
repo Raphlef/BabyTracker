@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.util.Log // For logging errors
 import com.example.babytracker.data.Gender
+import com.example.babytracker.data.User
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onEach
@@ -57,6 +58,45 @@ class BabyViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    private val _collaborators = MutableStateFlow<List<User>>(emptyList())
+    val collaborators: StateFlow<List<User>> = _collaborators.asStateFlow()
+
+    fun loadCollaborators(babyId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            try {
+                // Récupération sécurisée du bébé
+                val baby = repository.getBabyById(babyId).getOrElse {
+                    throw it
+                } ?: throw IllegalStateException("Bébé introuvable")
+
+                // Extraction des IDs et chargement des users
+                val ids = baby.parentIds
+                _collaborators.value =
+                    if (ids.isEmpty()) emptyList()
+                    else repository.getUsersByIds(ids)
+            } catch (e: Exception) {
+                _errorMessage.value = "Erreur chargement collaborateurs : ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+    fun inviteCollaborator(babyId: String, email: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            try {
+                repository.addCollaboratorToBaby(babyId, email)
+                loadCollaborators(babyId)
+            } catch (e: Exception) {
+                _errorMessage.value = "Invitation échouée : ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
     fun selectBaby(baby: Baby) {
         _selectedBaby.value = baby
     }
