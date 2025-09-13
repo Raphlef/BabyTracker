@@ -70,7 +70,8 @@ fun DashboardScreen(
     // Initialize selectedBaby on first composition
     LaunchedEffect(babies, initialBabyId) {
         if (selectedBaby == null && babies.isNotEmpty()) {
-            selectedBaby = babies.find { it.id == initialBabyId } ?: babies.first()
+            val toSelect = babies.find { it.id == initialBabyId } ?: babies.first()
+            viewModel.selectBaby(toSelect)
         }
     }
 

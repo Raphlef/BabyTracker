@@ -14,6 +14,7 @@ import com.example.babytracker.data.event.SleepEvent
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.snapshots
 import com.google.firebase.firestore.toObject
 import com.google.firebase.firestore.toObjects
 import kotlinx.coroutines.flow.Flow
@@ -112,7 +113,17 @@ class FirebaseRepository @Inject constructor(
             Result.failure(e)
         }
     }
-
+    fun streamBabies(): Flow<List<Baby>> {
+        val userId = auth.currentUser?.uid
+            ?: throw IllegalStateException("User not authenticated")
+        return db.collection(BABIES_COLLECTION)
+            .whereArrayContains("parentIds", userId)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .snapshots()                              // écoute en temps réel
+            .map { snapshot ->
+                snapshot.toObjects(Baby::class.java)
+            }
+    }
     suspend fun getBabies(): Result<List<Baby>> {
         return try {
             val userId = auth.currentUser?.uid ?: return Result.failure(Exception("User not authenticated"))

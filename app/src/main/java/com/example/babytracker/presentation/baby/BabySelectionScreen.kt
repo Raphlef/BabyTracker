@@ -30,11 +30,6 @@ fun BabySelectionScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     val babyToDelete = selectedBaby
 
-    // Forcer le chargement de la liste à chaque affichage de l’écran
-    LaunchedEffect(babyViewModel) {
-        babyViewModel.loadBabies()
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()

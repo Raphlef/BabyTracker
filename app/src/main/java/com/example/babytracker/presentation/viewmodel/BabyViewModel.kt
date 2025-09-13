@@ -12,14 +12,21 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.util.Log // For logging errors
 import com.example.babytracker.data.Gender
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 
 @HiltViewModel
 class BabyViewModel @Inject constructor(
     private val repository: FirebaseRepository
 ) : ViewModel() {
 
-    private val _babies = MutableStateFlow<List<Baby>>(emptyList())
-    val babies: StateFlow<List<Baby>> = _babies.asStateFlow()
+    val babies: StateFlow<List<Baby>> = repository
+        .streamBabies()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
 
     private val _selectedBaby = MutableStateFlow<Baby?>(null)
     val selectedBaby: StateFlow<Baby?> = _selectedBaby.asStateFlow()
@@ -31,36 +38,6 @@ class BabyViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    init {
-        loadBabies()
-    }
-
-    fun loadBabies() {
-        _isLoading.value = true
-        _errorMessage.value = null // Clear previous error
-        viewModelScope.launch {
-
-            val result: Result<List<Baby>> = repository.getBabies() // Get the Result object
-
-            result.fold(
-                onSuccess = { babiesList ->
-                    _babies.value = babiesList
-                    if (_selectedBaby.value == null && babiesList.isNotEmpty()) {
-                        _selectedBaby.value = babiesList.first()
-                    }
-                },
-                onFailure = { exception ->
-                    // Handle the error appropriately
-                    Log.e("BabyViewModel", "Error loading babies: ${exception.message}", exception)
-                    _babies.value = emptyList() // Clear babies list on error or keep previous
-                    _errorMessage.value = "Failed to load babies: ${exception.localizedMessage}"
-                    // TODO: Gérer l'erreur (e.g., show a snackbar or message to the user)
-                }
-            )
-            _isLoading.value = false // Set loading to false in both cases
-        }
-    }
-
     fun selectBaby(baby: Baby) {
         _selectedBaby.value = baby
     }
@@ -71,7 +48,6 @@ class BabyViewModel @Inject constructor(
             try {
                 val newBaby = Baby(name = name, birthDate = birthDate, gender = gender)
                 repository.addOrUpdateBaby(newBaby)
-                loadBabies() // Recharger la liste
             } catch (e: Exception) {
                 _errorMessage.value = "Failed to add baby: ${e.message}"
             } finally {
@@ -92,13 +68,12 @@ class BabyViewModel @Inject constructor(
             try {
                 val updatedBaby = Baby(id = id, name = name, birthDate = birthDate, gender = gender)
                 repository.addOrUpdateBaby(updatedBaby)
-                loadBabies()
-                // Réaffecte la sélection au bébé mis à jour
-                _selectedBaby.value = updatedBaby
             } catch (e: Exception) {
                 Log.e("BabyViewModel", "Error updating baby: ${e.message}", e)
                 _errorMessage.value = "Failed to update baby: ${e.localizedMessage}"
             } finally {
+                _selectedBaby.value = _selectedBaby.value?.takeIf { it.id == id }
+                    ?.copy(name = name, birthDate = birthDate, gender = gender)
                 _isLoading.value = false
             }
         }
@@ -107,18 +82,13 @@ class BabyViewModel @Inject constructor(
     fun deleteBaby(babyId: String) {
         _isLoading.value = true
         viewModelScope.launch {
-            try {
-                repository.deleteBaby(babyId)
-                loadBabies()
-                if (_selectedBaby.value?.id == babyId) {
-                    _selectedBaby.value = null
-                }
-            } catch (e: Exception) {
-                _errorMessage.value = "Erreur lors de la suppression: ${e.message}"
-            } finally {
-                _isLoading.value = false
+            repository.deleteBaby(babyId).onFailure {
+                _errorMessage.value = "Échec de la suppression : ${it.message}"
             }
+            if (_selectedBaby.value?.id == babyId) {
+                _selectedBaby.value = null
+            }
+            _isLoading.value = false
         }
     }
-    // TODO: Ajouter des méthodes pour gérer les événements (alimentation, couches, etc.)
 }

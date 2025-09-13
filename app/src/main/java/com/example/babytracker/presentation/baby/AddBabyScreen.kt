@@ -23,10 +23,20 @@ fun AddBabyScreen(
     var name by remember { mutableStateOf("") }
     var birthDate by remember { mutableStateOf(Calendar.getInstance()) }
     var gender by remember { mutableStateOf(Gender.UNKNOWN) }
+
     var showError by remember { mutableStateOf(false) }
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
+    var saveClicked by remember { mutableStateOf(false) }
+    var wasLoading by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isLoading, errorMessage) {
+        if (saveClicked && wasLoading && !isLoading && errorMessage == null) {
+            onBabyAdded()
+        }
+        wasLoading = isLoading
+    }
     val context = LocalContext.current
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
     val birthDateString = dateFormat.format(birthDate.time)
@@ -103,6 +113,7 @@ fun AddBabyScreen(
                         showError = true
                         return@Button
                     }
+                    saveClicked = true
                     // Crée le bébé et sélectionne-le
                     viewModel.addBaby(name.trim(), birthDate.timeInMillis, gender)
 
