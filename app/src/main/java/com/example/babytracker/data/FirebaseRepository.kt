@@ -39,6 +39,7 @@ class FirebaseRepository @Inject constructor(
     private val TAG = "FirebaseRepository"
 
     companion object {
+        private const val USERS_COLLECTION = "users"
         private const val BABIES_COLLECTION = "babies"
         private const val EVENTS_COLLECTION = "events"
         private val REMEMBER_ME_KEY = booleanPreferencesKey("remember_me")
@@ -50,19 +51,20 @@ class FirebaseRepository @Inject constructor(
     }
 
     suspend fun register(email: String, password: String) {
-        auth.createUserWithEmailAndPassword(email, password).await()
+        val normalizedEmail = email.trim().lowercase(Locale.getDefault())
+        auth.createUserWithEmailAndPassword(normalizedEmail, password).await()
         val userId = auth.currentUser?.uid
             ?: throw IllegalStateException("Impossible de récupérer l’UID utilisateur")
         val user = User(
             id = userId,
-            email = email,
+            email = normalizedEmail,
             displayName = "",            // Peut être rempli via un formulaire ultérieur
             photoUrl = null,
             theme = Theme.SYSTEM,
             notificationsEnabled = true,
             locale = Locale.getDefault().language
         )
-        db.collection("users")
+        db.collection(USERS_COLLECTION)
             .document(userId)
             .set(user)
             .await()
@@ -71,7 +73,7 @@ class FirebaseRepository @Inject constructor(
     suspend fun getCurrentUserProfile(): User {
         val userId = auth.currentUser?.uid
             ?: throw IllegalStateException("Utilisateur non authentifié")
-        val doc = db.collection("users").document(userId).get().await()
+        val doc = db.collection(USERS_COLLECTION).document(userId).get().await()
         return doc.toObject(User::class.java)
             ?: throw IllegalStateException("Profil utilisateur introuvable")
     }
@@ -80,7 +82,7 @@ class FirebaseRepository @Inject constructor(
         val userId = auth.currentUser?.uid
             ?: throw IllegalStateException("Utilisateur non authentifié")
         val merged = updates + ("updatedAt" to System.currentTimeMillis())
-        db.collection("users")
+        db.collection(USERS_COLLECTION)
             .document(userId)
             .update(merged)
             .await()
@@ -243,7 +245,8 @@ class FirebaseRepository @Inject constructor(
         batch.commit().await()
     }
     suspend fun findUserIdByEmail(email: String): String? {
-        val snapshot = db.collection("users")
+        val normalizedEmail = email.trim().lowercase(Locale.getDefault())
+        val snapshot = db.collection(USERS_COLLECTION)
             .whereEqualTo("email", email)
             .limit(1)
             .get()
@@ -283,7 +286,7 @@ class FirebaseRepository @Inject constructor(
         if (ids.isEmpty()) return emptyList()
         // Firestore limite whereIn à 10 éléments.
         return ids.chunked(10).flatMap { chunk ->
-            db.collection("users")
+            db.collection(USERS_COLLECTION)
                 .whereIn(FieldPath.documentId(), chunk)
                 .get()
                 .await()
