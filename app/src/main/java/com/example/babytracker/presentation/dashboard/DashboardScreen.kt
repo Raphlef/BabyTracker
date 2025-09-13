@@ -105,13 +105,6 @@ fun DashboardScreen(
                 }
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { selectedBaby?.let { navController.navigate("add_event/${it.id}") } }
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Ajouter un événement")
-            }
-        },
         bottomBar = {
             BottomNavBar(
                 navController = navController,
