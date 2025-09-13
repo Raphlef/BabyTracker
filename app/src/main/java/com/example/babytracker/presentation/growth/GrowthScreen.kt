@@ -5,6 +5,7 @@ import android.os.Build
 import android.widget.DatePicker
 import androidx.activity.result.launch
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -47,7 +48,7 @@ fun GrowthScreen(
     val headCircumferenceCm by viewModel.headCircumferenceCm.collectAsState()
     val notes by viewModel.notes.collectAsState()
 
-
+    val isLoadingInitial by viewModel.isLoadingInitial.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
     val saveSuccess by viewModel.saveSuccess.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
@@ -55,6 +56,9 @@ fun GrowthScreen(
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
     val currentBabyId = selectedBaby?.id
 
+    LaunchedEffect(currentBabyId) {
+        currentBabyId?.let { viewModel.loadLastGrowth(it) }
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
@@ -89,6 +93,11 @@ fun GrowthScreen(
             snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Long)
             viewModel.clearErrorMessage() // Clear the error message after showing
         }
+    }
+
+    // Mettre à jour measurementCal si measurementTs change
+    LaunchedEffect(measurementTs) {
+        measurementCal.timeInMillis = measurementTs
     }
 
     Scaffold( // Added Scaffold for Snackbar support
@@ -220,20 +229,17 @@ fun GrowthScreen(
                     Text("Save Measurement")
                 }
             }
-
-            // Error message display from the button click (now handled by LaunchedEffect and Snackbar)
-            // state.error?.let { // This specific error text can be removed if snackbar is sufficient
-            //     Spacer(modifier = Modifier.height(16.dp))
-            //     Text(
-            //         text = it,
-            //         color = MaterialTheme.colorScheme.error,
-            //         style = MaterialTheme.typography.bodySmall
-            //     )
-            // }
-
-            // TODO: Ajouter des courbes de percentile (OMS) - This involves more complex chart setup
-            // TODO: Implémenter un suivi du périmètre crânien - Covered by the head circumference field
-            // TODO: Ajouter des rappels pour les prochaines mesures - This is a separate feature
+        }
+    }
+    // Overlay de chargement initial
+    if (isLoadingInitial) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
         }
     }
 }

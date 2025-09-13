@@ -42,6 +42,8 @@ class GrowthViewModel @Inject constructor(
     val headCircumferenceCm: StateFlow<Double?> = _headCircumferenceCm.asStateFlow()
 
     // --- State for UI feedback ---
+    private val _isLoadingInitial = MutableStateFlow(false)
+    val isLoadingInitial: StateFlow<Boolean> = _isLoadingInitial.asStateFlow()
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
 
@@ -73,30 +75,22 @@ class GrowthViewModel @Inject constructor(
         _measurementTimestamp.value = ms
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun saveGrowthEvent(babyId: String) {
         if (babyId.isBlank()) {
             _errorMessage.value = "Baby ID is missing."
             return
         }
 
-        _isSaving.value = true
-        _errorMessage.value = null
-        _saveSuccess.value = false
-
-        val currentHeightCm = _heightCm.value
-        val currentWeightKg = _weightKg.value
-        val currentHeadCircumferenceCm = _headCircumferenceCm.value
-        val currentNotes = _notes.value.takeIf { it.isNotBlank() }
         val timestampDate = Date(_measurementTimestamp.value)
         viewModelScope.launch {
+            _isSaving.value = true
             val event = GrowthEvent(
                 babyId = babyId,
-                heightCm = currentHeightCm,
-                weightKg = currentWeightKg,
-                headCircumferenceCm = currentHeadCircumferenceCm,
                 timestamp = timestampDate,
-                notes = currentNotes
+                weightKg = _weightKg.value,
+                heightCm = _heightCm.value,
+                headCircumferenceCm = _headCircumferenceCm.value,
+                notes = _notes.value
             )
             val result = repository.addEvent(event)
             result.fold(
@@ -131,7 +125,24 @@ class GrowthViewModel @Inject constructor(
         _saveSuccess.value = false
     }
 
-
-    // TODO: Ajouter le calcul des percentiles selon les courbes OMS
-    // TODO: Implémenter la génération des courbes de croissance
+    fun loadLastGrowth(babyId: String) {
+        viewModelScope.launch {
+            _isLoadingInitial.value = true
+            repository.getLastGrowthEvent(babyId)
+                .onSuccess { event ->
+                event?.let {
+                    _measurementTimestamp.value = it.timestamp.time
+                    _weightKg.value = it.weightKg ?: 0.0
+                    _heightCm.value = it.heightCm ?: 0.0
+                    _headCircumferenceCm.value = it.headCircumferenceCm ?: 0.0
+                    _notes.value = it.notes.orEmpty()
+                }
+            }
+                .onFailure { throwable ->
+                    _errorMessage.value = "Erreur chargement historique: ${throwable.message}"
+                    Log.e("GrowthVM", "loadLastGrowth failed", throwable)
+                }
+            _isLoadingInitial.value = false
+        }
+    }
 }
