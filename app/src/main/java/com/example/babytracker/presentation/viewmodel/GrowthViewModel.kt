@@ -1,22 +1,26 @@
 package com.example.babytracker.presentation.viewmodel
 
-import android.os.Build
+import android.graphics.Color
 import android.util.Log
-import androidx.annotation.RequiresApi
+import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.babytracker.data.event.GrowthEvent
 import com.example.babytracker.data.FirebaseRepository
+import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.ZoneId
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
+import androidx.compose.ui.graphics.Color as ComposeColor
 
 @HiltViewModel
 class GrowthViewModel @Inject constructor(
@@ -41,9 +45,13 @@ class GrowthViewModel @Inject constructor(
     private val _headCircumferenceCm = MutableStateFlow(0.0)
     val headCircumferenceCm: StateFlow<Double?> = _headCircumferenceCm.asStateFlow()
 
+    // Liste de tous les événements de croissance pour le bébé courant
+    private val _growthEvents = MutableStateFlow<List<GrowthEvent>>(emptyList())
+    val growthEvents: StateFlow<List<GrowthEvent>> = _growthEvents.asStateFlow()
+
     // --- State for UI feedback ---
-    private val _isLoadingInitial = MutableStateFlow(false)
-    val isLoadingInitial: StateFlow<Boolean> = _isLoadingInitial.asStateFlow()
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
 
@@ -75,6 +83,73 @@ class GrowthViewModel @Inject constructor(
         _measurementTimestamp.value = ms
     }
 
+    fun loadGrowthEvents(babyId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            repository.getGrowthEvents(babyId, limit = 100)
+                .onSuccess { events ->
+                    Log.d("GrowthVM", "Loaded ${events.size} growth events for babyId=$babyId")
+                    _growthEvents.value = events.sortedBy { it.timestamp }
+                }
+                .onFailure {
+                    Log.e("GrowthVM", "Error loading growth events", it)
+                    _errorMessage.value = "Impossible de charger l’historique de croissance."
+                }
+            _isLoading.value = false
+        }
+    }
+
+    fun getMultiLineData(): Pair<LineData, IndexAxisValueFormatter> {
+        val events = _growthEvents.value.sortedBy { it.timestamp.time }
+        Log.d("GrowthVM", "Display ${events.size} growth events for chart")
+        // Axe X : liste de dates formatées
+        val dateLabels = events.map { SimpleDateFormat("dd/MM", Locale.getDefault()).format(it.timestamp) }
+
+        // Création des Entry pour chaque propriété
+        val weightEntries = events.mapIndexed { i, e -> Entry(i.toFloat(), e.weightKg?.toFloat() ?: 0f) }
+        val heightEntries = events.mapIndexed { i, e -> Entry(i.toFloat(), e.heightCm?.toFloat() ?: 0f) }
+        val headEntries   = events.mapIndexed { i, e -> Entry(i.toFloat(), e.headCircumferenceCm?.toFloat() ?: 0f) }
+
+        // DataSets
+        val weightSet = LineDataSet(weightEntries, "Poids (kg)").apply {
+            color = ComposeColor.Blue.toArgb()
+            valueTextColor = ComposeColor.Blue.toArgb()
+            lineWidth = 2f; circleRadius = 4f; setDrawCircles(true); setDrawValues(false)
+        }
+        val heightSet = LineDataSet(heightEntries, "Taille (cm)").apply {
+            color = ComposeColor.Green.toArgb()
+            valueTextColor = ComposeColor.Green.toArgb()
+            lineWidth = 2f; circleRadius = 4f; setDrawCircles(true); setDrawValues(false)
+        }
+        val headSet = LineDataSet(headEntries, "Périmètre (cm)").apply {
+            color = ComposeColor.Red.toArgb()
+            valueTextColor = ComposeColor.Red.toArgb()
+            lineWidth = 2f; circleRadius = 4f; setDrawCircles(true); setDrawValues(false)
+        }
+
+        // Concaténation et formatter pour l'axe X
+        val data = LineData(weightSet, heightSet, headSet)
+        val xFormatter = IndexAxisValueFormatter(dateLabels)
+        return Pair(data, xFormatter)
+    }
+
+    fun getLineData(): LineData {
+        // Crée une Entry(x = index, y = weight)
+        val entries = _growthEvents.value.mapIndexed { index, event ->
+            Entry(index.toFloat(), event.weightKg?.toFloat() ?: 0f)
+        }
+
+        val dataSet = LineDataSet(entries, "Poids (kg)").apply {
+            color = Color.BLUE
+            valueTextColor = Color.BLACK
+            lineWidth = 2f
+            circleRadius = 4f
+            setDrawCircles(true)
+            setDrawValues(false)
+        }
+
+        return LineData(dataSet)
+    }
     fun saveGrowthEvent(babyId: String) {
         if (babyId.isBlank()) {
             _errorMessage.value = "Baby ID is missing."
@@ -98,6 +173,7 @@ class GrowthViewModel @Inject constructor(
                     Log.d("GrowthViewModel", "Growth event saved successfully.")
                     _saveSuccess.value = true
                     _errorMessage.value = null
+                    loadGrowthEvents(babyId)
                 },
                 onFailure = {
                     _errorMessage.value = "Failed to save growth event: ${it.localizedMessage}"
@@ -115,19 +191,9 @@ class GrowthViewModel @Inject constructor(
         _errorMessage.value = null
     }
 
-    // Optional: Function to reset all input fields
-    fun resetInputFields() {
-        _heightCm.value = 0.0
-        _weightKg.value = 0.0
-        _headCircumferenceCm.value = 0.0
-        _notes.value = ""
-        _errorMessage.value = null
-        _saveSuccess.value = false
-    }
-
     fun loadLastGrowth(babyId: String) {
         viewModelScope.launch {
-            _isLoadingInitial.value = true
+            _isLoading.value = true
             repository.getLastGrowthEvent(babyId)
                 .onSuccess { event ->
                 event?.let {
@@ -142,7 +208,7 @@ class GrowthViewModel @Inject constructor(
                     _errorMessage.value = "Erreur chargement historique: ${throwable.message}"
                     Log.e("GrowthVM", "loadLastGrowth failed", throwable)
                 }
-            _isLoadingInitial.value = false
+            _isLoading.value = false
         }
     }
 }

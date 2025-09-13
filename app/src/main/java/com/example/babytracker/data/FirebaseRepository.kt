@@ -369,6 +369,21 @@ class FirebaseRepository @Inject constructor(
     }
 
 
+    suspend fun getLastGrowthEvent(babyId: String): Result<GrowthEvent?> = runCatching {
+        val userId = auth.currentUser?.uid
+            ?: throw IllegalStateException("User not authenticated")
+
+        val snapshot = db.collection(EVENTS_COLLECTION)
+            .whereEqualTo("babyId", babyId)
+            .whereEqualTo("eventTypeString", "GROWTH")
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .limit(1)
+            .get()
+            .await()
+
+        snapshot.toObjects(GrowthEvent::class.java).firstOrNull()
+    }
+
     // --- Methods to fetch specific event types (Optional but can be useful) ---
 
     suspend fun getFeedingEvents(babyId: String, limit: Long = 20): Result<List<FeedingEvent>> {
@@ -419,37 +434,29 @@ class FirebaseRepository @Inject constructor(
         limit: Long
     ): Result<List<T>> {
         return try {
-            val userId = auth.currentUser?.uid ?: return Result.failure(Exception("User not authenticated"))
-            val documents = db.collection(EVENTS_COLLECTION)
+            val userId = auth.currentUser?.uid
+                ?: return Result.failure(Exception("User not authenticated"))
+            // Construction de la query sans .limit() par défaut
+            var query = db.collection(EVENTS_COLLECTION)
                 .whereEqualTo("babyId", babyId)
-                .whereEqualTo("userId", userId) // Security rule
+                .whereEqualTo("userId", userId)
                 .whereEqualTo("eventTypeString", eventTypeString)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
-                .limit(limit)
-                .get()
-                .await()
+            // Appliquer la limite si elle est strictement positive
+            if (limit > 0) {
+                query = query.limit(limit)
+            }
+            val documents = query.get().await()
 
             val events = documents.mapNotNull { doc ->
                 val event = doc.toObject(clazz)
-                // Re-apply java.util.Date for timestamp and notes if needed, as they might be lost
-                // This is a bit tricky with generics and Firestore's toObject.
-                // The getAllEventsForBaby approach with manual mapping is more robust for timestamp conversion.
-                // For simplicity here, we assume toObject works well enough, or you might need custom deserializers.
-                // The base `timestamp` and `notes` are part of the `Event` sealed class.
-                // Firestore should map them correctly if the field names match.
-                // However, `com.google.firebase.Timestamp` will be the type for `timestamp` field.
-                // Need to convert it back to `java.util.Date`.
                 val firestoreTimestamp = doc.getTimestamp("timestamp")
-                // This part is tricky with generics. A common pattern is to have a common interface
-                // for events that need timestamp conversion or handle it in the ViewModel.
-                // For now, let's assume direct mapping works or do it manually if it's a known type.
                 if (firestoreTimestamp != null) {
-                    // This reflection part is a bit of a hack and might not be robust.
                     try {
                         val timestampField = clazz.getDeclaredField("timestamp")
                         timestampField.isAccessible = true
                         timestampField.set(event, firestoreTimestamp.toDate())
-                    } catch (e: NoSuchFieldException) { /* ignore */ }
+                    } catch (_: NoSuchFieldException) { }
                 }
                 event
             }

@@ -2,17 +2,12 @@ package com.example.babytracker.presentation.growth
 
 import android.app.DatePickerDialog
 import android.os.Build
-import android.widget.DatePicker
-import androidx.activity.result.launch
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,18 +18,13 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import com.example.babytracker.presentation.viewmodel.GrowthViewModel
-import com.example.babytracker.presentation.viewmodel.SleepViewModel
 import com.github.mikephil.charting.charts.LineChart
 import kotlinx.coroutines.launch
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.ui.platform.LocalContext
 import java.text.SimpleDateFormat
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.util.Calendar
-import java.util.Date
 import java.util.Locale
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -48,23 +38,33 @@ fun GrowthScreen(
     val headCircumferenceCm by viewModel.headCircumferenceCm.collectAsState()
     val notes by viewModel.notes.collectAsState()
 
-    val isLoadingInitial by viewModel.isLoadingInitial.collectAsState()
+    val isLoadingInitial by viewModel.isLoading.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
     val saveSuccess by viewModel.saveSuccess.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
-    val currentBabyId = selectedBaby?.id
+    val babyId = selectedBaby?.id
 
-    LaunchedEffect(currentBabyId) {
-        currentBabyId?.let { viewModel.loadLastGrowth(it) }
+    LaunchedEffect(babyId) {
+        babyId?.let {
+            viewModel.loadGrowthEvents(it)
+            viewModel.loadLastGrowth(it)    // Pour préremplissage du form
+        }
     }
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
 
+    val isLoading by viewModel.isLoading.collectAsState()
+    val growthEvents by viewModel.growthEvents.collectAsState()
+    val (lineData, xFormatter) = remember(growthEvents) { viewModel.getMultiLineData() }
+
     val measurementTs by viewModel.measurementTimestamp.collectAsState()
-    var measurementCal by remember { mutableStateOf(Calendar.getInstance().apply { timeInMillis = measurementTs }) }
+    var measurementCal by remember {
+        mutableStateOf(
+            Calendar.getInstance().apply { timeInMillis = measurementTs })
+    }
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
     val measurementDateString = dateFormat.format(measurementCal.time)
 
@@ -83,7 +83,6 @@ fun GrowthScreen(
     LaunchedEffect(saveSuccess) {
         if (saveSuccess) {
             snackbarHostState.showSnackbar("Growth event saved!", duration = SnackbarDuration.Short)
-            viewModel.resetInputFields() // Clear the form
             viewModel.resetSaveSuccess() // Reset the flag
         }
     }
@@ -118,27 +117,36 @@ fun GrowthScreen(
             // Graphique de croissance (Placeholder - needs data from ViewModel)
             AndroidView(
                 factory = { context ->
-                    com.github.mikephil.charting.charts.LineChart(context).apply {
+                    LineChart(context).apply {
                         description.isEnabled = false
-                        setTouchEnabled(true)
-                        setScaleEnabled(true)
-                        setPinchZoom(true)
-                        // Basic styling if needed
+                        setTouchEnabled(true); setPinchZoom(true)
+                        axisRight.isEnabled = false
+                        legend.isWordWrapEnabled = true
+                        xAxis.granularity = 1f
                     }
                 },
                 update = { chart ->
-                    // Example:
-                    // state.chartData?.let { chart.data = it }
-                    // chart.invalidate()
-                    // You'll need to load/prepare LineData in your ViewModel
-                    // and pass it to the chart here.
+                    chart.data = lineData
+                    chart.xAxis.valueFormatter = xFormatter
+                    chart.invalidate()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .height(250.dp)
             )
+            // Overlay de chargement lors du changement de bébé
+            if (isLoading) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(Modifier.height(24.dp))
 
             Text("Log New Measurement", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(16.dp))
@@ -207,8 +215,8 @@ fun GrowthScreen(
 
             Button(
                 onClick = {
-                    if (currentBabyId != null) {
-                        viewModel.saveGrowthEvent(currentBabyId)
+                    if (babyId != null) {
+                        viewModel.saveGrowthEvent(babyId)
                     } else {
                         scope.launch {
                             snackbarHostState.showSnackbar(
@@ -218,11 +226,14 @@ fun GrowthScreen(
                         }
                     }
                 },
-                enabled = !isSaving && currentBabyId != null,
+                enabled = !isSaving && babyId != null,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (isSaving) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                     Spacer(Modifier.width(8.dp))
                     Text("Saving...")
                 } else {
