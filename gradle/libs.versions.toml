@@ -17,8 +17,10 @@ mpandroidchart = "3.1.0"
 jodaTime = "2.14.0"
 lifecycleVersion = "2.9.3"
 hiltCompose= "1.3.0"
+uiText = "1.9.1"
 
 [libraries]
+androidx-compose-ui-text = { module = "androidx.compose.ui:ui-text", version.ref = "uiText" }
 androidx-datastore-preferences = "androidx.datastore:datastore-preferences:1.1.7"
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }

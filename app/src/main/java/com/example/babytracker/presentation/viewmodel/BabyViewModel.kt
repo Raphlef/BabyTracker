@@ -47,6 +47,9 @@ class BabyViewModel @Inject constructor(
     private val _selectedBaby = MutableStateFlow<Baby?>(null)
     val selectedBaby: StateFlow<Baby?> = _selectedBaby.asStateFlow()
 
+    private val _defaultBaby = MutableStateFlow<Baby?>(null)
+    val defaultBaby: StateFlow<Baby?> = _defaultBaby.asStateFlow()
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
@@ -95,6 +98,37 @@ class BabyViewModel @Inject constructor(
             } finally {
                 _selectedBaby.value = _selectedBaby.value?.takeIf { it.id == id }
                     ?.copy(name = name, birthDate = birthDate, gender = gender)
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun loadDefaultBaby(defaultBabyId: String?) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                _defaultBaby.value = defaultBabyId?.let { id ->
+                    repository.getBabyById(id).getOrThrow()
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Impossible de charger le bébé par défaut : ${e.message}"
+                _defaultBaby.value = null
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun setDefaultBaby(baby: Baby) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                // Persister dans le document users.defaultBabyId
+                repository.updateUserProfile(mapOf("defaultBabyId" to baby.id))
+                _defaultBaby.value = baby
+            } catch (e: Exception) {
+                _errorMessage.value = "Échec du choix de bébé par défaut : ${e.message}"
+            } finally {
                 _isLoading.value = false
             }
         }

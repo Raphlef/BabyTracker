@@ -122,13 +122,24 @@ class AuthViewModel @Inject constructor(
 
     fun updateUserProfile(updates: Map<String, Any?>) {
         viewModelScope.launch {
+            _state.value = _state.value.copy(isLoading = true, error = null)
             try {
                 repository.updateUserProfile(updates)
                 // Recharger le profil
                 val refreshed = repository.getCurrentUserProfile()
-                _state.update { it.copy(userProfile = refreshed) }
-            } catch (_: Exception) {
-                // On peut éventuellement propager une erreur dans state.error
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        userProfile = refreshed
+                    )
+                }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Échec de l'update: ${e.message}"
+                    )
+                }
             }
         }
     }

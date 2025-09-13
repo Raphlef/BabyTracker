@@ -20,7 +20,7 @@ fun AuthScreen(
 
     // Redirection après connexion réussie
     LaunchedEffect(state.isAuthenticated) {
-        if (state.isAuthenticated) {
+        if (state.rememberMe && state.isAuthenticated) {
             onLoginSuccess()
         }
     }
