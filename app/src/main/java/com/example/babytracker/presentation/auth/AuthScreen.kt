@@ -18,9 +18,6 @@ fun AuthScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
-    // Gérer la sélection de "Remember Me" localement
-    var rememberMe by remember { mutableStateOf(false) }
-
     // Redirection après connexion réussie
     LaunchedEffect(state.isAuthenticated) {
         if (state.isAuthenticated) {
@@ -42,9 +39,11 @@ fun AuthScreen(
         // Champ email
         OutlinedTextField(
             value = state.email,
-            onValueChange = { viewModel.onEmailChange(it) },
+            onValueChange = viewModel::onEmailChange,
             label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = !state.isLoading
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -52,10 +51,12 @@ fun AuthScreen(
         // Champ mot de passe
         OutlinedTextField(
             value = state.password,
-            onValueChange = { viewModel.onPasswordChange(it) },
+            onValueChange = viewModel::onPasswordChange,
             label = { Text("Mot de passe") },
             visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = !state.isLoading
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -66,11 +67,9 @@ fun AuthScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Checkbox(
-                checked = rememberMe,
-                onCheckedChange = {
-                    rememberMe = it
-                    viewModel.onRememberMeChanged(it) // à implémenter dans ViewModel
-                }
+                checked = state.rememberMe,
+                onCheckedChange = viewModel::onRememberMeChanged,
+                enabled = !state.isLoading
             )
             Spacer(Modifier.width(8.dp))
             Text("Se souvenir de moi")
@@ -85,7 +84,11 @@ fun AuthScreen(
             enabled = !state.isLoading
         ) {
             if (state.isLoading) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
             } else {
                 Text("Connexion")
             }
@@ -96,7 +99,8 @@ fun AuthScreen(
         // Bouton d'inscription
         TextButton(
             onClick = { viewModel.register() },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !state.isLoading
         ) {
             Text("Créer un compte")
         }

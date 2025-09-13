@@ -24,6 +24,7 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
 import java.util.Calendar
 import java.util.Date // Keep this if your Baby class uses it directly
+import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
 
@@ -50,8 +51,40 @@ class FirebaseRepository @Inject constructor(
 
     suspend fun register(email: String, password: String) {
         auth.createUserWithEmailAndPassword(email, password).await()
+        val userId = auth.currentUser?.uid
+            ?: throw IllegalStateException("Impossible de récupérer l’UID utilisateur")
+        val user = User(
+            id = userId,
+            email = email,
+            displayName = "",            // Peut être rempli via un formulaire ultérieur
+            photoUrl = null,
+            theme = Theme.SYSTEM,
+            notificationsEnabled = true,
+            locale = Locale.getDefault().language
+        )
+        db.collection("users")
+            .document(userId)
+            .set(user)
+            .await()
     }
 
+    suspend fun getCurrentUserProfile(): User {
+        val userId = auth.currentUser?.uid
+            ?: throw IllegalStateException("Utilisateur non authentifié")
+        val doc = db.collection("users").document(userId).get().await()
+        return doc.toObject(User::class.java)
+            ?: throw IllegalStateException("Profil utilisateur introuvable")
+    }
+
+    suspend fun updateUserProfile(updates: Map<String, Any?>) {
+        val userId = auth.currentUser?.uid
+            ?: throw IllegalStateException("Utilisateur non authentifié")
+        val merged = updates + ("updatedAt" to System.currentTimeMillis())
+        db.collection("users")
+            .document(userId)
+            .update(merged)
+            .await()
+    }
     fun isUserLoggedIn(): Boolean {
         return auth.currentUser != null
     }
@@ -59,6 +92,8 @@ class FirebaseRepository @Inject constructor(
     fun getCurrentUserEmail(): String? {
         return auth.currentUser?.email
     }
+
+
 
     // Lit la préférence rememberMe en DataStore (suspend)
     suspend fun isRemembered(): Boolean {

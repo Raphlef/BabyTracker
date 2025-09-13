@@ -3,6 +3,7 @@ package com.example.babytracker.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.babytracker.data.FirebaseRepository
+import com.example.babytracker.data.User
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,25 +17,29 @@ class AuthViewModel @Inject constructor(
     private val repository: FirebaseRepository
 ) : ViewModel() {
 
+    private val _userProfile = MutableStateFlow<User?>(null)
+    val userProfile: StateFlow<User?> = _userProfile.asStateFlow()
+
     private val _state = MutableStateFlow(AuthState())
     val state: StateFlow<AuthState> = _state.asStateFlow()
 
     init {
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null)
-            val existingEmail = repository.getCurrentUserEmail() ?: ""
-            _state.update { it.copy(email = existingEmail) }
-            val userLoggedIn = repository.isUserLoggedIn()
+
+            // Pré-remplir l’email si déjà connecté
+            repository.getCurrentUserEmail()?.let { email ->
+                _state.update { it.copy(email = email) }
+            }
+
             val remembered = repository.isRemembered()
-            if (userLoggedIn && remembered) {
-                // Session valide et souvenue => connecté automatiquement
-                _state.value = _state.value.copy(isAuthenticated = true)
-                val firstId = repository.getFirstBabyId()
-                _state.update { it.copy(firstBabyId = firstId) }
+            if (repository.isUserLoggedIn() && remembered) {
+                performPostAuthSetup()
             }
             _state.value = _state.value.copy(isLoading = false)
         }
     }
+
     fun onEmailChange(email: String) {
         _state.value = _state.value.copy(email = email)
     }
@@ -60,17 +65,15 @@ class AuthViewModel @Inject constructor(
                 if (_state.value.rememberMe) {
                     repository.saveUserSession()
                 }
-                _state.value = _state.value.copy(isAuthenticated = true)
-                val firstId = repository.getFirstBabyId()
-                _state.value = _state.value.copy(firstBabyId = firstId)
-            }  catch (e: Exception) {
-                _state.value = _state.value.copy(
-                    error = "Échec de la connexion : ${e.message}",
-                    isLoading = false,
-                    isAuthenticated = false
-                )
-            } finally {
-                _state.value = _state.value.copy(isLoading = false)
+                performPostAuthSetup()
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        isAuthenticated = false,
+                        error = "Échec de la connexion : ${e.message}"
+                    )
+                }
             }
         }
     }
@@ -79,24 +82,83 @@ class AuthViewModel @Inject constructor(
         val email = _state.value.email.trim()
         val password = _state.value.password
 
-        if (email.isEmpty()) {
-            _state.value = _state.value.copy(error = "Email ne peut pas être vide")
+        // Validations simples
+        if (email.isEmpty() || password.isEmpty()) {
+            val msg = when {
+                email.isEmpty() -> "Email ne peut pas être vide"
+                password.isEmpty() -> "Mot de passe ne peut pas être vide"
+                else -> null
+            }
+            _state.update { it.copy(error = msg) }
             return
         }
 
-        if (password.isEmpty()) {
-            _state.value = _state.value.copy(error = "Mot de passe ne peut pas être vide")
-            return
-        }
-        _state.value = _state.value.copy(isLoading = true, error = null)
+        _state.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                repository.register(_state.value.email, _state.value.password)
-                _state.value = _state.value.copy(isAuthenticated = true)
+                repository.register(email, password)
+                performPostAuthSetup()
             } catch (e: Exception) {
-                _state.value = _state.value.copy(error = "Échec de l'inscription: ${e.message}")
-            } finally {
-                _state.value = _state.value.copy(isLoading = false)
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        isAuthenticated = false,
+                        error = "Échec de l'inscription: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun loadUserProfile() {
+        viewModelScope.launch {
+            try {
+                val profile = repository.getCurrentUserProfile()
+                _userProfile.value = profile
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    fun updateUserProfile(updates: Map<String, Any?>) {
+        viewModelScope.launch {
+            try {
+                repository.updateUserProfile(updates)
+                // Recharger le profil
+                val refreshed = repository.getCurrentUserProfile()
+                _state.update { it.copy(userProfile = refreshed) }
+            } catch (_: Exception) {
+                // On peut éventuellement propager une erreur dans state.error
+            }
+        }
+    }
+
+    private suspend fun performPostAuthSetup() {
+        try {
+            // Charger le profil Firestore
+
+            val profile = repository.getCurrentUserProfile()
+
+            // Charger le premier bébé si existant
+            val firstBabyId = repository.getFirstBabyId()
+
+            // Mettre à jour l’état
+            _state.update {
+                it.copy(
+                    isLoading = false,
+                    isAuthenticated = true,
+                    firstBabyId = firstBabyId,
+                    userProfile = profile,
+                    error = null
+                )
+            }
+        } catch (e: Exception) {
+            _state.update {
+                it.copy(
+                    isLoading = false,
+                    isAuthenticated = false,
+                    error = "Erreur de profil utilisateur : ${e.message}"
+                )
             }
         }
     }
@@ -115,7 +177,7 @@ data class AuthState(
     val rememberMe: Boolean = false,
     val isLoading: Boolean = false,
     val isAuthenticated: Boolean = false,
-    val isUserLoggedIn: Boolean = false,
     val firstBabyId: String? = null,
+    val userProfile: User? = null,
     val error: String? = null
 )
