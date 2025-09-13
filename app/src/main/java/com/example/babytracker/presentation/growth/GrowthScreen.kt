@@ -59,23 +59,21 @@ fun GrowthScreen(
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
 
-    val measurementDate by viewModel.measurementDate.collectAsState()
-    val context = LocalContext.current
+    val measurementTs by viewModel.measurementTimestamp.collectAsState()
+    var measurementCal by remember { mutableStateOf(Calendar.getInstance().apply { timeInMillis = measurementTs }) }
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
-    val measurementDateString = dateFormat.format(
-        Date.from(measurementDate.atStartOfDay(ZoneId.systemDefault()).toInstant())
-    )
+    val measurementDateString = dateFormat.format(measurementCal.time)
 
+    val context = LocalContext.current
     val datePickerDialog = DatePickerDialog(
         context,
         { _, year, month, dayOfMonth ->
-            // month est indexé à 0 -> +1
-            val newDate = LocalDate.of(year, month + 1, dayOfMonth)
-            viewModel.setMeasurementDate(newDate)
+            measurementCal.set(year, month, dayOfMonth)
+            viewModel.setMeasurementTimestamp(measurementCal.timeInMillis)
         },
-        measurementDate.year,
-        measurementDate.monthValue - 1,
-        measurementDate.dayOfMonth
+        measurementCal.get(Calendar.YEAR),
+        measurementCal.get(Calendar.MONTH),
+        measurementCal.get(Calendar.DAY_OF_MONTH)
     )
 
     LaunchedEffect(saveSuccess) {

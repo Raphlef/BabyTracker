@@ -23,8 +23,11 @@ class GrowthViewModel @Inject constructor(
     private val repository: FirebaseRepository
 ) : ViewModel() {
 
-    private val _measurementDate = MutableStateFlow(LocalDate.now())
-    val measurementDate: StateFlow<LocalDate> = _measurementDate.asStateFlow()
+    private val _measurementTimestamp = MutableStateFlow(System.currentTimeMillis())
+    val measurementTimestamp: StateFlow<Long> = _measurementTimestamp.asStateFlow()
+
+    private val _chartData = MutableStateFlow<LineData?>(null)
+    val chartData: StateFlow<LineData?> = _chartData.asStateFlow()
     // --- UI State for Input Fields ---
     private val _notes = MutableStateFlow("")
     val notes: StateFlow<String> = _notes.asStateFlow()
@@ -66,8 +69,8 @@ class GrowthViewModel @Inject constructor(
         _headCircumferenceCm.value = newHeadCircumferenceCm
     }
 
-    fun setMeasurementDate(date: LocalDate) {
-        _measurementDate.value = date
+    fun setMeasurementTimestamp(ms: Long) {
+        _measurementTimestamp.value = ms
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -85,9 +88,7 @@ class GrowthViewModel @Inject constructor(
         val currentWeightKg = _weightKg.value
         val currentHeadCircumferenceCm = _headCircumferenceCm.value
         val currentNotes = _notes.value.takeIf { it.isNotBlank() }
-        val localDate = measurementDate.value
-        val instant = localDate.atStartOfDay(ZoneId.systemDefault()).toInstant()
-        val timestampDate = Date.from(instant)
+        val timestampDate = Date(_measurementTimestamp.value)
         viewModelScope.launch {
             val event = GrowthEvent(
                 babyId = babyId,
