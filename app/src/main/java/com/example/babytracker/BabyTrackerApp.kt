@@ -16,7 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.babytracker.presentation.auth.AuthScreen
-import com.example.babytracker.presentation.dashboard.AddBabyScreen
+import com.example.babytracker.presentation.baby.AddBabyScreen
 import com.example.babytracker.presentation.dashboard.BabySelectionScreen
 import com.example.babytracker.presentation.dashboard.DashboardScreen
 import com.example.babytracker.presentation.settings.SettingsScreen
@@ -81,7 +81,7 @@ fun BabyTrackerApp() {
             // Passer babyId au DashboardScreen pour afficher données du bébé sélectionné
             DashboardScreen(
                 navController = navController,
-                babyId = babyId
+                initialBabyId = babyId
             )
         }
         composable("settings") {

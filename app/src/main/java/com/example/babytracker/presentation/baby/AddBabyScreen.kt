@@ -1,11 +1,10 @@
-package com.example.babytracker.presentation.dashboard
+package com.example.babytracker.presentation.baby
 
 import android.app.DatePickerDialog
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -25,8 +24,10 @@ fun AddBabyScreen(
     var birthDate by remember { mutableStateOf(Calendar.getInstance()) }
     var gender by remember { mutableStateOf(Gender.UNKNOWN) }
     var showError by remember { mutableStateOf(false) }
-    val context = LocalContext.current
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
 
+    val context = LocalContext.current
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
     val birthDateString = dateFormat.format(birthDate.time)
 
@@ -39,8 +40,6 @@ fun AddBabyScreen(
         birthDate.get(Calendar.MONTH),
         birthDate.get(Calendar.DAY_OF_MONTH)
     )
-
-    val genders = Gender.values()
 
     Column(
         modifier = Modifier
@@ -76,32 +75,56 @@ fun AddBabyScreen(
         GenderDropdown(
             gender = gender,
             onGenderSelected = { gender = it },
-            genders = genders
+            genders = Gender.values()
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-            OutlinedButton(
-                onClick = onCancel,
-                modifier = Modifier.padding(end = 8.dp)
-            ) {
+        if (errorMessage != null) {
+            Text(
+                errorMessage!!,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            OutlinedButton(onClick = onCancel) {
                 Text("Annuler")
             }
+            Spacer(Modifier.width(8.dp))
             Button(
                 onClick = {
                     if (name.isBlank()) {
                         showError = true
                         return@Button
                     }
+                    // Crée le bébé et sélectionne-le
                     viewModel.addBaby(name.trim(), birthDate.timeInMillis, gender)
-                    onBabyAdded()
-                }
+
+                },
+                enabled = !isLoading
             ) {
-                Text("Enregistrer")
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("Enregistrement…")
+                } else {
+                    Text("Enregistrer")
+                }
             }
         }
     }
+    val babies by viewModel.babies.collectAsState()
+    val selectedBaby by viewModel.selectedBaby.collectAsState()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

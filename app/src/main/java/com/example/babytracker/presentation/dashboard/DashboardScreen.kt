@@ -1,14 +1,25 @@
 package com.example.babytracker.presentation.dashboard
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -34,14 +45,19 @@ import com.example.babytracker.presentation.growth.GrowthScreen
 import com.example.babytracker.presentation.navigation.Screen
 import com.example.babytracker.presentation.sleep.SleepScreen
 import androidx.compose.runtime.saveable.Saver
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import com.example.babytracker.data.Baby
+import com.example.babytracker.data.Gender
 import com.example.babytracker.presentation.viewmodel.AuthViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun DashboardScreen(
     navController: NavController,
-    babyId: String,
+    initialBabyId: String,
     viewModel: BabyViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
@@ -50,10 +66,10 @@ fun DashboardScreen(
     val babies by viewModel.babies.collectAsState()
     var selectedBaby by remember { mutableStateOf<Baby?>(null) }
 
-    // Sélectionne le bébé initial quand la liste est chargée
-    LaunchedEffect(babies, babyId) {
+    // Initialize selectedBaby on first composition
+    LaunchedEffect(babies, initialBabyId) {
         if (selectedBaby == null && babies.isNotEmpty()) {
-            selectedBaby = babies.find { it.id == babyId } ?: babies.first()
+            selectedBaby = babies.find { it.id == initialBabyId } ?: babies.first()
         }
     }
 
@@ -88,6 +104,13 @@ fun DashboardScreen(
                 }
             )
         },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { selectedBaby?.let { navController.navigate("add_event/${it.id}") } }
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Ajouter un événement")
+            }
+        },
         bottomBar = {
             BottomNavBar(
                 navController = navController,
@@ -96,18 +119,69 @@ fun DashboardScreen(
                 onScreenSelected = { newScreen -> selectedScreen = newScreen }
             )
         }
-    ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues)) {
-            // *** IMPORTANT: Afficher les composants baby DANS le Scaffold ***
+    ) { padding  ->
+        Column(modifier = Modifier.padding(padding)) {
             if (babies.isNotEmpty()) {
-                BabySelector(
-                    babies = babies,
-                    selectedBaby = selectedBaby,
-                    onBabySelected = { selectedBaby = it }
-                )
+                // Baby selector with "Add Baby" button
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp) // même hauteur que les boutons
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    items(babies) { baby ->
+                        OutlinedButton(
+                            onClick = {
+                                selectedBaby = baby
+                                viewModel.selectBaby(baby) },
+                            modifier = Modifier.height(36.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = if (baby == selectedBaby)
+                                    MaterialTheme.colorScheme.primaryContainer
+                                else
+                                    MaterialTheme.colorScheme.surface
+                            )
+                        ) {
+                            Text(baby.name.ifEmpty { "Sans nom" })
+                        }
+                    }
+                    item {
+                        IconButton(
+                            onClick = { navController.navigate("add_baby") },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Ajouter un bébé")
+                        }
+                    }
+                }
 
                 selectedBaby?.let { baby ->
-                    BabyInfoBar(baby = baby)
+                    Surface(
+                        tonalElevation = 2.dp,
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("👶 ${baby.name}", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                "📅 Né le: ${
+                                    SimpleDateFormat(
+                                        "dd/MM/yyyy",
+                                        Locale.getDefault()
+                                    ).format(Date(baby.birthDate))
+                                }", style = MaterialTheme.typography.bodyMedium
+                            )
+                            if (baby.gender != Gender.UNKNOWN) {
+                                Text("⚧ Genre: ${baby.gender}", style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
