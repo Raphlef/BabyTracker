@@ -33,6 +33,8 @@ class AuthViewModel @Inject constructor(
             }
 
             val remembered = repository.isRemembered()
+            _state.update { it.copy(rememberMe = remembered) }
+
             if (repository.isUserLoggedIn() && remembered) {
                 performPostAuthSetup()
             }

@@ -94,8 +94,6 @@ class FirebaseRepository @Inject constructor(
         return auth.currentUser?.email
     }
 
-
-
     // Lit la préférence rememberMe en DataStore (suspend)
     suspend fun isRemembered(): Boolean {
         return context.dataStore.data.map { prefs ->
