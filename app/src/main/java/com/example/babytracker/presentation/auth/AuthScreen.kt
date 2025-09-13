@@ -1,5 +1,6 @@
 package com.example.babytracker.presentation.auth
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -101,13 +102,20 @@ fun AuthScreen(
         }
 
         // Affichage des erreurs
-        if (state.error != null) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = state.error!!,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall
-            )
+        state.error?.let { errorMsg ->
+            Spacer(Modifier.height(16.dp))
+            Text(errorMsg, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
+
+        if (state.isLoading) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
         }
     }
 }

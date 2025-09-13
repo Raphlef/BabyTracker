@@ -146,6 +146,20 @@ class FirebaseRepository @Inject constructor(
         }
     }
 
+    suspend fun getFirstBabyId(): String? {
+        val userId = auth.currentUser?.uid
+            ?: throw IllegalStateException("User not authenticated")
+
+        val snapshot = db.collection(BABIES_COLLECTION)
+            .whereArrayContains("parentIds", userId)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .limit(1)
+            .get()
+            .await()
+
+        val babies = snapshot.toObjects<Baby>()
+        return babies.firstOrNull()?.id
+    }
     suspend fun getBabyById(babyId: String): Result<Baby?> {
         return try {
             val documentSnapshot = db.collection(BABIES_COLLECTION).document(babyId).get().await()

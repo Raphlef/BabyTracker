@@ -4,12 +4,15 @@ import android.app.Application
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
@@ -52,13 +55,32 @@ fun BabyTrackerApp() {
 
     // Collect state from StateFlow
     val state by viewModel.state.collectAsState()
+
+    val startDestination = when {
+        !state.isAuthenticated -> "auth"
+        state.firstBabyId != null  -> "dashboard/${state.firstBabyId}"
+        else                       -> "baby_selection"
+    }
+
     NavHost(
         navController = navController,
-        startDestination = if (state.isAuthenticated) "baby_selection" else "auth"
+        startDestination = startDestination
     ) {
         composable("auth") {
             AuthScreen(
-                onLoginSuccess = { navController.navigate("baby_selection") }
+                onLoginSuccess = {
+                    // Après connexion, vérifier s'il y a un dernier bébé
+                    val currentState = state
+                    if (currentState.firstBabyId != null) {
+                        navController.navigate("dashboard/${currentState.firstBabyId}") {
+                            popUpTo("auth") { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate("baby_selection") {
+                            popUpTo("auth") { inclusive = true }
+                        }
+                    }
+                }
             )
         }
         composable("baby_selection") {

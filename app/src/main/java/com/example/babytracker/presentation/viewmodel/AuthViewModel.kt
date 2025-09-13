@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -15,19 +16,25 @@ class AuthViewModel @Inject constructor(
     private val repository: FirebaseRepository
 ) : ViewModel() {
 
+    private val _state = MutableStateFlow(AuthState())
+    val state: StateFlow<AuthState> = _state.asStateFlow()
+
     init {
         viewModelScope.launch {
+            _state.value = _state.value.copy(isLoading = true, error = null)
+            val existingEmail = repository.getCurrentUserEmail() ?: ""
+            _state.update { it.copy(email = existingEmail) }
             val userLoggedIn = repository.isUserLoggedIn()
             val remembered = repository.isRemembered()
             if (userLoggedIn && remembered) {
                 // Session valide et souvenue => connecté automatiquement
                 _state.value = _state.value.copy(isAuthenticated = true)
+                val firstId = repository.getFirstBabyId()
+                _state.update { it.copy(firstBabyId = firstId) }
             }
+            _state.value = _state.value.copy(isLoading = false)
         }
     }
-    private val _state = MutableStateFlow(AuthState())
-    val state: StateFlow<AuthState> = _state.asStateFlow()
-
     fun onEmailChange(email: String) {
         _state.value = _state.value.copy(email = email)
     }
@@ -54,6 +61,8 @@ class AuthViewModel @Inject constructor(
                     repository.saveUserSession()
                 }
                 _state.value = _state.value.copy(isAuthenticated = true)
+                val firstId = repository.getFirstBabyId()
+                _state.value = _state.value.copy(firstBabyId = firstId)
             }  catch (e: Exception) {
                 _state.value = _state.value.copy(
                     error = "Échec de la connexion : ${e.message}",
@@ -107,5 +116,6 @@ data class AuthState(
     val isLoading: Boolean = false,
     val isAuthenticated: Boolean = false,
     val isUserLoggedIn: Boolean = false,
+    val firstBabyId: String? = null,
     val error: String? = null
 )
