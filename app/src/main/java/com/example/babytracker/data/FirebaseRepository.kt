@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
+import java.util.Calendar
 import java.util.Date // Keep this if your Baby class uses it directly
 import java.util.UUID
 import javax.inject.Inject
@@ -41,6 +42,7 @@ class FirebaseRepository @Inject constructor(
         private const val EVENTS_COLLECTION = "events"
         private val REMEMBER_ME_KEY = booleanPreferencesKey("remember_me")
     }
+
     // Méthodes d'authentification
     suspend fun login(email: String, password: String) {
         auth.signInWithEmailAndPassword(email, password).await()
@@ -53,23 +55,28 @@ class FirebaseRepository @Inject constructor(
     fun isUserLoggedIn(): Boolean {
         return auth.currentUser != null
     }
+
     fun getCurrentUserEmail(): String? {
         return auth.currentUser?.email
     }
+
     // Lit la préférence rememberMe en DataStore (suspend)
     suspend fun isRemembered(): Boolean {
         return context.dataStore.data.map { prefs ->
             prefs[REMEMBER_ME_KEY] ?: false
         }.first()
     }
+
     fun getCurrentUserId(): String? {
         return auth.currentUser?.uid
     }
+
     suspend fun saveUserSession() {
         context.dataStore.edit { prefs ->
             prefs[REMEMBER_ME_KEY] = true
         }
     }
+
     suspend fun clearUserSession() {
         context.dataStore.edit { prefs ->
             prefs.remove(REMEMBER_ME_KEY)
@@ -82,6 +89,7 @@ class FirebaseRepository @Inject constructor(
             prefs[REMEMBER_ME_KEY] ?: false
         }
     }
+
     // --- Baby Methods ---
     suspend fun addOrUpdateBaby(baby: Baby): Result<Unit> = runCatching {
         val userId = auth.currentUser?.uid
@@ -118,6 +126,7 @@ class FirebaseRepository @Inject constructor(
         // 4. Write with the generated or provided ID
         docRef.set(babyWithUser.copy(id = docRef.id)).await()
     }
+
     fun streamBabies(): Flow<List<Baby>> {
         val userId = auth.currentUser?.uid
             ?: throw IllegalStateException("User not authenticated")
@@ -132,7 +141,8 @@ class FirebaseRepository @Inject constructor(
 
     suspend fun getBabies(): Result<List<Baby>> {
         return try {
-            val userId = auth.currentUser?.uid ?: return Result.failure(Exception("User not authenticated"))
+            val userId =
+                auth.currentUser?.uid ?: return Result.failure(Exception("User not authenticated"))
             val babiesList = db.collection(BABIES_COLLECTION)
                 .whereArrayContains("parentIds", userId)
                 .orderBy("createdAt", Query.Direction.DESCENDING) // Optional: order by creation
@@ -160,6 +170,7 @@ class FirebaseRepository @Inject constructor(
         val babies = snapshot.toObjects<Baby>()
         return babies.firstOrNull()?.id
     }
+
     suspend fun getBabyById(babyId: String): Result<Baby?> {
         return try {
             val documentSnapshot = db.collection(BABIES_COLLECTION).document(babyId).get().await()
@@ -181,6 +192,7 @@ class FirebaseRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
     suspend fun deleteBabyAndEvents(babyId: String): Result<Unit> = runCatching {
         val batch = db.batch()
         // Supprimer le bébé
@@ -207,7 +219,8 @@ class FirebaseRepository @Inject constructor(
      */
     suspend fun addEvent(event: Event): Result<Unit> {
         return try {
-            val userId = auth.currentUser?.uid ?: return Result.failure(Exception("User not authenticated"))
+            val userId =
+                auth.currentUser?.uid ?: return Result.failure(Exception("User not authenticated"))
             // We assume the event object already has its 'id' (e.g., UUID.randomUUID().toString())
             // and 'babyId' correctly set before calling this function.
 
@@ -215,18 +228,30 @@ class FirebaseRepository @Inject constructor(
             // This is one way; another is to query based on the presence of specific fields.
             val eventData = mutableMapOf<String, Any?>()
             when (event) {
-                is FeedingEvent -> eventData.putAll(event.asMap().plus("eventTypeString" to "FEEDING"))
-                is DiaperEvent -> eventData.putAll(event.asMap().plus("eventTypeString" to "DIAPER"))
+                is FeedingEvent -> eventData.putAll(
+                    event.asMap().plus("eventTypeString" to "FEEDING")
+                )
+
+                is DiaperEvent -> eventData.putAll(
+                    event.asMap().plus("eventTypeString" to "DIAPER")
+                )
+
                 is SleepEvent -> eventData.putAll(event.asMap().plus("eventTypeString" to "SLEEP"))
-                is GrowthEvent -> eventData.putAll(event.asMap().plus("eventTypeString" to "GROWTH"))
-                is PumpingEvent -> eventData.putAll(event.asMap().plus("eventTypeString" to "PUMPING"))
+                is GrowthEvent -> eventData.putAll(
+                    event.asMap().plus("eventTypeString" to "GROWTH")
+                )
+
+                is PumpingEvent -> eventData.putAll(
+                    event.asMap().plus("eventTypeString" to "PUMPING")
+                )
                 // Add cases for other event types if you have them
             }
 
             // Ensure common fields are there
             eventData["id"] = event.id
             eventData["babyId"] = event.babyId
-            eventData["timestamp"] = com.google.firebase.Timestamp(event.timestamp) // Convert to Firebase Timestamp
+            eventData["timestamp"] =
+                com.google.firebase.Timestamp(event.timestamp) // Convert to Firebase Timestamp
             eventData["notes"] = event.notes
             eventData["userId"] = userId // Store the ID of the user who logged the event
 
@@ -237,6 +262,7 @@ class FirebaseRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
     fun streamEventsForBaby(babyId: String): Flow<List<Event>> {
         val userId = auth.currentUser?.uid
             ?: throw IllegalStateException("User not authenticated")
@@ -251,22 +277,28 @@ class FirebaseRepository @Inject constructor(
                     when (doc.getString("eventTypeString")) {
                         "FEEDING" -> doc.toObject(FeedingEvent::class.java)
                             ?.copy(timestamp = firestoreTs)
-                        "DIAPER"  -> doc.toObject(DiaperEvent::class.java)
+
+                        "DIAPER" -> doc.toObject(DiaperEvent::class.java)
                             ?.copy(timestamp = firestoreTs)
-                        "SLEEP"   -> doc.toObject(SleepEvent::class.java)
+
+                        "SLEEP" -> doc.toObject(SleepEvent::class.java)
                             ?.copy(
                                 timestamp = firestoreTs,
                                 endTime = doc.getTimestamp("endTime")?.toDate()
                             )
-                        "GROWTH"  -> doc.toObject(GrowthEvent::class.java)
+
+                        "GROWTH" -> doc.toObject(GrowthEvent::class.java)
                             ?.copy(timestamp = firestoreTs)
+
                         "PUMPING" -> doc.toObject(PumpingEvent::class.java)
                             ?.copy(timestamp = firestoreTs)
-                        else      -> null
+
+                        else -> null
                     }
                 }
             }
     }
+
     /**
      * Fetches all events for a specific baby, ordered by timestamp.
      * This method will require careful handling on the client-side to cast
@@ -274,7 +306,8 @@ class FirebaseRepository @Inject constructor(
      */
     suspend fun getAllEventsForBaby(babyId: String, limit: Long = 50): Result<List<Event>> {
         return try {
-            val userId = auth.currentUser?.uid ?: return Result.failure(Exception("User not authenticated"))
+            val userId =
+                auth.currentUser?.uid ?: return Result.failure(Exception("User not authenticated"))
             val eventDocuments = db.collection(EVENTS_COLLECTION)
                 .whereEqualTo("babyId", babyId)
                 .whereEqualTo("userId", userId) // Ensure user can only fetch their events
@@ -294,24 +327,29 @@ class FirebaseRepository @Inject constructor(
                         timestamp = firestoreTimestamp?.toDate() ?: Date(),
                         notes = notes
                     )
+
                     "DIAPER" -> document.toObject<DiaperEvent>()?.copy(
                         timestamp = firestoreTimestamp?.toDate() ?: Date(),
                         notes = notes
                     )
+
                     "SLEEP" -> document.toObject<SleepEvent>()?.copy(
                         timestamp = firestoreTimestamp?.toDate() ?: Date(),
                         notes = notes,
                         // Handle endTime if it's also a Timestamp
                         endTime = (data["endTime"] as? com.google.firebase.Timestamp)?.toDate()
                     )
+
                     "GROWTH" -> document.toObject<GrowthEvent>()?.copy(
                         timestamp = firestoreTimestamp?.toDate() ?: Date(),
                         notes = notes
                     )
+
                     "PUMPING" -> document.toObject<PumpingEvent>()?.copy(
                         timestamp = firestoreTimestamp?.toDate() ?: Date(),
                         notes = notes
                     )
+
                     else -> {
                         Log.w(TAG, "Unknown event type for document: ${document.id}")
                         null
@@ -384,24 +422,62 @@ class FirebaseRepository @Inject constructor(
         snapshot.toObjects(GrowthEvent::class.java).firstOrNull()
     }
 
-    suspend fun getGrowthEventByDay(
+    suspend fun getGrowthEventsInRange(
         babyId: String,
-        dayStart: Date,
-        dayEnd: Date
-    ): Result<GrowthEvent?> = runCatching {
+        startDate: Date,
+        endDate: Date
+    ): Result<List<GrowthEvent>> = runCatching {
         val userId = auth.currentUser?.uid
             ?: throw IllegalStateException("User not authenticated")
 
+        // Bornes : si même jour, on cherche entre min(hour) et max(hour)
+        val calStart = Calendar.getInstance().apply {
+            time = startDate
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }
+        val calEnd = Calendar.getInstance().apply {
+            time = endDate
+            set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 999)
+        }
+
+        val tsStart = com.google.firebase.Timestamp(calStart.time)
+        val tsEnd = com.google.firebase.Timestamp(calEnd.time)
+
+        val query = db.collection(EVENTS_COLLECTION)
+            .whereEqualTo("babyId", babyId)
+            .whereEqualTo("userId", userId)
+            .whereEqualTo("eventTypeString", "GROWTH")
+            .whereGreaterThanOrEqualTo("timestamp", tsStart)
+            .whereLessThanOrEqualTo("timestamp", tsEnd)
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+
+        // Si on veut un seul résultat (même journée), on peut limiter à 1
+        if (calStart.time == calEnd.time) {
+            query.limit(1)
+        }
+
+        val snapshot = query.get().await()
+        snapshot.toObjects(GrowthEvent::class.java)
+    }
+
+    suspend fun getOneGrowthEventInRange(
+        babyId: String,
+        start: Date,
+        end: Date
+    ): Result<GrowthEvent?> = runCatching {
+        val userId = auth.currentUser?.uid ?: throw IllegalStateException("Not authenticated")
         val snapshot = db.collection(EVENTS_COLLECTION)
             .whereEqualTo("babyId", babyId)
             .whereEqualTo("userId", userId)
             .whereEqualTo("eventTypeString", "GROWTH")
-            .whereGreaterThanOrEqualTo("timestamp", com.google.firebase.Timestamp(dayStart))
-            .whereLessThanOrEqualTo("timestamp", com.google.firebase.Timestamp(dayEnd))
+            .whereGreaterThanOrEqualTo("timestamp", com.google.firebase.Timestamp(start))
+            .whereLessThanOrEqualTo("timestamp", com.google.firebase.Timestamp(end))
+            .orderBy("timestamp", Query.Direction.ASCENDING)
             .limit(1)
             .get()
             .await()
-
         snapshot.toObjects(GrowthEvent::class.java).firstOrNull()
     }
 
@@ -421,7 +497,8 @@ class FirebaseRepository @Inject constructor(
 
     suspend fun getSleepEvents(babyId: String, limit: Long = 20): Result<List<SleepEvent>> {
         return try {
-            val userId = auth.currentUser?.uid ?: return Result.failure(Exception("User not authenticated"))
+            val userId =
+                auth.currentUser?.uid ?: return Result.failure(Exception("User not authenticated"))
             val documents = db.collection(EVENTS_COLLECTION)
                 .whereEqualTo("babyId", babyId)
                 .whereEqualTo("userId", userId)
@@ -477,7 +554,8 @@ class FirebaseRepository @Inject constructor(
                         val timestampField = clazz.getDeclaredField("timestamp")
                         timestampField.isAccessible = true
                         timestampField.set(event, firestoreTimestamp.toDate())
-                    } catch (_: NoSuchFieldException) { }
+                    } catch (_: NoSuchFieldException) {
+                    }
                 }
                 event
             }

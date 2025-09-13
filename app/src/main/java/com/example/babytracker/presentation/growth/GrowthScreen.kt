@@ -45,10 +45,12 @@ fun GrowthScreen(
 
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
     val babyId = selectedBaby?.id
+    val startDate by viewModel.startDate.collectAsState()
+    val endDate by viewModel.endDate.collectAsState()
 
     LaunchedEffect(babyId) {
         babyId?.let {
-            viewModel.loadGrowthEvents(it)
+            viewModel.loadGrowthEventsInRange(it)
             viewModel.loadLastGrowth(it)    // Pour préremplissage du form
         }
     }
@@ -110,9 +112,43 @@ fun GrowthScreen(
                 .verticalScroll(scrollState), // Make the column scrollable
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Growth Tracking", style = MaterialTheme.typography.headlineMedium)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Button(onClick = {
+                    DatePickerDialog(
+                        context,
+                        { _, y, m, d ->
+                            Calendar.getInstance().apply {
+                                set(y, m, d, 0, 0, 0); set(Calendar.MILLISECOND, 0)
+                                viewModel.setStartDate(time, babyId!!)
+                            }
+                        },
+                        Calendar.getInstance().apply { time = startDate }.get(Calendar.YEAR),
+                        Calendar.getInstance().apply { time = startDate }.get(Calendar.MONTH),
+                        Calendar.getInstance().apply { time = startDate }.get(Calendar.DAY_OF_MONTH)
+                    ).show()
+                }) {
+                    Text("Début : ${dateFormat.format(startDate)}")
+                }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = {
+                    DatePickerDialog(
+                        context,
+                        { _, y, m, d ->
+                            Calendar.getInstance().apply {
+                                set(y, m, d, 23, 59, 59); set(Calendar.MILLISECOND, 999)
+                                viewModel.setEndDate(time, babyId!!)
+                            }
+                        },
+                        Calendar.getInstance().apply { time = endDate }.get(Calendar.YEAR),
+                        Calendar.getInstance().apply { time = endDate }.get(Calendar.MONTH),
+                        Calendar.getInstance().apply { time = endDate }.get(Calendar.DAY_OF_MONTH)
+                    ).show()
+                }) {
+                    Text("Fin : ${dateFormat.format(endDate)}")
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
 
             // Graphique de croissance (Placeholder - needs data from ViewModel)
             AndroidView(
