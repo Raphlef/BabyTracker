@@ -17,6 +17,8 @@ import android.util.Log
 import com.example.babytracker.data.BreastSide
 import com.example.babytracker.data.DiaperType
 import com.example.babytracker.data.FeedType
+import com.example.babytracker.data.PoopColor
+import com.example.babytracker.data.PoopConsistency
 import com.example.babytracker.data.event.GrowthEvent
 import com.example.babytracker.data.event.SleepEvent
 
@@ -233,36 +235,36 @@ class EventViewModel @Inject constructor(
         babyId: String,
         diaperType: DiaperType,
         notes: String? = null,
-        color: String? = null,
-        consistency: String? = null
+        poopColor: PoopColor? = null,
+        poopConsistency: PoopConsistency? = null
     ) {
         if (babyId.isBlank()) {
-        Log.w("EventViewModel", "addDiaperEvent called with blank babyId")
-        _errorMessage.value = "Baby ID is missing."
-        return
+            Log.w("DiaperViewModel", "addDiaperEvent called with blank babyId")
+            _errorMessage.value = "Baby ID is missing."
+            return
         }
         viewModelScope.launch {
             val event = DiaperEvent(
                 babyId = babyId,
                 diaperType = diaperType,
                 notes = notes,
-                color = color,
-                consistency = consistency
-                // id and timestamp will use default values from DiaperEvent data class
+                poopColor = poopColor,
+                poopConsistency = poopConsistency
             )
             val result = repository.addEvent(event)
             result.fold(
                 onSuccess = {
-                    Log.d("EventViewModel", "Diaper event added successfully for baby $babyId")
-                    loadEvents(babyId) // Refresh
+                    Log.d("DiaperViewModel", "Diaper event added successfully for baby $babyId")
+                    loadEvents(babyId) // Refresh the list after adding
                 },
                 onFailure = { exception ->
-                    Log.e("EventViewModel", "Error adding diaper event: ${exception.message}", exception)
+                    Log.e("DiaperViewModel", "Error adding diaper event: ${exception.message}", exception)
                     _errorMessage.value = "Failed to add diaper event: ${exception.localizedMessage}"
                 }
             )
         }
     }
+
 
     // TODO: Ajouter des méthodes similaires pour les autres types d'événements
 }

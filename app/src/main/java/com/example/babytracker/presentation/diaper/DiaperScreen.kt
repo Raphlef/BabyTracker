@@ -1,20 +1,30 @@
 package com.example.babytracker.presentation.diaper
 
+import android.app.TimePickerDialog
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.babytracker.data.DiaperType
+import com.example.babytracker.data.PoopColor
+import com.example.babytracker.data.PoopConsistency
 import com.example.babytracker.presentation.feeding.capitalizeWords
 // Import other necessary enums if you have a more detailed model like PoopContent, PoopColor
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import com.example.babytracker.presentation.viewmodel.DiaperViewModel
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,9 +34,10 @@ fun DiaperScreen(
     // onSaveSuccess: () -> Unit // Optional: For navigation
 ) {
     val diaperType by viewModel.diaperType.collectAsState()
+    val poopColor by viewModel.poopColor.collectAsState()
+    val poopConsistency by viewModel.poopConsistency.collectAsState()
     val notes by viewModel.notes.collectAsState()
-    val color by viewModel.color.collectAsState()
-    val consistency by viewModel.consistency.collectAsState()
+    val timestamp by viewModel.timestamp.collectAsState()
 
     val isSaving by viewModel.isSaving.collectAsState()
     val saveSuccess by viewModel.saveSuccess.collectAsState()
@@ -38,6 +49,23 @@ fun DiaperScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope() // For launching coroutines for snackbar
+
+    // Time picker
+    val calendar = remember { Calendar.getInstance().apply { time = timestamp } }
+    val context = LocalContext.current
+    val timePickerDialog = remember {
+        TimePickerDialog(
+            context,
+            { _, hour, minute ->
+                calendar.set(Calendar.HOUR_OF_DAY, hour)
+                calendar.set(Calendar.MINUTE, minute)
+                viewModel.onTimestampChanged(calendar.time)
+            },
+            calendar.get(Calendar.HOUR_OF_DAY),
+            calendar.get(Calendar.MINUTE),
+            true
+        )
+    }
 
     LaunchedEffect(saveSuccess) {
         if (saveSuccess) {
@@ -68,40 +96,61 @@ fun DiaperScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Log Diaper Change", style = MaterialTheme.typography.headlineSmall)
+            Text("Nouvelle couche", style = MaterialTheme.typography.headlineSmall)
 
             Spacer(modifier = Modifier.height(8.dp))
 
             // Diaper Content Selection
             DiaperTypeDropdown(
                 selectedDiaperType = diaperType,
-                onDiaperTypeSelected ={ viewModel.onDiaperTypeChanged(it) }
+                onDiaperTypeSelected = { viewModel.onDiaperTypeChanged(it) }
             )
 
+            if (diaperType == DiaperType.DIRTY || diaperType == DiaperType.MIXED) {
+                PoopColorDropdown(poopColor, viewModel::onPoopColorChanged)
+                PoopConsistencyDropdown(poopConsistency, viewModel::onPoopConsistencyChanged)
+            }
+
+            OutlinedTextField(
+                value = notes,
+                onValueChange = viewModel::onNotesChanged,
+                label = { Text("Notes (optionnel)") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "Heure : ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(timestamp)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                Button(onClick = { timePickerDialog.show() }) {
+                    Text("Choisir l'heure")
+                }
+            }
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = {
-                    if (currentBabyId != null) {
-                            viewModel.saveDiaperEvent(currentBabyId)
-                    } else {
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                "Please select a baby first.",
-                                duration = SnackbarDuration.Short
-                            )
-                        }
+                    if (currentBabyId != null) viewModel.saveDiaperEvent(currentBabyId)
+                    else scope.launch {
+                        snackbarHostState.showSnackbar("Sélectionnez un bébé d'abord")
                     }
                 },
                 enabled = !isSaving && currentBabyId != null,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (isSaving) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                     Spacer(Modifier.width(8.dp))
-                    Text("Saving...")
+                    Text("Enregistrement…")
                 } else {
-                    Text("Save Diaper Event")
+                    Text("Enregistrer")
                 }
             }
         }
@@ -124,12 +173,15 @@ fun DiaperTypeDropdown(
         modifier = modifier.fillMaxWidth()
     ) {
         OutlinedTextField(
-            value = selectedDiaperType.name.replace("_", " ").capitalizeWords(), // Format for display
+            value = selectedDiaperType.name.replace("_", " ")
+                .capitalizeWords(), // Format for display
             onValueChange = {}, // Not directly changeable, selection via dropdown
-            label = { Text("Feed Type") },
+            label = { Text("Type de couche") },
             readOnly = true,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor().fillMaxWidth() // Important for dropdown behavior
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth() // Important for dropdown behavior
         )
         ExposedDropdownMenu(
             expanded = expanded,
@@ -140,6 +192,84 @@ fun DiaperTypeDropdown(
                     text = { Text(type.name.replace("_", " ").capitalizeWords()) },
                     onClick = {
                         onDiaperTypeSelected(type)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PoopColorDropdown(
+    selectedColor: PoopColor?,
+    onColorSelected: (PoopColor) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val poopColorTypes = PoopColor.entries
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = selectedColor?.displayName.orEmpty(),
+            onValueChange = {},
+            label = { Text("Couleur de la selle") },
+            readOnly = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor()
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            poopColorTypes.forEach { color ->
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                Modifier
+                                    .size(16.dp)
+                                    .background(color.colorValue, CircleShape)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(color.displayName)
+                        }
+                    },
+                    onClick = {
+                        onColorSelected(color)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PoopConsistencyDropdown(
+    selectedConsistency: PoopConsistency?,
+    onConsistencySelected: (PoopConsistency) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = selectedConsistency?.displayName.orEmpty(),
+            onValueChange = {},
+            label = { Text("Consistance de la selle") },
+            readOnly = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor()
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            PoopConsistency.values().forEach { consistency ->
+                DropdownMenuItem(
+                    text = { Text(consistency.displayName) },
+                    onClick = {
+                        onConsistencySelected(consistency)
                         expanded = false
                     }
                 )

@@ -27,7 +27,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun GrowthScreen(
     viewModel: GrowthViewModel = hiltViewModel(),

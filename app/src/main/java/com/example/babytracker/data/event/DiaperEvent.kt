@@ -2,6 +2,8 @@ package com.example.babytracker.data.event
 
 
 import com.example.babytracker.data.DiaperType
+import com.example.babytracker.data.PoopColor
+import com.example.babytracker.data.PoopConsistency
 import java.util.Date
 import java.util.UUID
 
@@ -11,6 +13,6 @@ data class DiaperEvent(
     override val timestamp: Date = Date(),
     override val notes: String? = null,
     val diaperType: DiaperType,
-    val color: String? = null, // Optional: for poop color
-    val consistency: String? = null // Optional: for poop consistency
+    val poopColor: PoopColor? = null,
+    val poopConsistency: PoopConsistency? = null
 ) : Event()

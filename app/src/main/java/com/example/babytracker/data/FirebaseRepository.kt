@@ -458,9 +458,11 @@ class FirebaseRepository @Inject constructor(
 
     private fun DiaperEvent.asMap(): Map<String, Any?> {
         return mapOf(
-            "diaperType" to diaperType.name,
-            "color" to color,
-            "consistency" to consistency
+            "diaperType"    to diaperType.name,
+            "poopColor"     to poopColor?.name,
+            "poopConsistency" to poopConsistency?.name,
+            "notes"         to notes,
+            "timestamp"     to com.google.firebase.Timestamp(timestamp)
         )
     }
 

@@ -7,6 +7,8 @@ import com.example.babytracker.data.DiaperType
 import com.example.babytracker.data.FeedType
 import com.example.babytracker.data.event.DiaperEvent
 import com.example.babytracker.data.FirebaseRepository
+import com.example.babytracker.data.PoopColor
+import com.example.babytracker.data.PoopConsistency
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,11 +29,15 @@ class DiaperViewModel @Inject constructor(
     private val _notes = MutableStateFlow("")
     val notes: StateFlow<String> = _notes.asStateFlow()
 
-    private val _color = MutableStateFlow("")
-    val color: StateFlow<String> = _color.asStateFlow()
+    private val _timestamp = MutableStateFlow(Date())
+    val timestamp: StateFlow<Date> = _timestamp.asStateFlow()
 
-    private val _consistency = MutableStateFlow("")
-    val consistency: StateFlow<String> = _consistency.asStateFlow()
+    private val _poopColor = MutableStateFlow<PoopColor?>(null)
+    val poopColor: StateFlow<PoopColor?> = _poopColor.asStateFlow()
+
+    private val _poopConsistency = MutableStateFlow<PoopConsistency?>(null)
+    val poopConsistency: StateFlow<PoopConsistency?> = _poopConsistency.asStateFlow()
+
 
     // --- State for UI feedback ---
     private val _isSaving = MutableStateFlow(false)
@@ -45,21 +51,31 @@ class DiaperViewModel @Inject constructor(
 
     // --- Event Handlers for UI ---
 
-    fun onDiaperTypeChanged(newDiaperType: DiaperType) {
-        _diaperType.value = newDiaperType
+    fun onDiaperTypeChanged(newType: DiaperType) {
+        _diaperType.value = newType
+        // Reset poop fields if not DIRTY or MIXED
+        if (newType != DiaperType.DIRTY && newType != DiaperType.MIXED) {
+            _poopColor.value = null
+            _poopConsistency.value = null
+        }
     }
 
     fun onNotesChanged(newNotes: String) {
         _notes.value = newNotes
     }
 
-    fun onColorChanged(newColor: String) {
-        _color.value = newColor
+    fun onPoopColorChanged(color: PoopColor) {
+        _poopColor.value = color
     }
 
-    fun onConsistencyChanged(newConsistency: String) {
-        _consistency.value = newConsistency
+    fun onPoopConsistencyChanged(consistency: PoopConsistency) {
+        _poopConsistency.value = consistency
     }
+
+    fun onTimestampChanged(newTimestamp: Date) {
+        _timestamp.value = newTimestamp
+    }
+
     fun saveDiaperEvent(babyId: String) {
         if (babyId.isBlank()) {
             _errorMessage.value = "Baby ID is missing."
@@ -70,18 +86,17 @@ class DiaperViewModel @Inject constructor(
         _errorMessage.value = null
         _saveSuccess.value = false
 
-        val currentDiaperType = _diaperType.value
-        val currentNotes = _notes.value.takeIf { it.isNotBlank() }
-        val currentColor = _color.value.takeIf { it.isNotBlank() }
-        val currentConsistency = _consistency.value.takeIf { it.isNotBlank() }
+        val event = DiaperEvent(
+            babyId = babyId,
+            timestamp = _timestamp.value,
+            notes = _notes.value.takeIf { it.isNotBlank() },
+            diaperType = _diaperType.value,
+            poopColor = _poopColor.value,
+            poopConsistency = _poopConsistency.value
+        )
+
         viewModelScope.launch {
-            val event = DiaperEvent(
-                babyId = babyId,
-                diaperType = currentDiaperType,
-                notes = currentNotes,
-                color = currentColor,
-                consistency = currentConsistency
-            )
+
             val result = repository.addEvent(event)
             result.fold(
                 onSuccess = {
@@ -109,8 +124,8 @@ class DiaperViewModel @Inject constructor(
     // Optional: Function to reset all input fields
     fun resetInputFields() {
         _diaperType.value = DiaperType.DRY
-        _color.value = ""
-        _consistency.value = ""
+        _poopColor.value = null
+        _poopConsistency.value = null
         _notes.value = ""
         _errorMessage.value = null
         _saveSuccess.value = false
