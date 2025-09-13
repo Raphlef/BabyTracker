@@ -26,7 +26,6 @@ import kotlinx.coroutines.withTimeout
 import java.util.Calendar
 import java.util.Date // Keep this if your Baby class uses it directly
 import java.util.Locale
-import java.util.UUID
 import javax.inject.Inject
 
 private val Context.dataStore by preferencesDataStore(name = "user_prefs")
@@ -253,12 +252,12 @@ class FirebaseRepository @Inject constructor(
     }
 
     /**
-     * Invite un collaborateur à un bébé en ajoutant son userId
-     * à la liste collaboratorIds du document Baby.
+     * Invite un parent à un bébé en ajoutant son userId
+     * à la liste parentsIds du document Baby.
      */
-    suspend fun addCollaboratorToBaby(babyId: String, collaboratorEmail: String) {
+    suspend fun addParentToBaby(babyId: String, parentEmail: String) {
         // 1. Trouver l'utilisateur
-        val userId = findUserIdByEmail(collaboratorEmail)
+        val userId = findUserIdByEmail(parentEmail)
             ?: throw IllegalArgumentException("Aucun utilisateur avec cet email")
         // 2. Référence du document Baby
         val babyRef = db.collection(BABIES_COLLECTION).document(babyId)
@@ -266,11 +265,11 @@ class FirebaseRepository @Inject constructor(
         db.runTransaction { tx ->
             val snapshot = tx.get(babyRef)
             // Récupérer ou initialiser la liste
-            val current = snapshot.get("collaboratorIds") as? List<String> ?: emptyList()
+            val current = snapshot.get("parentIds") as? List<String> ?: emptyList()
             if (!current.contains(userId)) {
                 tx.update(
                     babyRef,
-                    "collaboratorIds", current + userId,
+                    "parentIds", current + userId,
                     "updatedAt", System.currentTimeMillis()
                 )
             }

@@ -16,20 +16,18 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.babytracker.data.Baby
-import com.example.babytracker.data.User
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import com.example.babytracker.ui.components.TopAppBar
-import kotlin.text.ifEmpty
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CollaboratorsScreen(
+fun ParentsScreen(
     navController: NavController,
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
     val babies by babyViewModel.babies.collectAsState()
-    val collaborators by babyViewModel.collaborators.collectAsState()
+    val parents by babyViewModel.parents.collectAsState()
     val isLoading by babyViewModel.isLoading.collectAsState()
     val errorMessage by babyViewModel.errorMessage.collectAsState()
 
@@ -46,7 +44,7 @@ fun CollaboratorsScreen(
 
     LaunchedEffect(selectedBaby) {
         selectedBaby?.let { baby ->
-            babyViewModel.loadCollaborators(baby.id)
+            babyViewModel.loadParents(baby.id)
         }
     }
 
@@ -62,7 +60,7 @@ fun CollaboratorsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = "Collaborateurs",
+                title = "Parents",
                 navController = navController,
                 showBackButton = true
             )
@@ -132,14 +130,14 @@ fun CollaboratorsScreen(
                             emailError =
                                 if (it.isEmpty() || isValidEmail(it)) null else "Email invalide"
                         },
-                        label = { Text("Email collaborateur") },
+                        label = { Text("Email coparent") },
                         isError = emailError != null,
                         singleLine = true,
                         enabled = !isLoading,
                         keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = {
                             if (email.isNotBlank() && emailError == null && selectedBaby != null) {
-                                babyViewModel.inviteCollaborator(selectedBaby!!.id, email.trim())
+                                babyViewModel.inviteParent(selectedBaby!!.id, email.trim())
                             }
                         }),
                         modifier = Modifier.fillMaxWidth()
@@ -155,7 +153,7 @@ fun CollaboratorsScreen(
                     Button(
                         onClick = {
                             if (selectedBaby != null) {
-                                babyViewModel.inviteCollaborator(selectedBaby!!.id, email.trim())
+                                babyViewModel.inviteParent(selectedBaby!!.id, email.trim())
                             }
                         },
                         enabled = email.isNotBlank() && !isLoading && selectedBaby != null,
@@ -164,20 +162,20 @@ fun CollaboratorsScreen(
                         Text("Inviter")
                     }
 
-                    // Liste des collaborateurs
-                    Text("Collaborateurs", style = MaterialTheme.typography.titleMedium)
-                    if (isLoading && collaborators.isEmpty()) {
+                    // Liste des parents
+                    Text("Parents", style = MaterialTheme.typography.titleMedium)
+                    if (isLoading && parents.isEmpty()) {
                         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator()
                         }
-                    } else if (collaborators.isEmpty()) {
-                        Text("Aucun collaborateur", style = MaterialTheme.typography.bodyMedium)
+                    } else if (parents.isEmpty()) {
+                        Text("Aucun parent", style = MaterialTheme.typography.bodyMedium)
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(collaborators) { user ->
+                            items(parents) { user ->
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -199,7 +197,7 @@ fun CollaboratorsScreen(
                     }
                 } else {
                     Text(
-                        "Veuillez sélectionner un bébé pour gérer ses collaborateurs",
+                        "Veuillez sélectionner un bébé pour gérer ses parents",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }

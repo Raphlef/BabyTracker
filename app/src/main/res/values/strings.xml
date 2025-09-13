@@ -6,12 +6,12 @@
     <string name="more_options_description">More options</string>
     <string name="menu_item_export_data">Export Data</string>
     <string name="menu_item_settings">Settings</string>
-    <string name="menu_item_collaborators">Collaborators</string>
+    <string name="menu_item_parents">Parents</string>
 
     <!-- Add any other strings your app uses here -->
     <string name="back">Back</string>
     <string name="more_options">More Options</string>
     <string name="export_data">Export Data</string>
     <string name="settings">Settings</string>
-    <string name="collaborators">Collaborators</string>
+    <string name="parents">Parents</string>
 </resources>

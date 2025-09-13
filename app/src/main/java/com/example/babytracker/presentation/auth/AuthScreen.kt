@@ -1,11 +1,15 @@
 package com.example.babytracker.presentation.auth
 
+import android.util.Patterns
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -13,15 +17,21 @@ import com.example.babytracker.presentation.viewmodel.AuthViewModel
 
 @Composable
 fun AuthScreen(
-    onLoginSuccess: () -> Unit,
+    onLoginSuccess: (firstBabyId: String?) -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
 
-    // Redirection après connexion réussie
-    LaunchedEffect(state.isAuthenticated) {
-        if (state.rememberMe && state.isAuthenticated) {
-            onLoginSuccess()
+    var emailError by remember { mutableStateOf<String?>(null) }
+
+    // Email validation
+    fun validateEmail(input: String): Boolean =
+        Patterns.EMAIL_ADDRESS.matcher(input).matches()
+
+    // Dès que l'auth est réussie ET que firstBabyId est chargé, on notifie
+    LaunchedEffect(state.isAuthenticated, state.firstBabyId) {
+        if (state.isAuthenticated) {
+            onLoginSuccess(state.firstBabyId)
         }
     }
 
@@ -36,15 +46,34 @@ fun AuthScreen(
 
         Spacer(modifier = Modifier.height(40.dp))
 
-        // Champ email
+        // Email field with validation
         OutlinedTextField(
             value = state.email,
-            onValueChange = viewModel::onEmailChange,
+            onValueChange = {
+                viewModel.onEmailChange(it)
+                emailError = when {
+                    it.isBlank() -> "Email requis"
+                    !validateEmail(it) -> "Email invalide"
+                    else -> null
+                }
+            },
             label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth(),
+            isError = emailError != null,
             singleLine = true,
-            enabled = !state.isLoading
+            enabled = !state.isLoading,
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
         )
+        emailError?.let {
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier
+                    .align(Alignment.Start)
+                    .padding(start = 16.dp, top = 4.dp)
+            )
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -54,9 +83,10 @@ fun AuthScreen(
             onValueChange = viewModel::onPasswordChange,
             label = { Text("Mot de passe") },
             visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            enabled = !state.isLoading
+            enabled = !state.isLoading,
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -77,11 +107,13 @@ fun AuthScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        val canSubmit =
+            emailError == null && state.email.isNotBlank() && state.password.isNotBlank()
         // Bouton de connexion
         Button(
             onClick = { viewModel.login() },
             modifier = Modifier.fillMaxWidth(),
-            enabled = !state.isLoading
+            enabled = canSubmit && !state.isLoading
         ) {
             if (state.isLoading) {
                 CircularProgressIndicator(
@@ -108,7 +140,11 @@ fun AuthScreen(
         // Affichage des erreurs
         state.error?.let { errorMsg ->
             Spacer(Modifier.height(16.dp))
-            Text(errorMsg, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            Text(
+                errorMsg,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
 
         if (state.isLoading) {

@@ -1,5 +1,6 @@
 package com.example.babytracker.presentation.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.babytracker.data.FirebaseRepository
@@ -35,7 +36,7 @@ class AuthViewModel @Inject constructor(
             val remembered = repository.isRemembered()
             _state.update { it.copy(rememberMe = remembered) }
 
-            if (repository.isUserLoggedIn() && remembered) {
+            if (remembered && repository.isUserLoggedIn()) {
                 performPostAuthSetup()
             }
             _state.value = _state.value.copy(isLoading = false)
@@ -166,6 +167,7 @@ class AuthViewModel @Inject constructor(
                 )
             }
         } catch (e: Exception) {
+            Log.e("Auth", "Erreur de profil utilisateur", e)
             _state.update {
                 it.copy(
                     isLoading = false,

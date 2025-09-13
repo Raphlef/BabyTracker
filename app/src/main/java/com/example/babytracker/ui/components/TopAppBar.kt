@@ -18,7 +18,7 @@ fun TopAppBar(
     showBackButton: Boolean = false,
     onLogout: (() -> Unit)? = null,          // Callback déconnexion
     onNavigateSettings: (() -> Unit)? = null, // Callback navigation settings
-    onNavigateCollaborators: (() -> Unit)? = null,// Callback navigation collaborateurs
+    onNavigateParents: (() -> Unit)? = null,// Callback navigation parents
     actions: @Composable () -> Unit = {}
 ) {
 
@@ -52,10 +52,10 @@ fun TopAppBar(
                     onClick = { /* TODO: Implémenter l'export */ }
                 )
                 DropdownMenuItem(
-                    text = { Text(stringResource(R.string.collaborators)) },
+                    text = { Text(stringResource(R.string.parents)) },
                     onClick = {
                         showMenu = false
-                        onNavigateCollaborators?.invoke()
+                        onNavigateParents?.invoke()
                     }
                 )
                 DropdownMenuItem(
