@@ -13,6 +13,9 @@ import javax.inject.Inject
 import android.util.Log // For logging errors
 import com.example.babytracker.data.Gender
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 
 @HiltViewModel
@@ -22,11 +25,24 @@ class BabyViewModel @Inject constructor(
 
     val babies: StateFlow<List<Baby>> = repository
         .streamBabies()
+        .onStart {
+            _isLoading.value = true
+            _errorMessage.value = null
+        }
+        .onEach {
+            _isLoading.value = false
+        }
+        .catch { e ->
+            _isLoading.value = false
+            _errorMessage.value = "Failed to load babies: ${e.message}"
+            emit(emptyList())
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyList()
         )
+
 
     private val _selectedBaby = MutableStateFlow<Baby?>(null)
     val selectedBaby: StateFlow<Baby?> = _selectedBaby.asStateFlow()
