@@ -98,7 +98,7 @@ class BabyViewModel @Inject constructor(
     fun deleteBaby(babyId: String) {
         _isLoading.value = true
         viewModelScope.launch {
-            repository.deleteBaby(babyId).onFailure {
+            repository.deleteBabyAndEvents(babyId).onFailure {
                 _errorMessage.value = "Échec de la suppression : ${it.message}"
             }
             if (_selectedBaby.value?.id == babyId) {

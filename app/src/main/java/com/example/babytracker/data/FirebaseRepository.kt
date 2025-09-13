@@ -89,24 +89,34 @@ class FirebaseRepository @Inject constructor(
             if (userId == null) {
                 return Result.failure(Exception("User not authenticated"))
             }
-            // Ensure the current user is part of parentIds or add them
-            val updatedParentIds = if (baby.parentIds.contains(userId)) {
-                baby.parentIds
-            } else {
-                baby.parentIds + userId
-            }
-            val babyWithUser = baby.copy(parentIds = updatedParentIds)
+            val existing = db.collection(BABIES_COLLECTION)
+                .whereEqualTo("name", baby.name.trim())
+                .whereArrayContains("parentIds", userId)
+                .get()
+                .await()
+                .toObjects<Baby>()
 
-            if (babyWithUser.id.isBlank() || babyWithUser.id == UUID.randomUUID().toString()) { // Heuristic for new baby
-                // For a new baby, let Firestore generate the ID or use a pre-generated one if it's truly unique
-                db.collection(BABIES_COLLECTION)
-                    .document() // Firestore generates ID
-                    .set(babyWithUser.copy(id = db.collection(BABIES_COLLECTION).document().id)) // set the generated id back to object
-                    .await()
-            } else {
-                // For updating an existing baby
-                db.collection(BABIES_COLLECTION).document(babyWithUser.id).set(babyWithUser).await()
+            // If adding new (blank id) or renaming to an existing other baby, error out
+            val isNew = baby.id.isBlank()
+            val conflict = existing.any { it.id != baby.id }
+            if (conflict) {
+                throw IllegalStateException("Un bébé portant ce nom existe déjà.")
             }
+
+            // Ensure the current user is part of parentIds or add them
+            val babyWithUser = baby.copy(
+                id = baby.id,
+                parentIds = (baby.parentIds + userId).distinct()
+            )
+
+            val docRef = if (babyWithUser.id.isBlank()) {
+                db.collection(BABIES_COLLECTION).document()
+            } else {
+                db.collection(BABIES_COLLECTION).document(babyWithUser.id)
+            }
+
+            docRef.set(babyWithUser.copy(id = docRef.id)).await()
+
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error adding/updating baby", e)
@@ -124,6 +134,7 @@ class FirebaseRepository @Inject constructor(
                 snapshot.toObjects(Baby::class.java)
             }
     }
+
     suspend fun getBabies(): Result<List<Baby>> {
         return try {
             val userId = auth.currentUser?.uid ?: return Result.failure(Exception("User not authenticated"))
@@ -161,7 +172,22 @@ class FirebaseRepository @Inject constructor(
             Result.failure(e)
         }
     }
-
+    suspend fun deleteBabyAndEvents(babyId: String): Result<Unit> = runCatching {
+        val batch = db.batch()
+        // Supprimer le bébé
+        val babyRef = db.collection(BABIES_COLLECTION).document(babyId)
+        batch.delete(babyRef)
+        // Rechercher tous les événements liés
+        val eventsSnapshot = db.collection(EVENTS_COLLECTION)
+            .whereEqualTo("babyId", babyId)
+            .get()
+            .await()
+        eventsSnapshot.documents.forEach { doc ->
+            batch.delete(doc.reference)
+        }
+        // Commit batch single write
+        batch.commit().await()
+    }
 
     // --- Event Methods ---
 
@@ -202,7 +228,36 @@ class FirebaseRepository @Inject constructor(
             Result.failure(e)
         }
     }
-
+    fun streamEventsForBaby(babyId: String): Flow<List<Event>> {
+        val userId = auth.currentUser?.uid
+            ?: throw IllegalStateException("User not authenticated")
+        return db.collection(EVENTS_COLLECTION)
+            .whereEqualTo("babyId", babyId)
+            .whereEqualTo("userId", userId)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .snapshots()
+            .map { snap ->
+                snap.documents.mapNotNull { doc ->
+                    val firestoreTs = doc.getTimestamp("timestamp")?.toDate() ?: Date()
+                    when (doc.getString("eventTypeString")) {
+                        "FEEDING" -> doc.toObject(FeedingEvent::class.java)
+                            ?.copy(timestamp = firestoreTs)
+                        "DIAPER"  -> doc.toObject(DiaperEvent::class.java)
+                            ?.copy(timestamp = firestoreTs)
+                        "SLEEP"   -> doc.toObject(SleepEvent::class.java)
+                            ?.copy(
+                                timestamp = firestoreTs,
+                                endTime = doc.getTimestamp("endTime")?.toDate()
+                            )
+                        "GROWTH"  -> doc.toObject(GrowthEvent::class.java)
+                            ?.copy(timestamp = firestoreTs)
+                        "PUMPING" -> doc.toObject(PumpingEvent::class.java)
+                            ?.copy(timestamp = firestoreTs)
+                        else      -> null
+                    }
+                }
+            }
+    }
     /**
      * Fetches all events for a specific baby, ordered by timestamp.
      * This method will require careful handling on the client-side to cast
