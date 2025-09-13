@@ -1,10 +1,17 @@
 package com.example.babytracker.presentation.growth
 
+import android.app.DatePickerDialog
+import android.os.Build
+import android.widget.DatePicker
 import androidx.activity.result.launch
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,7 +27,16 @@ import com.github.mikephil.charting.charts.LineChart
 import kotlinx.coroutines.launch
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.ui.platform.LocalContext
+import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun GrowthScreen(
     viewModel: GrowthViewModel = hiltViewModel(),
@@ -30,6 +46,7 @@ fun GrowthScreen(
     val weightKg by viewModel.weightKg.collectAsState()
     val headCircumferenceCm by viewModel.headCircumferenceCm.collectAsState()
     val notes by viewModel.notes.collectAsState()
+
 
     val isSaving by viewModel.isSaving.collectAsState()
     val saveSuccess by viewModel.saveSuccess.collectAsState()
@@ -41,6 +58,25 @@ fun GrowthScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
+
+    val measurementDate by viewModel.measurementDate.collectAsState()
+    val context = LocalContext.current
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
+    val measurementDateString = dateFormat.format(
+        Date.from(measurementDate.atStartOfDay(ZoneId.systemDefault()).toInstant())
+    )
+
+    val datePickerDialog = DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            // month est indexé à 0 -> +1
+            val newDate = LocalDate.of(year, month + 1, dayOfMonth)
+            viewModel.setMeasurementDate(newDate)
+        },
+        measurementDate.year,
+        measurementDate.monthValue - 1,
+        measurementDate.dayOfMonth
+    )
 
     LaunchedEffect(saveSuccess) {
         if (saveSuccess) {
@@ -99,6 +135,12 @@ fun GrowthScreen(
 
             Text("Log New Measurement", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(16.dp))
+
+            // Bouton Date (ouvre DatePickerDialog)
+            Button(onClick = { datePickerDialog.show() }) {
+                Text("Date de mesure : $measurementDateString")
+            }
+            Spacer(Modifier.height(16.dp))
 
             // Formulaire d'ajout
             OutlinedTextField(

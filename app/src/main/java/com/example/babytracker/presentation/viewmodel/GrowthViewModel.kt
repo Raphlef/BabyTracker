@@ -1,6 +1,8 @@
 package com.example.babytracker.presentation.viewmodel
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.babytracker.data.event.GrowthEvent
@@ -11,6 +13,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Date
 import javax.inject.Inject
 
@@ -19,6 +23,8 @@ class GrowthViewModel @Inject constructor(
     private val repository: FirebaseRepository
 ) : ViewModel() {
 
+    private val _measurementDate = MutableStateFlow(LocalDate.now())
+    val measurementDate: StateFlow<LocalDate> = _measurementDate.asStateFlow()
     // --- UI State for Input Fields ---
     private val _notes = MutableStateFlow("")
     val notes: StateFlow<String> = _notes.asStateFlow()
@@ -60,6 +66,11 @@ class GrowthViewModel @Inject constructor(
         _headCircumferenceCm.value = newHeadCircumferenceCm
     }
 
+    fun setMeasurementDate(date: LocalDate) {
+        _measurementDate.value = date
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
     fun saveGrowthEvent(babyId: String) {
         if (babyId.isBlank()) {
             _errorMessage.value = "Baby ID is missing."
@@ -74,13 +85,16 @@ class GrowthViewModel @Inject constructor(
         val currentWeightKg = _weightKg.value
         val currentHeadCircumferenceCm = _headCircumferenceCm.value
         val currentNotes = _notes.value.takeIf { it.isNotBlank() }
-
+        val localDate = measurementDate.value
+        val instant = localDate.atStartOfDay(ZoneId.systemDefault()).toInstant()
+        val timestampDate = Date.from(instant)
         viewModelScope.launch {
             val event = GrowthEvent(
                 babyId = babyId,
                 heightCm = currentHeightCm,
                 weightKg = currentWeightKg,
                 headCircumferenceCm = currentHeadCircumferenceCm,
+                timestamp = timestampDate,
                 notes = currentNotes
             )
             val result = repository.addEvent(event)
