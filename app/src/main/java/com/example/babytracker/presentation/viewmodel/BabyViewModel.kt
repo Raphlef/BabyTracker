@@ -80,6 +80,30 @@ class BabyViewModel @Inject constructor(
         }
     }
 
+    fun updateBaby(
+        id: String,
+        name: String,
+        birthDate: Long,
+        gender: Gender = Gender.UNKNOWN
+    ) {
+        _isLoading.value = true
+        _errorMessage.value = null
+        viewModelScope.launch {
+            try {
+                val updatedBaby = Baby(id = id, name = name, birthDate = birthDate, gender = gender)
+                repository.addOrUpdateBaby(updatedBaby)
+                loadBabies()
+                // Réaffecte la sélection au bébé mis à jour
+                _selectedBaby.value = updatedBaby
+            } catch (e: Exception) {
+                Log.e("BabyViewModel", "Error updating baby: ${e.message}", e)
+                _errorMessage.value = "Failed to update baby: ${e.localizedMessage}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
     fun deleteBaby(babyId: String) {
         _isLoading.value = true
         viewModelScope.launch {

@@ -12,12 +12,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.babytracker.presentation.auth.AuthScreen
 import com.example.babytracker.presentation.baby.AddBabyScreen
 import com.example.babytracker.presentation.baby.BabySelectionScreen
+import com.example.babytracker.presentation.baby.EditBabyScreen
 import com.example.babytracker.presentation.dashboard.DashboardScreen
 import com.example.babytracker.presentation.settings.SettingsScreen
 import com.example.babytracker.presentation.viewmodel.AuthViewModel
@@ -82,6 +85,17 @@ fun BabyTrackerApp() {
             DashboardScreen(
                 navController = navController,
                 initialBabyId = babyId
+            )
+        }
+        composable(
+            route = "edit_baby/{babyId}",
+            arguments = listOf(navArgument("babyId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val babyId = backStackEntry.arguments?.getString("babyId") ?: ""
+            EditBabyScreen(
+                babyId = babyId,
+                onBabyUpdated = { navController.popBackStack() },
+                onCancel = { navController.popBackStack() }
             )
         }
         composable("settings") {

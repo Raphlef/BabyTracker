@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -178,13 +179,22 @@ fun DashboardScreen(
                                 }", style = MaterialTheme.typography.bodyMedium
                             )
                             if (baby.gender != Gender.UNKNOWN) {
-                                Text("⚧ Genre: ${baby.gender}", style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    "⚧ Genre: ${baby.gender}",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                             }
+                        }
+                        IconButton(
+                            onClick = { navController.navigate("edit_baby/${baby.id}") }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Modifier le bébé"
+                            )
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(8.dp))
             }
 
             // Afficher l'écran sélectionné
