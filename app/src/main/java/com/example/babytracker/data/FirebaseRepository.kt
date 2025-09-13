@@ -351,7 +351,6 @@ class FirebaseRepository @Inject constructor(
             ?: throw IllegalStateException("User not authenticated")
         return db.collection(EVENTS_COLLECTION)
             .whereEqualTo("babyId", babyId)
-            .whereEqualTo("userId", userId)
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .snapshots()
             .map { snap ->
@@ -393,7 +392,6 @@ class FirebaseRepository @Inject constructor(
                 auth.currentUser?.uid ?: return Result.failure(Exception("User not authenticated"))
             val eventDocuments = db.collection(EVENTS_COLLECTION)
                 .whereEqualTo("babyId", babyId)
-                .whereEqualTo("userId", userId) // Ensure user can only fetch their events
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .limit(limit)
                 .get()
@@ -530,7 +528,6 @@ class FirebaseRepository @Inject constructor(
 
         val query = db.collection(EVENTS_COLLECTION)
             .whereEqualTo("babyId", babyId)
-            .whereEqualTo("userId", userId)
             .whereEqualTo("eventTypeString", "GROWTH")
             .whereGreaterThanOrEqualTo("timestamp", tsStart)
             .whereLessThanOrEqualTo("timestamp", tsEnd)
@@ -553,7 +550,6 @@ class FirebaseRepository @Inject constructor(
         val userId = auth.currentUser?.uid ?: throw IllegalStateException("Not authenticated")
         val snapshot = db.collection(EVENTS_COLLECTION)
             .whereEqualTo("babyId", babyId)
-            .whereEqualTo("userId", userId)
             .whereEqualTo("eventTypeString", "GROWTH")
             .whereGreaterThanOrEqualTo("timestamp", com.google.firebase.Timestamp(start))
             .whereLessThanOrEqualTo("timestamp", com.google.firebase.Timestamp(end))
@@ -584,7 +580,6 @@ class FirebaseRepository @Inject constructor(
                 auth.currentUser?.uid ?: return Result.failure(Exception("User not authenticated"))
             val documents = db.collection(EVENTS_COLLECTION)
                 .whereEqualTo("babyId", babyId)
-                .whereEqualTo("userId", userId)
                 .whereEqualTo("eventTypeString", "SLEEP")
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .limit(limit)
@@ -620,7 +615,6 @@ class FirebaseRepository @Inject constructor(
             // Construction de la query sans .limit() par défaut
             var query = db.collection(EVENTS_COLLECTION)
                 .whereEqualTo("babyId", babyId)
-                .whereEqualTo("userId", userId)
                 .whereEqualTo("eventTypeString", eventTypeString)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
             // Appliquer la limite si elle est strictement positive
