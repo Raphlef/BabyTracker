@@ -17,8 +17,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 import javax.inject.Inject
 import androidx.compose.ui.graphics.Color as ComposeColor
 
@@ -150,16 +152,33 @@ class GrowthViewModel @Inject constructor(
 
         return LineData(dataSet)
     }
+
     fun saveGrowthEvent(babyId: String) {
         if (babyId.isBlank()) {
             _errorMessage.value = "Baby ID is missing."
             return
         }
 
-        val timestampDate = Date(_measurementTimestamp.value)
         viewModelScope.launch {
             _isSaving.value = true
+
+            val timestampDate = Date(_measurementTimestamp.value)
+
+            // 1. Calculer le début et la fin de la journée sélectionnée
+            val cal = Calendar.getInstance().apply { timeInMillis = _measurementTimestamp.value }
+            cal.set(Calendar.HOUR_OF_DAY, 0);  cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0);       cal.set(Calendar.MILLISECOND, 0)
+            val dayStart = cal.time
+            cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59)
+            cal.set(Calendar.SECOND, 59);      cal.set(Calendar.MILLISECOND, 999)
+            val dayEnd = cal.time
+
+            // 2. Rechercher un événement existant sur la même date
+            val existingResult = repository.getGrowthEventByDay(babyId, dayStart, dayEnd)
+            val existingEvent = existingResult.getOrNull()
+            val newId = existingEvent?.id ?: UUID.randomUUID().toString()
             val event = GrowthEvent(
+                id = newId,
                 babyId = babyId,
                 timestamp = timestampDate,
                 weightKg = _weightKg.value,
@@ -167,6 +186,7 @@ class GrowthViewModel @Inject constructor(
                 headCircumferenceCm = _headCircumferenceCm.value,
                 notes = _notes.value
             )
+
             val result = repository.addEvent(event)
             result.fold(
                 onSuccess = {

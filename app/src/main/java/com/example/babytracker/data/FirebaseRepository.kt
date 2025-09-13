@@ -384,6 +384,27 @@ class FirebaseRepository @Inject constructor(
         snapshot.toObjects(GrowthEvent::class.java).firstOrNull()
     }
 
+    suspend fun getGrowthEventByDay(
+        babyId: String,
+        dayStart: Date,
+        dayEnd: Date
+    ): Result<GrowthEvent?> = runCatching {
+        val userId = auth.currentUser?.uid
+            ?: throw IllegalStateException("User not authenticated")
+
+        val snapshot = db.collection(EVENTS_COLLECTION)
+            .whereEqualTo("babyId", babyId)
+            .whereEqualTo("userId", userId)
+            .whereEqualTo("eventTypeString", "GROWTH")
+            .whereGreaterThanOrEqualTo("timestamp", com.google.firebase.Timestamp(dayStart))
+            .whereLessThanOrEqualTo("timestamp", com.google.firebase.Timestamp(dayEnd))
+            .limit(1)
+            .get()
+            .await()
+
+        snapshot.toObjects(GrowthEvent::class.java).firstOrNull()
+    }
+
     // --- Methods to fetch specific event types (Optional but can be useful) ---
 
     suspend fun getFeedingEvents(babyId: String, limit: Long = 20): Result<List<FeedingEvent>> {
