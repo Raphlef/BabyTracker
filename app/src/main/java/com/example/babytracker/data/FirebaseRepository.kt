@@ -83,45 +83,40 @@ class FirebaseRepository @Inject constructor(
         }
     }
     // --- Baby Methods ---
-    suspend fun addOrUpdateBaby(baby: Baby): Result<Unit> {
-        return try {
-            val userId = auth.currentUser?.uid
-            if (userId == null) {
-                return Result.failure(Exception("User not authenticated"))
-            }
-            val existing = db.collection(BABIES_COLLECTION)
-                .whereEqualTo("name", baby.name.trim())
-                .whereArrayContains("parentIds", userId)
-                .get()
-                .await()
-                .toObjects<Baby>()
+    suspend fun addOrUpdateBaby(baby: Baby): Result<Unit> = runCatching {
+        val userId = auth.currentUser?.uid
+            ?: throw IllegalStateException("User not authenticated")
 
-            // If adding new (blank id) or renaming to an existing other baby, error out
-            val isNew = baby.id.isBlank()
-            val conflict = existing.any { it.id != baby.id }
-            if (conflict) {
-                throw IllegalStateException("Un bébé portant ce nom existe déjà.")
-            }
+        // 1. Pre-check for duplicate name under this user
+        val existing = db.collection(BABIES_COLLECTION)
+            .whereEqualTo("name", baby.name.trim())
+            .whereArrayContains("parentIds", userId)
+            .get()
+            .await()
+            .toObjects<Baby>()
 
-            // Ensure the current user is part of parentIds or add them
-            val babyWithUser = baby.copy(
-                id = baby.id,
-                parentIds = (baby.parentIds + userId).distinct()
-            )
-
-            val docRef = if (babyWithUser.id.isBlank()) {
-                db.collection(BABIES_COLLECTION).document()
-            } else {
-                db.collection(BABIES_COLLECTION).document(babyWithUser.id)
-            }
-
-            docRef.set(babyWithUser.copy(id = docRef.id)).await()
-
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error adding/updating baby", e)
-            Result.failure(e)
+        // If adding new (blank id) or renaming to an existing other baby, error out
+        val isNew = baby.id.isBlank()
+        val conflict = existing.any { it.id != baby.id }
+        if (conflict) {
+            throw IllegalStateException("Un bébé portant ce nom existe déjà.")
         }
+
+        // 2. Prepare baby object with ensured parentIds
+        val babyWithUser = baby.copy(
+            id = baby.id,
+            parentIds = (baby.parentIds + userId).distinct()
+        )
+
+        // 3. Determine document ref
+        val docRef = if (isNew) {
+            db.collection(BABIES_COLLECTION).document()
+        } else {
+            db.collection(BABIES_COLLECTION).document(babyWithUser.id)
+        }
+
+        // 4. Write with the generated or provided ID
+        docRef.set(babyWithUser.copy(id = docRef.id)).await()
     }
     fun streamBabies(): Flow<List<Baby>> {
         val userId = auth.currentUser?.uid

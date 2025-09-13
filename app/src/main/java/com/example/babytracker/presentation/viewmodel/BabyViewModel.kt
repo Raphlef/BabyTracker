@@ -61,14 +61,19 @@ class BabyViewModel @Inject constructor(
     fun addBaby(name: String, birthDate: Long, gender: Gender = Gender.UNKNOWN) {
         _isLoading.value = true
         viewModelScope.launch {
-            try {
-                val newBaby = Baby(name = name, birthDate = birthDate, gender = gender)
-                repository.addOrUpdateBaby(newBaby)
-            } catch (e: Exception) {
-                _errorMessage.value = "Failed to add baby: ${e.message}"
-            } finally {
-                _isLoading.value = false
+            // 1. Appel repository
+            val result = repository.addOrUpdateBaby(
+                Baby(name = name, birthDate = birthDate, gender = gender)
+            )
+            // 2. Vérifier échec
+            if (result.isFailure) {
+                // Extraire la cause
+                val cause = result.exceptionOrNull()
+                _errorMessage.value = cause?.message ?: "Échec inattendu"
+            } else {
+                _errorMessage.value = null
             }
+            _isLoading.value = false
         }
     }
 
