@@ -17,7 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.babytracker.presentation.auth.AuthScreen
 import com.example.babytracker.presentation.baby.AddBabyScreen
-import com.example.babytracker.presentation.dashboard.BabySelectionScreen
+import com.example.babytracker.presentation.baby.BabySelectionScreen
 import com.example.babytracker.presentation.dashboard.DashboardScreen
 import com.example.babytracker.presentation.settings.SettingsScreen
 import com.example.babytracker.presentation.viewmodel.AuthViewModel

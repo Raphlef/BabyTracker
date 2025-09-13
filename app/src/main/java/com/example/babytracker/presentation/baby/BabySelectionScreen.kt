@@ -1,4 +1,4 @@
-package com.example.babytracker.presentation.dashboard
+package com.example.babytracker.presentation.baby
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.babytracker.data.Baby
@@ -179,7 +180,7 @@ fun EmptyBabiesView(onAddBaby: () -> Unit) {
             "Commencez par ajouter un bébé pour suivre sa croissance et ses événements.",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(horizontal = 24.dp),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = onAddBaby) {
