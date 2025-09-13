@@ -122,15 +122,14 @@ class GrowthViewModel @Inject constructor(
             // 2. Calcul de la durée en jours
             val days = ((end.time - start.time) / (1000 * 60 * 60 * 24)).toInt().coerceAtLeast(0)
 
-
             val events: List<GrowthEvent> = when {
                 days == 0 -> {
                     // Même jour → un seul point
                     repository.getGrowthEventsInRange(babyId, start, end)
                         .getOrNull().orEmpty().take(1)
                 }
-                days <= 14 -> {
-                    // Période courte (≤2 semaines) → tous les événements
+                days <= 30 -> {
+                    // Période courte (≤1 mois) → tous les événements
                     repository.getGrowthEventsInRange(babyId, start, end)
                         .getOrNull().orEmpty()
                 }
