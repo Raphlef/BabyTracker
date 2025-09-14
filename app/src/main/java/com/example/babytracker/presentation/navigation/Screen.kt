@@ -18,4 +18,6 @@ sealed class Screen(
     object Diaper : Screen("diaper_screen", "Diaper", Icons.Filled.ChildCare) // Replace with better icon
     object Sleep : Screen("sleep_screen", "Sleep", Icons.Filled.Hotel)        // Replace with better icon
     object Growth : Screen("growth_screen", "Growth", Icons.Filled.ShowChart)    // Replace with better icon
+
+    object Calendar : Screen("calendar_screen", "Calendar", Icons.Default.CalendarMonth)
 }

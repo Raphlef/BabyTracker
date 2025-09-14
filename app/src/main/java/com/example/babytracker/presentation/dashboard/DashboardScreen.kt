@@ -48,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import com.example.babytracker.data.Baby
 import com.example.babytracker.data.Gender
+import com.example.babytracker.presentation.calendar.CalendarScreen
 import com.example.babytracker.presentation.viewmodel.AuthViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -80,7 +81,8 @@ fun DashboardScreen(
         Screen.Feeding,
         Screen.Diaper,
         Screen.Sleep,
-        Screen.Growth
+        Screen.Growth,
+        Screen.Calendar
     )
 
     // Manage selectedScreen state here, defaulting to the first item in bottomNavScreens
@@ -208,10 +210,11 @@ fun DashboardScreen(
             // Afficher l'écran sélectionné
             selectedBaby?.let { baby ->
                 when (selectedScreen) {
-                    is Screen.Feeding -> FeedingScreen(/* babyId = baby.id */)
-                    is Screen.Diaper -> DiaperScreen(/* babyId = baby.id */)
-                    is Screen.Sleep -> SleepScreen(/* babyId = baby.id */)
-                    is Screen.Growth -> GrowthScreen(/* babyId = baby.id */)
+                    is Screen.Feeding -> FeedingScreen()
+                    is Screen.Diaper -> DiaperScreen()
+                    is Screen.Sleep -> SleepScreen()
+                    is Screen.Growth -> GrowthScreen()
+                    is Screen.Calendar -> CalendarScreen()
                     else -> {}
                 }
             }

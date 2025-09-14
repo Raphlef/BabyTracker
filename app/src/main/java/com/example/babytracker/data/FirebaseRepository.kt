@@ -390,54 +390,35 @@ class FirebaseRepository @Inject constructor(
         return try {
             val userId =
                 auth.currentUser?.uid ?: return Result.failure(Exception("User not authenticated"))
-            val eventDocuments = db.collection(EVENTS_COLLECTION)
+            var query = db.collection(EVENTS_COLLECTION)
                 .whereEqualTo("babyId", babyId)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
-                .limit(limit)
-                .get()
-                .await()
 
-            val eventsList = eventDocuments.mapNotNull { document ->
-                // Convert Firestore Timestamps back to java.util.Date for notes and timestamp
-                val data = document.data
-                val firestoreTimestamp = data["timestamp"] as? com.google.firebase.Timestamp
+            // Apply limit only if non-null and positive
+            if (limit != null && limit > 0) {
+                query = query.limit(limit)
+            }
+
+            val docs = query.get().await()
+
+            val events = docs.mapNotNull { doc ->
+                val data = doc.data
+                val ts = (data["timestamp"] as? com.google.firebase.Timestamp)?.toDate() ?: Date()
                 val notes = data["notes"] as? String
-
-                when (document.getString("eventTypeString")) {
-                    "FEEDING" -> document.toObject<FeedingEvent>()?.copy(
-                        timestamp = firestoreTimestamp?.toDate() ?: Date(),
-                        notes = notes
-                    )
-
-                    "DIAPER" -> document.toObject<DiaperEvent>()?.copy(
-                        timestamp = firestoreTimestamp?.toDate() ?: Date(),
-                        notes = notes
-                    )
-
-                    "SLEEP" -> document.toObject<SleepEvent>()?.copy(
-                        timestamp = firestoreTimestamp?.toDate() ?: Date(),
+                when (doc.getString("eventTypeString")) {
+                    "FEEDING" -> doc.toObject<FeedingEvent>()?.copy(timestamp = ts, notes = notes)
+                    "DIAPER"  -> doc.toObject<DiaperEvent>().copy(timestamp = ts, notes = notes)
+                    "SLEEP"   -> doc.toObject<SleepEvent>()?.copy(
+                        timestamp = ts,
                         notes = notes,
-                        // Handle endTime if it's also a Timestamp
                         endTime = (data["endTime"] as? com.google.firebase.Timestamp)?.toDate()
                     )
-
-                    "GROWTH" -> document.toObject<GrowthEvent>()?.copy(
-                        timestamp = firestoreTimestamp?.toDate() ?: Date(),
-                        notes = notes
-                    )
-
-                    "PUMPING" -> document.toObject<PumpingEvent>()?.copy(
-                        timestamp = firestoreTimestamp?.toDate() ?: Date(),
-                        notes = notes
-                    )
-
-                    else -> {
-                        Log.w(TAG, "Unknown event type for document: ${document.id}")
-                        null
-                    }
+                    "GROWTH"  -> doc.toObject<GrowthEvent>()?.copy(timestamp = ts, notes = notes)
+                    "PUMPING" -> doc.toObject<PumpingEvent>()?.copy(timestamp = ts, notes = notes)
+                    else      -> null.also { Log.w(TAG, "Unknown event type: ${doc.id}") }
                 }
             }
-            Result.success(eventsList)
+            Result.success(events)
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching all events for baby: $babyId", e)
             Result.failure(e)

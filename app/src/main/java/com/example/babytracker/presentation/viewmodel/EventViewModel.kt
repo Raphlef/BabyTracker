@@ -234,50 +234,36 @@ class EventViewModel @Inject constructor(
         startDate: Date,
         endDate: Date
     ): List<Event> {
-        // Normalize date boundaries (like GrowthViewModel)
-        val calStart = Calendar.getInstance().apply {
+        // Normalize day boundaries
+        val start = Calendar.getInstance().apply {
             time = startDate
             set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-        }
-        val calEnd = Calendar.getInstance().apply {
+        }.time
+        val end = Calendar.getInstance().apply {
             time = endDate
             set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59)
             set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 999)
+        }.time
+
+        val days = ((end.time - start.time) / (1000 * 60 * 60 * 24)).toInt().coerceAtLeast(0)
+
+        // Appel du repository sans écraser l’erreur
+        val result = if (days <= 30) {
+            repository.getAllEventsForBaby(babyId)
+        } else {
+            repository.getAllEventsForBaby(babyId, limit = 100)
         }
 
-        val normalizedStart = calStart.time
-        val normalizedEnd = calEnd.time
-
-        // Calculate duration in days (like GrowthViewModel)
-        val days = ((normalizedEnd.time - normalizedStart.time) / (1000 * 60 * 60 * 24)).toInt()
-            .coerceAtLeast(0)
-
-        return when {
-            days == 0 -> {
-                // Same day → get all events for that day
-                repository.getAllEventsForBaby(babyId, limit = -1) // No limit
-                    .getOrNull()?.filter { event ->
-                        event.timestamp.time >= normalizedStart.time && event.timestamp.time <= normalizedEnd.time
-                    } ?: emptyList()
+        return result.fold(
+            onSuccess = { events ->
+                events.filter { it.timestamp in start..end }
+            },
+            onFailure = { exception ->
+                _errorMessage.value = "Erreur chargement : ${exception.message.orEmpty()}"
+                throw exception
             }
-
-            days <= 30 -> {
-                // Short period (≤1 month) → get all events
-                repository.getAllEventsForBaby(babyId, limit = -1)
-                    .getOrNull()?.filter { event ->
-                        event.timestamp.time >= normalizedStart.time && event.timestamp.time <= normalizedEnd.time
-                    } ?: emptyList()
-            }
-
-            else -> {
-                // Long period (>1 month) → sample events or get recent ones
-                repository.getAllEventsForBaby(babyId, limit = 100) // Limited sample
-                    .getOrNull()?.filter { event ->
-                        event.timestamp.time >= normalizedStart.time && event.timestamp.time <= normalizedEnd.time
-                    } ?: emptyList()
-            }
-        }
+        )
     }
 
     /**
@@ -306,5 +292,9 @@ class EventViewModel @Inject constructor(
 
     private fun clearAllEvents() {
         _eventsByType.value = emptyMap()
+    }
+
+    fun clearErrorMessage() {
+        _errorMessage.value = null
     }
 }
