@@ -89,5 +89,7 @@ dependencies {
     kapt(libs.hilt.compiler)
 
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.kotlinx.datetime)
 
 }

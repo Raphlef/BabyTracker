@@ -23,7 +23,9 @@ import com.example.babytracker.data.event.EventFormState
 import com.example.babytracker.data.event.GrowthEvent
 import com.example.babytracker.data.event.SleepEvent
 import kotlinx.coroutines.flow.update
+import kotlinx.datetime.LocalDate
 import java.text.SimpleDateFormat
+import java.time.ZoneId
 import kotlin.concurrent.atomics.update
 import kotlin.reflect.KClass
 
@@ -40,6 +42,18 @@ class EventViewModel @Inject constructor(
     private val _eventsByType = MutableStateFlow<Map<KClass<out Event>, List<Event>>>(emptyMap())
     val eventsByType: StateFlow<Map<KClass<out Event>, List<Event>>> = _eventsByType.asStateFlow()
 
+    private val _eventsByDay = MutableStateFlow<Map<java.time.LocalDate, List<Event>>>(emptyMap())
+    val eventsByDay: StateFlow<Map<java.time.LocalDate, List<Event>>> = _eventsByDay
+
+    private fun groupEventsByDay(allEvents: List<Event>) {
+        val map = allEvents.groupBy { event ->
+            // conversion java.util.Date -> java.time.LocalDate
+            event.timestamp.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+        }
+        _eventsByDay.value = map
+    }
     // --- Loading States ---
 
     private val _isLoading = MutableStateFlow(false)
@@ -216,6 +230,7 @@ class EventViewModel @Inject constructor(
 
                 // 3. Publish grouped map
                 _eventsByType.value = grouped
+                groupEventsByDay(allEvents)
 
                 Log.d("EventViewModel", "Loaded ${allEvents.size} events for baby $babyId")
 
@@ -292,6 +307,7 @@ class EventViewModel @Inject constructor(
 
     private fun clearAllEvents() {
         _eventsByType.value = emptyMap()
+        _eventsByDay.value = emptyMap()
     }
 
     fun clearErrorMessage() {
