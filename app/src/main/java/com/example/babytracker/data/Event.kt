@@ -1,6 +1,10 @@
 package com.example.babytracker.data
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ShowChart
+import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.google.firebase.firestore.IgnoreExtraProperties
 import java.util.Date
 import java.util.UUID
@@ -9,12 +13,12 @@ import kotlin.reflect.KClass
 /**
  * EventType enum associates a display name and a color for each event kind.
  */
-enum class EventType(val displayName: String, val color: Color) {
-    DIAPER("Diaper", Color(0xFFFFC107)),
-    FEEDING("Feeding", Color(0xFF4CAF50)),
-    SLEEP("Sleep", Color(0xFF2196F3)),
-    GROWTH("Growth", Color(0xFF9C27B0)),
-    PUMPING("Pumping", Color(0xFFFF5722));
+enum class EventType(val displayName: String, val color: Color,val icon: ImageVector) {
+    DIAPER("Diaper", Color(0xFFFFC107), Icons.Filled.ChildCare),
+    FEEDING("Feeding", Color(0xFF4CAF50), Icons.Filled.Fastfood),
+    SLEEP("Sleep", Color(0xFF2196F3), Icons.Filled.Hotel),
+    GROWTH("Growth", Color(0xFF9C27B0), Icons.AutoMirrored.Filled.ShowChart),
+    PUMPING("Pumping", Color(0xFFFF5722), Icons.Filled.Add);
 
     companion object {
         fun forClass(clazz: KClass<out Event>): EventType = when (clazz) {
