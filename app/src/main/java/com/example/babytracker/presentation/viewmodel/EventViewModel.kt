@@ -19,6 +19,7 @@ import com.example.babytracker.data.DiaperType
 import com.example.babytracker.data.FeedType
 import com.example.babytracker.data.PoopColor
 import com.example.babytracker.data.PoopConsistency
+import com.example.babytracker.data.event.EventFormState
 import com.example.babytracker.data.event.GrowthEvent
 import com.example.babytracker.data.event.SleepEvent
 import java.text.SimpleDateFormat
@@ -28,6 +29,10 @@ import kotlin.reflect.KClass
 class EventViewModel @Inject constructor(
     private val repository: FirebaseRepository
 ) : ViewModel() {
+
+    // Current form values
+    private val _formState = MutableStateFlow<EventFormState>(EventFormState.Diaper())
+    val formState: StateFlow<EventFormState> = _formState.asStateFlow()
 
     // --- Event Data State ---
     private val _events = MutableStateFlow<Map<KClass<out Event>, List<Event>>>(emptyMap())
@@ -61,7 +66,7 @@ class EventViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    // --- Event-specific data (like GrowthViewModel stores growth events) ---
+    // --- Event-specific data ---
     private val _feedingEvents = MutableStateFlow<List<FeedingEvent>>(emptyList())
     val feedingEvents: StateFlow<List<FeedingEvent>> = _feedingEvents.asStateFlow()
 
@@ -74,7 +79,7 @@ class EventViewModel @Inject constructor(
     private val _sleepEvents = MutableStateFlow<List<SleepEvent>>(emptyList())
     val sleepEvents: StateFlow<List<SleepEvent>> = _sleepEvents.asStateFlow()
 
-    // --- Date Range Methods (like GrowthViewModel) ---
+    // --- Date Range Methods  ---
     fun setStartDate(date: Date, babyId: String) {
         _startDate.value = date
         loadEventsInRange(babyId)
@@ -92,6 +97,128 @@ class EventViewModel @Inject constructor(
 
     fun clearErrorMessage() {
         _errorMessage.value = null
+    }
+
+    // Update any field via a transform function
+    fun updateForm(update: EventFormState.() -> EventFormState) {
+        _formState.value = _formState.value.update()
+    }
+    // Entry-point to validate & save whichever event type is active
+    fun validateAndSave(babyId: String) {
+        if (babyId.isBlank()) {
+            _errorMessage.value = "Baby ID is missing."
+            return
+        }
+        _isSaving.value = true
+        _errorMessage.value = null
+
+        viewModelScope.launch {
+            val result = when (val state = _formState.value) {
+                is EventFormState.Diaper  -> saveDiaper(babyId, state)
+                is EventFormState.Sleep   -> saveSleep(babyId, state)
+                is EventFormState.Feeding -> saveFeeding(babyId, state)
+                is EventFormState.Growth  -> saveGrowth(babyId, state)
+            }
+
+            result.fold(
+                onSuccess = { _saveSuccess.value = true },
+                onFailure = { _errorMessage.value = it.message }
+            )
+            _isSaving.value = false
+        }
+    }
+    private suspend fun saveDiaper(babyId: String, s: EventFormState.Diaper): Result<Unit> {
+        // Validation for dirty or mixed diapers
+        if ((s.diaperType == DiaperType.DIRTY || s.diaperType == DiaperType.MIXED)
+            && s.poopColor == null && s.poopConsistency == null) {
+            return Result.failure(
+                IllegalArgumentException("For dirty diapers, specify color or consistency.")
+            )
+        }
+
+        // Construct the event
+        val event = DiaperEvent(
+            babyId = babyId,
+            diaperType = s.diaperType,
+            poopColor = s.poopColor,
+            poopConsistency = s.poopConsistency,
+            notes = s.notes.takeIf(String::isNotBlank)
+        )
+
+        // Persist via repository
+        return repository.addEvent(event)
+    }
+    private suspend fun saveSleep(babyId: String, s: EventFormState.Sleep): Result<Unit> {
+        if (!s.isSleeping && s.beginTime == null && s.endTime == null) {
+            return Result.failure(IllegalArgumentException(
+                "Please start and stop sleep before saving."
+            ))
+        }
+        val event = SleepEvent(
+            babyId = babyId,
+            isSleeping = s.isSleeping,
+            beginTime = s.beginTime,
+            endTime = s.endTime,
+            durationMinutes = s.durationMinutes,
+            notes = s.notes.takeIf(String::isNotBlank)
+        )
+        return repository.addEvent(event)
+    }
+
+    private suspend fun saveFeeding(
+        babyId: String,
+        s: EventFormState.Feeding
+    ): Result<Unit> {
+        val amount = s.amountMl.toDoubleOrNull()
+        val duration = s.durationMin.toIntOrNull()
+        when (s.feedType) {
+            FeedType.BREAST_MILK -> {
+                if (duration == null && s.breastSide == null && amount == null) {
+                    return Result.failure(IllegalArgumentException(
+                        "Provide duration/side or amount for breast milk."
+                    ))
+                }
+            }
+            FeedType.FORMULA -> if (amount == null) {
+                return Result.failure(IllegalArgumentException("Amount is required for formula."))
+            }
+            FeedType.SOLID -> if (s.notes.isBlank() && amount == null) {
+                return Result.failure(IllegalArgumentException(
+                    "Provide notes or amount for solids."
+                ))
+            }
+        }
+        val event = FeedingEvent(
+            babyId = babyId,
+            feedType = s.feedType,
+            amountMl = amount,
+            durationMinutes = duration,
+            breastSide = s.breastSide,
+            notes = s.notes.takeIf(String::isNotBlank)
+        )
+        return repository.addEvent(event)
+    }
+
+    private suspend fun saveGrowth(
+        babyId: String,
+        s: EventFormState.Growth
+    ): Result<Unit> {
+        val weight = s.weightKg.toDoubleOrNull()
+        val height = s.heightCm.toDoubleOrNull()
+        val head   = s.headCircumferenceCm.toDoubleOrNull()
+        if (weight == null && height == null && head == null) {
+            return Result.failure(IllegalArgumentException(
+                "At least one measurement required."
+            ))
+        }
+        val event = GrowthEvent(
+            babyId = babyId,
+            weightKg = weight,
+            heightCm = height,
+            headCircumferenceCm = head,
+            notes = s.notes.takeIf(String::isNotBlank)
+        )
+        return repository.addEvent(event)
     }
 
     fun loadEventsInRange(babyId: String) {
