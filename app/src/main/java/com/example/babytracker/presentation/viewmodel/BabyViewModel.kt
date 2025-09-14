@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.util.Log // For logging errors
 import androidx.room.util.copy
+import com.example.babytracker.data.BloodType
 import com.example.babytracker.data.Gender
 import com.example.babytracker.data.User
 import kotlinx.coroutines.flow.SharingStarted
@@ -132,7 +133,7 @@ class BabyViewModel @Inject constructor(
         birthLengthCm: Double? = null,
         birthHeadCircumferenceCm: Double? = null,
         birthTime: String? = null,
-        bloodType: String? = null,
+        bloodType: BloodType = BloodType.UNKNOWN,
         allergies: List<String> = emptyList(),
         medicalConditions: List<String> = emptyList(),
         pediatricianName: String? = null,
