@@ -78,6 +78,7 @@ dependencies {
     // Dates
     implementation(libs.joda.time)
     implementation(libs.androidx.compose.foundation.layout)
+    implementation(libs.androidx.room.ktx)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
