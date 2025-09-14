@@ -21,14 +21,31 @@ import com.example.babytracker.data.PoopColor
 import com.example.babytracker.data.PoopConsistency
 import com.example.babytracker.data.event.GrowthEvent
 import com.example.babytracker.data.event.SleepEvent
+import java.text.SimpleDateFormat
+import kotlin.reflect.KClass
 
 @HiltViewModel
 class EventViewModel @Inject constructor(
     private val repository: FirebaseRepository
 ) : ViewModel() {
 
-    private val _events = MutableStateFlow<Map<Any, List<Event>>>(emptyMap())
-    val events: StateFlow<Map<Any, List<Event>>> = _events.asStateFlow()
+    // --- Event Data State ---
+    private val _events = MutableStateFlow<Map<KClass<out Event>, List<Event>>>(emptyMap())
+    val events: StateFlow<Map<KClass<out Event>, List<Event>>> = _events.asStateFlow()
+
+    private val _eventsByType = MutableStateFlow<Map<KClass<out Event>, List<Event>>>(emptyMap())
+    val eventsByType: StateFlow<Map<KClass<out Event>, List<Event>>> = _eventsByType.asStateFlow()
+
+    // --- Date Range Filtering (like GrowthViewModel) ---
+    private val _startDate = MutableStateFlow<Date>(Date().apply {
+        time = System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000 // Default: 7 days ago
+    })
+    val startDate: StateFlow<Date> = _startDate.asStateFlow()
+
+    private val _endDate = MutableStateFlow<Date>(Date()) // Default: today
+    val endDate: StateFlow<Date> = _endDate.asStateFlow()
+
+    // --- Loading States ---
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -36,11 +53,37 @@ class EventViewModel @Inject constructor(
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
 
+    // --- Feedback States ---
+
     private val _saveSuccess = MutableStateFlow(false)
     val saveSuccess: StateFlow<Boolean> = _saveSuccess.asStateFlow()
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    // --- Event-specific data (like GrowthViewModel stores growth events) ---
+    private val _feedingEvents = MutableStateFlow<List<FeedingEvent>>(emptyList())
+    val feedingEvents: StateFlow<List<FeedingEvent>> = _feedingEvents.asStateFlow()
+
+    private val _diaperEvents = MutableStateFlow<List<DiaperEvent>>(emptyList())
+    val diaperEvents: StateFlow<List<DiaperEvent>> = _diaperEvents.asStateFlow()
+
+    private val _growthEvents = MutableStateFlow<List<GrowthEvent>>(emptyList())
+    val growthEvents: StateFlow<List<GrowthEvent>> = _growthEvents.asStateFlow()
+
+    private val _sleepEvents = MutableStateFlow<List<SleepEvent>>(emptyList())
+    val sleepEvents: StateFlow<List<SleepEvent>> = _sleepEvents.asStateFlow()
+
+    // --- Date Range Methods (like GrowthViewModel) ---
+    fun setStartDate(date: Date, babyId: String) {
+        _startDate.value = date
+        loadEventsInRange(babyId)
+    }
+
+    fun setEndDate(date: Date, babyId: String) {
+        _endDate.value = date
+        loadEventsInRange(babyId)
+    }
 
     // --- Reset methods (like DiaperViewModel) ---
     fun resetSaveSuccess() {
@@ -51,37 +94,117 @@ class EventViewModel @Inject constructor(
         _errorMessage.value = null
     }
 
-    fun loadEvents(babyId: String) {
+    fun loadEventsInRange(babyId: String) {
         if (babyId.isBlank()) {
-            Log.w("EventViewModel", "loadEvents called with blank babyId")
-            _events.value = emptyMap()
-            _isLoading.value = false
+            Log.w("EventViewModel", "loadEventsInRange called with blank babyId")
+            clearAllEvents()
             return
         }
-        _isLoading.value = true
-        _errorMessage.value = null
 
         viewModelScope.launch {
-            val result: Result<List<Event>> = repository.getAllEventsForBaby(babyId)
-            result.fold(
-                onSuccess = { eventsList ->
-                    _events.value = eventsList.groupBy { event ->
-                        event::class // Groups by actual class (FeedingEvent, DiaperEvent, etc.)
-                    }
-                },
-                onFailure = { exception ->
-                    Log.e(
-                        "EventViewModel",
-                        "Error loading events for baby $babyId: ${exception.message}",
-                        exception
-                    )
-                    _events.value = emptyMap()
-                    _errorMessage.value = "Failed to load events: ${exception.localizedMessage}"
-                }
-            )
-            _isLoading.value = false
+            _isLoading.value = true
+            _errorMessage.value = null
+
+            try {
+                // Load events within date range
+                val allEvents = loadEventsByDateRange(babyId, _startDate.value, _endDate.value)
+
+                // Group events by type (like GrowthViewModel organizing data)
+                val eventsByClass = allEvents.groupBy { it::class }
+                _eventsByType.value = eventsByClass
+                _events.value = eventsByClass
+
+                // Separate by specific types (like GrowthViewModel storing growth events)
+                _feedingEvents.value = eventsByClass[FeedingEvent::class]?.filterIsInstance<FeedingEvent>()?.sortedBy { it.timestamp } ?: emptyList()
+                _diaperEvents.value = eventsByClass[DiaperEvent::class]?.filterIsInstance<DiaperEvent>()?.sortedBy { it.timestamp } ?: emptyList()
+                _growthEvents.value = eventsByClass[GrowthEvent::class]?.filterIsInstance<GrowthEvent>()?.sortedBy { it.timestamp } ?: emptyList()
+                _sleepEvents.value = eventsByClass[SleepEvent::class]?.filterIsInstance<SleepEvent>()?.sortedBy { it.timestamp } ?: emptyList()
+
+                Log.d("EventViewModel", "Loaded ${allEvents.size} events in date range for baby $babyId")
+
+            } catch (exception: Exception) {
+                Log.e("EventViewModel", "Error loading events in range for baby $babyId: ${exception.message}", exception)
+                _errorMessage.value = "Failed to load events: ${exception.localizedMessage}"
+                clearAllEvents()
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
+
+    private suspend fun loadEventsByDateRange(babyId: String, startDate: Date, endDate: Date): List<Event> {
+        // Normalize date boundaries (like GrowthViewModel)
+        val calStart = Calendar.getInstance().apply {
+            time = startDate
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }
+        val calEnd = Calendar.getInstance().apply {
+            time = endDate
+            set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 999)
+        }
+
+        val normalizedStart = calStart.time
+        val normalizedEnd = calEnd.time
+
+        // Calculate duration in days (like GrowthViewModel)
+        val days = ((normalizedEnd.time - normalizedStart.time) / (1000 * 60 * 60 * 24)).toInt().coerceAtLeast(0)
+
+        return when {
+            days == 0 -> {
+                // Same day → get all events for that day
+                repository.getAllEventsForBaby(babyId, limit = -1) // No limit
+                    .getOrNull()?.filter { event ->
+                        event.timestamp.time >= normalizedStart.time && event.timestamp.time <= normalizedEnd.time
+                    } ?: emptyList()
+            }
+            days <= 30 -> {
+                // Short period (≤1 month) → get all events
+                repository.getAllEventsForBaby(babyId, limit = -1)
+                    .getOrNull()?.filter { event ->
+                        event.timestamp.time >= normalizedStart.time && event.timestamp.time <= normalizedEnd.time
+                    } ?: emptyList()
+            }
+            else -> {
+                // Long period (>1 month) → sample events or get recent ones
+                repository.getAllEventsForBaby(babyId, limit = 100) // Limited sample
+                    .getOrNull()?.filter { event ->
+                        event.timestamp.time >= normalizedStart.time && event.timestamp.time <= normalizedEnd.time
+                    } ?: emptyList()
+            }
+        }
+    }
+
+    fun getEventCountByType(): Map<String, Int> {
+        val events = _eventsByType.value
+        return mapOf(
+            "Feeding" to (events[FeedingEvent::class]?.size ?: 0),
+            "Diaper" to (events[DiaperEvent::class]?.size ?: 0),
+            "Growth" to (events[GrowthEvent::class]?.size ?: 0),
+            "Sleep" to (events[SleepEvent::class]?.size ?: 0)
+        )
+    }
+
+    fun getEventsForDateRange(eventType: KClass<out Event>): List<Event> {
+        return _eventsByType.value[eventType] ?: emptyList()
+    }
+
+    fun getFormattedDateLabels(): List<String> {
+        val formatter = SimpleDateFormat("dd/MM", Locale.getDefault())
+        val allEvents = _eventsByType.value.values.flatten().sortedBy { it.timestamp }
+        return allEvents.map { formatter.format(it.timestamp) }
+    }
+
+    private fun clearAllEvents() {
+        _events.value = emptyMap()
+        _eventsByType.value = emptyMap()
+        _feedingEvents.value = emptyList()
+        _diaperEvents.value = emptyList()
+        _growthEvents.value = emptyList()
+        _sleepEvents.value = emptyList()
+    }
+
 
     fun addFeedingEvent(
         babyId: String,
@@ -149,7 +272,7 @@ class EventViewModel @Inject constructor(
                 onSuccess = {
                     Log.d("EventViewModel", "Feeding event added successfully for baby $babyId")
                     _saveSuccess.value = true
-                    loadEvents(babyId)
+                    loadEventsInRange(babyId)
                 },
                 onFailure = { exception ->
                     Log.e("EventViewModel", "Error adding feeding event: ${exception.message}", exception)
@@ -162,14 +285,13 @@ class EventViewModel @Inject constructor(
 
     fun addGrowthEvent(
         babyId: String,
-        weightKg: Double?,
-        heightCm: Double?,
-        headCircumferenceCm: Double?,
-        notes: String?,
+        weightKgText: String = "",
+        heightCmText: String = "",
+        headCircumferenceCmText: String = "",
+        notes: String? = null,
         measurementDate: Date = Date()
     ) {
         if (babyId.isBlank()) {
-            Log.w("EventViewModel", "addGrowthEvent called with blank babyId")
             _errorMessage.value = "Baby ID is missing."
             return
         }
@@ -178,35 +300,52 @@ class EventViewModel @Inject constructor(
         _errorMessage.value = null
         _saveSuccess.value = false
 
+        val weightKg = weightKgText.toDoubleOrNull()
+        val heightCm = heightCmText.toDoubleOrNull()
+        val headCircumferenceCm = headCircumferenceCmText.toDoubleOrNull()
+        val cleanNotes = notes?.takeIf { it.isNotBlank() }
+
         if (weightKg == null && heightCm == null && headCircumferenceCm == null) {
-            Log.w("EventViewModel", "addGrowthEvent called with no measurement values.")
+            _errorMessage.value = "Please provide at least one measurement (weight, height, or head circumference)."
+            _isSaving.value = false
+            return
         }
 
-        val event = GrowthEvent(
-            babyId = babyId,
-            timestamp = measurementDate,
-            notes = notes,
-            weightKg = weightKg,
-            heightCm = heightCm,
-            headCircumferenceCm = headCircumferenceCm
-        )
-
         viewModelScope.launch {
+            // Advanced duplicate handling (like GrowthViewModel)
+            val cal = Calendar.getInstance().apply { time = measurementDate }
+            cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+            val dayStart = cal.time
+            cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59)
+            cal.set(Calendar.SECOND, 59); cal.set(Calendar.MILLISECOND, 999)
+            val dayEnd = cal.time
+
+            // Check for existing event on same date (like GrowthViewModel)
+            val existingResult = repository.getGrowthEventsInRange(babyId, dayStart, dayEnd)
+            val existingEvent = existingResult.getOrNull()?.firstOrNull()
+            val eventId = existingEvent?.id ?: UUID.randomUUID().toString()
+
+            val event = GrowthEvent(
+                id = eventId,
+                babyId = babyId,
+                timestamp = measurementDate,
+                notes = cleanNotes,
+                weightKg = weightKg,
+                heightCm = heightCm,
+                headCircumferenceCm = headCircumferenceCm
+            )
+
             val result = repository.addEvent(event)
             result.fold(
                 onSuccess = {
                     Log.d("EventViewModel", "Growth event added successfully for baby $babyId")
                     _saveSuccess.value = true
-                    loadEvents(babyId)
+                    loadEventsInRange(babyId)
                 },
                 onFailure = { exception ->
-                    Log.e(
-                        "EventViewModel",
-                        "Error adding growth event: ${exception.message}",
-                        exception
-                    )
-                    _errorMessage.value =
-                        "Failed to add growth event: ${exception.localizedMessage}"
+                    Log.e("EventViewModel", "Error adding growth event: ${exception.message}", exception)
+                    _errorMessage.value = "Failed to add growth event: ${exception.localizedMessage}"
                 }
             )
             _isSaving.value = false
@@ -252,7 +391,7 @@ class EventViewModel @Inject constructor(
                 onSuccess = {
                     Log.d("EventViewModel", "Sleep event added successfully for baby $babyId")
                     _saveSuccess.value = true
-                    loadEvents(babyId)
+                    loadEventsInRange(babyId)
                 },
                 onFailure = { exception ->
                     Log.e(
@@ -300,7 +439,7 @@ class EventViewModel @Inject constructor(
                 onSuccess = {
                     Log.d("EventViewModel", "Diaper event added successfully for baby $babyId")
                     _saveSuccess.value = true
-                    loadEvents(babyId)
+                    loadEventsInRange(babyId)
                 },
                 onFailure = { exception ->
                     Log.e(
