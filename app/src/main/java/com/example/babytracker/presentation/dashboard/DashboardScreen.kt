@@ -30,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -49,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import com.example.babytracker.data.Baby
 import com.example.babytracker.data.Gender
 import com.example.babytracker.presentation.calendar.CalendarScreen
+import com.example.babytracker.presentation.event.EventFormDialog
 import com.example.babytracker.presentation.viewmodel.AuthViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -65,6 +67,7 @@ fun DashboardScreen(
     // Load all babies – ensure BabyViewModel manages this
     val babies by viewModel.babies.collectAsState()
     val selectedBaby by viewModel.selectedBaby.collectAsState()
+    var showEventForm by remember { mutableStateOf(false) }
 
     // Initialize selectedBaby on first composition
     LaunchedEffect(babies, initialBabyId) {
@@ -119,11 +122,10 @@ fun DashboardScreen(
             )
         },
         floatingActionButton = {
-            val selectedBaby by viewModel.selectedBaby.collectAsState()
             FloatingActionButton(
                 onClick = {
-                    selectedBaby?.let {
-                        navController.navigate("event_form/${it.id}")
+                    if (selectedBaby != null) {
+                        showEventForm = true
                     }
                 }
             ) {
@@ -133,20 +135,17 @@ fun DashboardScreen(
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
             if (babies.isNotEmpty()) {
-                // Baby selector with "Add Baby" button
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp) // même hauteur que les boutons
+                        .height(48.dp)
                         .padding(vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     items(babies) { baby ->
                         OutlinedButton(
-                            onClick = {
-                                viewModel.selectBaby(baby)
-                            },
+                            onClick = { viewModel.selectBaby(baby) },
                             modifier = Modifier.height(36.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 containerColor = if (baby == selectedBaby)
@@ -207,6 +206,12 @@ fun DashboardScreen(
                 }
             }
 
+            selectedBaby?.takeIf { showEventForm }?.let { baby ->
+                EventFormDialog(
+                    babyId = baby.id,
+                    onDismiss = { showEventForm = false }
+                )
+            }
             // Afficher l'écran sélectionné
             selectedBaby?.let { baby ->
                 when (selectedScreen) {

@@ -21,14 +21,10 @@ import com.example.babytracker.presentation.auth.AuthScreen
 import com.example.babytracker.presentation.baby.AddBabyScreen
 import com.example.babytracker.presentation.baby.BabySelectionScreen
 import com.example.babytracker.presentation.baby.EditBabyScreen
-import com.example.babytracker.presentation.calendar.CalendarScreen
 import com.example.babytracker.presentation.dashboard.DashboardScreen
-import com.example.babytracker.presentation.event.EventFormScreen
-import com.example.babytracker.presentation.navigation.Screen
 import com.example.babytracker.presentation.settings.ParentsScreen
 import com.example.babytracker.presentation.settings.SettingsScreen
 import com.example.babytracker.presentation.viewmodel.AuthViewModel
-import com.example.babytracker.presentation.viewmodel.EventViewModel
 import com.example.babytracker.ui.theme.BabyTrackerTheme
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.HiltAndroidApp
@@ -101,17 +97,6 @@ fun BabyTrackerApp() {
             DashboardScreen(
                 navController = navController,
                 initialBabyId = babyId
-            )
-        }
-        composable(
-            "event_form/{babyId}",
-            arguments = listOf(navArgument("babyId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val babyId = backStackEntry.arguments!!.getString("babyId")!!
-            EventFormScreen(
-                babyId = babyId,
-                navController,
-                viewModel = hiltViewModel<EventViewModel>()
             )
         }
         composable(
