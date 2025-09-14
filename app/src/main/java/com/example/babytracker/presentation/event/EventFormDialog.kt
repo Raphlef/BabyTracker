@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -38,8 +39,15 @@ fun EventFormDialog(
     val isSaving by viewModel.isSaving.collectAsState()
     val saveSuccess by viewModel.saveSuccess.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
-
+    val isEditMode = formState.eventId != null
     val currentType = formState.eventType
+
+    LaunchedEffect(saveSuccess) {
+        if (saveSuccess) {
+            onDismiss()
+            viewModel.resetSaveSuccess()  // Optional: clear the flag
+        }
+    }
 
     Dialog(onDismissRequest = { onDismiss() }) {
         Surface(
@@ -60,7 +68,10 @@ fun EventFormDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Add / Edit Event", style = MaterialTheme.typography.headlineSmall)
+                    Text(
+                        text = if (formState.eventId == null) "Add Event" else "Edit Event",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Close")
                     }
@@ -69,6 +80,7 @@ fun EventFormDialog(
                     Text(errorMessage!!, color = MaterialTheme.colorScheme.error)
                 }
                 // 1️⃣ Event Type Selector
+                val isEditMode = formState.eventId != null
                 var typeDropdownExpanded by remember { mutableStateOf(false) }
                 ExposedDropdownMenuBox(
                     expanded = typeDropdownExpanded,
@@ -84,29 +96,33 @@ fun EventFormDialog(
                                 typeDropdownExpanded
                             )
                         },
+                        enabled = !isEditMode,
                         modifier = Modifier
                             .fillMaxWidth()
                             .menuAnchor()
+                            .let { if (isEditMode) it.alpha(0.6f) else it }
                     )
-                    ExposedDropdownMenu(
-                        expanded = typeDropdownExpanded,
-                        onDismissRequest = { typeDropdownExpanded = false }
-                    ) {
-                        EventType.entries.forEach { type ->
-                            DropdownMenuItem(
-                                text = { Text(type.displayName) },
-                                onClick = {
-                                    val newState = when (type) {
-                                        EventType.DIAPER -> EventFormState.Diaper()
-                                        EventType.FEEDING -> EventFormState.Feeding()
-                                        EventType.SLEEP -> EventFormState.Sleep()
-                                        EventType.GROWTH -> EventFormState.Growth()
-                                        EventType.PUMPING -> EventFormState.Pumping()
+                    if (!isEditMode) {
+                        ExposedDropdownMenu(
+                            expanded = typeDropdownExpanded,
+                            onDismissRequest = { typeDropdownExpanded = false }
+                        ) {
+                            EventType.entries.forEach { type ->
+                                DropdownMenuItem(
+                                    text = { Text(type.displayName) },
+                                    onClick = {
+                                        val newState = when (type) {
+                                            EventType.DIAPER -> EventFormState.Diaper()
+                                            EventType.FEEDING -> EventFormState.Feeding()
+                                            EventType.SLEEP -> EventFormState.Sleep()
+                                            EventType.GROWTH -> EventFormState.Growth()
+                                            EventType.PUMPING -> EventFormState.Pumping()
+                                        }
+                                        viewModel.updateForm { newState }
+                                        typeDropdownExpanded = false
                                     }
-                                    viewModel.updateForm { newState }
-                                    typeDropdownExpanded = false
-                                }
-                            )
+                                )
+                            }
                         }
                     }
                 }
@@ -456,7 +472,7 @@ fun EventFormDialog(
                         Spacer(Modifier.width(8.dp))
                         Text("Saving…")
                     } else {
-                        Text("Save")
+                        Text(if (formState.eventId == null) "Create" else "Update")
                     }
                 }
             }

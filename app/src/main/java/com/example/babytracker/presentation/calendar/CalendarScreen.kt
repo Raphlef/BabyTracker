@@ -25,16 +25,21 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.babytracker.data.Event
 import com.example.babytracker.data.EventType
+import com.example.babytracker.presentation.event.EventFormDialog
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import com.example.babytracker.presentation.viewmodel.EventViewModel
 import java.time.LocalDate
@@ -76,6 +82,9 @@ fun CalendarScreen(
     // Currently selected filter types
     var filterTypes by rememberSaveable { mutableStateOf<Set<EventType>>(emptySet()) }
 
+    var editingEvent by rememberSaveable { mutableStateOf<Event?>(null) }
+    var showDialog by rememberSaveable { mutableStateOf(false) }
+
     // Compute available types for the current month
     val availableTypes = remember(eventsByDay, currentMonth) {
         eventsByDay
@@ -91,23 +100,36 @@ fun CalendarScreen(
         filterTypes = availableTypes
     }
 
+    fun refresh() {
+        currentBabyId?.let {
+        viewModel.setDateRangeForMonth(currentMonth)
+        viewModel.loadEventsInRange(it)
+        }
+    }
     // Load events when babyId changes
     LaunchedEffect(currentBabyId) {
-        currentBabyId?.let {
-            // Set date range for current month and load events
-            viewModel.setDateRangeForMonth(currentMonth)
-            viewModel.loadEventsInRange(it)
-        }
+        refresh()
     }
 
     // Update date range and reload events when month changes
     LaunchedEffect(currentMonth, currentBabyId) {
-        currentBabyId?.let {
-            viewModel.setDateRangeForMonth(currentMonth)
-            viewModel.loadEventsInRange(it)
+        refresh()
+    }
+
+    // Error Snackbar
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Long)
+            viewModel.clearErrorMessage()
         }
     }
 
+    LaunchedEffect(editingEvent) {
+        editingEvent?.let {
+            viewModel.loadEventIntoForm(it)
+            showDialog = true
+        }
+    }
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
@@ -204,21 +226,68 @@ fun CalendarScreen(
                                     .fillMaxWidth()
                                     .padding(vertical = 4.dp)
                             ) {
+                                // Colored dot
                                 Box(
                                     modifier = Modifier
                                         .size(10.dp)
                                         .background(type.color, CircleShape)
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                Text(
-                                    text = "$time • ${type.displayName}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
+
+                                // Wrap time/type and edit button together
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "$time • ${type.displayName}",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .clickable { editingEvent = event }
+                                            .padding(4.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.primaryContainer,
+                                            tonalElevation = 1.dp,
+                                            modifier = Modifier.size(20.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Edit,
+                                                contentDescription = "Edit",
+                                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                modifier = Modifier
+                                                    .size(12.dp)
+                                                    .align(Alignment.Center)
+                                            )
+                                        }
+                                    }
+                                }
                             }
-                            Divider()
+                            HorizontalDivider(
+                                Modifier,
+                                DividerDefaults.Thickness,
+                                DividerDefaults.color
+                            )
                         }
                     }
                 }
+            }
+            // 3️⃣ Show dialog when editingEvent != null
+            if (showDialog) {
+                EventFormDialog(
+                    babyId = selectedBaby?.id ?: return@Box,
+                    onDismiss = {
+                        showDialog = false
+                        editingEvent = null
+                        viewModel.resetFormState()
+                        refresh()
+                    }
+                )
             }
             // Overlay loading spinner
             if (isLoading) {
@@ -230,13 +299,6 @@ fun CalendarScreen(
                     CircularProgressIndicator(Modifier.align(Alignment.Center))
                 }
             }
-        }
-    }
-    // Error Snackbar
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let {
-            snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Long)
-            viewModel.clearErrorMessage()
         }
     }
 }

@@ -82,7 +82,42 @@ class EventViewModel @Inject constructor(
     fun updateForm(update: EventFormState.() -> EventFormState) {
         _formState.update { it.update() }
     }
-
+    fun loadEventIntoForm(event: Event) {
+        val id = event.id
+        val state: EventFormState = when (event) {
+            is DiaperEvent -> EventFormState.Diaper(
+                eventId = id,
+                diaperType = event.diaperType,
+                poopColor = event.poopColor,
+                poopConsistency = event.poopConsistency,
+                notes = event.notes.orEmpty()
+            )
+            is SleepEvent -> EventFormState.Sleep(
+                eventId = id,
+                beginTime = event.beginTime,
+                endTime = event.endTime,
+                durationMinutes = event.durationMinutes,
+                notes = event.notes.orEmpty()
+            )
+            is FeedingEvent -> EventFormState.Feeding(
+                eventId = id,
+                feedType = event.feedType,
+                amountMl = event.amountMl?.toString().orEmpty(),
+                durationMin = event.durationMinutes?.toString().orEmpty(),
+                breastSide = event.breastSide,
+                notes = event.notes.orEmpty()
+            )
+            is GrowthEvent -> EventFormState.Growth(
+                eventId = id,
+                weightKg = event.weightKg?.toString().orEmpty(),
+                heightCm = event.heightCm?.toString().orEmpty(),
+                headCircumferenceCm = event.headCircumferenceCm?.toString().orEmpty(),
+                notes = event.notes.orEmpty()
+            )
+            else -> EventFormState.Diaper()
+        }
+        _formState.value = state
+    }
     // Entry-point to validate & save whichever event type is active
     fun validateAndSave(babyId: String) {
         if (babyId.isBlank()) {
@@ -93,14 +128,69 @@ class EventViewModel @Inject constructor(
         _errorMessage.value = null
 
         viewModelScope.launch {
-            val result = when (val state = _formState.value) {
-                is EventFormState.Diaper -> saveDiaper(babyId, state)
-                is EventFormState.Sleep -> saveSleep(babyId, state)
-                is EventFormState.Feeding -> saveFeeding(babyId, state)
-                is EventFormState.Growth -> saveGrowth(babyId, state)
-                is EventFormState.Pumping -> {
-                    // Temporary stub: show in-progress message
-                    Result.failure(Exception("Pumping event save not yet implemented"))
+            val state = _formState.value
+            val result: Result<Unit> = if (state.eventId != null) {
+                // EDITING
+                when (state) {
+                    is EventFormState.Diaper -> repository.updateEvent(
+                        eventId = state.eventId!!,
+                        event = DiaperEvent(
+                            id = state.eventId,
+                            babyId = babyId,
+                            diaperType = state.diaperType,
+                            poopColor = state.poopColor,
+                            poopConsistency = state.poopConsistency,
+                            notes = state.notes.takeIf(String::isNotBlank)
+                        )
+                    )
+                    is EventFormState.Sleep -> repository.updateEvent(
+                        eventId = state.eventId!!,
+                        event = SleepEvent(
+                            id = state.eventId,
+                            babyId = babyId,
+                            isSleeping = state.isSleeping,
+                            beginTime = state.beginTime,
+                            endTime = state.endTime,
+                            durationMinutes = state.durationMinutes,
+                            notes = state.notes.takeIf(String::isNotBlank)
+                        )
+                    )
+                    is EventFormState.Feeding -> repository.updateEvent(
+                        eventId = state.eventId!!,
+                        event = FeedingEvent(
+                            id = state.eventId,
+                            babyId = babyId,
+                            feedType = state.feedType,
+                            amountMl = state.amountMl.toDoubleOrNull(),
+                            durationMinutes = state.durationMin.toIntOrNull(),
+                            breastSide = state.breastSide,
+                            notes = state.notes.takeIf(String::isNotBlank)
+                        )
+                    )
+                    is EventFormState.Growth -> repository.updateEvent(
+                        eventId = state.eventId!!,
+                        event = GrowthEvent(
+                            id = state.eventId,
+                            babyId = babyId,
+                            weightKg = state.weightKg.toDoubleOrNull(),
+                            heightCm = state.heightCm.toDoubleOrNull(),
+                            headCircumferenceCm = state.headCircumferenceCm.toDoubleOrNull(),
+                            notes = state.notes.takeIf(String::isNotBlank)
+                        )
+                    )
+                    is EventFormState.Pumping -> {
+                        // Fallback to create for now or implement updatePump
+                        Result.failure(Exception("Updating pumping events not implemented"))
+                    }
+                }
+            } else {
+                // CREATING
+                when (state) {
+                    is EventFormState.Diaper -> saveDiaper(babyId, state)
+                    is EventFormState.Sleep -> saveSleep(babyId, state)
+                    is EventFormState.Feeding -> saveFeeding(babyId, state)
+                    is EventFormState.Growth -> saveGrowth(babyId, state)
+                    is EventFormState.Pumping -> Result.failure(Exception("Pumping event save not yet implemented"))
                 }
             }
 
@@ -315,5 +405,11 @@ class EventViewModel @Inject constructor(
 
     fun clearErrorMessage() {
         _errorMessage.value = null
+    }
+    fun resetFormState() {
+        _formState.value = EventFormState.Diaper()
+    }
+    fun resetSaveSuccess() {
+        _saveSuccess.value = false
     }
 }

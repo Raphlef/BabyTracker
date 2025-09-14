@@ -115,9 +115,11 @@ data class PumpingEvent(
  * UI form state representing the in-memory values while editing or creating an event.
  */
 sealed class EventFormState {
+    abstract val eventId: String?
     abstract val eventType: EventType
 
     data class Diaper(
+        override val eventId: String? = null,
         override val eventType: EventType = EventType.DIAPER,
         val diaperType: DiaperType = DiaperType.DRY,
         val poopColor: PoopColor? = null,
@@ -126,6 +128,7 @@ sealed class EventFormState {
     ) : EventFormState()
 
     data class Sleep(
+        override val eventId: String? = null,
         override val eventType: EventType = EventType.SLEEP,
         val isSleeping: Boolean = false,
         val beginTime: Date? = null,
@@ -135,6 +138,7 @@ sealed class EventFormState {
     ) : EventFormState()
 
     data class Feeding(
+        override val eventId: String? = null,
         override val eventType: EventType = EventType.FEEDING,
         val feedType: FeedType = FeedType.BREAST_MILK,
         val amountMl: String = "",
@@ -144,6 +148,7 @@ sealed class EventFormState {
     ) : EventFormState()
 
     data class Growth(
+        override val eventId: String? = null,
         override val eventType: EventType = EventType.GROWTH,
         val weightKg: String = "",
         val heightCm: String = "",
@@ -152,6 +157,7 @@ sealed class EventFormState {
     ) : EventFormState()
 
     data class Pumping(
+        override val eventId: String? = null,
         override val eventType: EventType = EventType.PUMPING,
         val amountMl: String = "",
         val durationMin: String = "",

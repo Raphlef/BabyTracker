@@ -9,6 +9,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.snapshots
 import com.google.firebase.firestore.toObject
 import com.google.firebase.firestore.toObjects
@@ -289,6 +290,28 @@ class FirebaseRepository @Inject constructor(
     }
     // --- Event Methods ---
 
+    suspend fun updateEvent(eventId: String, event: Event): Result<Unit> = runCatching {
+        val eventData = when (event) {
+            is DiaperEvent   -> event.asMap().plus(commonMap(event))
+            is FeedingEvent  -> event.asMap().plus(commonMap(event))
+            is SleepEvent    -> event.asMap().plus(commonMap(event))
+            is GrowthEvent   -> event.asMap().plus(commonMap(event))
+            is PumpingEvent  -> event.asMap().plus(commonMap(event))
+            else             -> throw IllegalArgumentException("Unknown event type")
+        }
+        db.collection(EVENTS_COLLECTION)
+            .document(eventId)
+            .set(eventData, SetOptions.merge())
+            .await()
+    }
+
+    // Helper to extract fields common to all events
+    private fun commonMap(event: Event): Map<String, Any?> = mapOf(
+        "id"        to event.id,
+        "babyId"    to event.babyId,
+        "timestamp" to com.google.firebase.Timestamp(event.timestamp),
+        "notes"     to event.notes
+    )
     /**
      * Adds any type of event to Firestore.
      * It's crucial that your Event subclasses are properly serializable by Firestore.

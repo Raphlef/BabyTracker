@@ -105,7 +105,7 @@ fun DashboardScreen(
     // Manage selectedScreen state here, defaulting to the first item in bottomNavScreens
     var selectedScreen by rememberSaveable(stateSaver = ScreenSaver) { // Use custom saver for Screen
         mutableStateOf<Screen>(
-            bottomNavScreens.firstOrNull() ?: Screen.Feeding
+            Screen.Calendar
         ) // Default to Feeding or first
     }
 
