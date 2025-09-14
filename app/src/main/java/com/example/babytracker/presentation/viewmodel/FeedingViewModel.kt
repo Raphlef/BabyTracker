@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.babytracker.data.BreastSide
 import com.example.babytracker.data.FeedType
 // Assuming FeedingEvent is in com.example.babytracker.data.event
-import com.example.babytracker.data.event.FeedingEvent // [2]
 import com.example.babytracker.presentation.viewmodel.EventViewModel // To delegate saving
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.util.Log
+import com.example.babytracker.data.FeedingEvent
 import com.example.babytracker.data.FirebaseRepository
 
 @HiltViewModel

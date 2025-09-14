@@ -3,9 +3,9 @@ package com.example.babytracker.presentation.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.babytracker.data.DiaperEvent
 import com.example.babytracker.data.DiaperType
 import com.example.babytracker.data.FeedType
-import com.example.babytracker.data.event.DiaperEvent
 import com.example.babytracker.data.FirebaseRepository
 import com.example.babytracker.data.PoopColor
 import com.example.babytracker.data.PoopConsistency

@@ -3,9 +3,7 @@ package com.example.babytracker.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.babytracker.data.FirebaseRepository
-import com.example.babytracker.data.event.DiaperEvent
-import com.example.babytracker.data.event.Event
-import com.example.babytracker.data.event.FeedingEvent
+import com.example.babytracker.data.Event
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,19 +12,15 @@ import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
 import android.util.Log
-import com.example.babytracker.data.BreastSide
+import com.example.babytracker.data.DiaperEvent
 import com.example.babytracker.data.DiaperType
+import com.example.babytracker.data.EventFormState
 import com.example.babytracker.data.FeedType
-import com.example.babytracker.data.PoopColor
-import com.example.babytracker.data.PoopConsistency
-import com.example.babytracker.data.event.EventFormState
-import com.example.babytracker.data.event.GrowthEvent
-import com.example.babytracker.data.event.SleepEvent
+import com.example.babytracker.data.FeedingEvent
+import com.example.babytracker.data.GrowthEvent
+import com.example.babytracker.data.SleepEvent
 import kotlinx.coroutines.flow.update
-import kotlinx.datetime.LocalDate
-import java.text.SimpleDateFormat
 import java.time.ZoneId
-import kotlin.concurrent.atomics.update
 import kotlin.reflect.KClass
 
 @HiltViewModel

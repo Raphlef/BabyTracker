@@ -1,10 +1,8 @@
 package com.example.babytracker.presentation.event
 
 import android.app.TimePickerDialog
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -18,11 +16,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.babytracker.data.BreastSide
 import com.example.babytracker.data.DiaperType
-import com.example.babytracker.data.FeedType
-import com.example.babytracker.data.PoopColor
-import com.example.babytracker.data.PoopConsistency
-import com.example.babytracker.data.event.EventFormState
-import com.example.babytracker.data.event.EventType
+import com.example.babytracker.data.EventFormState
+import com.example.babytracker.data.EventType
 import com.example.babytracker.presentation.diaper.DiaperTypeDropdown
 import com.example.babytracker.presentation.diaper.PoopColorDropdown
 import com.example.babytracker.presentation.diaper.PoopConsistencyDropdown

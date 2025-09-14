@@ -5,12 +5,6 @@ import android.util.Log // For logging
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
-import com.example.babytracker.data.event.DiaperEvent
-import com.example.babytracker.data.event.Event
-import com.example.babytracker.data.event.FeedingEvent
-import com.example.babytracker.data.event.GrowthEvent
-import com.example.babytracker.data.event.PumpingEvent
-import com.example.babytracker.data.event.SleepEvent
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore

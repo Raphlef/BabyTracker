@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.babytracker.data.DiaperType
 import com.example.babytracker.data.FeedType
-import com.example.babytracker.data.event.SleepEvent
 import com.example.babytracker.data.FirebaseRepository
+import com.example.babytracker.data.SleepEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

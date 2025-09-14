@@ -5,8 +5,8 @@ import android.util.Log
 import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.babytracker.data.event.GrowthEvent
 import com.example.babytracker.data.FirebaseRepository
+import com.example.babytracker.data.GrowthEvent
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
