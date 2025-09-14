@@ -86,10 +86,10 @@ class EventViewModel @Inject constructor(
     fun addFeedingEvent(
         babyId: String,
         feedType: FeedType,
-        notes: String? = null,
-        amountMl: Double? = null,
-        durationMinutes: Int? = null,
+        amountMlText: String = "",    // String input from UI
+        durationMinutesText: String = "", // String input from UI
         breastSide: BreastSide? = null,
+        notes: String? = null,
         timestamp: Date = Date()
     ) {
         if (babyId.isBlank()) {
@@ -102,23 +102,33 @@ class EventViewModel @Inject constructor(
         _errorMessage.value = null
         _saveSuccess.value = false
 
+        // Parse string inputs to numbers (like FeedingViewModel)
+        val amountMl = amountMlText.toDoubleOrNull()
+        val durationMinutes = durationMinutesText.toIntOrNull()
+        val cleanNotes = notes?.takeIf { it.isNotBlank() }
+
+
         // Validation logic
         when (feedType) {
             FeedType.BREAST_MILK -> {
                 if (durationMinutes == null && breastSide == null && amountMl == null) {
-                    Log.w("EventViewModel", "Breast milk feeding event lacks typical details.")
+                    _errorMessage.value = "For breast milk, please provide duration/side or amount for pumped milk."
+                    _isSaving.value = false
+                    return
                 }
             }
-
             FeedType.FORMULA -> {
                 if (amountMl == null) {
-                    Log.w("EventViewModel", "Formula feeding event lacks amount.")
+                    _errorMessage.value = "Amount (ml) is required for formula."
+                    _isSaving.value = false
+                    return
                 }
             }
-
             FeedType.SOLID -> {
-                if (notes.isNullOrBlank() && amountMl == null) {
-                    Log.w("EventViewModel", "Solid feeding event lacks details.")
+                if (cleanNotes == null && amountMl == null) {
+                    _errorMessage.value = "Please provide notes or amount for solid food."
+                    _isSaving.value = false
+                    return
                 }
             }
         }
@@ -142,13 +152,8 @@ class EventViewModel @Inject constructor(
                     loadEvents(babyId)
                 },
                 onFailure = { exception ->
-                    Log.e(
-                        "EventViewModel",
-                        "Error adding feeding event: ${exception.message}",
-                        exception
-                    )
-                    _errorMessage.value =
-                        "Failed to add feeding event: ${exception.localizedMessage}"
+                    Log.e("EventViewModel", "Error adding feeding event: ${exception.message}", exception)
+                    _errorMessage.value = "Failed to add feeding event: ${exception.localizedMessage}"
                 }
             )
             _isSaving.value = false
