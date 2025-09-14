@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -127,37 +128,44 @@ fun CalendarScreen(
                             eventsByDay = eventsByDay,
                             onDayClick = { date ->
                                 selectedDate = date
-                                selectedBaby?.id?.let { babyId ->
-                                    viewModel.loadEventsInRange(babyId)
-                                }
                             }
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        // List of events for the selected date
                         Text(
-                            text = "Événements du ${selectedDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}",
+                            text = "Events on ${selectedDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}",
                             style = MaterialTheme.typography.titleSmall,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
-
-                        // Liste des événements du jour sélectionné
                         val dayEvents = eventsByDay[selectedDate].orEmpty()
                         if (dayEvents.isEmpty()) {
-                            Text("Aucun événement", style = MaterialTheme.typography.bodyMedium)
+                            Text("No events", style = MaterialTheme.typography.bodyMedium)
                         } else {
                             LazyColumn {
                                 items(dayEvents) { event ->
                                     val time = event.timestamp.toInstant()
                                         .atZone(ZoneId.systemDefault())
                                         .format(DateTimeFormatter.ofPattern("HH:mm"))
-                                    Text(
-                                        text = "$time • ${event::class.simpleName}",
-                                        style = MaterialTheme.typography.bodyMedium,
+                                    val type = EventType.forClass(event::class)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(vertical = 4.dp)
-                                    )
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(10.dp)
+                                                .background(type.color, CircleShape)
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            text = "$time • ${type.displayName}",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
                                     Divider()
                                 }
                             }
