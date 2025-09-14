@@ -10,6 +10,7 @@ enum class Gender {
     PREFER_NOT_TO_SAY,
     UNKNOWN
 }
+enum class BloodType { A, B, AB, O, UNKNOWN }
 
 data class Baby(
     val id: String = UUID.randomUUID().toString(), // Auto-generated unique ID [1]
@@ -26,7 +27,7 @@ data class Baby(
     val birthTime: String? = null,                 // E.g., "10:35 AM" - store as string for simplicity or Long for timestamp
 
     // Medical Information (Optional)
-    val bloodType: String? = null,
+    val bloodType: BloodType = BloodType.UNKNOWN,
     val allergies: List<String> = emptyList(),
     val medicalConditions: List<String> = emptyList(),
     val pediatricianContact: String? = null,
