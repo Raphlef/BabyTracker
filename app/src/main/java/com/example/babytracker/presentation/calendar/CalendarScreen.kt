@@ -63,7 +63,6 @@ fun CalendarScreen(
     viewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
-    var filterTypes by rememberSaveable { mutableStateOf(EventType.entries.toSet()) }
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
@@ -73,6 +72,24 @@ fun CalendarScreen(
     val eventsByDay by viewModel.eventsByDay.collectAsState()
     var currentMonth by rememberSaveable { mutableStateOf(LocalDate.now()) }
     var selectedDate by rememberSaveable { mutableStateOf(LocalDate.now()) }
+
+    // Currently selected filter types
+    var filterTypes by rememberSaveable { mutableStateOf<Set<EventType>>(emptySet()) }
+
+    // Compute available types for the current month
+    val availableTypes = remember(eventsByDay, currentMonth) {
+        eventsByDay
+            .filterKeys { it.monthValue == currentMonth.monthValue && it.year == currentMonth.year }
+            .values
+            .flatten()
+            .map { EventType.forClass(it::class) }
+            .distinct()
+            .toSet()
+    }
+    // Initialize filter to all available types on month change
+    LaunchedEffect(availableTypes) {
+        filterTypes = availableTypes
+    }
 
     // Load events when babyId changes
     LaunchedEffect(currentBabyId) {
@@ -102,14 +119,14 @@ fun CalendarScreen(
         ) {
 
             Column {
-                // Filter chips row
+                // Filter chips for available types
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    EventType.entries.forEach { type ->
+                    availableTypes.forEach { type ->
                         val selected = type in filterTypes
                         FilterChip(
                             selected = selected,
@@ -170,6 +187,8 @@ fun CalendarScreen(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 val dayEvents = eventsByDay[selectedDate].orEmpty()
+                    .filter { filterTypes.contains(EventType.forClass(it::class))}
+
                 if (dayEvents.isEmpty()) {
                     Text("No events", style = MaterialTheme.typography.bodyMedium)
                 } else {
