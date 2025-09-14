@@ -184,6 +184,7 @@ fun DashboardScreen(
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(6.dp))
 
             // Scrollable content area with baby info and selected screen content
             LazyColumn(state = listState) {
@@ -205,7 +206,8 @@ fun DashboardScreen(
                 item {
                     selectedBaby?.let { baby ->
                         val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-                        val contentHeight = screenHeight * 1f
+                        val reservedHeight = 120.dp
+                        val contentHeight = (screenHeight - reservedHeight).coerceAtLeast(200.dp)
                         when (selectedScreen) {
                             Screen.Feeding -> Box(modifier = Modifier.heightIn(max = contentHeight)) { FeedingScreen() }
                             Screen.Diaper -> Box(modifier = Modifier.heightIn(max = contentHeight)) { DiaperScreen() }
