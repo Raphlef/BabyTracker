@@ -7,8 +7,16 @@ import com.example.babytracker.data.PoopColor
 import com.example.babytracker.data.PoopConsistency
 import java.util.Date
 
+enum class EventType(val displayName: String) {
+    DIAPER("Diaper"),
+    FEEDING("Feeding"),
+    SLEEP("Sleep"),
+    GROWTH("Growth")
+}
 sealed class EventFormState {
+    abstract val eventType: EventType
     data class Diaper(
+        override val eventType: EventType = EventType.DIAPER,
         val diaperType: DiaperType = DiaperType.DRY,
         val poopColor: PoopColor? = null,
         val poopConsistency: PoopConsistency? = null,
@@ -16,6 +24,7 @@ sealed class EventFormState {
     ) : EventFormState()
 
     data class Sleep(
+        override val eventType: EventType = EventType.SLEEP,
         val isSleeping: Boolean = false,
         val beginTime: Date? = null,
         val endTime: Date? = null,
@@ -24,6 +33,7 @@ sealed class EventFormState {
     ) : EventFormState()
 
     data class Feeding(
+        override val eventType: EventType = EventType.FEEDING,
         val feedType: FeedType = FeedType.BREAST_MILK,
         val amountMl: String = "",
         val durationMin: String = "",
@@ -32,6 +42,7 @@ sealed class EventFormState {
     ) : EventFormState()
 
     data class Growth(
+        override val eventType: EventType = EventType.GROWTH,
         val weightKg: String = "",
         val heightCm: String = "",
         val headCircumferenceCm: String = "",
