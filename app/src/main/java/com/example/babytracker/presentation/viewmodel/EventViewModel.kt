@@ -22,7 +22,9 @@ import com.example.babytracker.data.PoopConsistency
 import com.example.babytracker.data.event.EventFormState
 import com.example.babytracker.data.event.GrowthEvent
 import com.example.babytracker.data.event.SleepEvent
+import kotlinx.coroutines.flow.update
 import java.text.SimpleDateFormat
+import kotlin.concurrent.atomics.update
 import kotlin.reflect.KClass
 
 @HiltViewModel
@@ -62,8 +64,10 @@ class EventViewModel @Inject constructor(
     val endDate: StateFlow<Date> = _endDate.asStateFlow()
 
     // Update form
-    fun updateForm(update: EventFormState.() -> EventFormState) {
-        _formState.value = _formState.value.update()
+    fun updateForm(updateLambda: EventFormState.() -> EventFormState) {
+        _formState.update { currentState ->
+            currentState.updateLambda()
+        }
     }
 
     // Entry-point to validate & save whichever event type is active
