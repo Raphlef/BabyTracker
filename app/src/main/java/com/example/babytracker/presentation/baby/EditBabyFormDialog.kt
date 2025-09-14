@@ -1,18 +1,25 @@
 package com.example.babytracker.presentation.baby
 
 import android.app.DatePickerDialog
+import android.provider.ContactsContract
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.babytracker.data.Event
+import com.example.babytracker.data.BloodType
 import com.example.babytracker.data.Gender
-import com.example.babytracker.presentation.feeding.capitalizeWords
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import com.example.babytracker.presentation.viewmodel.EventViewModel
 import java.text.SimpleDateFormat
@@ -27,9 +34,14 @@ fun EditBabyFormDialog(
     eventViewModel: EventViewModel = hiltViewModel(),
 ) {
 
-    var showError by remember { mutableStateOf(false) }
+    var nameError by remember { mutableStateOf(false) }
+    var weightError by remember { mutableStateOf<String?>(null) }
+    var lengthError by remember { mutableStateOf<String?>(null) }
+    var headCircError by remember { mutableStateOf<String?>(null) }
+    var timeError by remember { mutableStateOf<String?>(null) }
+
     val isLoading by viewModel.isLoading.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
+    val repoError by viewModel.errorMessage.collectAsState()
 
     var saveClicked by remember { mutableStateOf(false) }
     var deleteClicked by remember { mutableStateOf(false) }
@@ -37,8 +49,8 @@ fun EditBabyFormDialog(
 
     val openDeleteDialog = remember { mutableStateOf(false) }
 
-    LaunchedEffect(isLoading, errorMessage) {
-        if ((saveClicked || deleteClicked) && wasLoading && !isLoading && errorMessage == null) {
+    LaunchedEffect(isLoading, repoError) {
+        if ((saveClicked || deleteClicked) && wasLoading && !isLoading && repoError == null) {
             onBabyUpdated()
         }
         wasLoading = isLoading
@@ -63,7 +75,14 @@ fun EditBabyFormDialog(
         )
     }
     var birthTime by remember { mutableStateOf(baby?.birthTime.orEmpty()) }
-    var bloodType by remember { mutableStateOf(baby?.bloodType.orEmpty()) }
+    var bloodType by remember(baby) {
+        // Map the baby's bloodType string to the BloodType enum, or default to UNKNOWN
+        val initial: BloodType = baby?.bloodType?.let { btString ->
+            BloodType.entries.firstOrNull { enum -> enum == btString }
+        } ?: BloodType.UNKNOWN
+
+        mutableStateOf(initial)
+    }
     var allergies by remember { mutableStateOf(baby?.allergies?.joinToString(", ").orEmpty()) }
     var conditions by remember {
         mutableStateOf(
@@ -86,7 +105,18 @@ fun EditBabyFormDialog(
         birthDate.get(Calendar.MONTH),
         birthDate.get(Calendar.DAY_OF_MONTH)
     )
-
+    val contactLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickContact()
+    ) { uri ->
+        uri?.let { it ->
+            val cursor = context.contentResolver.query(it, arrayOf(ContactsContract.Contacts.DISPLAY_NAME), null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    pediatricianContact = it.getString(0)
+                }
+            }
+        }
+    }
     AlertDialog(
         onDismissRequest = onCancel,
         title = { Text("Modifier un bébé", style = MaterialTheme.typography.headlineSmall) },
@@ -102,19 +132,19 @@ fun EditBabyFormDialog(
                         value = name,
                         onValueChange = {
                             name = it
-                            if (showError) showError = false
+                            if (nameError) nameError = false
                         },
                         label = { Text("Nom du bébé*") },
-                        isError = showError,
+                        isError = nameError,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    if (showError) {
+                    if (nameError) {
                         Text("Le nom est obligatoire", color = MaterialTheme.colorScheme.error)
                     }
                     Spacer(Modifier.height(12.dp))
 
                     Button(onClick = { datePicker.show() }) {
-                        Text("Date de naissance : $birthDateStr")
+                        Text("Date de naissance: $birthDateStr")
                     }
                     Spacer(Modifier.height(12.dp))
 
@@ -125,47 +155,74 @@ fun EditBabyFormDialog(
                     )
                     Spacer(Modifier.height(12.dp))
 
-                    OutlinedTextField(
-                        value = weight,
-                        onValueChange = { weight = it },
-                        label = { Text("Poids à la naissance (kg)") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    // Numeric fields with forced format and immediate validation
+                    @Composable
+                    fun numericField(
+                        label: String,
+                        value: String,
+                        onValueChange: (String) -> Unit,
+                        errorMsg: String?,
+                        setError: (String?) -> Unit
+                    ) {
+                        OutlinedTextField(
+                            value = value,
+                            onValueChange = { new ->
+                                // Allow only digits and at most one dot
+                                val filtered = new.filter { it.isDigit() || it == '.' }
+                                val cleaned = if (filtered.count { it == '.' } > 1) value else filtered
+                                onValueChange(cleaned)
+                                setError(
+                                    if (cleaned.isNotBlank() && cleaned.toDoubleOrNull() == null)
+                                        "Nombre invalide" else null
+                                )
+                            },
+                            label = { Text(label) },
+                            isError = errorMsg != null,
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        errorMsg?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                    }
+
+                    numericField("Poids (kg)", weight, { weight = it }, weightError) { weightError = it }
+
                     Spacer(Modifier.height(8.dp))
 
-                    OutlinedTextField(
-                        value = lengthCm,
-                        onValueChange = { lengthCm = it },
-                        label = { Text("Taille à la naissance (cm)") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    numericField("Taille (cm)", lengthCm, { lengthCm = it }, lengthError) { lengthError = it }
+
                     Spacer(Modifier.height(8.dp))
 
-                    OutlinedTextField(
-                        value = headCirc,
-                        onValueChange = { headCirc = it },
-                        label = { Text("Circonférence tête (cm)") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(8.dp))
+                    numericField("Circonf. tête (cm)", headCirc, { headCirc = it }, headCircError) { headCircError = it }
 
+                    Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = birthTime,
-                        onValueChange = { birthTime = it },
-                        label = { Text("Heure de naissance") },
+                        onValueChange = { input ->
+                            // allow only digits and colon, max length 5
+                            val filtered = input.filter { it.isDigit() || it == ':' }
+                                .take(5)
+                            birthTime = filtered
+                            timeError = when {
+                                filtered.isBlank() -> null
+                                !filtered.matches(Regex("^([01]?\\d|2[0-3]):[0-5]\\d\$")) ->
+                                    "Heure invalide (HH:mm)"
+                                else -> null
+                            }
+                        },
+                        label = { Text("Heure (HH:mm)") },
+                        isError = timeError != null,
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
+                    timeError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+
                     Spacer(Modifier.height(8.dp))
 
-                    OutlinedTextField(
-                        value = bloodType,
-                        onValueChange = { bloodType = it },
-                        label = { Text("Groupe sanguin") },
-                        singleLine = true,
+                    BloodTypeDropdown(
+                        selected = bloodType,
+                        onSelect = { bloodType = it },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(8.dp))
@@ -188,9 +245,15 @@ fun EditBabyFormDialog(
 
                     OutlinedTextField(
                         value = pediatricianContact,
-                        onValueChange = { pediatricianContact = it },
+                        onValueChange = { },
                         label = { Text("Contact pédiatre") },
+                        readOnly = true,
                         singleLine = true,
+                        trailingIcon = {
+                            IconButton(onClick = { contactLauncher.launch(null) }) {
+                                Icon(Icons.Default.Person, contentDescription = "Choisir contact")
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(8.dp))
@@ -204,7 +267,7 @@ fun EditBabyFormDialog(
                             .height(100.dp)
                     )
 
-                    errorMessage?.let {
+                    repoError?.let {
                         Spacer(Modifier.height(16.dp))
                         Text(
                             it,
@@ -219,7 +282,7 @@ fun EditBabyFormDialog(
             TextButton(
                 onClick = {
                     if (name.isBlank()) {
-                        showError = true
+                        nameError = true
                         return@TextButton
                     }
                     saveClicked = true
@@ -232,7 +295,7 @@ fun EditBabyFormDialog(
                         birthLengthCm = lengthCm.toDoubleOrNull(),
                         birthHeadCircumferenceCm = headCirc.toDoubleOrNull(),
                         birthTime = birthTime.ifBlank { null },
-                        bloodType = bloodType.ifBlank { null },
+                        bloodType = bloodType,
                         allergies = allergies.split(",").map { it.trim() }
                             .filter { it.isNotEmpty() },
                         medicalConditions = conditions.split(",").map { it.trim() }
@@ -240,6 +303,7 @@ fun EditBabyFormDialog(
                         pediatricianContact = pediatricianContact.ifBlank { null },
                         notes = notes.ifBlank { null }
                     )
+                    onBabyUpdated()
                 },
                 enabled = !isLoading
             ) {
