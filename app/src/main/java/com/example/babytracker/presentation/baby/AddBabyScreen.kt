@@ -79,9 +79,8 @@ fun AddBabyScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         GenderDropdown(
-            gender = gender,
+            selectedGender = gender,
             onGenderSelected = { gender = it },
-            genders = Gender.values()
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -137,38 +136,47 @@ fun AddBabyScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GenderDropdown(
-    gender: Gender,
+    selectedGender: Gender,
     onGenderSelected: (Gender) -> Unit,
-    genders: Array<Gender>
+    modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val genders = Gender.entries
 
     ExposedDropdownMenuBox(
         expanded = expanded,
-        onExpandedChange = { expanded = it }
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier.fillMaxWidth()
     ) {
         OutlinedTextField(
-            value = gender.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() },
-            onValueChange = {},
+            value = selectedGender.name
+                .replace("_", " ")
+                .lowercase()
+                .replaceFirstChar { it.uppercase() },
+            onValueChange = { /* readOnly */ },
             label = { Text("Genre") },
             readOnly = true,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             modifier = Modifier
+                .menuAnchor()
                 .fillMaxWidth()
-                .clickable { expanded = true } // << rendre le champ cliquable sur toute la zone
         )
         ExposedDropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth() // ← important
+            onDismissRequest = { expanded = false }
         ) {
-            genders.forEach { g ->
+            genders.forEach { gender ->
                 DropdownMenuItem(
                     text = {
-                        Text(g.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() })
+                        Text(
+                            gender.name
+                                .replace("_", " ")
+                                .lowercase()
+                                .replaceFirstChar { it.uppercase() }
+                        )
                     },
                     onClick = {
-                        onGenderSelected(g)
+                        onGenderSelected(gender)
                         expanded = false
                     }
                 )

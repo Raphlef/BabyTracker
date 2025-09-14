@@ -20,7 +20,6 @@ import androidx.navigation.navArgument
 import com.example.babytracker.presentation.auth.AuthScreen
 import com.example.babytracker.presentation.baby.AddBabyScreen
 import com.example.babytracker.presentation.baby.BabySelectionScreen
-import com.example.babytracker.presentation.baby.EditBabyScreen
 import com.example.babytracker.presentation.dashboard.DashboardScreen
 import com.example.babytracker.presentation.settings.ParentsScreen
 import com.example.babytracker.presentation.settings.SettingsScreen
@@ -97,17 +96,6 @@ fun BabyTrackerApp() {
             DashboardScreen(
                 navController = navController,
                 initialBabyId = babyId
-            )
-        }
-        composable(
-            route = "edit_baby/{babyId}",
-            arguments = listOf(navArgument("babyId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val babyId = backStackEntry.arguments?.getString("babyId") ?: ""
-            EditBabyScreen(
-                babyId = babyId,
-                onBabyUpdated = { navController.popBackStack() },
-                onCancel = { navController.popBackStack() }
             )
         }
         composable("settings") {

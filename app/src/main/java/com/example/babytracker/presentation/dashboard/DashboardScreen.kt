@@ -66,6 +66,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.compose.ui.platform.LocalConfiguration
+import com.example.babytracker.presentation.baby.EditBabyFormDialog
 
 
 @Composable
@@ -79,6 +80,7 @@ fun DashboardScreen(
     // Load all babies – ensure BabyViewModel manages this
     val babies by viewModel.babies.collectAsState()
     val selectedBaby by viewModel.selectedBaby.collectAsState()
+    var editingBabyId by remember { mutableStateOf<String?>(null) }
     var showEventForm by remember { mutableStateOf(false) }
 
     // Initialize selectedBaby on first composition
@@ -198,7 +200,7 @@ fun DashboardScreen(
                         selectedBaby?.let { baby ->
                             BabyInfoBar(
                                 baby = baby,
-                                onEditClick = { navController.navigate("edit_baby/${baby.id}") }
+                                onEditClick = { editingBabyId = baby.id }
                             )
                         }
                     }
@@ -225,6 +227,13 @@ fun DashboardScreen(
                 EventFormDialog(
                     babyId = baby.id,
                     onDismiss = { showEventForm = false }
+                )
+            }
+            editingBabyId?.let { babyId ->
+                EditBabyFormDialog(
+                    babyId = babyId,
+                    onBabyUpdated = { editingBabyId = null },
+                    onCancel      = { editingBabyId = null }
                 )
             }
         }

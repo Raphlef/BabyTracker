@@ -1,7 +1,6 @@
 package com.example.babytracker.presentation.baby
 
 import android.app.DatePickerDialog
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,7 +14,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun EditBabyScreen(
+fun EditBabyFormDialog(
     babyId: String,
     onBabyUpdated: () -> Unit,
     onCancel: () -> Unit,
@@ -42,7 +41,7 @@ fun EditBabyScreen(
         wasLoading = isLoading
     }
 
-    // Charger le baby courant
+    // Load current baby
     val babies by viewModel.babies.collectAsState()
     val baby = remember(babies) { babies.find { it.id == babyId } }
 
@@ -69,71 +68,52 @@ fun EditBabyScreen(
         birthDate.get(Calendar.DAY_OF_MONTH)
     )
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Text("Modifier un bébé", style = MaterialTheme.typography.headlineMedium)
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text("Modifier un bébé", style = MaterialTheme.typography.headlineSmall) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = {
+                        name = it
+                        if (showError) showError = false
+                    },
+                    label = { Text("Nom du bébé") },
+                    isError = showError,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (showError) {
+                    Text("Le nom est obligatoire", color = MaterialTheme.colorScheme.error)
+                }
 
-        Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(16.dp))
 
-        // Champ Nom
-        OutlinedTextField(
-            value = name,
-            onValueChange = {
-                name = it
-                if (showError) showError = false
-            },
-            label = { Text("Nom du bébé") },
-            isError = showError,
-            modifier = Modifier.fillMaxWidth()
-        )
-        if (showError) {
-            Text("Le nom est obligatoire", color = MaterialTheme.colorScheme.error)
-        }
+                Button(onClick = { datePickerDialog.show() }) {
+                    Text("Date de naissance : $birthDateString")
+                }
 
-        Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
 
-        // Sélecteur de date
-        Button(onClick = { datePickerDialog.show() }) {
-            Text("Date de naissance : $birthDateString")
-        }
+                GenderDropdown(
+                    selectedGender = gender,
+                    onGenderSelected = { gender = it },
+                )
 
-        Spacer(Modifier.height(16.dp))
-
-        // Dropdown Genre
-        GenderDropdown(
-            gender = gender,
-            onGenderSelected = { gender = it },
-            genders = Gender.entries.toTypedArray()
-        )
-
-        Spacer(Modifier.height(32.dp))
-
-        // Message d’erreur éventuel
-        errorMessage?.let {
-            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.height(8.dp))
-        }
-
-        // Boutons Annuler / Enregistrer
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
-        ) {
-            OutlinedButton(onClick = onCancel) {
-                Text("Annuler")
+                errorMessage?.let {
+                    Spacer(Modifier.height(16.dp))
+                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
             }
-            Spacer(Modifier.width(8.dp))
-            Button(
+        },
+        confirmButton = {
+            TextButton(
                 onClick = {
                     if (name.isBlank()) {
                         showError = true
-                        return@Button
+                        return@TextButton
                     }
                     saveClicked = true
-                    // 3. Appel à l’update
                     viewModel.updateBaby(
                         id = babyId,
                         name = name.trim(),
@@ -155,16 +135,13 @@ fun EditBabyScreen(
                     Text("Enregistrer")
                 }
             }
-
-            Spacer(Modifier.width(8.dp))
-            OutlinedButton(
-                onClick = { openDeleteDialog.value = true },
-                enabled = !isLoading
-            ) {
-                Text("Supprimer", color = MaterialTheme.colorScheme.error)
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) {
+                Text("Annuler")
             }
         }
-    }
+    )
 
     // Dialogue de confirmation de suppression
     if (openDeleteDialog.value) {
@@ -189,6 +166,4 @@ fun EditBabyScreen(
             }
         )
     }
-
-
 }
