@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -114,6 +115,18 @@ fun DashboardScreen(
                 selectedScreen = selectedScreen,
                 onScreenSelected = { newScreen -> selectedScreen = newScreen }
             )
+        },
+        floatingActionButton = {
+            val selectedBaby by viewModel.selectedBaby.collectAsState()
+            FloatingActionButton(
+                onClick = {
+                    selectedBaby?.let {
+                        navController.navigate("event_form/${it.id}")
+                    }
+                }
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Event")
+            }
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
