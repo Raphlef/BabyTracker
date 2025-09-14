@@ -20,6 +20,7 @@ import com.example.babytracker.data.FeedingEvent
 import com.example.babytracker.data.GrowthEvent
 import com.example.babytracker.data.SleepEvent
 import kotlinx.coroutines.flow.update
+import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.reflect.KClass
 
@@ -71,6 +72,12 @@ class EventViewModel @Inject constructor(
     private val _endDate = MutableStateFlow<Date>(Date()) // Default: today
     val endDate: StateFlow<Date> = _endDate.asStateFlow()
 
+    fun setDateRangeForMonth(month: LocalDate) {
+        val first = month.withDayOfMonth(1)
+        val last  = month.withDayOfMonth(month.lengthOfMonth())
+        _startDate.value = Date.from(first.atStartOfDay(ZoneId.systemDefault()).toInstant())
+        _endDate.value = Date.from(last.atTime(23,59,59).atZone(ZoneId.systemDefault()).toInstant())
+    }
     // Update form
     fun updateForm(update: EventFormState.() -> EventFormState) {
         _formState.update { it.update() }

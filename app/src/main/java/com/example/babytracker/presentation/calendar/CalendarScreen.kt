@@ -3,9 +3,11 @@ package com.example.babytracker.presentation.calendar
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,12 +20,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,6 +46,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -58,7 +63,7 @@ fun CalendarScreen(
     viewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
-    val eventsByType by viewModel.eventsByType.collectAsState()
+    var filterTypes by rememberSaveable { mutableStateOf(EventType.entries.toSet()) }
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
@@ -69,16 +74,20 @@ fun CalendarScreen(
     var currentMonth by rememberSaveable { mutableStateOf(LocalDate.now()) }
     var selectedDate by rememberSaveable { mutableStateOf(LocalDate.now()) }
 
-    // Charger les événements à l'ouverture et à chaque changement de babyId ou de plage de dates
-    LaunchedEffect(currentBabyId, viewModel.startDate, viewModel.endDate) {
-        currentBabyId?.let { viewModel.loadEventsInRange(currentBabyId) }
+    // Load events when babyId changes
+    LaunchedEffect(currentBabyId) {
+        currentBabyId?.let {
+            // Set date range for current month and load events
+            viewModel.setDateRangeForMonth(currentMonth)
+            viewModel.loadEventsInRange(it)
+        }
     }
 
-    // Show error via Snackbar
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let {
-            snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Long)
-            viewModel.clearErrorMessage()
+    // Update date range and reload events when month changes
+    LaunchedEffect(currentMonth, currentBabyId) {
+        currentBabyId?.let {
+            viewModel.setDateRangeForMonth(currentMonth)
+            viewModel.loadEventsInRange(it)
         }
     }
 
@@ -91,83 +100,124 @@ fun CalendarScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            when {
-                isLoading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+
+            Column {
+                // Filter chips row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    EventType.entries.forEach { type ->
+                        val selected = type in filterTypes
+                        FilterChip(
+                            selected = selected,
+                            onClick = {
+                                filterTypes =
+                                    if (selected) filterTypes - type else filterTypes + type
+                            },
+                            label = { Text(type.displayName) },
+                            leadingIcon = {
+                                Box(
+                                    Modifier
+                                        .size(10.dp)
+                                        .background(type.color, CircleShape)
+                                )
+                            }
+                        )
+                    }
                 }
-                else -> {
-                    Column {
-                        // Navigation mois
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            IconButton(onClick = { currentMonth = currentMonth.minusMonths(1) }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Prev")
-                            }
-                            Text(
-                                text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            IconButton(onClick = { currentMonth = currentMonth.plusMonths(1) }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next")
-                            }
-                        }
 
-                        // Grille mensuelle
-                        MonthCalendar(
-                            year = currentMonth.year,
-                            month = currentMonth.monthValue,
-                            eventsByDay = eventsByDay,
-                            onDayClick = { date ->
-                                selectedDate = date
-                            }
-                        )
+                Spacer(Modifier.height(8.dp))
+                // Month navigation
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    IconButton(onClick = { currentMonth = currentMonth.minusMonths(1) }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Prev")
+                    }
+                    Text(
+                        text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    IconButton(onClick = { currentMonth = currentMonth.plusMonths(1) }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next")
+                    }
+                }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                // Calendar grid
+                MonthCalendar(
+                    year = currentMonth.year,
+                    month = currentMonth.monthValue,
+                    eventsByDay = eventsByDay.mapValues { (_, list) ->
+                        list.filter { filterTypes.contains(EventType.forClass(it::class)) }
+                    },
+                    onDayClick = { date ->
+                        selectedDate = date
+                    }
+                )
 
-                        // List of events for the selected date
-                        Text(
-                            text = "Events on ${selectedDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}",
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                        val dayEvents = eventsByDay[selectedDate].orEmpty()
-                        if (dayEvents.isEmpty()) {
-                            Text("No events", style = MaterialTheme.typography.bodyMedium)
-                        } else {
-                            LazyColumn {
-                                items(dayEvents) { event ->
-                                    val time = event.timestamp.toInstant()
-                                        .atZone(ZoneId.systemDefault())
-                                        .format(DateTimeFormatter.ofPattern("HH:mm"))
-                                    val type = EventType.forClass(event::class)
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 4.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(10.dp)
-                                                .background(type.color, CircleShape)
-                                        )
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(
-                                            text = "$time • ${type.displayName}",
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                    }
-                                    Divider()
-                                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // List of events for the selected date
+                Text(
+                    text = "Events on ${selectedDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                val dayEvents = eventsByDay[selectedDate].orEmpty()
+                if (dayEvents.isEmpty()) {
+                    Text("No events", style = MaterialTheme.typography.bodyMedium)
+                } else {
+                    LazyColumn {
+                        items(dayEvents) { event ->
+                            val time = event.timestamp.toInstant()
+                                .atZone(ZoneId.systemDefault())
+                                .format(DateTimeFormatter.ofPattern("HH:mm"))
+                            val type = EventType.forClass(event::class)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .background(type.color, CircleShape)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = "$time • ${type.displayName}",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                             }
+                            Divider()
                         }
                     }
                 }
             }
+            // Overlay loading spinner
+            if (isLoading) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .clickable(enabled = false) {}  // disable interactions
+                ) {
+                    CircularProgressIndicator(Modifier.align(Alignment.Center))
+                }
+            }
+        }
+    }
+    // Error Snackbar
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Long)
+            viewModel.clearErrorMessage()
         }
     }
 }
@@ -187,7 +237,7 @@ fun MonthCalendar(
     // 2. Affichage de l’en-tête des jours
     Column {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            listOf("Sun","Mon","Tue","Wed","Thu","Fri","Sat").forEach { dow ->
+            listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat").forEach { dow ->
                 Text(dow, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
             }
         }
