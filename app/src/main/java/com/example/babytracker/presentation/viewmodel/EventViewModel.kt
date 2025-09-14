@@ -78,10 +78,8 @@ class EventViewModel @Inject constructor(
     val endDate: StateFlow<Date> = _endDate.asStateFlow()
 
     // Update form
-    fun updateForm(updateLambda: EventFormState.() -> EventFormState) {
-        _formState.update { currentState ->
-            currentState.updateLambda()
-        }
+    fun updateForm(update: EventFormState.() -> EventFormState) {
+        _formState.update { it.update() }
     }
 
     // Entry-point to validate & save whichever event type is active
@@ -99,6 +97,10 @@ class EventViewModel @Inject constructor(
                 is EventFormState.Sleep -> saveSleep(babyId, state)
                 is EventFormState.Feeding -> saveFeeding(babyId, state)
                 is EventFormState.Growth -> saveGrowth(babyId, state)
+                is EventFormState.Pumping -> {
+                    // Temporary stub: show in-progress message
+                    Result.failure(Exception("Pumping event save not yet implemented"))
+                }
             }
 
             result.fold(

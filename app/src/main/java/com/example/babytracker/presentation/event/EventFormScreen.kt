@@ -94,15 +94,14 @@ fun EventFormScreen(
                         DropdownMenuItem(
                             text = { Text(type.displayName) },
                             onClick = {
-                                // Switch formState to the matching sealed subclass
-                                viewModel.updateForm {
-                                    when (type) {
-                                        EventType.DIAPER  -> EventFormState.Diaper()
-                                        EventType.FEEDING -> EventFormState.Feeding()
-                                        EventType.SLEEP   -> EventFormState.Sleep()
-                                        EventType.GROWTH  -> EventFormState.Growth()
-                                    }
+                                val newState = when (type) {
+                                    EventType.DIAPER  -> EventFormState.Diaper()
+                                    EventType.FEEDING -> EventFormState.Feeding()
+                                    EventType.SLEEP   -> EventFormState.Sleep()
+                                    EventType.GROWTH  -> EventFormState.Growth()
+                                    EventType.PUMPING -> EventFormState.Pumping()
                                 }
+                                viewModel.updateForm { newState }
                                 typeDropdownExpanded = false
                             }
                         )
@@ -110,7 +109,7 @@ fun EventFormScreen(
                 }
             }
             // 2️⃣ Then render the specific sub-form
-            when (formState) {
+            when (val s = formState) {
                 is EventFormState.Diaper -> {
                     val s = formState as EventFormState.Diaper
                     Text("Diaper Event", style = MaterialTheme.typography.headlineSmall)
@@ -330,6 +329,24 @@ fun EventFormScreen(
                         label = { Text("Notes") },
                         modifier = Modifier.fillMaxWidth().height(100.dp)
                     )
+                }
+                is EventFormState.Pumping -> {
+                    Text("Pumping Event", style = MaterialTheme.typography.headlineSmall)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator()
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Pumping form in progress…",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
                 }
             }
 
