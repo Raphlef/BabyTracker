@@ -1,16 +1,25 @@
 package com.example.babytracker.presentation.dashboard
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -28,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +65,8 @@ import com.example.babytracker.presentation.viewmodel.AuthViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.ui.platform.LocalConfiguration
+
 
 @Composable
 fun DashboardScreen(
@@ -94,6 +106,14 @@ fun DashboardScreen(
             bottomNavScreens.firstOrNull() ?: Screen.Feeding
         ) // Default to Feeding or first
     }
+
+    val listState = rememberLazyListState()
+    val isAtTop by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -132,96 +152,78 @@ fun DashboardScreen(
                 Icon(Icons.Default.Add, contentDescription = "Add Event")
             }
         }
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
-            if (babies.isNotEmpty()) {
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    items(babies) { baby ->
-                        OutlinedButton(
-                            onClick = { viewModel.selectBaby(baby) },
-                            modifier = Modifier.height(36.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (baby == selectedBaby)
-                                    MaterialTheme.colorScheme.primaryContainer
-                                else
-                                    MaterialTheme.colorScheme.surface
-                            )
-                        ) {
-                            Text(baby.name.ifEmpty { "Sans nom" })
-                        }
+    ) { paddingValues ->
+        Column(Modifier.padding(paddingValues)) {
+
+            // Always visible baby selector row (not scrollable)
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(babies) { baby ->
+                    OutlinedButton(
+                        onClick = { viewModel.selectBaby(baby) },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (baby == selectedBaby)
+                                MaterialTheme.colorScheme.primaryContainer
+                            else
+                                MaterialTheme.colorScheme.surface,
+                        )
+                    ) {
+                        Text(baby.name.ifEmpty { "Sans nom" }, maxLines = 1)
                     }
-                    item {
-                        IconButton(
-                            onClick = { navController.navigate("add_baby") },
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = "Ajouter un bébé")
+                }
+                item {
+                    IconButton(
+                        onClick = { navController.navigate("add_baby") },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Baby")
+                    }
+                }
+            }
+
+            // Scrollable content area with baby info and selected screen content
+            LazyColumn(state = listState) {
+                item {
+                    // Smooth visibility of baby info
+                    AnimatedVisibility(
+                        visible = isAtTop,
+                        enter = fadeIn(),
+                        exit = fadeOut()
+                    ) {
+                        selectedBaby?.let { baby ->
+                            BabyInfoBar(
+                                baby = baby,
+                                onEditClick = { navController.navigate("edit_baby/${baby.id}") }
+                            )
                         }
                     }
                 }
-
-                selectedBaby?.let { baby ->
-                    Surface(
-                        tonalElevation = 2.dp,
-                        shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text("👶 ${baby.name}", style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                "📅 Né le: ${
-                                    SimpleDateFormat(
-                                        "dd/MM/yyyy",
-                                        Locale.getDefault()
-                                    ).format(Date(baby.birthDate))
-                                }", style = MaterialTheme.typography.bodyMedium
-                            )
-                            if (baby.gender != Gender.UNKNOWN) {
-                                Text(
-                                    "⚧ Genre: ${baby.gender}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                        }
-                        IconButton(
-                            onClick = { navController.navigate("edit_baby/${baby.id}") }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Modifier le bébé"
-                            )
+                item {
+                    selectedBaby?.let { baby ->
+                        val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+                        val contentHeight = screenHeight * 1f
+                        when (selectedScreen) {
+                            Screen.Feeding -> Box(modifier = Modifier.heightIn(max = contentHeight)) { FeedingScreen() }
+                            Screen.Diaper -> Box(modifier = Modifier.heightIn(max = contentHeight)) { DiaperScreen() }
+                            Screen.Sleep -> Box(modifier = Modifier.heightIn(max = contentHeight)) { SleepScreen() }
+                            Screen.Growth -> Box(modifier = Modifier.heightIn(max = contentHeight)) { GrowthScreen() }
+                            Screen.Calendar -> Box(modifier = Modifier.heightIn(max = contentHeight)) { CalendarScreen() }
+                            else -> {}
                         }
                     }
                 }
             }
 
+            // Event form dialog shown conditionally
             selectedBaby?.takeIf { showEventForm }?.let { baby ->
                 EventFormDialog(
                     babyId = baby.id,
                     onDismiss = { showEventForm = false }
                 )
-            }
-            // Afficher l'écran sélectionné
-            selectedBaby?.let { baby ->
-                when (selectedScreen) {
-                    is Screen.Feeding -> FeedingScreen()
-                    is Screen.Diaper -> DiaperScreen()
-                    is Screen.Sleep -> SleepScreen()
-                    is Screen.Growth -> GrowthScreen()
-                    is Screen.Calendar -> CalendarScreen()
-                    else -> {}
-                }
             }
         }
     }
@@ -255,28 +257,84 @@ fun BabySelector(
     }
 }
 
-// BabyInfoBar: display selected baby details
+
 @Composable
-fun BabyInfoBar(baby: Baby) {
+fun BabyInfoBar(
+    baby: Baby,
+    onEditClick: () -> Unit = {}
+) {
     Surface(
-        tonalElevation = 2.dp,
+        tonalElevation = 4.dp,
         shape = MaterialTheme.shapes.medium,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Nom: ${baby.name}", style = MaterialTheme.typography.titleMedium)
-            Text(
-                "Naissance: ${
-                    java.text.SimpleDateFormat("dd/MM/yyyy").format(java.util.Date(baby.birthDate))
-                }", style = MaterialTheme.typography.bodyMedium
-            )
-            Text("Genre: ${baby.gender.name}")
-            // Add more info if needed (photo, notes, etc.)
+        Box(modifier = Modifier.padding(20.dp)) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "👶 ${baby.name.ifEmpty { "Unnamed Baby" }}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    IconButton(
+                        onClick = onEditClick,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Baby"
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "📅 Born: ",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(
+                            Date(
+                                baby.birthDate
+                            )
+                        ),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
+
+                if (baby.gender != Gender.UNKNOWN) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "⚧ Gender: ",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = when (baby.gender) {
+                                Gender.MALE -> "♂ Male"
+                                Gender.FEMALE -> "♀ Female"
+                                else -> baby.gender.name.capitalize(Locale.ROOT)
+                            },
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
         }
     }
 }
+
 
 // Custom Saver for Screen (if Screen is a sealed class with objects)
 // Put this in a relevant place, maybe near your Screen definition or in a utils file
