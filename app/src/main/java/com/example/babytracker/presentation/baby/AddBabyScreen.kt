@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.babytracker.data.BloodType
 import com.example.babytracker.data.Gender
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import java.text.SimpleDateFormat
@@ -180,6 +181,34 @@ fun GenderDropdown(
                         expanded = false
                     }
                 )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BloodTypeDropdown(
+    selected: BloodType,
+    onSelect: (BloodType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }, modifier = modifier) {
+        OutlinedTextField(
+            value = selected.name,
+            onValueChange = {},
+            label = { Text("Groupe sanguin") },
+            readOnly = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier.menuAnchor().fillMaxWidth()
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            BloodType.entries.forEach { type ->
+                DropdownMenuItem(text = { Text(type.name) }, onClick = {
+                    onSelect(type)
+                    expanded = false
+                })
             }
         }
     }
