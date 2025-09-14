@@ -326,16 +326,19 @@ fun BabyInfoBar(
                 if (baby.gender != Gender.UNKNOWN) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "⚧ Gender: ",
+                            text = "⚧ Genre : ",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        val (icon, label) = when (baby.gender) {
+                            Gender.MALE               -> "♂" to "Male"
+                            Gender.FEMALE             -> "♀" to "Female"
+                            Gender.OTHER              -> "⚧" to "Other"
+                            Gender.PREFER_NOT_TO_SAY  -> "❔" to "Prefer not to say"
+                            Gender.UNKNOWN            -> "—" to "Unknown"
+                        }
                         Text(
-                            text = when (baby.gender) {
-                                Gender.MALE -> "♂ Male"
-                                Gender.FEMALE -> "♀ Female"
-                                else -> baby.gender.name.capitalize(Locale.ROOT)
-                            },
+                            text = "$icon $label",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurface
                         )
