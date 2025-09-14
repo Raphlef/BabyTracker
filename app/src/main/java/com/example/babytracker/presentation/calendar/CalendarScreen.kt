@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.babytracker.data.event.Event
+import com.example.babytracker.data.event.EventType
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import com.example.babytracker.presentation.viewmodel.EventViewModel
 import java.time.LocalDate
@@ -221,15 +222,37 @@ fun DayCell(
             .clickable { onDayClick(date) },
         contentAlignment = Alignment.TopCenter
     ) {
-        Text("${date.dayOfMonth}", style = MaterialTheme.typography.bodySmall)
-        if (events.isNotEmpty()) {
-            // Indicateur visuel : un point ou un badge
-            Box(
-                Modifier
-                    .size(6.dp)
-                    .background(MaterialTheme.colorScheme.primary, CircleShape)
-                    .align(Alignment.BottomCenter)
-            )
+        Text(
+            text = "${date.dayOfMonth}",
+            style = MaterialTheme.typography.bodySmall
+        )
+
+        val dotSize = 6.dp
+        val maxDots = 3
+        val eventsToShow = events.take(maxDots)
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 2.dp)
+        ) {
+            eventsToShow.forEach { event ->
+                // Récupère la couleur via EventType
+                val eventType = EventType.forClass(event::class)
+                Box(
+                    modifier = Modifier
+                        .size(dotSize)
+                        .background(eventType.color, CircleShape)
+                )
+            }
+            if (events.size > maxDots) {
+                Text(
+                    text = "+${events.size - maxDots}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
