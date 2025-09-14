@@ -156,7 +156,7 @@ fun DashboardScreen(
         }
     ) { paddingValues ->
         Column(Modifier.padding(paddingValues)) {
-
+            Spacer(modifier = Modifier.height(6.dp))
             // Always visible baby selector row (not scrollable)
             LazyRow(
                 modifier = Modifier
@@ -240,33 +240,6 @@ fun DashboardScreen(
     }
 }
 
-// BabySelector: simple horizontal scroll selection
-@Composable
-fun BabySelector(
-    babies: List<Baby>,
-    selectedBaby: Baby?,
-    onBabySelected: (Baby) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(8.dp)
-    ) {
-        babies.forEach { baby ->
-            OutlinedButton(
-                onClick = { onBabySelected(baby) },
-                modifier = Modifier
-                    .padding(end = 8.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = if (baby == selectedBaby) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
-                )
-            ) {
-                Text(baby.name)
-            }
-        }
-    }
-}
 
 
 @Composable

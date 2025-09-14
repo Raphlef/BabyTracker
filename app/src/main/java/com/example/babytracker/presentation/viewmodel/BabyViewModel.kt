@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.util.Log // For logging errors
+import androidx.room.util.copy
 import com.example.babytracker.data.Gender
 import com.example.babytracker.data.User
 import kotlinx.coroutines.flow.SharingStarted
@@ -83,6 +84,7 @@ class BabyViewModel @Inject constructor(
             }
         }
     }
+
     fun inviteParent(babyId: String, email: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -97,6 +99,7 @@ class BabyViewModel @Inject constructor(
             }
         }
     }
+
     fun selectBaby(baby: Baby) {
         _selectedBaby.value = baby
     }
@@ -124,20 +127,53 @@ class BabyViewModel @Inject constructor(
         id: String,
         name: String,
         birthDate: Long,
-        gender: Gender = Gender.UNKNOWN
+        gender: Gender = Gender.UNKNOWN,
+        birthWeightKg: Double? = null,
+        birthLengthCm: Double? = null,
+        birthHeadCircumferenceCm: Double? = null,
+        birthTime: String? = null,
+        bloodType: String? = null,
+        allergies: List<String> = emptyList(),
+        medicalConditions: List<String> = emptyList(),
+        pediatricianName: String? = null,
+        pediatricianContact: String? = null,
+        notes: String? = null
     ) {
         _isLoading.value = true
         _errorMessage.value = null
+
         viewModelScope.launch {
             try {
-                val updatedBaby = Baby(id = id, name = name, birthDate = birthDate, gender = gender)
-                repository.addOrUpdateBaby(updatedBaby)
+                // Get current baby or fallback to a blank one
+                val current = _selectedBaby.value
+                    ?: repository.getBabyById(id)
+                    ?: throw IllegalStateException("Baby not found")
+
+                // Build the updated Baby object, copying over preserved fields
+                val updated = Baby(
+                    id = id,
+                    name = name,
+                    birthDate = birthDate,
+                    gender = gender,
+                    birthWeightKg = birthWeightKg,
+                    birthLengthCm = birthLengthCm,
+                    birthHeadCircumferenceCm = birthHeadCircumferenceCm,
+                    birthTime = birthTime,
+                    bloodType = bloodType,
+                    allergies = allergies,
+                    medicalConditions = medicalConditions,
+                    pediatricianContact = pediatricianContact,
+                    notes = notes,
+                    updatedAt = System.currentTimeMillis()
+                )
+
+                repository.addOrUpdateBaby(updated)
+                _selectedBaby.value = updated
+
             } catch (e: Exception) {
                 Log.e("BabyViewModel", "Error updating baby: ${e.message}", e)
-                _errorMessage.value = "Failed to update baby: ${e.localizedMessage}"
+                _errorMessage.value = "Échec de la mise à jour: ${e.localizedMessage}"
             } finally {
-                _selectedBaby.value = _selectedBaby.value?.takeIf { it.id == id }
-                    ?.copy(name = name, birthDate = birthDate, gender = gender)
                 _isLoading.value = false
             }
         }
