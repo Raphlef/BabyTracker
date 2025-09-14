@@ -78,6 +78,17 @@ class EventViewModel @Inject constructor(
         _startDate.value = Date.from(first.atStartOfDay(ZoneId.systemDefault()).toInstant())
         _endDate.value = Date.from(last.atTime(23,59,59).atZone(ZoneId.systemDefault()).toInstant())
     }
+    fun updateEventTimestamp(date: Date) {
+        _formState.update { state ->
+            when (state) {
+                is EventFormState.Diaper  -> state.copy(eventTimestamp = date)
+                is EventFormState.Sleep   -> state.copy(eventTimestamp = date)
+                is EventFormState.Feeding -> state.copy(eventTimestamp = date)
+                is EventFormState.Growth  -> state.copy(eventTimestamp = date)
+                is EventFormState.Pumping -> state.copy(eventTimestamp = date)
+            }
+        }
+    }
     // Update form
     fun updateForm(update: EventFormState.() -> EventFormState) {
         _formState.update { it.update() }

@@ -1,6 +1,8 @@
 package com.example.babytracker.presentation.event
 
+import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -39,8 +41,31 @@ fun EventFormDialog(
     val isSaving by viewModel.isSaving.collectAsState()
     val saveSuccess by viewModel.saveSuccess.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
-    val isEditMode = formState.eventId != null
     val currentType = formState.eventType
+
+    // Track selected date in state
+    val initialDate = formState.eventTimestamp
+    var selectedDate by remember { mutableStateOf(initialDate) }
+    val context = LocalContext.current
+
+    // Date picker dialog
+    val datePicker = remember(selectedDate) {
+        val cal = Calendar.getInstance().apply { time = selectedDate }
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                val newDate = Calendar.getInstance().apply {
+                    set(year, month, dayOfMonth)
+                }.time
+                selectedDate = newDate
+                viewModel.updateEventTimestamp(newDate)
+            },
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH),
+            cal.get(Calendar.DAY_OF_MONTH)
+        )
+    }
+
 
     LaunchedEffect(saveSuccess) {
         if (saveSuccess) {
@@ -126,6 +151,17 @@ fun EventFormDialog(
                         }
                     }
                 }
+                // Date field
+                OutlinedTextField(
+                    value = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(selectedDate),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Event Date") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { datePicker.show() }
+                )
+
                 // 2️⃣ Then render the specific sub-form
                 when (val s = formState) {
                     is EventFormState.Diaper -> {

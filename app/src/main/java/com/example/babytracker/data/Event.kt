@@ -117,10 +117,12 @@ data class PumpingEvent(
 sealed class EventFormState {
     abstract val eventId: String?
     abstract val eventType: EventType
+    abstract val eventTimestamp: Date
 
     data class Diaper(
         override val eventId: String? = null,
         override val eventType: EventType = EventType.DIAPER,
+        override val eventTimestamp: Date = Date(),
         val diaperType: DiaperType = DiaperType.DRY,
         val poopColor: PoopColor? = null,
         val poopConsistency: PoopConsistency? = null,
@@ -130,6 +132,7 @@ sealed class EventFormState {
     data class Sleep(
         override val eventId: String? = null,
         override val eventType: EventType = EventType.SLEEP,
+        override val eventTimestamp: Date = Date(),
         val isSleeping: Boolean = false,
         val beginTime: Date? = null,
         val endTime: Date? = null,
@@ -140,6 +143,7 @@ sealed class EventFormState {
     data class Feeding(
         override val eventId: String? = null,
         override val eventType: EventType = EventType.FEEDING,
+        override val eventTimestamp: Date = Date(),
         val feedType: FeedType = FeedType.BREAST_MILK,
         val amountMl: String = "",
         val durationMin: String = "",
@@ -150,6 +154,7 @@ sealed class EventFormState {
     data class Growth(
         override val eventId: String? = null,
         override val eventType: EventType = EventType.GROWTH,
+        override val eventTimestamp: Date = Date(),
         val weightKg: String = "",
         val heightCm: String = "",
         val headCircumferenceCm: String = "",
@@ -159,6 +164,7 @@ sealed class EventFormState {
     data class Pumping(
         override val eventId: String? = null,
         override val eventType: EventType = EventType.PUMPING,
+        override val eventTimestamp: Date = Date(),
         val amountMl: String = "",
         val durationMin: String = "",
         val breastSide: BreastSide? = null,
