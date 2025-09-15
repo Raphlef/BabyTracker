@@ -11,25 +11,37 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -47,7 +59,6 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.babytracker.presentation.diaper.DiaperScreen
-import com.example.babytracker.ui.components.BottomNavBar
 import com.example.babytracker.ui.components.TopAppBar
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import com.example.babytracker.presentation.feeding.FeedingScreen
@@ -56,6 +67,7 @@ import com.example.babytracker.presentation.navigation.Screen
 import com.example.babytracker.presentation.sleep.SleepScreen
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
 import com.example.babytracker.data.Baby
 import com.example.babytracker.data.Gender
@@ -66,8 +78,19 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.zIndex
 import com.example.babytracker.presentation.baby.EditBabyFormDialog
+import com.example.babytracker.presentation.home.HomeScreen
+import com.example.babytracker.ui.components.BottomNavBar
 
+enum class DashboardTab(val label: String, val icon: @Composable () -> Unit) {
+    Home("Home", { Icon(Icons.Default.Home, contentDescription = "Home") }),
+    Calendar("Calendar", { Icon(Icons.Default.CalendarToday, contentDescription = "Calendar") }),
+    Analysis("Analysis", { Icon(Icons.AutoMirrored.Filled.ShowChart, contentDescription = "Analysis") }),
+    Settings("Settings", { Icon(Icons.Default.Settings, contentDescription = "Settings") }),
+}
 
 @Composable
 fun DashboardScreen(
@@ -83,6 +106,9 @@ fun DashboardScreen(
     var editingBabyId by remember { mutableStateOf<String?>(null) }
     var showEventForm by remember { mutableStateOf(false) }
 
+    // Tabs state
+    var selectedTab by remember { mutableStateOf(DashboardTab.Home) }
+
     // Initialize selectedBaby on first composition
     LaunchedEffect(babies, initialBabyId) {
         if (babies.isNotEmpty() && selectedBaby == null) {
@@ -93,136 +119,54 @@ fun DashboardScreen(
         }
     }
 
-    // Define which screens appear in the bottom nav bar
-    val bottomNavScreens = listOf(
-        Screen.Feeding,
-        Screen.Diaper,
-        Screen.Sleep,
-        Screen.Growth,
-        Screen.Calendar
-    )
-
-    // Manage selectedScreen state here, defaulting to the first item in bottomNavScreens
-    var selectedScreen by rememberSaveable(stateSaver = ScreenSaver) { // Use custom saver for Screen
-        mutableStateOf<Screen>(
-            Screen.Calendar
-        ) // Default to Feeding or first
-    }
-
+    // Track scroll for BabyInfoBar visibility
     val listState = rememberLazyListState()
-    val isAtTop by remember {
+    val showInfoBar by remember {
         derivedStateOf {
-            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset < 20
         }
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = "BabyTracking",
-                navController = navController,
-                onLogout = {
-                    authViewModel.logout()
-                    navController.navigate("auth") {
-                        popUpTo("dashboard/{babyId}") { inclusive = true }
-                    }
-                },
-                onNavigateSettings = {
-                    navController.navigate("settings")
-                },
-                onNavigateParents = {
-                    navController.navigate("parents/{babyId}")
-                }
-            )
-        },
         bottomBar = {
             BottomNavBar(
-                navController = navController,
-                screensForBottomNav = bottomNavScreens,
-                selectedScreen = selectedScreen,
-                onScreenSelected = { newScreen -> selectedScreen = newScreen }
+                selectedTab = selectedTab,
+                onTabSelected = { selectedTab = it },
+                onAddClicked = { showEventForm = true }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    if (selectedBaby != null) {
-                        showEventForm = true
-                    }
-                }
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Event")
-            }
         }
     ) { paddingValues ->
         Column(Modifier.padding(paddingValues)) {
-            Spacer(modifier = Modifier.height(6.dp))
-            // Always visible baby selector row (not scrollable)
-            LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(40.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Spacer(modifier = Modifier.height(4.dp))
+            // --- BABY SELECTOR + INFO ---
+            BabySelectorRow(
+                babies = babies,
+                selectedBaby = selectedBaby,
+                onSelectBaby = { viewModel.selectBaby(it) },
+                onAddBaby = { navController.navigate("add_baby") }
+            )
+
+            AnimatedVisibility(
+                visible = showInfoBar && selectedBaby != null,
+                enter = fadeIn(), exit = fadeOut()
             ) {
-                items(babies) { baby ->
-                    OutlinedButton(
-                        onClick = { viewModel.selectBaby(baby) },
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (baby == selectedBaby)
-                                MaterialTheme.colorScheme.primaryContainer
-                            else
-                                MaterialTheme.colorScheme.surface,
-                        )
-                    ) {
-                        Text(baby.name.ifEmpty { "Sans nom" }, maxLines = 1)
-                    }
-                }
-                item {
-                    IconButton(
-                        onClick = { navController.navigate("add_baby") },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Baby")
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // Scrollable content area with baby info and selected screen content
-            LazyColumn(state = listState) {
-                item {
-                    // Smooth visibility of baby info
-                    AnimatedVisibility(
-                        visible = isAtTop,
-                        enter = fadeIn(),
-                        exit = fadeOut()
-                    ) {
-                        selectedBaby?.let { baby ->
-                            BabyInfoBar(
-                                baby = baby,
-                                onEditClick = { editingBabyId = baby.id }
-                            )
-                        }
-                    }
-                }
-                item {
-                    selectedBaby?.let { baby ->
-                        val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-                        val reservedHeight = 120.dp
-                        val contentHeight = (screenHeight - reservedHeight).coerceAtLeast(200.dp)
-                        when (selectedScreen) {
-                            Screen.Feeding -> Box(modifier = Modifier.heightIn(max = contentHeight)) { FeedingScreen() }
-                            Screen.Diaper -> Box(modifier = Modifier.heightIn(max = contentHeight)) { DiaperScreen() }
-                            Screen.Sleep -> Box(modifier = Modifier.heightIn(max = contentHeight)) { SleepScreen() }
-                            Screen.Growth -> Box(modifier = Modifier.heightIn(max = contentHeight)) { GrowthScreen() }
-                            Screen.Calendar -> Box(modifier = Modifier.heightIn(max = contentHeight)) { CalendarScreen() }
-                            else -> {}
-                        }
-                    }
+                selectedBaby?.let {
+                    BabyInfoBar(it) { editingBabyId = it.id }
                 }
             }
 
-            // Event form dialog shown conditionally
+            Spacer(Modifier.height(8.dp))
+
+            // --- MAIN CONTENT for selected tab ---
+            Box(Modifier.weight(1f)) {
+                when (selectedTab) {
+                    DashboardTab.Home     -> HomeScreen(listState)
+                    DashboardTab.Calendar -> CalendarScreen()
+                    DashboardTab.Analysis -> AnalysisScreen()
+                    DashboardTab.Settings -> SettingsScreen()
+                }
+            }
+            // --- Dialogs ---
             selectedBaby?.takeIf { showEventForm }?.let { baby ->
                 EventFormDialog(
                     babyId = baby.id,
@@ -233,14 +177,51 @@ fun DashboardScreen(
                 EditBabyFormDialog(
                     babyId = babyId,
                     onBabyUpdated = { editingBabyId = null },
-                    onCancel      = { editingBabyId = null }
+                    onCancel = { editingBabyId = null }
                 )
             }
         }
     }
 }
 
-
+@Composable
+fun BabySelectorRow(
+    babies: List<Baby>,
+    selectedBaby: Baby?,
+    onSelectBaby: (Baby) -> Unit,
+    onAddBaby: () -> Unit
+) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .padding(horizontal = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(babies) { baby ->
+            OutlinedButton(
+                onClick = { onSelectBaby(baby) },
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = if (baby == selectedBaby)
+                        MaterialTheme.colorScheme.primaryContainer
+                    else
+                        MaterialTheme.colorScheme.surface,
+                ),
+                shape = CircleShape
+            ) {
+                Text(baby.name.ifEmpty { "Sans nom" }, maxLines = 1)
+            }
+        }
+        item {
+            IconButton(
+                onClick = onAddBaby,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Baby")
+            }
+        }
+    }
+}
 
 @Composable
 fun BabyInfoBar(
@@ -304,11 +285,11 @@ fun BabyInfoBar(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         val (icon, label) = when (baby.gender) {
-                            Gender.MALE               -> "♂" to "Male"
-                            Gender.FEMALE             -> "♀" to "Female"
-                            Gender.OTHER              -> "⚧" to "Other"
-                            Gender.PREFER_NOT_TO_SAY  -> "❔" to "Prefer not to say"
-                            Gender.UNKNOWN            -> "—" to "Unknown"
+                            Gender.MALE -> "♂" to "Male"
+                            Gender.FEMALE -> "♀" to "Female"
+                            Gender.OTHER -> "⚧" to "Other"
+                            Gender.PREFER_NOT_TO_SAY -> "❔" to "Prefer not to say"
+                            Gender.UNKNOWN -> "—" to "Unknown"
                         }
                         Text(
                             text = "$icon $label",
@@ -323,25 +304,48 @@ fun BabyInfoBar(
 }
 
 
-// Custom Saver for Screen (if Screen is a sealed class with objects)
-// Put this in a relevant place, maybe near your Screen definition or in a utils file
-
-val ScreenSaver = Saver<Screen, String>(
-    save = { it.route }, // Save the route string
-    restore = { route -> // Restore based on the route string
-        // Find the Screen object that matches the saved route
-        // This requires you to have a way to get all possible Screen objects
-        // or to check against each known object.
-        // For example:
-        listOf(
-            Screen.Feeding,
-            Screen.Diaper,
-            Screen.Sleep,
-            Screen.Growth,
-            Screen.Dashboard,
-            Screen.Auth,
-            Screen.BabySelection
-        )
-            .find { it.route == route } ?: Screen.Feeding // Default if not found
+@Composable
+fun AnalysisScreen() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                "Analysis (Coming Soon)",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "Here you’ll see charts and insights\nabout your baby’s growth and routines.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(24.dp))
+            // Placeholder card
+            Surface(
+                tonalElevation = 4.dp,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text("📊 Chart Placeholder", style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+        }
     }
-)
+}
+
+
+@Composable
+fun SettingsScreen() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        Text("Settings & Parents (dev in progress…)", style = MaterialTheme.typography.headlineSmall)
+    }
+}
