@@ -1,19 +1,23 @@
 package com.example.babytracker.data
 
+import androidx.compose.material.icons.Icons
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material.icons.filled.*
+
 
 // Enum for different Diaper event types
-enum class DiaperType {
-    WET,
-    DIRTY, // Could represent "poop"
-    MIXED, // Both wet and dirty
-    DRY
+enum class DiaperType(val displayName: String, val icon: ImageVector) {
+    WET("Wet", Icons.Default.Opacity),
+    DIRTY("Dirty", Icons.Default.Circle),
+    MIXED("Mixed", Icons.Default.Merge),
+    DRY("Dry", Icons.Default.InvertColorsOff)
 }
 
-enum class PoopConsistency(val displayName: String) {
-    LIQUIDE("Liquide"),
-    SEMI_SOLIDE("Semi-solide"),
-    SOLIDE("Solide")
+enum class PoopConsistency(val displayName: String, val icon: ImageVector) {
+    LIQUIDE("Liquide", Icons.Default.WaterDrop),
+    SEMI_SOLIDE("Semi-solide", Icons.Default.Grain),
+    SOLIDE("Solide", Icons.Default.Circle)
 }
 enum class PoopColor(val displayName: String, val colorValue: Color) {
     BROWN("Marron", Color(0xFF8B4513)),

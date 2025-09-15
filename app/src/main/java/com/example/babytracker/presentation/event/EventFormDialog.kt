@@ -2,33 +2,38 @@ package com.example.babytracker.presentation.event
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.babytracker.data.BreastSide
-import com.example.babytracker.data.DiaperType
-import com.example.babytracker.data.EventFormState
-import com.example.babytracker.data.EventType
-import com.example.babytracker.presentation.diaper.DiaperTypeDropdown
-import com.example.babytracker.presentation.diaper.PoopColorDropdown
-import com.example.babytracker.presentation.diaper.PoopConsistencyDropdown
-import com.example.babytracker.presentation.feeding.FeedTypeDropdown
-import com.example.babytracker.presentation.feeding.capitalizeWords
+import com.example.babytracker.data.*
 import com.example.babytracker.presentation.viewmodel.EventViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,51 +48,31 @@ fun EventFormDialog(
     val errorMessage by viewModel.errorMessage.collectAsState()
     val currentType = formState.eventType
 
-    // Track selected date in state
-    val initialDate = formState.eventTimestamp
-    var selectedDate by remember { mutableStateOf(initialDate) }
-    val context = LocalContext.current
-
-    // Date picker dialog
-    val datePicker = remember(selectedDate) {
-        val cal = Calendar.getInstance().apply { time = selectedDate }
-        DatePickerDialog(
-            context,
-            { _, year, month, dayOfMonth ->
-                val newDate = Calendar.getInstance().apply {
-                    set(year, month, dayOfMonth)
-                }.time
-                selectedDate = newDate
-                viewModel.updateEventTimestamp(newDate)
-            },
-            cal.get(Calendar.YEAR),
-            cal.get(Calendar.MONTH),
-            cal.get(Calendar.DAY_OF_MONTH)
-        )
-    }
-
+    var selectedDate by remember { mutableStateOf(formState.eventTimestamp) }
 
     LaunchedEffect(saveSuccess) {
         if (saveSuccess) {
             onDismiss()
-            viewModel.resetSaveSuccess()  // Optional: clear the flag
+            viewModel.resetSaveSuccess()
         }
     }
 
-    Dialog(onDismissRequest = { onDismiss() }) {
+    Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = MaterialTheme.shapes.medium,
+            shape = RoundedCornerShape(24.dp),
             tonalElevation = 8.dp,
             modifier = Modifier
-                .fillMaxWidth(0.9f)
+                .fillMaxWidth()          // use full width
+                .padding(horizontal = 16.dp)
                 .wrapContentHeight()
         ) {
             Column(
                 modifier = Modifier
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
+                // Header
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -95,423 +80,562 @@ fun EventFormDialog(
                 ) {
                     Text(
                         text = if (formState.eventId == null) "Add Event" else "Edit Event",
-                        style = MaterialTheme.typography.headlineSmall
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
                     )
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Close")
-                    }
-                }
-                if (errorMessage != null) {
-                    Text(errorMessage!!, color = MaterialTheme.colorScheme.error)
-                }
-                // 1️⃣ Event Type Selector
-                val isEditMode = formState.eventId != null
-                var typeDropdownExpanded by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
-                    expanded = typeDropdownExpanded,
-                    onExpandedChange = { typeDropdownExpanded = !typeDropdownExpanded }
-                ) {
-                    OutlinedTextField(
-                        value = currentType.displayName,
-                        onValueChange = {},
-                        label = { Text("Event Type") },
-                        readOnly = true,
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(
-                                typeDropdownExpanded
-                            )
-                        },
-                        enabled = !isEditMode,
+                    IconButton(
+                        onClick = onDismiss,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor()
-                            .let { if (isEditMode) it.alpha(0.6f) else it }
-                    )
-                    if (!isEditMode) {
-                        ExposedDropdownMenu(
-                            expanded = typeDropdownExpanded,
-                            onDismissRequest = { typeDropdownExpanded = false }
-                        ) {
-                            EventType.entries.forEach { type ->
-                                DropdownMenuItem(
-                                    text = { Text(type.displayName) },
-                                    onClick = {
-                                        val newState = when (type) {
-                                            EventType.DIAPER -> EventFormState.Diaper()
-                                            EventType.FEEDING -> EventFormState.Feeding()
-                                            EventType.SLEEP -> EventFormState.Sleep()
-                                            EventType.GROWTH -> EventFormState.Growth()
-                                            EventType.PUMPING -> EventFormState.Pumping()
-                                        }
-                                        viewModel.updateForm { newState }
-                                        typeDropdownExpanded = false
-                                    }
-                                )
-                            }
-                        }
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant,
+                                CircleShape
+                            )
+                            .size(40.dp)
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
                     }
                 }
-                // Date field
-                OutlinedTextField(
-                    value = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(selectedDate),
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Event Date") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { datePicker.show() }
+
+                if (errorMessage != null) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            errorMessage!!,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
+
+                // Event Type Selector (only for new events)
+                val isEditMode = formState.eventId != null
+                if (!isEditMode) {
+                    IconSelector(
+                        title = "Event Type",
+                        options = EventType.entries,
+                        selected = currentType,
+                        onSelect = { type ->
+                            val newState = when (type) {
+                                EventType.DIAPER -> EventFormState.Diaper()
+                                EventType.FEEDING -> EventFormState.Feeding()
+                                EventType.SLEEP -> EventFormState.Sleep()
+                                EventType.GROWTH -> EventFormState.Growth()
+                                EventType.PUMPING -> EventFormState.Pumping()
+                            }
+                            viewModel.updateForm { newState }
+                        },
+                        getIcon = { it.icon },
+                        getLabel = { it.displayName },
+                        getColor = { it.color }
+                    )
+                }
+
+                // Date Selector
+                ModernDateSelector(
+                    selectedDate = selectedDate,
+                    onDateSelected = {
+                        selectedDate = it
+                        viewModel.updateEventTimestamp(it)
+                    }
                 )
 
-                // 2️⃣ Then render the specific sub-form
+                // Event-specific form content
                 when (val s = formState) {
-                    is EventFormState.Diaper -> {
-                        val s = formState as EventFormState.Diaper
-                        Text("Diaper Event", style = MaterialTheme.typography.headlineSmall)
-                        DiaperTypeDropdown(
-                            selectedDiaperType = s.diaperType,
-                            onDiaperTypeSelected = {
-                                viewModel.updateForm {
-                                    (this as EventFormState.Diaper).copy(
-                                        diaperType = it
-                                    )
-                                }
-                            }
-                        )
-                        if (s.diaperType == DiaperType.DIRTY || s.diaperType == DiaperType.MIXED) {
-                            PoopColorDropdown(
-                                selectedColor = s.poopColor,
-                                onColorSelected = {
-                                    viewModel.updateForm {
-                                        (this as EventFormState.Diaper).copy(
-                                            poopColor = it
-                                        )
-                                    }
-                                }
-                            )
-                            PoopConsistencyDropdown(
-                                selectedConsistency = s.poopConsistency,
-                                onConsistencySelected = {
-                                    viewModel.updateForm {
-                                        (this as EventFormState.Diaper).copy(
-                                            poopConsistency = it
-                                        )
-                                    }
-                                }
-                            )
-                        }
-                        OutlinedTextField(
-                            value = s.notes,
-                            onValueChange = {
-                                viewModel.updateForm {
-                                    (this as EventFormState.Diaper).copy(
-                                        notes = it
-                                    )
-                                }
-                            },
-                            label = { Text("Notes") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp)
-                        )
-                    }
-
-                    is EventFormState.Sleep -> {
-                        val s = formState as EventFormState.Sleep
-                        Text("Sleep Event", style = MaterialTheme.typography.headlineSmall)
-
-                        val context = LocalContext.current
-                        val calStart = remember { Calendar.getInstance() }
-                        val calEnd = remember { Calendar.getInstance() }
-
-                        LaunchedEffect(s.beginTime) { s.beginTime?.let { calStart.time = it } }
-                        LaunchedEffect(s.endTime) { s.endTime?.let { calEnd.time = it } }
-
-                        fun computeDuration(begin: Date?, end: Date?): Long? =
-                            if (begin != null && end != null)
-                                ((end.time - begin.time) / 60000).coerceAtLeast(0L)
-                            else null
-
-                        // Start picker
-                        val tpStart = remember {
-                            TimePickerDialog(
-                                context,
-                                { _, h, m ->
-                                    calStart.set(Calendar.HOUR_OF_DAY, h)
-                                    calStart.set(Calendar.MINUTE, m)
-                                    val newBegin = calStart.time
-                                    viewModel.updateForm {
-                                        val currentEnd = (this as EventFormState.Sleep).endTime
-                                        copy(
-                                            beginTime = newBegin,
-                                            durationMinutes = computeDuration(newBegin, currentEnd)
-                                        )
-                                    }
-                                },
-                                calStart.get(Calendar.HOUR_OF_DAY),
-                                calStart.get(Calendar.MINUTE),
-                                true
-                            )
-                        }
-
-                        // End picker
-                        val tpEnd = remember {
-                            TimePickerDialog(
-                                context,
-                                { _, h, m ->
-                                    calEnd.set(Calendar.HOUR_OF_DAY, h)
-                                    calEnd.set(Calendar.MINUTE, m)
-                                    val newEnd = calEnd.time
-                                    viewModel.updateForm {
-                                        val currentBegin = (this as EventFormState.Sleep).beginTime
-                                        copy(
-                                            endTime = newEnd,
-                                            durationMinutes = computeDuration(currentBegin, newEnd)
-                                        )
-                                    }
-                                },
-                                calEnd.get(Calendar.HOUR_OF_DAY),
-                                calEnd.get(Calendar.MINUTE),
-                                true
-                            )
-                        }
-
-                        OutlinedTextField(
-                            value = s.beginTime?.let {
-                                SimpleDateFormat(
-                                    "HH:mm",
-                                    Locale.getDefault()
-                                ).format(it)
-                            }.orEmpty(),
-                            onValueChange = {}, readOnly = true,
-                            label = { Text("Start Time") }, modifier = Modifier.fillMaxWidth()
-                        )
-                        Button(onClick = { tpStart.show() }) { Text("Choose Start") }
-
-                        OutlinedTextField(
-                            value = s.endTime?.let {
-                                SimpleDateFormat(
-                                    "HH:mm",
-                                    Locale.getDefault()
-                                ).format(it)
-                            }.orEmpty(),
-                            onValueChange = {}, readOnly = true,
-                            label = { Text("End Time") }, modifier = Modifier.fillMaxWidth()
-                        )
-                        Button(onClick = { tpEnd.show() }) { Text("Choose End") }
-
-                        OutlinedTextField(
-                            value = s.durationMinutes?.let { "$it min" }.orEmpty(),
-                            onValueChange = {}, readOnly = true,
-                            label = { Text("Duration") }, modifier = Modifier.fillMaxWidth()
-                        )
-
-                        OutlinedTextField(
-                            value = s.notes,
-                            onValueChange = {
-                                viewModel.updateForm { (this as EventFormState.Sleep).copy(notes = it) }
-                            },
-                            label = { Text("Notes") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp)
-                        )
-                    }
-
-                    is EventFormState.Feeding -> {
-                        val s = formState as EventFormState.Feeding
-                        Text("Feeding Event", style = MaterialTheme.typography.headlineSmall)
-
-                        // Feed Type
-                        FeedTypeDropdown(
-                            selectedFeedType = s.feedType,
-                            onFeedTypeSelected = {
-                                viewModel.updateForm {
-                                    (this as EventFormState.Feeding).copy(
-                                        feedType = it
-                                    )
-                                }
-                            }
-                        )
-
-                        // Amount and Duration
-                        OutlinedTextField(
-                            value = s.amountMl,
-                            onValueChange = {
-                                viewModel.updateForm {
-                                    (this as EventFormState.Feeding).copy(
-                                        amountMl = it
-                                    )
-                                }
-                            },
-                            label = { Text("Amount (ml)") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        OutlinedTextField(
-                            value = s.durationMin,
-                            onValueChange = {
-                                viewModel.updateForm {
-                                    (this as EventFormState.Feeding).copy(
-                                        durationMin = it
-                                    )
-                                }
-                            },
-                            label = { Text("Duration (min)") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        // Breast Side Selection
-                        Text("Breast Side:", style = MaterialTheme.typography.bodyLarge)
-                        val breastSides = BreastSide.entries
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            breastSides.forEach { side ->
-                                Button(
-                                    onClick = {
-                                        viewModel.updateForm {
-                                            (this as EventFormState.Feeding).copy(
-                                                breastSide = side
-                                            )
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (s.breastSide == side)
-                                            MaterialTheme.colorScheme.primaryContainer
-                                        else
-                                            MaterialTheme.colorScheme.surfaceVariant
-                                    )
-                                ) {
-                                    Text(side.name.replace("_", " ").capitalizeWords())
-                                }
-                            }
-                            if (s.breastSide != null) {
-                                Button(
-                                    onClick = {
-                                        viewModel.updateForm {
-                                            (this as EventFormState.Feeding).copy(
-                                                breastSide = null
-                                            )
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                                    )
-                                ) {
-                                    Text("Clear")
-                                }
-                            }
-                        }
-
-                        // Notes
-                        OutlinedTextField(
-                            value = s.notes,
-                            onValueChange = {
-                                viewModel.updateForm { (this as EventFormState.Feeding).copy(notes = it) }
-                            },
-                            label = { Text("Notes") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp)
-                        )
-                    }
-
-                    is EventFormState.Growth -> {
-                        val s = formState as EventFormState.Growth
-                        Text("Growth Event", style = MaterialTheme.typography.headlineSmall)
-                        OutlinedTextField(
-                            value = s.weightKg,
-                            onValueChange = {
-                                viewModel.updateForm {
-                                    (this as EventFormState.Growth).copy(
-                                        weightKg = it
-                                    )
-                                }
-                            },
-                            label = { Text("Weight (kg)") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        OutlinedTextField(
-                            value = s.heightCm,
-                            onValueChange = {
-                                viewModel.updateForm {
-                                    (this as EventFormState.Growth).copy(
-                                        heightCm = it
-                                    )
-                                }
-                            },
-                            label = { Text("Height (cm)") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        OutlinedTextField(
-                            value = s.headCircumferenceCm,
-                            onValueChange = {
-                                viewModel.updateForm {
-                                    (this as EventFormState.Growth).copy(
-                                        headCircumferenceCm = it
-                                    )
-                                }
-                            },
-                            label = { Text("Head Circumference (cm)") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        OutlinedTextField(
-                            value = s.notes,
-                            onValueChange = {
-                                viewModel.updateForm {
-                                    (this as EventFormState.Growth).copy(
-                                        notes = it
-                                    )
-                                }
-                            },
-                            label = { Text("Notes") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp)
-                        )
-                    }
-
-                    is EventFormState.Pumping -> {
-                        Text("Pumping Event", style = MaterialTheme.typography.headlineSmall)
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(150.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                CircularProgressIndicator()
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Pumping form in progress…",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                        }
-                    }
+                    is EventFormState.Diaper -> DiaperForm(s, viewModel)
+                    is EventFormState.Sleep -> SleepForm(s, viewModel)
+                    is EventFormState.Feeding -> FeedingForm(s, viewModel)
+                    is EventFormState.Growth -> GrowthForm(s, viewModel)
+                    is EventFormState.Pumping -> PumpingForm()
                 }
-
-                Spacer(Modifier.height(24.dp))
 
                 // Save button
                 Button(
                     onClick = { viewModel.validateAndSave(babyId) },
                     enabled = !isSaving,
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
                 ) {
                     if (isSaving) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
                         )
                         Spacer(Modifier.width(8.dp))
                         Text("Saving…")
                     } else {
-                        Text(if (formState.eventId == null) "Create" else "Update")
+                        Text(
+                            if (formState.eventId == null) "Create Event" else "Update Event",
+                            style = MaterialTheme.typography.titleMedium
+                        )
                     }
                 }
             }
+        }
+    }
+}
+
+// Reusable Icon Selector Component
+@Composable
+fun <T> IconSelector(
+    title: String,
+    options: List<T>,
+    selected: T?,
+    onSelect: (T) -> Unit,
+    getIcon: (T) -> ImageVector,
+    getLabel: (T) -> String,
+    getColor: ((T) -> Color)? = null,
+    modifier: Modifier = Modifier
+) {
+    val defaultColor = MaterialTheme.colorScheme.primary
+    Column(modifier = modifier) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 4.dp)
+        ) {
+            items(options) { option ->
+                val itemColor = getColor?.invoke(option) ?: defaultColor
+                val isSelected = selected == option
+                Surface(
+                    onClick = { onSelect(option) },
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (isSelected) itemColor.copy(alpha = 0.2f) else Color.Transparent,
+                    border = if (isSelected)
+                        BorderStroke(2.dp, itemColor)
+                    else
+                        BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                    modifier = Modifier.size(80.dp, 88.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = getIcon(option),
+                            contentDescription = getLabel(option),
+                            tint = if (isSelected) itemColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = getLabel(option),
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center,
+                            color = if (isSelected) itemColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Modern Date Selector
+@Composable
+fun ModernDateSelector(
+    selectedDate: Date,
+    onDateSelected: (Date) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+
+    Surface(
+        onClick = {
+            val cal = Calendar.getInstance().apply { time = selectedDate }
+            DatePickerDialog(
+                context,
+                { _, year, month, day ->
+                    val newDate = Calendar.getInstance().apply {
+                        set(year, month, day)
+                    }.time
+                    onDateSelected(newDate)
+                },
+                cal.get(Calendar.YEAR),
+                cal.get(Calendar.MONTH),
+                cal.get(Calendar.DAY_OF_MONTH)
+            ).show()
+        },
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(20.dp)
+        ) {
+            Icon(
+                Icons.Default.DateRange,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Event Date",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    SimpleDateFormat("EEEE, MMM dd, yyyy", Locale.getDefault()).format(selectedDate),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            Icon(
+                Icons.Default.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+// Modern Time Selector
+@Composable
+fun ModernTimeSelector(
+    label: String,
+    time: Date?,
+    onTimeSelected: (Date) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val cal = remember { Calendar.getInstance() }
+
+    Surface(
+        onClick = {
+            time?.let { cal.time = it }
+            TimePickerDialog(
+                context,
+                { _, hour, minute ->
+                    cal.set(Calendar.HOUR_OF_DAY, hour)
+                    cal.set(Calendar.MINUTE, minute)
+                    onTimeSelected(cal.time)
+                },
+                cal.get(Calendar.HOUR_OF_DAY),
+                cal.get(Calendar.MINUTE),
+                true
+            ).show()
+        },
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        modifier = modifier
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Icon(
+                Icons.Default.Schedule,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    time?.let { SimpleDateFormat("HH:mm", Locale.getDefault()).format(it) } ?: "Select time",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+@Composable
+private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
+    // Diaper Type
+    IconSelector(
+        title = "Diaper Type",
+        options = DiaperType.entries,
+        selected = state.diaperType,
+        onSelect = {
+            viewModel.updateForm {
+                (this as EventFormState.Diaper).copy(diaperType = it)
+            }
+        },
+        getIcon = { type ->
+            when (type) {
+                DiaperType.WET -> Icons.Default.Opacity
+                DiaperType.DIRTY -> Icons.Default.Circle
+                DiaperType.MIXED -> Icons.Default.Merge
+                DiaperType.DRY   -> Icons.Default.InvertColorsOff
+            }
+        },
+        getLabel = { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } }
+    )
+
+    // Conditional poop details
+    if (state.diaperType == DiaperType.DIRTY || state.diaperType == DiaperType.MIXED) {
+        IconSelector(
+            title = "Poop Color",
+            options = PoopColor.entries,
+            selected = state.poopColor,
+            onSelect = {
+                viewModel.updateForm {
+                    (this as EventFormState.Diaper).copy(poopColor = it)
+                }
+            },
+            getIcon = { Icons.Default.Palette },
+            getLabel = { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } },
+            getColor = { it.colorValue }
+        )
+
+        IconSelector(
+            title = "Consistency",
+            options = PoopConsistency.entries,
+            selected = state.poopConsistency,
+            onSelect = {
+                viewModel.updateForm {
+                    (this as EventFormState.Diaper).copy(poopConsistency = it)
+                }
+            },
+            getIcon = { it.icon },           // use enum's icon
+            getLabel = { it.displayName }    // use enum's displayName
+        )
+    }
+
+    // Notes
+    OutlinedTextField(
+        value = state.notes,
+        onValueChange = {
+            viewModel.updateForm { (this as EventFormState.Diaper).copy(notes = it) }
+        },
+        label = { Text("Notes (optional)") },
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth().height(80.dp)
+    )
+}
+
+@Composable
+private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
+    fun computeDuration(begin: Date?, end: Date?): Long? =
+        if (begin != null && end != null)
+            ((end.time - begin.time) / 60000).coerceAtLeast(0L)
+        else null
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        ModernTimeSelector(
+            label = "Start Time",
+            time = state.beginTime,
+            onTimeSelected = { newBegin ->
+                viewModel.updateForm {
+                    val s = this as EventFormState.Sleep
+                    s.copy(
+                        beginTime = newBegin,
+                        durationMinutes = computeDuration(newBegin, s.endTime)
+                    )
+                }
+            },
+            modifier = Modifier.weight(1f)
+        )
+
+        ModernTimeSelector(
+            label = "End Time",
+            time = state.endTime,
+            onTimeSelected = { newEnd ->
+                viewModel.updateForm {
+                    val s = this as EventFormState.Sleep
+                    s.copy(
+                        endTime = newEnd,
+                        durationMinutes = computeDuration(s.beginTime, newEnd)
+                    )
+                }
+            },
+            modifier = Modifier.weight(1f)
+        )
+    }
+
+    // Duration display
+    state.durationMinutes?.let { minutes ->
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(16.dp).fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Timer, contentDescription = null)
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    "Duration: ${minutes / 60}h ${minutes % 60}min",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+
+    OutlinedTextField(
+        value = state.notes,
+        onValueChange = { viewModel.updateForm { (this as EventFormState.Sleep).copy(notes = it) } },
+        label = { Text("Notes (optional)") },
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth().height(80.dp)
+    )
+}
+
+@Composable
+private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
+    // Feed Type
+    IconSelector(
+        title = "Feed Type",
+        options = FeedType.entries,
+        selected = state.feedType,
+        onSelect = {
+            viewModel.updateForm {
+                (this as EventFormState.Feeding).copy(feedType = it)
+            }
+        },
+        getIcon = { type ->
+            when (type) {
+                FeedType.BREAST_MILK -> Icons.Default.Favorite
+                FeedType.FORMULA -> Icons.Default.LocalDrink
+                FeedType.SOLID -> Icons.Default.Restaurant
+            }
+        },
+        getLabel = {
+            it.name.replace("_", " ").lowercase()
+                .split(" ")
+                .joinToString(" ") { word -> word.replaceFirstChar { c -> c.uppercase() } }
+        }
+    )
+
+    // Amount (hidden for breast milk)
+    if (state.feedType != FeedType.BREAST_MILK) {
+        OutlinedTextField(
+            value = state.amountMl,
+            onValueChange = {
+                viewModel.updateForm { (this as EventFormState.Feeding).copy(amountMl = it) }
+            },
+            label = { Text("Amount (ml)") },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+
+    // Duration
+    OutlinedTextField(
+        value = state.durationMin,
+        onValueChange = {
+            viewModel.updateForm { (this as EventFormState.Feeding).copy(durationMin = it) }
+        },
+        label = { Text("Duration (minutes)") },
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth()
+    )
+
+    // Breast Side (for breast milk)
+    if (state.feedType == FeedType.BREAST_MILK) {
+        IconSelector(
+            title = "Breast Side",
+            options = BreastSide.entries,
+            selected = state.breastSide,
+            onSelect = {
+                viewModel.updateForm {
+                    (this as EventFormState.Feeding).copy(breastSide = it)
+                }
+            },
+            getIcon = { side ->
+                when (side) {
+                    BreastSide.LEFT -> Icons.Default.ChevronLeft
+                    BreastSide.RIGHT -> Icons.Default.ChevronRight
+                    BreastSide.BOTH -> Icons.Default.SwapHoriz
+                }
+            },
+            getLabel = {
+                it.name.lowercase().replaceFirstChar { c -> c.uppercase() }
+            }
+        )
+    }
+
+    OutlinedTextField(
+        value = state.notes,
+        onValueChange = { viewModel.updateForm { (this as EventFormState.Feeding).copy(notes = it) } },
+        label = { Text("Notes (optional)") },
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth().height(80.dp)
+    )
+}
+
+@Composable
+private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = state.weightKg,
+            onValueChange = { viewModel.updateForm { (this as EventFormState.Growth).copy(weightKg = it) } },
+            label = { Text("Weight (kg)") },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.weight(1f)
+        )
+
+        OutlinedTextField(
+            value = state.heightCm,
+            onValueChange = { viewModel.updateForm { (this as EventFormState.Growth).copy(heightCm = it) } },
+            label = { Text("Height (cm)") },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.weight(1f)
+        )
+    }
+
+    OutlinedTextField(
+        value = state.headCircumferenceCm,
+        onValueChange = { viewModel.updateForm { (this as EventFormState.Growth).copy(headCircumferenceCm = it) } },
+        label = { Text("Head Circumference (cm)") },
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth()
+    )
+
+    OutlinedTextField(
+        value = state.notes,
+        onValueChange = { viewModel.updateForm { (this as EventFormState.Growth).copy(notes = it) } },
+        label = { Text("Notes (optional)") },
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth().height(80.dp)
+    )
+}
+
+@Composable
+private fun PumpingForm() {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(32.dp)
+        ) {
+            CircularProgressIndicator()
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "Pumping form coming soon…",
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
