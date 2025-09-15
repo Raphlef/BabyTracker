@@ -24,6 +24,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.reflect.KClass
 
+enum class RangeType { DAY, WEEK, MONTH, CUSTOM }
+
 @HiltViewModel
 class EventViewModel @Inject constructor(
     private val repository: FirebaseRepository
@@ -72,6 +74,15 @@ class EventViewModel @Inject constructor(
     private val _endDate = MutableStateFlow<Date>(Date()) // Default: today
     val endDate: StateFlow<Date> = _endDate.asStateFlow()
 
+    fun setDateRangeForLastDays(days: Long) {
+        // use existing _startDate/_endDate vars
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now()
+        val startDate = today.minusDays(days - 1).atStartOfDay(zone).toInstant()
+        val endDate = today.atTime(23, 59, 59).atZone(zone).toInstant()
+        _startDate.value = Date.from(startDate)
+        _endDate.value = Date.from(endDate)
+    }
     fun setDateRangeForMonth(month: LocalDate) {
         val first = month.withDayOfMonth(1)
         val last  = month.withDayOfMonth(month.lengthOfMonth())

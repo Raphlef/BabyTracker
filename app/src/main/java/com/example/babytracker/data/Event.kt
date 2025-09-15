@@ -13,22 +13,17 @@ import kotlin.reflect.KClass
 /**
  * EventType enum associates a display name and a color for each event kind.
  */
-enum class EventType(val displayName: String, val color: Color,val icon: ImageVector) {
-    DIAPER("Diaper", Color(0xFFFFC107), Icons.Filled.ChildCare),
-    FEEDING("Feeding", Color(0xFF4CAF50), Icons.Filled.Fastfood),
-    SLEEP("Sleep", Color(0xFF2196F3), Icons.Filled.Hotel),
-    GROWTH("Growth", Color(0xFF9C27B0), Icons.AutoMirrored.Filled.ShowChart),
-    PUMPING("Pumping", Color(0xFFFF5722), Icons.Filled.Add);
+enum class EventType(val displayName: String, val color: Color,val icon: ImageVector,
+                     val eventClass: KClass<out Event> ) {
+    DIAPER("Diaper", Color(0xFFFFC107), Icons.Filled.ChildCare,DiaperEvent::class),
+    FEEDING("Feeding", Color(0xFF4CAF50), Icons.Filled.Fastfood,FeedingEvent::class),
+    SLEEP("Sleep", Color(0xFF2196F3), Icons.Filled.Hotel,         SleepEvent::class),
+    GROWTH("Growth", Color(0xFF9C27B0), Icons.AutoMirrored.Filled.ShowChart, GrowthEvent::class),
+    PUMPING("Pumping", Color(0xFFFF5722), Icons.Filled.Add,       PumpingEvent::class);
 
     companion object {
-        fun forClass(clazz: KClass<out Event>): EventType = when (clazz) {
-            DiaperEvent::class   -> DIAPER
-            FeedingEvent::class  -> FEEDING
-            SleepEvent::class    -> SLEEP
-            GrowthEvent::class   -> GROWTH
-            PumpingEvent::class  -> PUMPING
-            else                  -> DIAPER
-        }
+        fun forClass(clazz: KClass<out Event>): EventType = entries.firstOrNull { it.eventClass == clazz }
+            ?: DIAPER
     }
 }
 
