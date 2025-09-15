@@ -19,6 +19,12 @@ import com.example.babytracker.data.FeedType
 import com.example.babytracker.data.FeedingEvent
 import com.example.babytracker.data.GrowthEvent
 import com.example.babytracker.data.SleepEvent
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import java.time.LocalDate
 import java.time.ZoneId
@@ -28,6 +34,8 @@ import kotlin.reflect.KClass
 class EventViewModel @Inject constructor(
     private val repository: FirebaseRepository
 ) : ViewModel() {
+
+    private var streamJob: Job? = null
 
     // Current form values
     private val _formState = MutableStateFlow<EventFormState>(EventFormState.Diaper())
@@ -97,6 +105,34 @@ class EventViewModel @Inject constructor(
                 is EventFormState.Pumping -> state.copy(eventTimestamp = date)
             }
         }
+    }
+    fun streamEventsInRangeForBaby(babyId: String) {
+        streamJob?.cancel()
+        streamJob = repository.streamEventsForBaby(babyId)
+            .map { allEvents ->
+                // apply your existing date‐range filter
+                allEvents.filter { e ->
+                    val ts = e.timestamp
+                    ts in _startDate.value.._endDate.value
+                }
+            }
+            .onStart { _isLoading.value = true }
+            .catch { e ->
+                _errorMessage.value = "Stream error: ${e.localizedMessage}"
+                _isLoading.value = false
+            }
+            .onEach { filtered ->
+                _eventsByType.value = filtered.groupBy { it::class }
+                groupEventsByDay(filtered)
+                _isLoading.value = false
+            }
+            .launchIn(viewModelScope)
+    }
+
+    /** Stops any active real-time listener. */
+    fun stopStreaming() {
+        streamJob?.cancel()
+        streamJob = null
     }
     // Update form
     fun updateForm(update: EventFormState.() -> EventFormState) {

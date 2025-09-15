@@ -40,6 +40,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -98,10 +99,12 @@ fun HomeScreen(
         selectedBaby?.id?.let { babyId ->
             // week‐long window; use 30L for month
             eventViewModel.setDateRangeForLastDays(30L)
-            eventViewModel.loadEventsInRange(babyId)
+            eventViewModel.streamEventsInRangeForBaby(babyId)
         }
     }
-
+    DisposableEffect(Unit) {
+        onDispose { eventViewModel.stopStreaming() }
+    }
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
