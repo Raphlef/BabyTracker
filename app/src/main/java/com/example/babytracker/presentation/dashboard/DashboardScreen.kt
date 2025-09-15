@@ -161,7 +161,7 @@ fun DashboardScreen(
             Box(Modifier.weight(1f)) {
                 when (selectedTab) {
                     DashboardTab.Home     -> HomeScreen(listState)
-                    DashboardTab.Calendar -> CalendarScreen()
+                    DashboardTab.Calendar -> CalendarScreen(listState)
                     DashboardTab.Analysis -> AnalysisScreen()
                     DashboardTab.Settings -> SettingsScreen()
                 }

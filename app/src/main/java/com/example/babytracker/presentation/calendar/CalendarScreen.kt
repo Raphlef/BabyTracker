@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
@@ -67,6 +68,7 @@ import java.time.format.DateTimeFormatter
 
 @Composable
 fun CalendarScreen(
+    listState: LazyListState,
     viewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
@@ -100,7 +102,10 @@ fun CalendarScreen(
     LaunchedEffect(availableTypes) {
         filterTypes = availableTypes
     }
-
+    // Reset scroll when baby changes
+    LaunchedEffect(selectedBaby?.id) {
+        listState.scrollToItem(0)
+    }
     fun refresh() {
         currentBabyId?.let {
             viewModel.setDateRangeForMonth(currentMonth)
