@@ -103,8 +103,8 @@ fun CalendarScreen(
 
     fun refresh() {
         currentBabyId?.let {
-        viewModel.setDateRangeForMonth(currentMonth)
-        viewModel.loadEventsInRange(it)
+            viewModel.setDateRangeForMonth(currentMonth)
+            viewModel.loadEventsInRange(it)
         }
     }
     // Load events when babyId changes
@@ -134,14 +134,15 @@ fun CalendarScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        Box(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            Column {
+            item {
                 // Filter chips for available types
                 Row(
                     modifier = Modifier
@@ -168,8 +169,8 @@ fun CalendarScreen(
                         )
                     }
                 }
-
-                Spacer(Modifier.height(8.dp))
+            }
+            item {
                 // Month navigation
                 Row(
                     modifier = Modifier
@@ -188,7 +189,8 @@ fun CalendarScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next")
                     }
                 }
-
+            }
+            item {
                 // Calendar grid
                 MonthCalendar(
                     year = currentMonth.year,
@@ -200,24 +202,28 @@ fun CalendarScreen(
                         selectedDate = date
                     }
                 )
+            }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // List of events for the selected date
+            // Selected date header
+            item {
+                val count = eventsByDay[selectedDate].orEmpty()
+                    .count { filterTypes.contains(EventType.forClass(it::class)) }
                 Text(
-                    text = "Events on ${selectedDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    text = "Events on ${selectedDate.format(
+                        DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                    )} ($count)",
+                    style = MaterialTheme.typography.titleSmall
                 )
+            }
+            // Timeline of events
+            item {
                 val dayEvents = eventsByDay[selectedDate].orEmpty()
-                    .filter { filterTypes.contains(EventType.forClass(it::class))}
-
+                    .filter { filterTypes.contains(EventType.forClass(it::class)) }
                 if (dayEvents.isEmpty()) {
                     Text("No events", style = MaterialTheme.typography.bodyMedium)
                 } else {
                     TimelineList(
                         events = dayEvents,
-                        modifier = Modifier.fillMaxWidth(),
                         onEdit = { event ->
                             editingEvent = event
                             showDialog = true
@@ -225,31 +231,32 @@ fun CalendarScreen(
                     )
                 }
             }
-            // 3️⃣ Show dialog when editingEvent != null
-            if (showDialog) {
-                EventFormDialog(
-                    babyId = selectedBaby?.id ?: return@Box,
-                    onDismiss = {
-                        showDialog = false
-                        editingEvent = null
-                        viewModel.resetFormState()
-                        refresh()
-                    }
-                )
-            }
-            // Overlay loading spinner
-            if (isLoading) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .clickable(enabled = false) {}  // disable interactions
-                ) {
-                    CircularProgressIndicator(Modifier.align(Alignment.Center))
+        }
+        // 3️⃣ Show dialog when editingEvent != null
+        if (showDialog) {
+            EventFormDialog(
+                babyId = selectedBaby?.id ?: return@Scaffold,
+                onDismiss = {
+                    showDialog = false
+                    editingEvent = null
+                    viewModel.resetFormState()
+                    refresh()
                 }
+            )
+        }
+        // Overlay loading spinner
+        if (isLoading) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .clickable(enabled = false) {}  // disable interactions
+            ) {
+                CircularProgressIndicator(Modifier.align(Alignment.Center))
             }
         }
     }
 }
+
 
 @Composable
 fun MonthCalendar(
@@ -262,7 +269,8 @@ fun MonthCalendar(
     val firstOfMonth = LocalDate.of(year, month, 1)
     val daysInMonth = firstOfMonth.lengthOfMonth()
     val startDow = firstOfMonth.dayOfWeek.value % 7  // 0=Dimanche, 6=Samedi
-
+    val totalCells = ((startDow + daysInMonth + 6) / 7) * 7
+    val weeks = totalCells / 7
     // 2. Affichage de l’en-tête des jours
     Column {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -276,6 +284,7 @@ fun MonthCalendar(
         LazyVerticalGrid(
             columns = GridCells.Fixed(7),
             modifier = Modifier.fillMaxWidth()
+                .height((weeks * 40).dp)
         ) {
             items(totalCells) { index ->
                 val dayNumber = index - startDow + 1
