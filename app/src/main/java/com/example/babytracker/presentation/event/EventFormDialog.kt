@@ -241,35 +241,29 @@ fun <T> IconSelector(
         }
     }
 }
-
-// Modern Date Selector
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModernDateSelector(
     selectedDate: Date,
     onDateSelected: (Date) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
+    var showPicker by remember { mutableStateOf(false) }
+    // DatePickerState requires epoch millis UTC
+    val initialMillis = remember(selectedDate) {
+        selectedDate.toInstant().toEpochMilli()
+    }
+    // Create state and update when selection changes
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = initialMillis
+    )
 
+    // Trigger to open picker
     Surface(
-        onClick = {
-            val cal = Calendar.getInstance().apply { time = selectedDate }
-            DatePickerDialog(
-                context,
-                { _, year, month, day ->
-                    val newDate = Calendar.getInstance().apply {
-                        set(year, month, day)
-                    }.time
-                    onDateSelected(newDate)
-                },
-                cal.get(Calendar.YEAR),
-                cal.get(Calendar.MONTH),
-                cal.get(Calendar.DAY_OF_MONTH)
-            ).show()
-        },
+        onClick = { showPicker = true },
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -289,7 +283,8 @@ fun ModernDateSelector(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    SimpleDateFormat("EEEE, MMM dd, yyyy", Locale.getDefault()).format(selectedDate),
+                    SimpleDateFormat("EEEE, MMM dd, yyyy", Locale.getDefault())
+                        .format(selectedDate),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium
                 )
@@ -301,7 +296,34 @@ fun ModernDateSelector(
             )
         }
     }
+
+    if (showPicker) {
+        DatePickerDialog(
+            onDismissRequest = { showPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPicker = false
+                    // Get the single selected date
+                    datePickerState.selectedDateMillis?.let { ms ->
+                        onDateSelected(Date(ms))
+                    }
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 }
+
+
+
 
 // Modern Time Selector
 @Composable
