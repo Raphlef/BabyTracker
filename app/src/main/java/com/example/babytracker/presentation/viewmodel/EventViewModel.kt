@@ -24,8 +24,6 @@ import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.reflect.KClass
 
-enum class RangeType { DAY, WEEK, MONTH, CUSTOM }
-
 @HiltViewModel
 class EventViewModel @Inject constructor(
     private val repository: FirebaseRepository
