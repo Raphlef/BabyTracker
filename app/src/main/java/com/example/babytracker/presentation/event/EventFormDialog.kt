@@ -325,7 +325,8 @@ fun ModernDateSelector(
 
 
 
-// Modern Time Selector
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModernTimeSelector(
     label: String,
@@ -333,27 +334,26 @@ fun ModernTimeSelector(
     onTimeSelected: (Date) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
+    var showDialog by remember { mutableStateOf(false) }
     val cal = remember { Calendar.getInstance() }
 
+    // Initialize calendar with current time value
+    LaunchedEffect(time) {
+        time?.let { cal.time = it }
+    }
+
+    // Remember TimePickerState outside the dialog
+    val timePickerState = rememberTimePickerState(
+        initialHour = cal.get(Calendar.HOUR_OF_DAY),
+        initialMinute = cal.get(Calendar.MINUTE)
+    )
+
     Surface(
-        onClick = {
-            time?.let { cal.time = it }
-            TimePickerDialog(
-                context,
-                { _, hour, minute ->
-                    cal.set(Calendar.HOUR_OF_DAY, hour)
-                    cal.set(Calendar.MINUTE, minute)
-                    onTimeSelected(cal.time)
-                },
-                cal.get(Calendar.HOUR_OF_DAY),
-                cal.get(Calendar.MINUTE),
-                true
-            ).show()
-        },
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         modifier = modifier
+            .fillMaxWidth()
+            .clickable { showDialog = true },
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -373,14 +373,44 @@ fun ModernTimeSelector(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    time?.let { SimpleDateFormat("HH:mm", Locale.getDefault()).format(it) } ?: "Select time",
+                    text = time?.let {
+                        SimpleDateFormat("HH:mm", Locale.getDefault()).format(it)
+                    } ?: "Select time",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
             }
         }
     }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("Select Time") },
+            text = {
+                // Correct usage: only pass the state
+                TimePicker(state = timePickerState)
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    // Read selected time from state
+                    cal.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                    cal.set(Calendar.MINUTE, timePickerState.minute)
+                    onTimeSelected(cal.time)
+                    showDialog = false
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text("CANCEL")
+                }
+            }
+        )
+    }
 }
+
 @Composable
 private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
     // Diaper Type
