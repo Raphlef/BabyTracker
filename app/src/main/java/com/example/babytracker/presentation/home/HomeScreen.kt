@@ -44,7 +44,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -61,8 +63,10 @@ import com.example.babytracker.data.FeedingEvent
 import com.example.babytracker.data.GrowthEvent
 import com.example.babytracker.data.SleepEvent
 import com.example.babytracker.presentation.dashboard.BabyInfoBar
+import com.example.babytracker.presentation.event.EventFormDialog
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import com.example.babytracker.presentation.viewmodel.EventViewModel
+import com.example.babytracker.ui.components.TimelineList
 import java.text.SimpleDateFormat
 import java.time.Duration
 import java.time.Instant
@@ -90,6 +94,8 @@ fun HomeScreen(
 
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
 
+    var editingEvent by remember { mutableStateOf<Event?>(null) }
+    var showDialog by remember { mutableStateOf(false) }
 
     val isLoading by eventViewModel.isLoading.collectAsState()
     val errorMessage by eventViewModel.errorMessage.collectAsState()
@@ -244,7 +250,11 @@ fun HomeScreen(
                         if (babyEvents.isNotEmpty()) {
                             TimelineList(
                                 events = babyEvents.take(20),
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                onEdit = { event ->
+                                    editingEvent = event
+                                    showDialog = true
+                                }
                             )
                         } else {
                             // Empty state
@@ -289,6 +299,18 @@ fun HomeScreen(
                 ) {
                     CircularProgressIndicator()
                 }
+            }
+            // dialog handling:
+            if (showDialog && editingEvent != null) {
+                EventFormDialog(
+                    babyId = selectedBaby?.id ?: return@Box,
+                    onDismiss = {
+                        showDialog = false
+                        editingEvent = null
+                        eventViewModel.resetFormState()
+                        // refresh if needed
+                    }
+                )
             }
         }
     }
@@ -343,114 +365,3 @@ fun EventTypeCard(
     }
 }
 
-@Composable
-fun TimelineEventItem(event: Event) {
-    val type = EventType.forClass(event::class)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        // 1. Timeline indicator: dot and soft gradient line
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.width(24.dp)
-        ) {
-            Canvas(modifier = Modifier.size(12.dp)) {
-                drawCircle(color = type.color)
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Box(
-                modifier = Modifier
-                    .width(2.dp)
-                    .height(56.dp)
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                type.color.copy(alpha = 0.4f),
-                                Color.Transparent
-                            )
-                        )
-                    )
-            )
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // 2. Card with shadow and rounded corners
-        Card(
-            shape = RoundedCornerShape(12.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .padding(16.dp)
-            ) {
-                // Icon badge circle
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(type.color, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = type.icon,
-                        contentDescription = type.displayName,
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                // Text content
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = type.displayName,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    Text(
-                        text = SimpleDateFormat(
-                            "dd MMM yyyy, HH:mm",
-                            Locale.getDefault()
-                        )
-                            .format(event.timestamp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    event.notes?.takeIf(String::isNotBlank)?.let { notes ->
-                        Text(
-                            text = notes,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun TimelineList(
-    events: List<Event>,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        events.forEach { event ->
-            TimelineEventItem(event = event)
-        }
-    }
-}

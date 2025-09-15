@@ -60,6 +60,7 @@ import com.example.babytracker.data.EventType
 import com.example.babytracker.presentation.event.EventFormDialog
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import com.example.babytracker.presentation.viewmodel.EventViewModel
+import com.example.babytracker.ui.components.TimelineList
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -214,67 +215,14 @@ fun CalendarScreen(
                 if (dayEvents.isEmpty()) {
                     Text("No events", style = MaterialTheme.typography.bodyMedium)
                 } else {
-                    LazyColumn {
-                        items(dayEvents) { event ->
-                            val time = event.timestamp.toInstant()
-                                .atZone(ZoneId.systemDefault())
-                                .format(DateTimeFormatter.ofPattern("HH:mm"))
-                            val type = EventType.forClass(event::class)
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp)
-                            ) {
-                                // Colored dot
-                                Box(
-                                    modifier = Modifier
-                                        .size(10.dp)
-                                        .background(type.color, CircleShape)
-                                )
-                                Spacer(Modifier.width(8.dp))
-
-                                // Wrap time/type and edit button together
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "$time • ${type.displayName}",
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                    Spacer(Modifier.width(4.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .size(32.dp)
-                                            .clickable { editingEvent = event }
-                                            .padding(4.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Surface(
-                                            shape = CircleShape,
-                                            color = MaterialTheme.colorScheme.primaryContainer,
-                                            tonalElevation = 1.dp,
-                                            modifier = Modifier.size(20.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Edit,
-                                                contentDescription = "Edit",
-                                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                                modifier = Modifier
-                                                    .size(12.dp)
-                                                    .align(Alignment.Center)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            HorizontalDivider(
-                                Modifier,
-                                DividerDefaults.Thickness,
-                                DividerDefaults.color
-                            )
+                    TimelineList(
+                        events = dayEvents,
+                        modifier = Modifier.fillMaxWidth(),
+                        onEdit = { event ->
+                            editingEvent = event
+                            showDialog = true
                         }
-                    }
+                    )
                 }
             }
             // 3️⃣ Show dialog when editingEvent != null
