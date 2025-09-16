@@ -83,8 +83,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.zIndex
+import com.example.babytracker.presentation.analysis.AnalysisScreen
 import com.example.babytracker.presentation.baby.EditBabyFormDialog
 import com.example.babytracker.presentation.home.HomeScreen
+import com.example.babytracker.presentation.viewmodel.EventViewModel
 import com.example.babytracker.ui.components.BottomNavBar
 import dev.chrisbanes.haze.HazeState
 
@@ -180,7 +182,7 @@ fun DashboardScreen(
                 when (selectedTab) {
                     DashboardTab.Home -> HomeScreen(listState)
                     DashboardTab.Calendar -> CalendarScreen(listState)
-                    DashboardTab.Analysis -> AnalysisScreen()
+                    DashboardTab.Analysis -> AnalysisScreen(listState)
                     DashboardTab.Settings -> SettingsScreen()
                 }
             }
@@ -320,46 +322,6 @@ fun BabyInfoBar(
         }
     }
 }
-
-
-@Composable
-fun AnalysisScreen() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.TopCenter
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                "Analysis (Coming Soon)",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(Modifier.height(12.dp))
-            Text(
-                "Here you’ll see charts and insights\nabout your baby’s growth and routines.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-            Spacer(Modifier.height(24.dp))
-            // Placeholder card
-            Surface(
-                tonalElevation = 4.dp,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text("📊 Chart Placeholder", style = MaterialTheme.typography.bodyLarge)
-                }
-            }
-        }
-    }
-}
-
 
 @Composable
 fun SettingsScreen() {
