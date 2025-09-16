@@ -32,12 +32,14 @@ class FamilyViewModel @Inject constructor(
     private val _state = MutableStateFlow(FamilyState())
     val state: StateFlow<FamilyState> = _state.asStateFlow()
 
+
     init {
         loadFamilies()
     }
 
     fun loadFamilies() {
         viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
             repository.getFamilies()
                 .onSuccess { list -> _families.value = list }
                 .onFailure { err -> _state.update { it.copy(error = err.message) } }
@@ -45,6 +47,7 @@ class FamilyViewModel @Inject constructor(
             repository.streamFamilies().collect { list ->
                 _families.value = list
             }
+            _state.update { it.copy(isLoading = false) }
         }
     }
 
@@ -76,27 +79,39 @@ class FamilyViewModel @Inject constructor(
 
     fun deleteFamily(familyId: String) {
         viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
             repository.deleteFamily(familyId)
+                .onSuccess {
+                    _state.update { it.copy(isLoading = false) }
+                }
                 .onFailure { err ->
-                    _state.update { it.copy(error = err.message) }
+                    _state.update { it.copy(isLoading = false, error = err.message) }
                 }
         }
     }
 
     fun addMember(familyId: String, userId: String) {
         viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
             repository.addMemberToFamily(familyId, userId)
+                .onSuccess {
+                    _state.update { it.copy(isLoading = false) }
+                }
                 .onFailure { err ->
-                    _state.update { it.copy(error = err.message) }
+                    _state.update { it.copy(isLoading = false, error = err.message) }
                 }
         }
     }
 
     fun removeMember(familyId: String, userId: String) {
         viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
             repository.removeMemberFromFamily(familyId, userId)
+                .onSuccess {
+                    _state.update { it.copy(isLoading = false) }
+                }
                 .onFailure { err ->
-                    _state.update { it.copy(error = err.message) }
+                    _state.update { it.copy(isLoading = false, error = err.message) }
                 }
         }
     }
