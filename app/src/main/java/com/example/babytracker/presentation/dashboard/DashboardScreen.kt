@@ -86,6 +86,7 @@ import androidx.compose.ui.zIndex
 import com.example.babytracker.presentation.analysis.AnalysisScreen
 import com.example.babytracker.presentation.baby.EditBabyFormDialog
 import com.example.babytracker.presentation.home.HomeScreen
+import com.example.babytracker.presentation.settings.SettingsScreen
 import com.example.babytracker.presentation.viewmodel.EventViewModel
 import com.example.babytracker.ui.components.BabyInfoBar
 import com.example.babytracker.ui.components.BottomNavBar
@@ -188,7 +189,7 @@ fun DashboardScreen(
                     DashboardTab.Home -> HomeScreen(listState)
                     DashboardTab.Calendar -> CalendarScreen(listState)
                     DashboardTab.Analysis -> AnalysisScreen(listState)
-                    DashboardTab.Settings -> SettingsScreen()
+                    DashboardTab.Settings -> SettingsScreen(navController,listState)
                 }
             }
             // --- Dialogs ---
@@ -245,15 +246,5 @@ fun BabySelectorRow(
                 Icon(Icons.Default.Add, contentDescription = "Add Baby")
             }
         }
-    }
-}
-
-@Composable
-fun SettingsScreen() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        Text(
-            "Settings & Parents (dev in progress…)",
-            style = MaterialTheme.typography.headlineSmall
-        )
     }
 }

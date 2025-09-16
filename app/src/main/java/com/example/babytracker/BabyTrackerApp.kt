@@ -98,11 +98,6 @@ fun BabyTrackerApp() {
                 initialBabyId = babyId
             )
         }
-        composable("settings") {
-            SettingsScreen(
-                navController = navController
-            )
-        }
         composable(
             route = "parents/{babyId}",
             arguments = listOf(navArgument("babyId") {

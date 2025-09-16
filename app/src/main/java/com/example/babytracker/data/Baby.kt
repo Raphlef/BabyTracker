@@ -1,5 +1,6 @@
 package com.example.babytracker.data // Ensure this matches your package structure [1]
 
+import androidx.compose.runtime.MutableState
 import java.util.UUID // For generating unique IDs
 
 // Enum for Gender, if not already defined elsewhere
