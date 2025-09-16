@@ -24,9 +24,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.babytracker.data.Baby
+import com.example.babytracker.data.Family
 import com.example.babytracker.data.Theme
 import com.example.babytracker.presentation.viewmodel.AuthViewModel
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
+import com.example.babytracker.presentation.viewmodel.FamilyViewModel
 import kotlinx.coroutines.flow.map
 
 
@@ -36,37 +38,32 @@ fun SettingsScreen(
     navController: NavController,
     listState: LazyListState,
     authViewModel: AuthViewModel = hiltViewModel(),
-    babyViewModel: BabyViewModel = hiltViewModel()
+    babyViewModel: BabyViewModel = hiltViewModel(),
+    familyViewModel: FamilyViewModel = hiltViewModel()
 ) {
-
-    val errorMessage by babyViewModel.errorMessage.collectAsState()
-    // ViewModel states
     val state by authViewModel.state.collectAsState()
     val profile = state.userProfile
-    val authLoading by authViewModel.state.map { it.isLoading }.collectAsState(false)
-    val babyLoading by babyViewModel.isLoading.collectAsState()
-    val isLoading = remember(authLoading, babyLoading) { authLoading || babyLoading }
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let {
-            snackbarHostState.showSnackbar(it)
-        }
-    }
-    // Load profile & default baby
-    LaunchedEffect(state.isAuthenticated) {
-        if (state.isAuthenticated && profile == null) authViewModel.loadUserProfile()
-    }
-    LaunchedEffect(profile?.defaultBabyId) {
-        babyViewModel.loadDefaultBaby(profile?.defaultBabyId)
-    }
     val babies by babyViewModel.babies.collectAsState()
     val defaultBaby by babyViewModel.defaultBaby.collectAsState()
+    val families by familyViewModel.families.collectAsState()
+    val isAuthLoading by authViewModel.state.map { it.isLoading }.collectAsState(false)
+    val isBabyLoading by babyViewModel.isLoading.collectAsState()
+    val isFamilyLoading by familyViewModel.state.map { it.isLoading }.collectAsState(false)
+    val isLoading = remember(isAuthLoading, isBabyLoading, isFamilyLoading) {
+        isAuthLoading || isBabyLoading || isFamilyLoading
+    }
+
+    // Local editable state
+    var displayName by remember(profile) { mutableStateOf(profile?.displayName.orEmpty()) }
+    var themeChoice by remember(profile) { mutableStateOf(profile?.theme?.name.orEmpty()) }
+    var notificationsEnabled by remember(profile) {
+        mutableStateOf(profile?.notificationsEnabled == true)
+    }
+    var localeChoice by remember(profile) { mutableStateOf(profile?.locale.orEmpty()) }
+    var defaultBabyName by remember(defaultBaby) { mutableStateOf(defaultBaby?.name.orEmpty()) }
 
     Scaffold(
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        containerColor = Color.Transparent,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { SnackbarHost(remember { SnackbarHostState() }) },
         modifier = Modifier.fillMaxSize()
     ) { padding ->
         LazyColumn(
@@ -75,56 +72,53 @@ fun SettingsScreen(
                 .padding(padding)
                 .fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            //—— User Settings Section —————————————————————————————————————————————
+            // — User Profile Section —
             item {
                 SectionTitle("Mon profil")
                 GlassCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ReadOnlyField(label = "Email", value = profile?.email.orEmpty())
-                        EditableField(
-                            label = "Nom affiché",
-                            text = profile?.displayName.orEmpty(),
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        ReadOnlyField("Email", profile?.email.orEmpty())
+
+                        EditableField("Nom affiché", displayName, !isLoading) {
+                            displayName = it
+                        }
+                        DropdownSetting("Thème", Theme.values().map { it.name }, themeChoice, !isLoading) {
+                            themeChoice = it
+                        }
+                        ToggleSetting("Notifications", notificationsEnabled, !isLoading) {
+                            notificationsEnabled = it
+                        }
+                        DropdownSetting("Langue", listOf("fr","en","es","de"), localeChoice, !isLoading) {
+                            localeChoice = it
+                        }
+                        DropdownSetting(
+                            "Bébé par défaut",
+                            babies.map { it.name }.ifEmpty { listOf("Aucun bébé") },
+                            defaultBabyName,
+                            !isLoading && babies.isNotEmpty()
+                        ) {
+                            defaultBabyName = it
+                        }
+
+                        Button(
+                            onClick = {
+                                val updates = mapOf(
+                                    "displayName" to displayName,
+                                    "theme" to themeChoice,
+                                    "notificationsEnabled" to notificationsEnabled,
+                                    "locale" to localeChoice,
+                                    "defaultBabyId" to babies.find { it.name == defaultBabyName }?.id
+                                )
+                                authViewModel.updateUserProfile(updates)
+                            },
                             enabled = !isLoading,
-                            onValueConfirmed = { newName ->
-                                authViewModel.updateUserProfile(mapOf("displayName" to newName))
-                            }
-                        )
-                        DropdownSetting(
-                            label = "Thème",
-                            options = Theme.entries.map { it.name },
-                            selected = profile?.theme?.name.orEmpty(),
-                            enabled = !isLoading
-                        ) { choice ->
-                            authViewModel.updateUserProfile(mapOf("theme" to choice))
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Enregistrer les modifications")
                         }
-                        ToggleSetting(
-                            label = "Notifications",
-                            checked = profile?.notificationsEnabled == true,
-                            enabled = !isLoading
-                        ) { enabled ->
-                            authViewModel.updateUserProfile(mapOf("notificationsEnabled" to enabled))
-                        }
-                        DropdownSetting(
-                            label = "Langue",
-                            options = listOf("fr", "en", "es", "de"),
-                            selected = profile?.locale.orEmpty(),
-                            enabled = !isLoading
-                        ) { choice ->
-                            authViewModel.updateUserProfile(mapOf("locale" to choice))
-                        }
-                        DropdownSetting(
-                            label = "Bébé par défaut",
-                            options = babies.map { it.name }.ifEmpty { listOf("Aucun bébé") },
-                            selected = defaultBaby?.name.orEmpty(),
-                            enabled = !isLoading
-                        ) { name ->
-                            babies.find { it.name == name }?.let { baby ->
-                                babyViewModel.setDefaultBaby(baby)
-                                authViewModel.updateUserProfile(mapOf("defaultBabyId" to baby.id))
-                            }
-                        }
+                        Spacer(Modifier.height(8.dp))
                         Button(
                             onClick = {
                                 authViewModel.logout()
@@ -136,24 +130,88 @@ fun SettingsScreen(
                         ) {
                             Text("Déconnexion")
                         }
-                        state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     }
                 }
             }
 
-            //—— Family Settings Section ———————————————————————————————————————————
+            // — Baby Settings Section (unchanged) —
+            item {
+                SectionTitle("Mon bébé")
+                ParentsCard(babyViewModel)
+            }
+
+            // — Family Management Section —
             item {
                 SectionTitle("Gestion de la famille")
-                ParentsCard(babyViewModel = babyViewModel)
+                GlassCard {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // List existing families
+                        Text("Vos familles", style = MaterialTheme.typography.titleSmall)
+                        if (families.isEmpty()) {
+                            Text("Aucune famille trouvée", color = Color.Gray)
+                        } else {
+                            families.forEach { family ->
+                                Row(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable { familyViewModel.selectFamily(family) }
+                                        .padding(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(family.name, style = MaterialTheme.typography.bodyLarge)
+                                }
+                            }
+                        }
+
+                        // Create / Edit family
+                        val selectedFamily by familyViewModel.selectedFamily.collectAsState()
+                        var familyName by remember(selectedFamily) { mutableStateOf(selectedFamily?.name.orEmpty()) }
+
+                        OutlinedTextField(
+                            value = familyName,
+                            onValueChange = { familyName = it },
+                            label = { Text("Nom de la famille") },
+                            singleLine = true,
+                            enabled = !isLoading,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Button(
+                            onClick = {
+                                val fam = selectedFamily?.copy(name = familyName)
+                                    ?: Family(name = familyName)
+                                familyViewModel.createOrUpdateFamily(fam)
+                            },
+                            enabled = familyName.isNotBlank() && !isLoading,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(if (selectedFamily == null) "Créer la famille" else "Mettre à jour la famille")
+                        }
+                        selectedFamily?.let {
+                            TextButton(
+                                onClick = { familyViewModel.deleteFamily(it.id) },
+                                enabled = !isLoading
+                            ) {
+                                Text("Supprimer la famille", color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+                }
             }
         }
 
         if (isLoading) {
-            FullScreenLoader()
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.4f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
         }
     }
 }
-
 //————————————————————————————————————————————————————————————————————————————————
 // Reusable Components
 //————————————————————————————————————————————————————————————————————————————————

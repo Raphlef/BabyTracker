@@ -29,8 +29,8 @@ private val Context.dataStore by preferencesDataStore(name = "user_prefs")
 
 class FirebaseRepository @Inject constructor(
 
-    private val auth: FirebaseAuth,
-    private val db: FirebaseFirestore,
+    val auth: FirebaseAuth,
+    val db: FirebaseFirestore,
     private val context: Context
 ) {
     private val TAG = "FirebaseRepository"
