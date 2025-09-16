@@ -84,11 +84,15 @@ import androidx.compose.ui.zIndex
 import com.example.babytracker.presentation.baby.EditBabyFormDialog
 import com.example.babytracker.presentation.home.HomeScreen
 import com.example.babytracker.ui.components.BottomNavBar
+import dev.chrisbanes.haze.HazeState
+
 
 enum class DashboardTab(val label: String, val icon: @Composable () -> Unit) {
     Home("Home", { Icon(Icons.Default.Home, contentDescription = "Home") }),
     Calendar("Calendar", { Icon(Icons.Default.CalendarToday, contentDescription = "Calendar") }),
-    Analysis("Analysis", { Icon(Icons.AutoMirrored.Filled.ShowChart, contentDescription = "Analysis") }),
+    Analysis(
+        "Analysis",
+        { Icon(Icons.AutoMirrored.Filled.ShowChart, contentDescription = "Analysis") }),
     Settings("Settings", { Icon(Icons.Default.Settings, contentDescription = "Settings") }),
 }
 
@@ -99,6 +103,8 @@ fun DashboardScreen(
     viewModel: BabyViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
+    // HazeState for glassmorphic blur
+    val hazeState = remember { HazeState() }
 
     // Load all babies – ensure BabyViewModel manages this
     val babies by viewModel.babies.collectAsState()
@@ -132,7 +138,14 @@ fun DashboardScreen(
             BottomNavBar(
                 selectedTab = selectedTab,
                 onTabSelected = { selectedTab = it },
-                onAddClicked = { showEventForm = true }
+                onAddClicked = { showEventForm = true },
+                navItems = listOf(
+                    DashboardTab.Home,
+                    DashboardTab.Calendar,
+                    DashboardTab.Analysis,
+                    DashboardTab.Settings
+                ),
+                hazeState = hazeState
             )
         }
     ) { paddingValues ->
@@ -160,7 +173,7 @@ fun DashboardScreen(
             // --- MAIN CONTENT for selected tab ---
             Box(Modifier.weight(1f)) {
                 when (selectedTab) {
-                    DashboardTab.Home     -> HomeScreen(listState)
+                    DashboardTab.Home -> HomeScreen(listState)
                     DashboardTab.Calendar -> CalendarScreen(listState)
                     DashboardTab.Analysis -> AnalysisScreen()
                     DashboardTab.Settings -> SettingsScreen()
@@ -346,6 +359,9 @@ fun AnalysisScreen() {
 @Composable
 fun SettingsScreen() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        Text("Settings & Parents (dev in progress…)", style = MaterialTheme.typography.headlineSmall)
+        Text(
+            "Settings & Parents (dev in progress…)",
+            style = MaterialTheme.typography.headlineSmall
+        )
     }
 }
