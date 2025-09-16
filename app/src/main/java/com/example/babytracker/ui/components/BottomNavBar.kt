@@ -157,24 +157,20 @@ fun IslandFAB(
 ) {
     val fabSizeDp = 64.dp
     val iconSizeDp = 48.dp
-    val fabRadiusPx: Float
-    val iconRadiusPx: Float
-
     val density = LocalDensity.current
-    with(density) {
-        fabRadiusPx = fabSizeDp.toPx() / 2f
-        iconRadiusPx = iconSizeDp.toPx() / 2f
-    }
+    val fabRadiusPx = with(density) { fabSizeDp.toPx() / 2f }
+    val iconRadiusPx = with(density) { iconSizeDp.toPx() / 2f }
+    val arcRadiusPx = with(density) { 140.dp.toPx() }
+
     var longPressActive by remember { mutableStateOf(false) }
+    var iconsVisible by remember { mutableStateOf(false) }
     var selectedIconIndex by remember { mutableStateOf<Int?>(null) }
     var pointerPosition by remember { mutableStateOf<Offset?>(null) }
 
-    // Angles for arc positions (in degrees)
     val arcAngles = remember(eventTypes.size) {
-        val startAngle = -150f // 150 degrees to left-top corner
-        val sweep = 120f // cover 120 degrees arc above FAB
+        val startAngle = -150f
+        val sweep = 120f
         if (eventTypes.size == 1) listOf(-90f) else {
-            // Equally space angles in arc from left-top to right-top
             List(eventTypes.size) { i -> startAngle + i * (sweep / (eventTypes.size - 1)) }
         }
     }
@@ -182,22 +178,22 @@ fun IslandFAB(
     Box(
         modifier = modifier
             .size(fabSizeDp)
-            .pointerInput(longPressActive) {
-                if (longPressActive) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            val pos = event.changes.firstOrNull()?.position
-                            pointerPosition = pos
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val pos = event.changes.firstOrNull()?.position
+                        pointerPosition = pos
 
+                        if (longPressActive) {
                             if (event.changes.all { it.changedToUp() }) {
                                 selectedIconIndex?.let { index ->
                                     onEventTypeSelected(eventTypes[index].first.uppercase(Locale.getDefault()))
                                 }
                                 longPressActive = false
+                                iconsVisible = false
                                 selectedIconIndex = null
                                 pointerPosition = null
-                                break
                             }
                         }
                     }
@@ -212,13 +208,14 @@ fun IslandFAB(
                     },
                     onLongPress = {
                         longPressActive = true
+                        iconsVisible = true
                         selectedIconIndex = null
                     }
                 )
             },
         contentAlignment = Alignment.Center
     ) {
-        // Main FAB button stable (does not move)
+        // Fixed main fab
         Surface(
             shape = CircleShape,
             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
@@ -233,45 +230,43 @@ fun IslandFAB(
             )
         }
 
-        // Show arc menu above FAB on long press
-        if (longPressActive) {
-            eventTypes.forEachIndexed { index, (label, icon) ->
-                val arcRadiusPx = with(density) { 140.dp.toPx() }
-                val angleRad = Math.toRadians(arcAngles[index].toDouble())
-                val offsetX = arcRadiusPx * cos(angleRad).toFloat()
-                val offsetY =
-                    arcRadiusPx * sin(angleRad).toFloat()// negative because y-down + pos origin
+        // Arc icons always composed but toggled visible with alpha
+        eventTypes.forEachIndexed { index, (label, icon) ->
+            val angleRad = Math.toRadians(arcAngles[index].toDouble())
+            val offsetX = arcRadiusPx * cos(angleRad).toFloat()
+            val offsetY = arcRadiusPx * sin(angleRad).toFloat()
 
-                val iconCenter =
-                    Offset(fabRadiusPx + offsetX.toFloat(), fabRadiusPx + offsetY.toFloat())
+            val iconCenter = Offset(fabRadiusPx + offsetX, fabRadiusPx + offsetY)
 
-                // Detect pointer hover over this icon
-                val isSelected = pointerPosition?.let { pointer ->
-                    val iconRect = Rect(
-                        offset = iconCenter - Offset(iconRadiusPx, iconRadiusPx),
-                        size = Size(iconRadiusPx * 2, iconRadiusPx * 2)
-                    )
-                    iconRect.contains(pointer)
-                } ?: false
+            val isSelected = pointerPosition?.let { pointer ->
+                val iconRect = Rect(
+                    offset = iconCenter - Offset(iconRadiusPx, iconRadiusPx),
+                    size = Size(iconRadiusPx * 2, iconRadiusPx * 2)
+                )
+                iconRect.contains(pointer)
+            } ?: false
 
-                if (isSelected) selectedIconIndex = index
+            if (isSelected) {
+                selectedIconIndex = index
+            }
 
-                Surface(
-                    shape = CircleShape,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(
-                        alpha = 0.8f
-                    ),
-                    modifier = Modifier
-                        .size(iconSizeDp)
-                        .graphicsLayer {
-                            translationX = offsetX.toFloat()
-                            translationY = offsetY.toFloat()
-                        },
-                    shadowElevation = 8.dp
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        icon()
-                    }
+            Surface(
+                shape = CircleShape,
+                color = if (isSelected)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                modifier = Modifier
+                    .size(iconSizeDp)
+                    .graphicsLayer {
+                        translationX = offsetX
+                        translationY = offsetY
+                        alpha = if (iconsVisible) 1f else 0f
+                    },
+                shadowElevation = 8.dp
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    icon()
                 }
             }
         }
