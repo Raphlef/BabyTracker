@@ -63,17 +63,34 @@ suspend fun FirebaseRepository.addMemberToFamily(
     userIdToAdd: String
 ): Result<Unit> = runCatching {
     val familyRef = db.collection("families").document(familyId)
+    // 1. Add member ID to family
     db.runTransaction { tx ->
-        val snapshot = tx.get(familyRef)
-        val current = snapshot.get("memberIds") as? List<String> ?: emptyList()
+        val snap = tx.get(familyRef)
+        val current = snap.get("memberIds") as? List<String> ?: emptyList()
         if (!current.contains(userIdToAdd)) {
-            tx.update(
-                familyRef,
-                "memberIds", current + userIdToAdd,
-                "updatedAt", System.currentTimeMillis()
-            )
+            tx.update(familyRef, "memberIds", current + userIdToAdd, "updatedAt", System.currentTimeMillis())
         }
     }.await()
+
+    // 2. Fetch babies linked to this family
+    val babiesSnapshot = db.collection("babies")
+        .whereArrayContains("familyIds", familyId)  // assume familyIds field on Baby
+        .get()
+        .await()
+
+    // 3. For each baby, add new parentId
+    babiesSnapshot.documents.forEach { babyDoc ->
+        val babyId = babyDoc.id
+        val parentList = (babyDoc.get("parentIds") as? List<String>).orEmpty()
+        if (!parentList.contains(userIdToAdd)) {
+            db.collection("babies").document(babyId)
+                .update(
+                    "parentIds", parentList + userIdToAdd,
+                    "updatedAt", System.currentTimeMillis()
+                )
+                .await()
+        }
+    }
 }
 
 suspend fun FirebaseRepository.removeMemberFromFamily(
