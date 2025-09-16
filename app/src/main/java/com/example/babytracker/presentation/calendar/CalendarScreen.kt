@@ -117,7 +117,8 @@ fun CalendarScreen(
                         eventsByDay = eventsByDay.mapValues { (_, evts) ->
                             evts.filter { filterTypes.contains(EventType.forClass(it::class)) }
                         },
-                        onDayClick = { selectedDate = it }
+                        onDayClick = { selectedDate = it },
+                        selectedDate = selectedDate
                     )
                 }
                 item {

@@ -42,6 +42,7 @@ fun CalendarGrid(
     year: Int,
     month: Int,
     eventsByDay: Map<LocalDate, List<Event>>,
+    selectedDate: LocalDate,
     onDayClick: (LocalDate) -> Unit
 ) {
     val firstOfMonth = LocalDate.of(year, month, 1)
@@ -68,9 +69,11 @@ fun CalendarGrid(
                 if (idx < startDow || dayNum > daysInMonth) {
                     Spacer(Modifier.size(48.dp))
                 } else {
+                    val date = LocalDate.of(year, month, dayNum)
                     DayCell(
-                        date = LocalDate.of(year, month, dayNum),
+                        date = date,
                         events = eventsByDay[LocalDate.of(year, month, dayNum)].orEmpty(),
+                        isSelected = date == selectedDate,
                         onClick = onDayClick
                     )
                 }
@@ -79,22 +82,34 @@ fun CalendarGrid(
     }
 }
 
+
 @Composable
 fun DayCell(
     date: LocalDate,
     events: List<Event>,
+    isSelected: Boolean,
     onClick: (LocalDate) -> Unit
 ) {
+    val backgroundColor = if (isSelected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+    } else {
+        Color(0xFFF5F5F5)
+    }
+
     Box(
         Modifier
             .size(48.dp)
             .padding(2.dp)
             .clip(MaterialTheme.shapes.medium)
-            .background(Color(0xFFF5F5F5))
+            .background(backgroundColor)
             .clickable { onClick(date) },
         contentAlignment = Alignment.TopCenter
     ) {
-        Text("${date.dayOfMonth}", style = MaterialTheme.typography.bodySmall)
+        Text(
+            "${date.dayOfMonth}",
+            style = MaterialTheme.typography.bodySmall,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
+        )
         Row(
             Modifier
                 .align(Alignment.BottomCenter)
