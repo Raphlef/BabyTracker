@@ -79,6 +79,7 @@ dependencies {
     implementation(libs.joda.time)
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.compose.ui.graphics)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -94,5 +95,6 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.kotlinx.datetime)
 
+    implementation(libs.haze)
 
 }
