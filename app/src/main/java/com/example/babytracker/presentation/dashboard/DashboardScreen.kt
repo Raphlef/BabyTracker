@@ -84,7 +84,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.zIndex
 import com.example.babytracker.presentation.analysis.AnalysisScreen
-import com.example.babytracker.presentation.baby.EditBabyFormDialog
+import com.example.babytracker.presentation.baby.BabyFormDialog
 import com.example.babytracker.presentation.home.HomeScreen
 import com.example.babytracker.presentation.settings.SettingsScreen
 import com.example.babytracker.presentation.viewmodel.EventViewModel
@@ -115,7 +115,7 @@ fun DashboardScreen(
     // Load all babies – ensure BabyViewModel manages this
     val babies by viewModel.babies.collectAsState()
     val selectedBaby by viewModel.selectedBaby.collectAsState()
-    var editingBabyId by remember { mutableStateOf<String?>(null) }
+    var editingBaby by remember { mutableStateOf<Baby?>(null) }
     var showEventForm by remember { mutableStateOf(false) }
 
     // Tabs state
@@ -177,7 +177,7 @@ fun DashboardScreen(
                 enter = fadeIn(), exit = fadeOut()
             ) {
                 selectedBaby?.let {
-                    BabyInfoBar(it) { editingBabyId = it.id }
+                    BabyInfoBar(it) { editingBaby = it }
                 }
             }
 
@@ -199,11 +199,11 @@ fun DashboardScreen(
                     onDismiss = { showEventForm = false }
                 )
             }
-            editingBabyId?.let { babyId ->
-                EditBabyFormDialog(
-                    babyId = babyId,
-                    onBabyUpdated = { editingBabyId = null },
-                    onCancel = { editingBabyId = null }
+            editingBaby?.let { baby ->
+                BabyFormDialog(
+                    babyToEdit = baby,
+                    onBabyUpdated = { editingBaby = null },
+                    onCancel = { editingBaby = null }
                 )
             }
         }
