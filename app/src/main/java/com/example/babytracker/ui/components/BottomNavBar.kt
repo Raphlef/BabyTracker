@@ -146,7 +146,6 @@ fun GlassIslandNavBar(
     }
 }
 
-
 @Composable
 fun IslandFAB(
     onAddClicked: () -> Unit,
@@ -179,11 +178,25 @@ fun IslandFAB(
         modifier = modifier
             .size(fabSizeDp)
             .pointerInput(Unit) {
+                // Combined gesture detector to handle tap and long press in one block
+                detectTapGestures(
+                    onTap = {
+                        if (!longPressActive) {
+                            onAddClicked()
+                        }
+                    },
+                    onLongPress = {
+                        longPressActive = true
+                        iconsVisible = true
+                        selectedIconIndex = null
+                    }
+                )
+            }
+            .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
                         val event = awaitPointerEvent()
-                        val pos = event.changes.firstOrNull()?.position
-                        pointerPosition = pos
+                        pointerPosition = event.changes.firstOrNull()?.position
 
                         if (longPressActive) {
                             if (event.changes.all { it.changedToUp() }) {
@@ -198,24 +211,10 @@ fun IslandFAB(
                         }
                     }
                 }
-            }
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = {
-                        if (!longPressActive) {
-                            onAddClicked()
-                        }
-                    },
-                    onLongPress = {
-                        longPressActive = true
-                        iconsVisible = true
-                        selectedIconIndex = null
-                    }
-                )
             },
         contentAlignment = Alignment.Center
     ) {
-        // Fixed main fab
+        // Main FAB icon
         Surface(
             shape = CircleShape,
             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
@@ -230,7 +229,7 @@ fun IslandFAB(
             )
         }
 
-        // Arc icons always composed but toggled visible with alpha
+        // Always compose sub icons but toggle visibility by alpha
         eventTypes.forEachIndexed { index, (label, icon) ->
             val angleRad = Math.toRadians(arcAngles[index].toDouble())
             val offsetX = arcRadiusPx * cos(angleRad).toFloat()
