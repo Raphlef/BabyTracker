@@ -116,6 +116,7 @@ fun DashboardScreen(
     val babies by viewModel.babies.collectAsState()
     val selectedBaby by viewModel.selectedBaby.collectAsState()
     var editingBaby by remember { mutableStateOf<Baby?>(null) }
+    var showBabyDialog by remember { mutableStateOf(false) }
     var showEventForm by remember { mutableStateOf(false) }
 
     // Tabs state
@@ -139,7 +140,7 @@ fun DashboardScreen(
         }
     }
     // Reset scroll when baby changes or when switching tab
-    LaunchedEffect(selectedTab,selectedBaby?.id) {
+    LaunchedEffect(selectedTab, selectedBaby?.id) {
         listState.scrollToItem(0)
     }
 
@@ -169,7 +170,11 @@ fun DashboardScreen(
                 babies = babies,
                 selectedBaby = selectedBaby,
                 onSelectBaby = { viewModel.selectBaby(it) },
-                onAddBaby = { navController.navigate("add_baby") }
+                onAddBaby = {
+                    // Open create baby dialog
+                    editingBaby = null
+                    showBabyDialog = true
+                }
             )
 
             AnimatedVisibility(
@@ -189,7 +194,7 @@ fun DashboardScreen(
                     DashboardTab.Home -> HomeScreen(listState)
                     DashboardTab.Calendar -> CalendarScreen(listState)
                     DashboardTab.Analysis -> AnalysisScreen(listState)
-                    DashboardTab.Settings -> SettingsScreen(navController,listState)
+                    DashboardTab.Settings -> SettingsScreen(navController, listState)
                 }
             }
             // --- Dialogs ---
@@ -204,6 +209,17 @@ fun DashboardScreen(
                     babyToEdit = baby,
                     onBabyUpdated = { editingBaby = null },
                     onCancel = { editingBaby = null }
+                )
+            }
+            if (showBabyDialog && editingBaby == null) {
+                BabyFormDialog(
+                    babyToEdit = null,
+                    onBabyUpdated = { savedOrDeletedBaby ->
+                        showBabyDialog = false
+                        savedOrDeletedBaby?.let { viewModel.selectBaby(it) }
+                    },
+                    onCancel = { showBabyDialog = false },
+                    viewModel = viewModel
                 )
             }
         }
