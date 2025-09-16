@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -68,6 +69,7 @@ import com.example.babytracker.presentation.sleep.SleepScreen
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.babytracker.data.Baby
 import com.example.babytracker.data.Gender
@@ -134,6 +136,9 @@ fun DashboardScreen(
     }
 
     Scaffold(
+        // Turn off the automatic bottom padding inset
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        containerColor = Color.Transparent, // remove Scaffold’s own background
         bottomBar = {
             BottomNavBar(
                 selectedTab = selectedTab,

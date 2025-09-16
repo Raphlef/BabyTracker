@@ -4,11 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -50,27 +52,28 @@ fun BottomNavBar(
     onTabSelected: (DashboardTab) -> Unit,
     onAddClicked: () -> Unit,
     navItems: List<DashboardTab>,
-    hazeState: HazeState  // pass Haze state from parent
+    hazeState: HazeState
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 24.dp),       // more bottom space
+            .padding(bottom = 24.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
         GlassIslandNavBar(
             selectedTab = selectedTab,
             onTabSelected = onTabSelected,
             navItems = navItems,
-            hazeState = hazeState,          // provide for blur
+            hazeState = hazeState,
             modifier = Modifier
-                .wrapContentWidth()         // only as wide as needed
+                .wrapContentWidth()          // only wrap content
+                .padding(horizontal = 16.dp)  // small margin from screen edges
         )
         IslandFAB(
             onAddClicked = onAddClicked,
             hazeState = hazeState,
             modifier = Modifier
-                .offset(y = (-40).dp)       // stronger floating
+                .offset(y = (-36).dp)         // lift FAB slightly less
         )
     }
 }
@@ -86,28 +89,26 @@ fun GlassIslandNavBar(
 ) {
     Surface(
         modifier = modifier
-            .height(72.dp)
-            .hazeEffect(// real backdrop blur
+            .height(64.dp)                    // reduce height for tighter island
+            .hazeEffect(                      // updated API
                 state = hazeState,
-                style = HazeStyle.Unspecified
-            )
-            .shadow(                       // floating shadow
-                elevation = 16.dp,
-                shape = RoundedCornerShape(36.dp)
-            ),
-        shape = RoundedCornerShape(36.dp),
-        color = Color.White.copy(alpha = 0.12f)
+                style = HazeStyle.Unspecified,  // or HazeStyle.Light / Dark
+            ).shadow(16.dp, RoundedCornerShape(32.dp)),
+        shape = RoundedCornerShape(32.dp),
+        color = Color.White.copy(alpha = 0.10f)
     ) {
         Row(
             modifier = Modifier
-                .padding(horizontal = 12.dp),
+                .padding(start = 12.dp, end = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            navItems.forEach { tab ->
+            navItems.forEachIndexed { index, tab ->
+                if (index == navItems.size / 2) {
+                    Spacer(Modifier.width(48.dp)) // add gap around the FAB
+                }
                 NavigationBarItem(
                     icon = { tab.icon() },
-                    label = { Text(tab.label,
-                        style = MaterialTheme.typography.labelSmall) },
+                    label = { Text(tab.label, style = MaterialTheme.typography.labelSmall) },
                     selected = selectedTab == tab,
                     onClick = { onTabSelected(tab) },
                     alwaysShowLabel = true,
@@ -122,6 +123,7 @@ fun GlassIslandNavBar(
     }
 }
 
+
 @Composable
 fun IslandFAB(
     onAddClicked: () -> Unit,
@@ -131,7 +133,7 @@ fun IslandFAB(
     Surface(
         onClick = onAddClicked,
         modifier = modifier
-            .size(68.dp)
+            .size(64.dp)
             .shadow(elevation = 20.dp, shape = CircleShape)
             // apply hazeChild here:
             .hazeEffect(
