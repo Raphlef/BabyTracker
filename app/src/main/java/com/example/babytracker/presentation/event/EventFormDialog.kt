@@ -375,7 +375,7 @@ fun ModernTimeSelector(
         TimePickerState(
             initialHour = initialHour,
             initialMinute = initialMinute,
-            is24Hour = DateFormat.is24HourFormat(LocalContext.current)
+            is24Hour = is24Hour
         )
     }
 
