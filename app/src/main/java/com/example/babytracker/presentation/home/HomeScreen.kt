@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -74,7 +75,7 @@ import java.time.ZoneId
 import java.util.Locale
 import kotlin.math.ceil
 
-@SuppressLint("DefaultLocale")
+@SuppressLint("DefaultLocale", "UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun HomeScreen(
     listState: LazyListState,
@@ -140,14 +141,18 @@ fun HomeScreen(
                     val count = todayList.size
                     if (count > 0) "$count today" else "No diaper"
                 }
+
                 EventType.FEEDING -> {
                     if (todayList.isEmpty()) "No feeding"
                     else {
-                        val totalMl = todayList.sumOf { (it as FeedingEvent).amountMl ?: 0.0 }.toInt()
-                        val breastCount = todayList.count { (it as FeedingEvent).feedType == FeedType.BREAST_MILK }
+                        val totalMl =
+                            todayList.sumOf { (it as FeedingEvent).amountMl ?: 0.0 }.toInt()
+                        val breastCount =
+                            todayList.count { (it as FeedingEvent).feedType == FeedType.BREAST_MILK }
                         "${totalMl}ml • $breastCount breast"
                     }
                 }
+
                 EventType.SLEEP -> {
                     val totalMin = todayList.sumOf { (it as SleepEvent).durationMinutes ?: 0L }
                     if (totalMin > 0) {
@@ -156,6 +161,7 @@ fun HomeScreen(
                         "Today: ${h}h ${m}m"
                     } else "No sleep"
                 }
+
                 EventType.GROWTH -> {
                     // Use last existing growth event, not limited to today
                     babyEvents
@@ -164,11 +170,13 @@ fun HomeScreen(
                         ?.let { "${it.weightKg ?: "-"}kg • ${it.heightCm ?: "-"}cm" }
                         ?: "No growth"
                 }
+
                 EventType.PUMPING -> {
                     if (todayList.isEmpty()) "No pumping"
                     else {
                         val last = todayList.maxByOrNull { it.timestamp }!!
-                        val mins = Duration.between(last.timestamp.toInstant(), Instant.now()).toMinutes()
+                        val mins =
+                            Duration.between(last.timestamp.toInstant(), Instant.now()).toMinutes()
                         val h = mins / 60
                         val m = mins % 60
                         "${h}h ${m}m ago"
@@ -179,12 +187,13 @@ fun HomeScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Color.Transparent,
+    ) {
         Box(
             Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
         ) {
             if (selectedBaby == null) {
                 // Empty state when no baby selected
@@ -338,7 +347,7 @@ fun EventTypeCard(
             // 1️⃣ Event name at top-left
             Text(
                 text = type.displayName,
-                style =  MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(start = 20.dp, top = 20.dp)

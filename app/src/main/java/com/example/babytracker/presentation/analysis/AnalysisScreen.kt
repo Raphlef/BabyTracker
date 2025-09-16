@@ -67,7 +67,7 @@ fun AnalysisScreen(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+            .padding(0.dp)
             .background(
                 Brush.verticalGradient(
                     listOf(Color.White.copy(alpha = 0.6f), Color.White.copy(alpha = 0.2f))
