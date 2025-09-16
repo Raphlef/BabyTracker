@@ -136,7 +136,6 @@ class BabyViewModel @Inject constructor(
         bloodType: BloodType = BloodType.UNKNOWN,
         allergies: List<String> = emptyList(),
         medicalConditions: List<String> = emptyList(),
-        pediatricianName: String? = null,
         pediatricianContact: String? = null,
         notes: String? = null
     ) {
