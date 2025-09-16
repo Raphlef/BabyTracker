@@ -1,11 +1,13 @@
 package com.example.babytracker.data
 
 import android.content.Context
+import android.provider.Settings.Global.getString
 import android.util.Log // For logging
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -291,27 +293,20 @@ class FirebaseRepository @Inject constructor(
     // --- Event Methods ---
 
     suspend fun updateEvent(eventId: String, event: Event): Result<Unit> = runCatching {
-        val eventData = when (event) {
-            is DiaperEvent   -> event.asMap().plus(commonMap(event))
-            is FeedingEvent  -> event.asMap().plus(commonMap(event))
-            is SleepEvent    -> event.asMap().plus(commonMap(event))
-            is GrowthEvent   -> event.asMap().plus(commonMap(event))
-            is PumpingEvent  -> event.asMap().plus(commonMap(event))
-            else             -> throw IllegalArgumentException("Unknown event type")
+        val userId = auth.currentUser?.uid
+            ?: throw IllegalStateException("User not authenticated")
+
+        // Leverage Event.toMap() for *all* fields
+        val data = event.toMap().toMutableMap().apply {
+            put("userId", userId)
         }
+
         db.collection(EVENTS_COLLECTION)
             .document(eventId)
-            .set(eventData, SetOptions.merge())
+            .set(data, SetOptions.merge())
             .await()
     }
 
-    // Helper to extract fields common to all events
-    private fun commonMap(event: Event): Map<String, Any?> = mapOf(
-        "id"        to event.id,
-        "babyId"    to event.babyId,
-        "timestamp" to com.google.firebase.Timestamp(event.timestamp),
-        "notes"     to event.notes
-    )
     /**
      * Adds any type of event to Firestore.
      * It's crucial that your Event subclasses are properly serializable by Firestore.
@@ -337,35 +332,13 @@ class FirebaseRepository @Inject constructor(
     fun streamEventsForBaby(babyId: String): Flow<List<Event>> {
         val userId = auth.currentUser?.uid
             ?: throw IllegalStateException("User not authenticated")
+
         return db.collection(EVENTS_COLLECTION)
             .whereEqualTo("babyId", babyId)
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .snapshots()
-            .map { snap ->
-                snap.documents.mapNotNull { doc ->
-                    val firestoreTs = doc.getTimestamp("timestamp")?.toDate() ?: Date()
-                    when (doc.getString("eventTypeString")) {
-                        "FEEDING" -> doc.toObject(FeedingEvent::class.java)
-                            ?.copy(timestamp = firestoreTs)
-
-                        "DIAPER" -> doc.toObject(DiaperEvent::class.java)
-                            ?.copy(timestamp = firestoreTs)
-
-                        "SLEEP" -> doc.toObject(SleepEvent::class.java)
-                            ?.copy(
-                                timestamp = firestoreTs,
-                                endTime = doc.getTimestamp("endTime")?.toDate()
-                            )
-
-                        "GROWTH" -> doc.toObject(GrowthEvent::class.java)
-                            ?.copy(timestamp = firestoreTs)
-
-                        "PUMPING" -> doc.toObject(PumpingEvent::class.java)
-                            ?.copy(timestamp = firestoreTs)
-
-                        else -> null
-                    }
-                }
+            .map { snapshot ->
+                snapshot.documents.mapNotNull { it.toEvent() }
             }
     }
 
@@ -374,89 +347,30 @@ class FirebaseRepository @Inject constructor(
      * This method will require careful handling on the client-side to cast
      * the generic Map<String, Any> back to specific Event types.
      */
-    suspend fun getAllEventsForBaby(babyId: String, limit: Long = 50): Result<List<Event>> {
-        return try {
-            val userId =
-                auth.currentUser?.uid ?: return Result.failure(Exception("User not authenticated"))
-            var query = db.collection(EVENTS_COLLECTION)
-                .whereEqualTo("babyId", babyId)
-                .orderBy("timestamp", Query.Direction.DESCENDING)
+    suspend fun getAllEventsForBaby(
+        babyId: String,
+        limit: Long = 50
+    ): Result<List<Event>> = try {
+        val userId = auth.currentUser
+            ?.uid
+            ?: return Result.failure(Exception("User not authenticated"))
 
-            // Apply limit only if non-null and positive
-            if (limit != null && limit > 0) {
-                query = query.limit(limit)
-            }
+        var query = db.collection(EVENTS_COLLECTION)
+            .whereEqualTo("babyId", babyId)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
 
-            val docs = query.get().await()
+        if (limit > 0) query = query.limit(limit)
 
-            val events = docs.mapNotNull { doc ->
-                val data = doc.data
-                val ts = (data["timestamp"] as? com.google.firebase.Timestamp)?.toDate() ?: Date()
-                val notes = data["notes"] as? String
-                when (doc.getString("eventTypeString")) {
-                    "FEEDING" -> doc.toObject<FeedingEvent>()?.copy(timestamp = ts, notes = notes)
-                    "DIAPER"  -> doc.toObject<DiaperEvent>().copy(timestamp = ts, notes = notes)
-                    "SLEEP"   -> doc.toObject<SleepEvent>()?.copy(
-                        timestamp = ts,
-                        notes = notes,
-                        endTime = (data["endTime"] as? com.google.firebase.Timestamp)?.toDate()
-                    )
-                    "GROWTH"  -> doc.toObject<GrowthEvent>()?.copy(timestamp = ts, notes = notes)
-                    "PUMPING" -> doc.toObject<PumpingEvent>()?.copy(timestamp = ts, notes = notes)
-                    else      -> null.also { Log.w(TAG, "Unknown event type: ${doc.id}") }
-                }
-            }
-            Result.success(events)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching all events for baby: $babyId", e)
-            Result.failure(e)
-        }
+        val snapshots = query.get().await().documents
+
+        val events = snapshots.mapNotNull { it.toEvent() }
+
+        Result.success(events)
+    } catch (e: Exception) {
+        Log.e(TAG, "Error fetching events for baby $babyId", e)
+        Result.failure(e)
     }
 
-    // --- Helper to convert data class to Map for Firestore ---
-    // You might need to make these more robust or use a library for complex objects
-    private fun FeedingEvent.asMap(): Map<String, Any?> {
-        return mapOf(
-            // "id" and "babyId" and "timestamp" and "notes" handled in addEvent
-            "feedType" to feedType.name,
-            "amountMl" to amountMl,
-            "durationMinutes" to durationMinutes,
-            "breastSide" to breastSide?.name
-        )
-    }
-
-    private fun DiaperEvent.asMap(): Map<String, Any?> {
-        return mapOf(
-            "diaperType"    to diaperType.name,
-            "poopColor"     to poopColor?.name,
-            "poopConsistency" to poopConsistency?.name,
-            "notes"         to notes,
-            "timestamp"     to com.google.firebase.Timestamp(timestamp)
-        )
-    }
-
-    private fun SleepEvent.asMap(): Map<String, Any?> {
-        return mapOf(
-            "endTime" to endTime?.let { com.google.firebase.Timestamp(it) }, // Convert to Firebase Timestamp
-            "durationMinutes" to durationMinutes
-        )
-    }
-
-    private fun GrowthEvent.asMap(): Map<String, Any?> {
-        return mapOf(
-            "weightKg" to weightKg,
-            "heightCm" to heightCm,
-            "headCircumferenceCm" to headCircumferenceCm
-        )
-    }
-
-    private fun PumpingEvent.asMap(): Map<String, Any?> {
-        return mapOf(
-            "amountMl" to amountMl,
-            "durationMinutes" to durationMinutes,
-            "breastSide" to breastSide?.name
-        )
-    }
 
 
     suspend fun getLastGrowthEvent(babyId: String): Result<GrowthEvent?> = runCatching {
@@ -545,34 +459,6 @@ class FirebaseRepository @Inject constructor(
         return getEventsByType(babyId, "GROWTH", GrowthEvent::class.java, limit)
     }
 
-    suspend fun getSleepEvents(babyId: String, limit: Long = 20): Result<List<SleepEvent>> {
-        return try {
-            val userId =
-                auth.currentUser?.uid ?: return Result.failure(Exception("User not authenticated"))
-            val documents = db.collection(EVENTS_COLLECTION)
-                .whereEqualTo("babyId", babyId)
-                .whereEqualTo("eventTypeString", "SLEEP")
-                .orderBy("timestamp", Query.Direction.DESCENDING)
-                .limit(limit)
-                .get()
-                .await()
-
-            val events = documents.mapNotNull { doc ->
-                val event = doc.toObject(SleepEvent::class.java)
-                // Manually convert endTime if it's a Timestamp
-                val endTimeTimestamp = doc.getTimestamp("endTime")
-                event.copy(
-                    timestamp = doc.getTimestamp("timestamp")?.toDate() ?: Date(),
-                    endTime = endTimeTimestamp?.toDate()
-                )
-            }
-            Result.success(events)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching sleep events for baby: $babyId", e)
-            Result.failure(e)
-        }
-    }
-    // Add similar get...Events for GrowthEvent, PumpingEvent if needed
 
     private suspend fun <T : Event> getEventsByType(
         babyId: String,
