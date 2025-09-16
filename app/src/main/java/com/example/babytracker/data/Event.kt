@@ -1,10 +1,12 @@
 package com.example.babytracker.data
 
+import android.util.Log
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.IgnoreExtraProperties
 import java.util.Date
 import java.util.UUID
@@ -69,6 +71,24 @@ sealed class Event {
     }
 }
 
+fun DocumentSnapshot.toEvent(): Event? {
+    val typeName = getString("eventTypeString") ?: return null
+    val et = try {
+        EventType.valueOf(typeName)
+    } catch (e: IllegalArgumentException) {
+        Log.w("Error raph", "Unknown eventTypeString: $typeName"); return null
+    }
+
+    // Use Firestore’s data‐class mapping
+    val cls = et.eventClass.java
+    val event = toObject(cls) as? Event ?: return null
+
+    // Ensure timestamp (and any Date fields) are correctly rehydrated
+    // Firestore already maps Timestamp → Date for any Date-typed property,
+    // including beginTime/endTime because they were written via toMap() as Timestamp.
+
+    return event
+}
 @IgnoreExtraProperties
 data class DiaperEvent(
     override val id: String = UUID.randomUUID().toString(),
