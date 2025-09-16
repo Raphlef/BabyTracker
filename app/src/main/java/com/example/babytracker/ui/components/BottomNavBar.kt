@@ -57,7 +57,8 @@ fun BottomNavBar(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 24.dp),
+            .padding(bottom = 24.dp)
+            .background(Color.Transparent),
         contentAlignment = Alignment.BottomCenter
     ) {
         GlassIslandNavBar(
@@ -90,10 +91,12 @@ fun GlassIslandNavBar(
     Surface(
         modifier = modifier
             .height(64.dp)                    // reduce height for tighter island
-            .hazeEffect(                      // updated API
+            .hazeEffect(
+                // updated API
                 state = hazeState,
                 style = HazeStyle.Unspecified,  // or HazeStyle.Light / Dark
-            ).shadow(16.dp, RoundedCornerShape(32.dp)),
+            )
+            .shadow(16.dp, RoundedCornerShape(32.dp)),
         shape = RoundedCornerShape(32.dp),
         color = Color.White.copy(alpha = 0.10f)
     ) {
@@ -142,10 +145,12 @@ fun IslandFAB(
             ),
         shape = CircleShape,
         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
-    ){
-        Icon(Icons.Default.Add,
+    ) {
+        Icon(
+            Icons.Default.Add,
             contentDescription = null,
             modifier = Modifier.size(32.dp),
-            tint = MaterialTheme.colorScheme.onPrimary)
+            tint = MaterialTheme.colorScheme.onPrimary
+        )
     }
 }
