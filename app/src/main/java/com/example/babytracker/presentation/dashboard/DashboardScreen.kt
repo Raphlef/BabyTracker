@@ -1,5 +1,6 @@
 package com.example.babytracker.presentation.dashboard
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -44,6 +45,8 @@ import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.babytracker.data.Baby
+import com.example.babytracker.data.EventFormState
+import com.example.babytracker.data.EventType
 import com.example.babytracker.presentation.calendar.CalendarScreen
 import com.example.babytracker.presentation.event.EventFormDialog
 import com.example.babytracker.presentation.viewmodel.AuthViewModel
@@ -54,6 +57,7 @@ import com.example.babytracker.presentation.settings.SettingsScreen
 import com.example.babytracker.ui.components.BabyInfoBar
 import com.example.babytracker.ui.components.BottomNavBar
 import dev.chrisbanes.haze.HazeState
+import java.util.Locale
 
 
 enum class DashboardTab(val label: String, val icon: @Composable () -> Unit) {
@@ -81,6 +85,7 @@ fun DashboardScreen(
     var editingBaby by remember { mutableStateOf<Baby?>(null) }
     var showBabyDialog by remember { mutableStateOf(false) }
     var showEventForm by remember { mutableStateOf(false) }
+    var selectedEventFormState by remember { mutableStateOf<EventFormState?>(null) }
 
     // Tabs state
     var selectedTab by remember { mutableStateOf(DashboardTab.Home) }
@@ -112,6 +117,7 @@ fun DashboardScreen(
         //contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = Color.Transparent, // remove Scaffold’s own background
         bottomBar = {
+            val eventTypes = EventType.values().toList()
             BottomNavBar(
                 selectedTab = selectedTab,
                 onTabSelected = { selectedTab = it },
@@ -122,7 +128,27 @@ fun DashboardScreen(
                     DashboardTab.Analysis,
                     DashboardTab.Settings
                 ),
-                hazeState = hazeState
+                hazeState = hazeState,
+                eventTypes = eventTypes.map { et -> et.displayName to @Composable { Icon(et.icon, et.displayName) } },
+                onEventTypeSelected = { eventTypeName ->
+                    val eventType = try {
+                        EventType.valueOf(eventTypeName.uppercase(Locale.getDefault()))
+                    } catch (e: IllegalArgumentException) {
+                        Log.w("EventForm", "Unknown eventTypeString: $eventTypeName")
+                        null
+                    }
+
+                    eventType?.let {
+                        selectedEventFormState = when (it) {
+                            EventType.DIAPER -> EventFormState.Diaper()
+                            EventType.FEEDING -> EventFormState.Feeding()
+                            EventType.SLEEP -> EventFormState.Sleep()
+                            EventType.GROWTH -> EventFormState.Growth()
+                            EventType.PUMPING -> EventFormState.Pumping()
+                        }
+                        showEventForm = true
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -161,10 +187,16 @@ fun DashboardScreen(
                 }
             }
             // --- Dialogs ---
+            // Dialog display condition
             selectedBaby?.takeIf { showEventForm }?.let { baby ->
+                val formState = selectedEventFormState ?: EventFormState.Diaper() // fallback default
                 EventFormDialog(
                     babyId = baby.id,
-                    onDismiss = { showEventForm = false }
+                    initialEventType = formState.eventType,
+                    onDismiss = {
+                        showEventForm = false
+                        selectedEventFormState = null
+                    }
                 )
             }
             editingBaby?.let { baby ->

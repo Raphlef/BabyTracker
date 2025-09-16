@@ -1,7 +1,10 @@
 package com.example.babytracker.ui.components
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,10 +28,17 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -40,10 +50,16 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.example.babytracker.presentation.dashboard.DashboardTab
 import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.hazeEffect
+import java.util.Locale
+import kotlin.math.cos
+import kotlin.math.sin
 
 
 @Composable
@@ -52,7 +68,9 @@ fun BottomNavBar(
     onTabSelected: (DashboardTab) -> Unit,
     onAddClicked: () -> Unit,
     navItems: List<DashboardTab>,
-    hazeState: HazeState
+    hazeState: HazeState,
+    eventTypes: List<Pair<String, @Composable () -> Unit>>,
+    onEventTypeSelected: (String) -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -73,6 +91,8 @@ fun BottomNavBar(
         IslandFAB(
             onAddClicked = onAddClicked,
             hazeState = hazeState,
+            eventTypes= eventTypes,
+            onEventTypeSelected= onEventTypeSelected,
             modifier = Modifier
                 .offset(y = (-36).dp)         // lift FAB slightly less
         )
@@ -131,26 +151,125 @@ fun GlassIslandNavBar(
 fun IslandFAB(
     onAddClicked: () -> Unit,
     hazeState: HazeState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    eventTypes: List<Pair<String, @Composable () -> Unit>>,
+    onEventTypeSelected: (String) -> Unit
 ) {
-    Surface(
-        onClick = onAddClicked,
+    val fabSizeDp = 64.dp
+    val iconSizeDp = 48.dp
+    val fabRadiusPx: Float
+    val iconRadiusPx: Float
+
+    val density = LocalDensity.current
+    with(density) {
+        fabRadiusPx = fabSizeDp.toPx() / 2f
+        iconRadiusPx = iconSizeDp.toPx() / 2f
+    }
+    var longPressActive by remember { mutableStateOf(false) }
+    var selectedIconIndex by remember { mutableStateOf<Int?>(null) }
+    var pointerPosition by remember { mutableStateOf<Offset?>(null) }
+
+    // Angles for arc positions (in degrees)
+    val arcAngles = remember(eventTypes.size) {
+        val startAngle = -150f // 150 degrees to left-top corner
+        val sweep = 120f // cover 120 degrees arc above FAB
+        if (eventTypes.size == 1) listOf(-90f) else {
+            // Equally space angles in arc from left-top to right-top
+            List(eventTypes.size) { i -> startAngle + i * (sweep / (eventTypes.size - 1)) }
+        }
+    }
+
+    Box(
         modifier = modifier
-            .size(64.dp)
-            .shadow(elevation = 20.dp, shape = CircleShape)
-            // apply hazeChild here:
-            .hazeEffect(
-                state = hazeState,
-                style = HazeStyle.Unspecified
-            ),
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+            .size(fabSizeDp)
+            .pointerInput(longPressActive) {
+                if (longPressActive) {
+                    awaitPointerEventScope {
+                        while(true) {
+                            val event = awaitPointerEvent()
+                            val pos = event.changes.firstOrNull()?.position
+                            pointerPosition = pos
+
+                            if (event.changes.all { it.changedToUp() }) {
+                                selectedIconIndex?.let { index ->
+                                    onEventTypeSelected(eventTypes[index].first.uppercase(Locale.getDefault()))
+                                }
+                                longPressActive = false
+                                selectedIconIndex = null
+                                pointerPosition = null
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        if (!longPressActive) {
+                            onAddClicked()
+                        }
+                    },
+                    onLongPress = {
+                        longPressActive = true
+                        selectedIconIndex = null
+                    }
+                )
+            },
+        contentAlignment = Alignment.Center
     ) {
-        Icon(
-            Icons.Default.Add,
-            contentDescription = null,
-            modifier = Modifier.size(32.dp),
-            tint = MaterialTheme.colorScheme.onPrimary
-        )
+        // Main FAB button stable (does not move)
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+            shadowElevation = 20.dp,
+            modifier = Modifier.size(fabSizeDp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Add",
+                modifier = Modifier.size(32.dp),
+                tint = MaterialTheme.colorScheme.onPrimary
+            )
+        }
+
+        // Show arc menu above FAB on long press
+        if (longPressActive) {
+            eventTypes.forEachIndexed { index, (label, icon) ->
+                val arcRadiusPx = with(density) { 140.dp.toPx() }
+                val angleRad = Math.toRadians(arcAngles[index].toDouble())
+                val offsetX = arcRadiusPx * cos(angleRad).toFloat()
+                val offsetY = arcRadiusPx * sin(angleRad).toFloat()// negative because y-down + pos origin
+
+                val iconCenter = Offset(fabRadiusPx + offsetX.toFloat(), fabRadiusPx + offsetY.toFloat())
+
+                // Detect pointer hover over this icon
+                val isSelected = pointerPosition?.let { pointer ->
+                    val iconRect = Rect(
+                        offset = iconCenter - Offset(iconRadiusPx, iconRadiusPx),
+                        size = Size(iconRadiusPx * 2, iconRadiusPx * 2)
+                    )
+                    iconRect.contains(pointer)
+                } ?: false
+
+                if (isSelected) selectedIconIndex = index
+
+                Surface(
+                    shape = CircleShape,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                    modifier = Modifier
+                        .size(iconSizeDp)
+                        .graphicsLayer {
+                            translationX = offsetX.toFloat()
+                            translationY = offsetY.toFloat()
+                        },
+                    shadowElevation = 8.dp
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        icon()
+                    }
+                }
+            }
+        }
     }
 }

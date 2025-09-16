@@ -41,6 +41,7 @@ import java.util.*
 fun EventFormDialog(
     babyId: String,
     onDismiss: () -> Unit,
+    initialEventType: EventType? = null,
     viewModel: EventViewModel = hiltViewModel()
 ) {
     val formState by viewModel.formState.collectAsState()
@@ -52,6 +53,20 @@ fun EventFormDialog(
     var selectedDate by remember(formState.eventTimestamp) {
         mutableStateOf(formState.eventTimestamp)
     }
+
+    LaunchedEffect(initialEventType) {
+        initialEventType?.let {
+            val newState = when (it) {
+                EventType.DIAPER -> EventFormState.Diaper()
+                EventType.FEEDING -> EventFormState.Feeding()
+                EventType.SLEEP -> EventFormState.Sleep()
+                EventType.GROWTH -> EventFormState.Growth()
+                EventType.PUMPING -> EventFormState.Pumping()
+            }
+            viewModel.updateForm { newState }
+        }
+    }
+
 
     LaunchedEffect(saveSuccess) {
         if (saveSuccess) {
