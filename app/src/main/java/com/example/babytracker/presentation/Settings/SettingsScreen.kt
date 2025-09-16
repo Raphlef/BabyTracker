@@ -29,6 +29,7 @@ import com.example.babytracker.data.Baby
 import com.example.babytracker.data.Family
 import com.example.babytracker.data.PrivacyLevel
 import com.example.babytracker.data.Theme
+import com.example.babytracker.presentation.baby.BabyFormDialog
 import com.example.babytracker.presentation.dashboard.BabySelectorRow
 import com.example.babytracker.presentation.event.IconSelector
 import com.example.babytracker.presentation.viewmodel.AuthViewModel
@@ -194,6 +195,7 @@ fun SettingsScreen(
         if (isLoading) {
             FullScreenLoader()
         }
+
     }
 }
 //————————————————————————————————————————————————————————————————————————————————
@@ -355,6 +357,7 @@ fun FamilyManagementCard(
             vm.state.collectAsState().value.error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error)
             }
+
         }
     }
 }
@@ -491,6 +494,8 @@ private fun ParentsCard(
     babyViewModel: BabyViewModel,
     navController: NavController,
 ) {
+
+    var showBabyDialog by remember { mutableStateOf(false) }
     val babies by babyViewModel.babies.collectAsState()
     val parents by babyViewModel.parents.collectAsState()
     val isLoading by babyViewModel.isLoading.collectAsState()
@@ -523,7 +528,7 @@ private fun ParentsCard(
                     selectedBaby = baby
                     babyViewModel.loadParents(baby.id)
                 },
-                onAddBaby = { navController.navigate("add_baby") }
+                onAddBaby = {  showBabyDialog = true }
             )
 
             HorizontalDivider(
@@ -623,6 +628,17 @@ private fun ParentsCard(
                     text = it,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall
+                )
+            }
+            if (showBabyDialog) {
+                BabyFormDialog(
+                    babyToEdit = null,
+                    onBabyUpdated = { savedOrDeletedBaby ->
+                        showBabyDialog = false
+                        savedOrDeletedBaby?.let { babyViewModel.selectBaby(it) }
+                    },
+                    onCancel = { showBabyDialog = false },
+                    viewModel = babyViewModel
                 )
             }
         }

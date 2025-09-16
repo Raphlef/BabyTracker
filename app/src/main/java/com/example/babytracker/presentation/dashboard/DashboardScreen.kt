@@ -109,7 +109,7 @@ fun DashboardScreen(
 
     Scaffold(
         // Turn off the automatic bottom padding inset
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        //contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = Color.Transparent, // remove Scaffold’s own background
         bottomBar = {
             BottomNavBar(
