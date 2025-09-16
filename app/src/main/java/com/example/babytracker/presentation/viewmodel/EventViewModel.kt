@@ -89,23 +89,27 @@ class EventViewModel @Inject constructor(
         _startDate.value = Date.from(startDate)
         _endDate.value = Date.from(endDate)
     }
+
     fun setDateRangeForMonth(month: LocalDate) {
         val first = month.withDayOfMonth(1)
-        val last  = month.withDayOfMonth(month.lengthOfMonth())
+        val last = month.withDayOfMonth(month.lengthOfMonth())
         _startDate.value = Date.from(first.atStartOfDay(ZoneId.systemDefault()).toInstant())
-        _endDate.value = Date.from(last.atTime(23,59,59).atZone(ZoneId.systemDefault()).toInstant())
+        _endDate.value =
+            Date.from(last.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant())
     }
+
     fun updateEventTimestamp(date: Date) {
         _formState.update { state ->
             when (state) {
-                is EventFormState.Diaper  -> state.copy(eventTimestamp = date)
-                is EventFormState.Sleep   -> state.copy(eventTimestamp = date)
+                is EventFormState.Diaper -> state.copy(eventTimestamp = date)
+                is EventFormState.Sleep -> state.copy(eventTimestamp = date)
                 is EventFormState.Feeding -> state.copy(eventTimestamp = date)
-                is EventFormState.Growth  -> state.copy(eventTimestamp = date)
+                is EventFormState.Growth -> state.copy(eventTimestamp = date)
                 is EventFormState.Pumping -> state.copy(eventTimestamp = date)
             }
         }
     }
+
     fun streamEventsInRangeForBaby(babyId: String) {
         streamJob?.cancel()
         streamJob = repository.streamEventsForBaby(babyId)
@@ -134,46 +138,60 @@ class EventViewModel @Inject constructor(
         streamJob?.cancel()
         streamJob = null
     }
+
     // Update form
     fun updateForm(update: EventFormState.() -> EventFormState) {
         _formState.update { it.update() }
     }
+
     fun loadEventIntoForm(event: Event) {
         val id = event.id
+        val timestamp = event.timestamp
+
         val state: EventFormState = when (event) {
             is DiaperEvent -> EventFormState.Diaper(
                 eventId = id,
+                eventTimestamp = timestamp,
                 diaperType = event.diaperType,
                 poopColor = event.poopColor,
                 poopConsistency = event.poopConsistency,
                 notes = event.notes.orEmpty()
             )
+
             is SleepEvent -> EventFormState.Sleep(
                 eventId = id,
+                eventTimestamp = timestamp,
                 beginTime = event.beginTime,
                 endTime = event.endTime,
                 durationMinutes = event.durationMinutes,
                 notes = event.notes.orEmpty()
             )
+
             is FeedingEvent -> EventFormState.Feeding(
                 eventId = id,
+                eventTimestamp = timestamp,
                 feedType = event.feedType,
                 amountMl = event.amountMl?.toString().orEmpty(),
                 durationMin = event.durationMinutes?.toString().orEmpty(),
                 breastSide = event.breastSide,
                 notes = event.notes.orEmpty()
             )
+
             is GrowthEvent -> EventFormState.Growth(
                 eventId = id,
+                eventTimestamp = timestamp,
                 weightKg = event.weightKg?.toString().orEmpty(),
                 heightCm = event.heightCm?.toString().orEmpty(),
                 headCircumferenceCm = event.headCircumferenceCm?.toString().orEmpty(),
                 notes = event.notes.orEmpty()
             )
+
             else -> EventFormState.Diaper()
         }
+
         _formState.value = state
     }
+
     // Entry-point to validate & save whichever event type is active
     fun validateAndSave(babyId: String) {
         if (babyId.isBlank()) {
@@ -199,6 +217,7 @@ class EventViewModel @Inject constructor(
                             notes = state.notes.takeIf(String::isNotBlank)
                         )
                     )
+
                     is EventFormState.Sleep -> repository.updateEvent(
                         eventId = state.eventId!!,
                         event = SleepEvent(
@@ -211,6 +230,7 @@ class EventViewModel @Inject constructor(
                             notes = state.notes.takeIf(String::isNotBlank)
                         )
                     )
+
                     is EventFormState.Feeding -> repository.updateEvent(
                         eventId = state.eventId!!,
                         event = FeedingEvent(
@@ -223,6 +243,7 @@ class EventViewModel @Inject constructor(
                             notes = state.notes.takeIf(String::isNotBlank)
                         )
                     )
+
                     is EventFormState.Growth -> repository.updateEvent(
                         eventId = state.eventId!!,
                         event = GrowthEvent(
@@ -234,6 +255,7 @@ class EventViewModel @Inject constructor(
                             notes = state.notes.takeIf(String::isNotBlank)
                         )
                     )
+
                     is EventFormState.Pumping -> {
                         // Fallback to create for now or implement updatePump
                         Result.failure(Exception("Updating pumping events not implemented"))
@@ -462,9 +484,11 @@ class EventViewModel @Inject constructor(
     fun clearErrorMessage() {
         _errorMessage.value = null
     }
+
     fun resetFormState() {
         _formState.value = EventFormState.Diaper()
     }
+
     fun resetSaveSuccess() {
         _saveSuccess.value = false
     }

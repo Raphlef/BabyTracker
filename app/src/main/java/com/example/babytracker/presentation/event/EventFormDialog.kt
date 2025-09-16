@@ -111,7 +111,33 @@ fun EventFormDialog(
 
                 // Event Type Selector (only for new events)
                 val isEditMode = formState.eventId != null
-                if (!isEditMode) {
+                if (isEditMode) {
+                    // Edit mode: show only the selected icon (no list)
+                    Column {
+                        Text(
+                            text = "Event Type",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                        Row {
+                            currentType?.let { type ->
+                                Icon(
+                                    imageVector = type.icon,
+                                    contentDescription = type.displayName,
+                                    tint = type.color,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = type.displayName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }else{
                     IconSelector(
                         title = "Event Type",
                         options = EventType.entries,
@@ -321,10 +347,6 @@ fun ModernDateSelector(
         }
     }
 }
-
-
-
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
