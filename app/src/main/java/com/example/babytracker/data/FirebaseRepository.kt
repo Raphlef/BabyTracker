@@ -321,41 +321,12 @@ class FirebaseRepository @Inject constructor(
         return try {
             val userId =
                 auth.currentUser?.uid ?: return Result.failure(Exception("User not authenticated"))
-            // We assume the event object already has its 'id' (e.g., UUID.randomUUID().toString())
-            // and 'babyId' correctly set before calling this function.
 
-            // To help with querying by event type later, we can add a simple string field.
-            // This is one way; another is to query based on the presence of specific fields.
-            val eventData = mutableMapOf<String, Any?>()
-            when (event) {
-                is FeedingEvent -> eventData.putAll(
-                    event.asMap().plus("eventTypeString" to "FEEDING")
-                )
-
-                is DiaperEvent -> eventData.putAll(
-                    event.asMap().plus("eventTypeString" to "DIAPER")
-                )
-
-                is SleepEvent -> eventData.putAll(event.asMap().plus("eventTypeString" to "SLEEP"))
-                is GrowthEvent -> eventData.putAll(
-                    event.asMap().plus("eventTypeString" to "GROWTH")
-                )
-
-                is PumpingEvent -> eventData.putAll(
-                    event.asMap().plus("eventTypeString" to "PUMPING")
-                )
-                // Add cases for other event types if you have them
+            val data = event.toMap().toMutableMap().apply {
+                put("userId", userId)
             }
 
-            // Ensure common fields are there
-            eventData["id"] = event.id
-            eventData["babyId"] = event.babyId
-            eventData["timestamp"] =
-                com.google.firebase.Timestamp(event.timestamp) // Convert to Firebase Timestamp
-            eventData["notes"] = event.notes
-            eventData["userId"] = userId // Store the ID of the user who logged the event
-
-            db.collection(EVENTS_COLLECTION).document(event.id).set(eventData).await()
+            db.collection(EVENTS_COLLECTION).document(event.id).set(data).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error adding event", e)
