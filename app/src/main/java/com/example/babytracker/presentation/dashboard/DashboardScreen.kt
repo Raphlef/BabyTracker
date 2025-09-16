@@ -87,6 +87,7 @@ import com.example.babytracker.presentation.analysis.AnalysisScreen
 import com.example.babytracker.presentation.baby.EditBabyFormDialog
 import com.example.babytracker.presentation.home.HomeScreen
 import com.example.babytracker.presentation.viewmodel.EventViewModel
+import com.example.babytracker.ui.components.BabyInfoBar
 import com.example.babytracker.ui.components.BottomNavBar
 import dev.chrisbanes.haze.HazeState
 
@@ -238,86 +239,6 @@ fun BabySelectorRow(
                 modifier = Modifier.size(32.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Baby")
-            }
-        }
-    }
-}
-
-@Composable
-fun BabyInfoBar(
-    baby: Baby,
-    onEditClick: () -> Unit = {}
-) {
-    Surface(
-        tonalElevation = 4.dp,
-        shape = MaterialTheme.shapes.medium,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-    ) {
-        Box(modifier = Modifier.padding(20.dp)) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "👶 ${baby.name.ifEmpty { "Unnamed Baby" }}",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    IconButton(
-                        onClick = onEditClick,
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit Baby"
-                        )
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "📅 Born: ",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(
-                            Date(
-                                baby.birthDate
-                            )
-                        ),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                Spacer(Modifier.height(6.dp))
-
-                if (baby.gender != Gender.UNKNOWN) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "⚧ Genre : ",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        val (icon, label) = when (baby.gender) {
-                            Gender.MALE -> "♂" to "Male"
-                            Gender.FEMALE -> "♀" to "Female"
-                            Gender.OTHER -> "⚧" to "Other"
-                            Gender.PREFER_NOT_TO_SAY -> "❔" to "Prefer not to say"
-                            Gender.UNKNOWN -> "—" to "Unknown"
-                        }
-                        Text(
-                            text = "$icon $label",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
             }
         }
     }

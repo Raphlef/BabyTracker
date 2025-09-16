@@ -62,7 +62,6 @@ import com.example.babytracker.data.FeedType
 import com.example.babytracker.data.FeedingEvent
 import com.example.babytracker.data.GrowthEvent
 import com.example.babytracker.data.SleepEvent
-import com.example.babytracker.presentation.dashboard.BabyInfoBar
 import com.example.babytracker.presentation.event.EventFormDialog
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import com.example.babytracker.presentation.viewmodel.EventViewModel
