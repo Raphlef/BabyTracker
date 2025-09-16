@@ -70,7 +70,10 @@ fun CalendarScreen(
     }
 
     /** Effects **/
-    LaunchedEffect(selectedBaby?.id) { refresh() }
+    LaunchedEffect(selectedBaby?.id) {
+        listState.scrollToItem(0)
+        refresh()
+    }
     LaunchedEffect(currentMonth, selectedBaby?.id) { refresh() }
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -86,7 +89,12 @@ fun CalendarScreen(
     }
 
     /** UI **/
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
+    Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        containerColor = Color.Transparent,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        modifier = Modifier.fillMaxSize()
+    ) { padding ->
         Box(Modifier.fillMaxSize()) {
             LazyColumn(
                 modifier = Modifier

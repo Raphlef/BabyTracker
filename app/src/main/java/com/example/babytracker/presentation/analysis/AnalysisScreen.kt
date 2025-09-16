@@ -47,6 +47,9 @@ fun AnalysisScreen(
     eventViewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
+
+    val isLoading by eventViewModel.isLoading.collectAsState()
+    val errorMessage by eventViewModel.errorMessage.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
     val eventsByDay by eventViewModel.eventsByDay.collectAsState()
     val allSleep by remember { derivedStateOf { eventViewModel.getEventsOfType(SleepEvent::class) } }
@@ -54,6 +57,7 @@ fun AnalysisScreen(
     val allFeeding by remember { derivedStateOf { eventViewModel.getEventsOfType(FeedingEvent::class) } }
     val allDiaper by remember { derivedStateOf { eventViewModel.getEventsOfType(DiaperEvent::class) } }
     val growthPoints = allGrowth.sortedBy { it.timestamp }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val today = LocalDate.now()
     val last7Days = (0L..6L).map { today.minusDays(6 - it) }
@@ -67,8 +71,17 @@ fun AnalysisScreen(
         Gender.FEMALE -> Gender.FEMALE
         else -> Gender.MALE
     }
+
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            eventViewModel.clearErrorMessage()
+        }
+    }
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = Color.Transparent,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = Modifier.fillMaxSize()
     ) { padding ->
         LazyColumn(
@@ -206,6 +219,17 @@ fun AnalysisScreen(
                         barValues = mealCounts.map { it.toFloat() },
                         lineValues = mealVolumes
                     )
+                }
+
+                // Loading Overlay
+                if (isLoading) {
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.3f))
+                    ) {
+                        CircularProgressIndicator(Modifier.align(Alignment.Center))
+                    }
                 }
             }
         }
