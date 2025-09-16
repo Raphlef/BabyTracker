@@ -2,6 +2,8 @@ package com.example.babytracker.presentation.analysis
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -41,6 +43,7 @@ import java.util.Locale
 
 @Composable
 fun AnalysisScreen(
+    listState: LazyListState,
     eventViewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
@@ -50,6 +53,7 @@ fun AnalysisScreen(
     val allGrowth by remember { derivedStateOf { eventViewModel.getEventsOfType(GrowthEvent::class) } }
     val allFeeding by remember { derivedStateOf { eventViewModel.getEventsOfType(FeedingEvent::class) } }
     val allDiaper by remember { derivedStateOf { eventViewModel.getEventsOfType(DiaperEvent::class) } }
+    val growthPoints = allGrowth.sortedBy { it.timestamp }
 
     val today = LocalDate.now()
     val last7Days = (0L..6L).map { today.minusDays(6 - it) }
@@ -63,114 +67,147 @@ fun AnalysisScreen(
         Gender.FEMALE -> Gender.FEMALE
         else -> Gender.MALE
     }
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(0.dp)
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color.White.copy(alpha = 0.6f), Color.White.copy(alpha = 0.2f))
-                )
+    Scaffold(
+        containerColor = Color.Transparent,
+        modifier = Modifier.fillMaxSize()
+    ) { padding ->
+        LazyColumn(
+            state = listState,
+            contentPadding = PaddingValues(
+                top = padding.calculateTopPadding(),
+                bottom = 64.dp,        // allow space under island
+                start = 16.dp,
+                end = 16.dp
             ),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        val startDate = last7Days.first().format(DateTimeFormatter.ofPattern("dd/MM"))
-        val endDate = last7Days.last().format(DateTimeFormatter.ofPattern("dd/MM"))
-        Text(
-            "Weekly Analysis \n($startDate - $endDate)",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(Modifier.height(16.dp))
-
-        // 1. Poop count per day
-        val poopCounts = last7Days.map { date ->
-            eventsByDay[date].orEmpty()
-                .count { it is DiaperEvent && it.poopColor != null }
-        }
-        AnalysisCard(title = "Daily Poop Count") {
-            BarChartView(
-                labels = last7DaysLabels,
-                values = poopCounts.map { it.toFloat() }
-            )
-        }
-
-        // 2. Sleep minutes per day
-        val sleepMins = last7Days.map { date ->
-            eventsByDay[date].orEmpty().filterIsInstance<SleepEvent>()
-                .sumOf { it.durationMinutes ?: 0L }.toFloat()
-        }
-        AnalysisCard(title = "Daily Sleep (min)") {
-            LineChartView(
-                labels = last7DaysLabels,
-                values = sleepMins
-            )
-        }
-
-        // 3. Weight growth + WHO curves
-        val growthPoints = allGrowth.sortedBy { it.timestamp }
-            .map {
-                val d = it.timestamp.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-                d.dayOfMonth.toFloat() to (it.weightKg ?: 0.0).toFloat()
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = 0.6f), Color.White.copy(alpha = 0.2f))
+                    )
+                )
+        ) {
+            item {
+                val startDate = last7Days.first().format(DateTimeFormatter.ofPattern("dd/MM"))
+                val endDate = last7Days.last().format(DateTimeFormatter.ofPattern("dd/MM"))
+                Text(
+                    "Weekly Analysis \n($startDate - $endDate)",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
 
-        AnalysisCard(title = "Weight Growth (kg)") {
-            MultiLineChartView(
-                labels = last7DaysLabels,
-                series = listOf(
-                    "Baby" to growthPoints.map { it.second },
-                    "15th pct" to WHOWeightCurve(omsGender, 15).map { it.second },
-                    "50th pct" to WHOWeightCurve(omsGender, 50).map { it.second },
-                    "85th pct" to WHOWeightCurve(omsGender, 85).map { it.second }
-                )
-            )
-        }
+            item {
+                // 1. Poop count per day
 
-        // Similarly for length
-        AnalysisCard(title = "Length Growth (cm)") {
-            MultiLineChartView(
-                labels = last7DaysLabels,
-                series = listOf(
-                    "Baby" to growthPoints.map { (_, weight) ->
-                        // You'll need height data from GrowthEvent.heightCm
-                        allGrowth.find { it.heightCm != null }?.heightCm?.toFloat() ?: 0f
-                    },
-                    "15th pct" to WHOLengthCurve(omsGender, 15).map { it.second },
-                    "50th pct" to WHOLengthCurve(omsGender, 50).map { it.second },
-                    "85th pct" to WHOLengthCurve(omsGender, 85).map { it.second }
-                )
-            )
-        }
+                val poopCounts = last7Days.map { date ->
+                    eventsByDay[date].orEmpty()
+                        .count { it is DiaperEvent && it.poopColor != null }
+                }
+                AnalysisCard(title = "Daily Poop Count") {
+                    BarChartView(
+                        labels = last7DaysLabels,
+                        values = poopCounts.map { it.toFloat() }
+                    )
+                }
+            }
+            item {
+                // 2. Sleep minutes per day
+                val sleepMins = last7Days.map { date ->
+                    eventsByDay[date].orEmpty().filterIsInstance<SleepEvent>()
+                        .sumOf { it.durationMinutes ?: 0L }.toFloat()
+                }
+                AnalysisCard(title = "Daily Sleep (min)") {
+                    LineChartView(
+                        labels = last7DaysLabels,
+                        values = sleepMins
+                    )
+                }
+            }
 
-        // And for head circumference
-        AnalysisCard(title = "Head Circumference (cm)") {
-            MultiLineChartView(
-                labels = growthPoints.map { it.first.toInt().toString() },
-                series = listOf(
-                    "Baby" to allGrowth.sortedBy { it.timestamp }.map {
-                        (it.headCircumferenceCm ?: 0.0).toFloat()
-                    },
-                    "15th pct" to WHOHeadCircumferenceCurve(omsGender, 15).map { it.second },
-                    "50th pct" to WHOHeadCircumferenceCurve(omsGender, 50).map { it.second },
-                    "85th pct" to WHOHeadCircumferenceCurve(omsGender, 85).map { it.second }
-                )
-            )
-        }
-        // 4. Meals & Volume
-        val mealCounts = last7Days.map { date ->
-            eventsByDay[date].orEmpty().count { it is FeedingEvent }
-        }
-        val mealVolumes = last7Days.map { date ->
-            eventsByDay[date].orEmpty().filterIsInstance<FeedingEvent>()
-                .sumOf { it.amountMl ?: 0.0 }.toFloat()
-        }
-        AnalysisCard(title = "Meals & Volume") {
-            ComboChartView(
-                labels = last7DaysLabels,
-                barValues = mealCounts.map { it.toFloat() },
-                lineValues = mealVolumes
-            )
+            item {
+                // 3. Weight growth + WHO curves
+                growthPoints.map {
+                    val d =
+                        it.timestamp.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+                    d.dayOfMonth.toFloat() to (it.weightKg ?: 0.0).toFloat()
+                }
+                val lengthData = allGrowth.sortedBy { it.timestamp }
+                    .map { it.heightCm?.toFloat() ?: 0f }
+                AnalysisCard(title = "Weight Growth (kg)") {
+                    MultiLineChartView(
+                        labels = last7DaysLabels,
+                        series = listOf(
+                            "Baby" to lengthData,
+                            "15th pct" to WHOWeightCurve(omsGender, 15).map { it.second },
+                            "50th pct" to WHOWeightCurve(omsGender, 50).map { it.second },
+                            "85th pct" to WHOWeightCurve(omsGender, 85).map { it.second }
+                        )
+                    )
+                }
+            }
+
+            item {
+                // Similarly for length
+                AnalysisCard(title = "Length Growth (cm)") {
+                    MultiLineChartView(
+                        labels = last7DaysLabels,
+                        series = listOf(
+                            "Baby" to growthPoints.map { (_, weight) ->
+                                // You'll need height data from GrowthEvent.heightCm
+                                allGrowth.find { it.heightCm != null }?.heightCm?.toFloat() ?: 0f
+                            },
+                            "15th pct" to WHOLengthCurve(omsGender, 15).map { it.second },
+                            "50th pct" to WHOLengthCurve(omsGender, 50).map { it.second },
+                            "85th pct" to WHOLengthCurve(omsGender, 85).map { it.second }
+                        )
+                    )
+                }
+            }
+
+            item {
+                // And for head circumference
+                AnalysisCard(title = "Head Circumference (cm)") {
+                    MultiLineChartView(
+                        labels = last7DaysLabels,
+                        series = listOf(
+                            "Baby" to allGrowth.sortedBy { it.timestamp }.map {
+                                (it.headCircumferenceCm ?: 0.0).toFloat()
+                            },
+                            "15th pct" to WHOHeadCircumferenceCurve(
+                                omsGender,
+                                15
+                            ).map { it.second },
+                            "50th pct" to WHOHeadCircumferenceCurve(
+                                omsGender,
+                                50
+                            ).map { it.second },
+                            "85th pct" to WHOHeadCircumferenceCurve(omsGender, 85).map { it.second }
+                        )
+                    )
+                }
+            }
+
+            item {
+
+
+                // 4. Meals & Volume
+                val mealCounts = last7Days.map { date ->
+                    eventsByDay[date].orEmpty().count { it is FeedingEvent }
+                }
+                val mealVolumes = last7Days.map { date ->
+                    eventsByDay[date].orEmpty().filterIsInstance<FeedingEvent>()
+                        .sumOf { it.amountMl ?: 0.0 }.toFloat()
+                }
+                AnalysisCard(title = "Meals & Volume") {
+                    ComboChartView(
+                        labels = last7DaysLabels,
+                        barValues = mealCounts.map { it.toFloat() },
+                        lineValues = mealVolumes
+                    )
+                }
+            }
         }
     }
 }

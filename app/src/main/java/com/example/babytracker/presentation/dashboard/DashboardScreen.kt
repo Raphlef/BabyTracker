@@ -183,7 +183,7 @@ fun DashboardScreen(
                 when (selectedTab) {
                     DashboardTab.Home -> HomeScreen(listState)
                     DashboardTab.Calendar -> CalendarScreen(listState)
-                    DashboardTab.Analysis -> AnalysisScreen()
+                    DashboardTab.Analysis -> AnalysisScreen(listState)
                     DashboardTab.Settings -> SettingsScreen()
                 }
             }
