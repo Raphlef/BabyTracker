@@ -4,7 +4,6 @@ import android.app.DatePickerDialog
 import android.provider.ContactsContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -18,21 +17,24 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.babytracker.data.Baby
 import com.example.babytracker.data.BloodType
 import com.example.babytracker.data.Gender
+import com.example.babytracker.presentation.event.IconSelector
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import com.example.babytracker.presentation.viewmodel.EventViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun EditBabyFormDialog(
-    babyId: String,
+fun BabyFormDialog(
+    babyToEdit: Baby? = null,
     onBabyUpdated: () -> Unit,
     onCancel: () -> Unit,
     viewModel: BabyViewModel = hiltViewModel(),
     eventViewModel: EventViewModel = hiltViewModel(),
 ) {
+    val isEditMode = babyToEdit != null
 
     var nameError by remember { mutableStateOf(false) }
     var weightError by remember { mutableStateOf<String?>(null) }
@@ -57,7 +59,7 @@ fun EditBabyFormDialog(
     }
     // Load current baby
     val babies by viewModel.babies.collectAsState()
-    val baby = remember(babies) { babies.find { it.id == babyId } }
+    val baby = remember(babies) { babyToEdit?.let { b -> babies.find { it.id == b.id } } }
 
     // Local editable state
     var name by remember { mutableStateOf(baby?.name.orEmpty()) }
@@ -119,9 +121,13 @@ fun EditBabyFormDialog(
     }
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text("Modifier un bébé", style = MaterialTheme.typography.headlineSmall) },
+        title = {
+            Text(
+                text = if (isEditMode) "Edit Baby" else "Create Baby",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
         text = {
-            // Constrain height and enable vertical scrolling
             Box(
                 Modifier
                     .heightIn(max = 400.dp)
@@ -134,103 +140,69 @@ fun EditBabyFormDialog(
                             name = it
                             if (nameError) nameError = false
                         },
-                        label = { Text("Nom du bébé*") },
+                        label = { Text("Baby Name*") },
                         isError = nameError,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    if (nameError) {
-                        Text("Le nom est obligatoire", color = MaterialTheme.colorScheme.error)
-                    }
+                    if (nameError) Text("Name is required", color = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.height(12.dp))
 
                     Button(onClick = { datePicker.show() }) {
-                        Text("Date de naissance: $birthDateStr")
+                        Text("Birth Date: $birthDateStr")
                     }
                     Spacer(Modifier.height(12.dp))
 
-                    GenderDropdown(
-                        selectedGender = gender,
-                        onGenderSelected = { gender = it },
-                        modifier = Modifier.fillMaxWidth()
+                    IconSelector(
+                        title = "Gender",
+                        options = Gender.entries,
+                        selected = gender,
+                        onSelect = { gender = it },
+                        getIcon = { it.icon },
+                        getLabel = { it.displayName }
                     )
                     Spacer(Modifier.height(12.dp))
 
-                    // Numeric fields with forced format and immediate validation
-                    @Composable
-                    fun numericField(
-                        label: String,
-                        value: String,
-                        onValueChange: (String) -> Unit,
-                        errorMsg: String?,
-                        setError: (String?) -> Unit
-                    ) {
-                        OutlinedTextField(
-                            value = value,
-                            onValueChange = { new ->
-                                // Allow only digits and at most one dot
-                                val filtered = new.filter { it.isDigit() || it == '.' }
-                                val cleaned = if (filtered.count { it == '.' } > 1) value else filtered
-                                onValueChange(cleaned)
-                                setError(
-                                    if (cleaned.isNotBlank() && cleaned.toDoubleOrNull() == null)
-                                        "Nombre invalide" else null
-                                )
-                            },
-                            label = { Text(label) },
-                            isError = errorMsg != null,
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        errorMsg?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                    }
-
-                    numericField("Poids (kg)", weight, { weight = it }, weightError) { weightError = it }
-
+                    NumericField("Weight (kg)", weight, { weight = it }, weightError) { weightError = it }
+                    Spacer(Modifier.height(8.dp))
+                    NumericField("Length (cm)", lengthCm, { lengthCm = it }, lengthError) { lengthError = it }
+                    Spacer(Modifier.height(8.dp))
+                    NumericField("Head Circumference (cm)", headCirc, { headCirc = it }, headCircError) { headCircError = it }
                     Spacer(Modifier.height(8.dp))
 
-                    numericField("Taille (cm)", lengthCm, { lengthCm = it }, lengthError) { lengthError = it }
-
-                    Spacer(Modifier.height(8.dp))
-
-                    numericField("Circonf. tête (cm)", headCirc, { headCirc = it }, headCircError) { headCircError = it }
-
-                    Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = birthTime,
                         onValueChange = { input ->
-                            // allow only digits and colon, max length 5
-                            val filtered = input.filter { it.isDigit() || it == ':' }
-                                .take(5)
+                            val filtered = input.filter { it.isDigit() || it == ':' }.take(5)
                             birthTime = filtered
                             timeError = when {
                                 filtered.isBlank() -> null
-                                !filtered.matches(Regex("^([01]?\\d|2[0-3]):[0-5]\\d\$")) ->
-                                    "Heure invalide (HH:mm)"
+                                !filtered.matches(Regex("^([01]?\\d|2[0-3]):[0-5]\\d$")) -> "Invalid time (HH:mm)"
                                 else -> null
                             }
                         },
-                        label = { Text("Heure (HH:mm)") },
+                        label = { Text("Birth Time (HH:mm)") },
                         isError = timeError != null,
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
                     timeError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-
                     Spacer(Modifier.height(8.dp))
 
-                    BloodTypeDropdown(
+                    IconSelector(
+                        title = "Blood Type",
+                        options = BloodType.entries.toList(),
                         selected = bloodType,
                         onSelect = { bloodType = it },
-                        modifier = Modifier.fillMaxWidth()
+                        getIcon = { it.icon },
+                        getLabel = { it.name }
                     )
                     Spacer(Modifier.height(8.dp))
 
                     OutlinedTextField(
                         value = allergies,
                         onValueChange = { allergies = it },
-                        label = { Text("Allergies (séparées par ,)") },
+                        label = { Text("Allergies (comma separated)") },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(8.dp))
@@ -238,7 +210,7 @@ fun EditBabyFormDialog(
                     OutlinedTextField(
                         value = conditions,
                         onValueChange = { conditions = it },
-                        label = { Text("Conditions médicales (séparées par ,)") },
+                        label = { Text("Medical Conditions (comma separated)") },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(8.dp))
@@ -246,12 +218,12 @@ fun EditBabyFormDialog(
                     OutlinedTextField(
                         value = pediatricianContact,
                         onValueChange = { },
-                        label = { Text("Contact pédiatre") },
+                        label = { Text("Pediatrician Contact") },
                         readOnly = true,
                         singleLine = true,
                         trailingIcon = {
                             IconButton(onClick = { contactLauncher.launch(null) }) {
-                                Icon(Icons.Default.Person, contentDescription = "Choisir contact")
+                                Icon(Icons.Default.Person, contentDescription = "Pick Contact")
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -269,11 +241,7 @@ fun EditBabyFormDialog(
 
                     repoError?.let {
                         Spacer(Modifier.height(16.dp))
-                        Text(
-                            it,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -286,24 +254,29 @@ fun EditBabyFormDialog(
                         return@TextButton
                     }
                     saveClicked = true
-                    viewModel.updateBaby(
-                        id = babyId,
-                        name = name.trim(),
-                        birthDate = birthDate.timeInMillis,
-                        gender = gender,
-                        birthWeightKg = weight.toDoubleOrNull(),
-                        birthLengthCm = lengthCm.toDoubleOrNull(),
-                        birthHeadCircumferenceCm = headCirc.toDoubleOrNull(),
-                        birthTime = birthTime.ifBlank { null },
-                        bloodType = bloodType,
-                        allergies = allergies.split(",").map { it.trim() }
-                            .filter { it.isNotEmpty() },
-                        medicalConditions = conditions.split(",").map { it.trim() }
-                            .filter { it.isNotEmpty() },
-                        pediatricianContact = pediatricianContact.ifBlank { null },
-                        notes = notes.ifBlank { null }
-                    )
-                    onBabyUpdated()
+                    if (isEditMode) {
+                        viewModel.updateBaby(
+                            id = babyToEdit!!.id,
+                            name = name.trim(),
+                            birthDate = birthDate.timeInMillis,
+                            gender = gender,
+                            birthWeightKg = weight.toDoubleOrNull(),
+                            birthLengthCm = lengthCm.toDoubleOrNull(),
+                            birthHeadCircumferenceCm = headCirc.toDoubleOrNull(),
+                            birthTime = birthTime.ifBlank { null },
+                            bloodType = bloodType,
+                            allergies = allergies.split(",").map { it.trim() }.filter { it.isNotEmpty() },
+                            medicalConditions = conditions.split(",").map { it.trim() }.filter { it.isNotEmpty() },
+                            pediatricianContact = pediatricianContact.ifBlank { null },
+                            notes = notes.ifBlank { null }
+                        )
+                    } else {
+                        viewModel.addBaby(
+                            name = name.trim(),
+                            birthDate = birthDate.timeInMillis,
+                            gender = gender
+                        )
+                    }
                 },
                 enabled = !isLoading
             ) {
@@ -314,33 +287,33 @@ fun EditBabyFormDialog(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Mise à jour…")
+                    Text(if (isEditMode) "Saving..." else "Creating...")
                 } else {
-                    Text("Enregistrer")
+                    Text(if (isEditMode) "Save" else "Create")
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onCancel) {
-                Text("Annuler")
+                Text("Cancel")
             }
         }
     )
 
-    val eventCounts = remember { eventViewModel.getEventCounts() }
-    val totalEvents = eventCounts.values.sum()
-    // Dialogue de confirmation de suppression
-    if (openDeleteDialog.value) {
+    // Delete confirmation dialog only in edit mode
+    if (isEditMode && openDeleteDialog.value) {
+        val eventCounts = remember { eventViewModel.getEventCounts() }
+        val totalEvents = eventCounts.values.sum()
         AlertDialog(
             onDismissRequest = { openDeleteDialog.value = false },
-            title = { Text("Supprimer ${baby?.name.orEmpty()}") },
+            title = { Text("Delete ${baby?.name.orEmpty()}") },
             text = {
                 Column {
-                    Text("Cette action est irréversible.")
+                    Text("This action is irreversible.")
                     if (totalEvents > 0) {
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            "⚠️ $totalEvents événement(s) lié(s) seront également supprimés.",
+                            "⚠️ $totalEvents associated event(s) will also be deleted.",
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -348,19 +321,48 @@ fun EditBabyFormDialog(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    deleteClicked = true
-                    saveClicked = false
+                    viewModel.deleteBaby(babyToEdit!!.id)
                     openDeleteDialog.value = false
-                    viewModel.deleteBaby(babyId)
                 }) {
-                    Text("Supprimer", color = MaterialTheme.colorScheme.error)
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { openDeleteDialog.value = false }) {
-                    Text("Annuler")
+                    Text("Cancel")
                 }
             }
         )
     }
+}
+
+
+
+@Composable
+fun NumericField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    errorMsg: String?,
+    setError: (String?) -> Unit
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = { new ->
+            // Allow only digits and at most one dot
+            val filtered = new.filter { it.isDigit() || it == '.' }
+            val cleaned = if (filtered.count { it == '.' } > 1) value else filtered
+            onValueChange(cleaned)
+            setError(
+                if (cleaned.isNotBlank() && cleaned.toDoubleOrNull() == null)
+                    "Nombre invalide" else null
+            )
+        },
+        label = { Text(label) },
+        isError = errorMsg != null,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = Modifier.fillMaxWidth()
+    )
+    errorMsg?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 }
