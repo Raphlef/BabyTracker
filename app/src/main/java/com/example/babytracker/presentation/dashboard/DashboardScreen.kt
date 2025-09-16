@@ -129,7 +129,14 @@ fun DashboardScreen(
                     DashboardTab.Settings
                 ),
                 hazeState = hazeState,
-                eventTypes = eventTypes.map { et -> et.displayName to @Composable { Icon(et.icon, et.displayName) } },
+                eventTypes = eventTypes.map { et ->
+                    et.displayName to @Composable {
+                        Icon(
+                            et.icon,
+                            et.displayName
+                        )
+                    }
+                },
                 onEventTypeSelected = { eventTypeName ->
                     val eventType = try {
                         EventType.valueOf(eventTypeName.uppercase(Locale.getDefault()))
@@ -189,7 +196,8 @@ fun DashboardScreen(
             // --- Dialogs ---
             // Dialog display condition
             selectedBaby?.takeIf { showEventForm }?.let { baby ->
-                val formState = selectedEventFormState ?: EventFormState.Diaper() // fallback default
+                val formState =
+                    selectedEventFormState ?: EventFormState.Diaper() // fallback default
                 EventFormDialog(
                     babyId = baby.id,
                     initialEventType = formState.eventType,

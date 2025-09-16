@@ -91,8 +91,8 @@ fun BottomNavBar(
         IslandFAB(
             onAddClicked = onAddClicked,
             hazeState = hazeState,
-            eventTypes= eventTypes,
-            onEventTypeSelected= onEventTypeSelected,
+            eventTypes = eventTypes,
+            onEventTypeSelected = onEventTypeSelected,
             modifier = Modifier
                 .offset(y = (-36).dp)         // lift FAB slightly less
         )
@@ -185,7 +185,7 @@ fun IslandFAB(
             .pointerInput(longPressActive) {
                 if (longPressActive) {
                     awaitPointerEventScope {
-                        while(true) {
+                        while (true) {
                             val event = awaitPointerEvent()
                             val pos = event.changes.firstOrNull()?.position
                             pointerPosition = pos
@@ -239,9 +239,11 @@ fun IslandFAB(
                 val arcRadiusPx = with(density) { 140.dp.toPx() }
                 val angleRad = Math.toRadians(arcAngles[index].toDouble())
                 val offsetX = arcRadiusPx * cos(angleRad).toFloat()
-                val offsetY = arcRadiusPx * sin(angleRad).toFloat()// negative because y-down + pos origin
+                val offsetY =
+                    arcRadiusPx * sin(angleRad).toFloat()// negative because y-down + pos origin
 
-                val iconCenter = Offset(fabRadiusPx + offsetX.toFloat(), fabRadiusPx + offsetY.toFloat())
+                val iconCenter =
+                    Offset(fabRadiusPx + offsetX.toFloat(), fabRadiusPx + offsetY.toFloat())
 
                 // Detect pointer hover over this icon
                 val isSelected = pointerPosition?.let { pointer ->
@@ -256,7 +258,9 @@ fun IslandFAB(
 
                 Surface(
                     shape = CircleShape,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(
+                        alpha = 0.8f
+                    ),
                     modifier = Modifier
                         .size(iconSizeDp)
                         .graphicsLayer {
