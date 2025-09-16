@@ -25,67 +25,59 @@ import com.example.babytracker.data.Event
 import com.example.babytracker.data.EventType
 import java.time.ZoneId
 import kotlin.collections.forEach
+
 @Composable
 fun TimelineBar(
     events: List<Event>,
     onEdit: (Event) -> Unit
 ) {
     val config = LocalConfiguration.current
-    // Total horizontal padding inside the bar
     val horizontalPadding = 8.dp
-    // Effective width for 24 hours
     val effectiveWidthDp = config.screenWidthDp.dp - horizontalPadding * 2
-    val hourWidth = effectiveWidthDp / 24f
+    val hourSlotWidth = effectiveWidthDp / 24f
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Hour markers row
+        // 0–24 hour markers
         Row(
             Modifier
                 .padding(horizontal = horizontalPadding)
-                .fillMaxWidth()
+                .width(effectiveWidthDp)
         ) {
-            repeat(24) { hr ->
+            repeat(25) { hr ->
                 Text(
                     text = if (hr % 3 == 0) hr.toString() else "",
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .width(hourWidth)
-                        .padding(vertical = 2.dp)
+                    modifier = Modifier.width(if (hr < 24) hourSlotWidth else 0.dp)
                 )
             }
         }
 
         Box(
             Modifier
-                .fillMaxWidth()
+                .padding(horizontal = horizontalPadding)
+                .width(effectiveWidthDp)
                 .height(80.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFFE0E0E0))
-                .padding(horizontal = horizontalPadding),
+                .background(Color(0xFFE0E0E0)),
             contentAlignment = Alignment.CenterStart
         ) {
             events.forEach { evt ->
-                // Determine start in fractional hours
                 val startInstant = (evt as? com.example.babytracker.data.SleepEvent)
-                    ?.beginTime
-                    ?: evt.timestamp
-                val zoned = startInstant.toInstant().atZone(ZoneId.systemDefault())
-                val startHourF = zoned.hour + zoned.minute / 60f
+                    ?.beginTime ?: evt.timestamp
+                val zonedStart = startInstant.toInstant().atZone(ZoneId.systemDefault())
+                val startHourF = zonedStart.hour + zonedStart.minute / 60f
 
-                // Compute width and offset fractions
                 val (widthFrac, offsetFrac) = if (evt is com.example.babytracker.data.SleepEvent) {
                     val endInstant = evt.endTime ?: evt.beginTime ?: evt.timestamp
                     val zonedEnd = endInstant.toInstant().atZone(ZoneId.systemDefault())
                     val endHourF = zonedEnd.hour + zonedEnd.minute / 60f
-                    val duration = (endHourF - startHourF).coerceAtLeast(0.5f)
-                    Pair(duration / 24f, startHourF / 24f)
+                    val durationF = (endHourF - startHourF).coerceAtLeast(0.5f)
+                    Pair(durationF / 24f, startHourF / 24f)
                 } else {
-                    // discrete event pin: 0.5h width
                     Pair(0.5f / 24f, startHourF / 24f)
                 }
 
-                // Convert to dp
                 val itemWidth = effectiveWidthDp * widthFrac
                 val itemOffset = effectiveWidthDp * offsetFrac
 
@@ -98,7 +90,6 @@ fun TimelineBar(
                         .background(EventType.forClass(evt::class).color.copy(alpha = 0.8f))
                         .clickable { onEdit(evt) }
                 ) {
-                    // Show note if present
                     val note = when (evt) {
                         is com.example.babytracker.data.SleepEvent -> evt.notes
                         is com.example.babytracker.data.FeedingEvent -> evt.notes
