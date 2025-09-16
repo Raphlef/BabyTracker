@@ -9,6 +9,7 @@ import com.google.firebase.firestore.IgnoreExtraProperties
 import java.util.Date
 import java.util.UUID
 import kotlin.reflect.KClass
+import kotlin.reflect.full.memberProperties
 
 /**
  * EventType enum associates a display name and a color for each event kind.
@@ -37,6 +38,35 @@ sealed class Event {
     abstract val babyId: String
     abstract val timestamp: Date
     abstract val notes: String?
+
+    /**
+     * Automatically serialize all properties to a Map using Kotlin reflection.
+     * Uses EventType enum to derive eventTypeString.
+     */
+    fun toMap(): Map<String, Any?> {
+        val result = mutableMapOf<String, Any?>()
+
+        // Reflect over all Kotlin properties in this instance
+        javaClass.kotlin.memberProperties.forEach { prop ->
+            // Get the raw value
+            val value = prop.getter.call(this)
+
+            // Convert Date→Timestamp and Enum→String
+            val converted = when (value) {
+                is Date        -> com.google.firebase.Timestamp(value)
+                is Enum<*>     -> value.name
+                else           -> value
+            }
+
+            result[prop.name] = converted
+        }
+
+        // Automatically add the eventTypeString from EventType enum
+        val type = EventType.forClass(javaClass.kotlin)
+        result["eventTypeString"] = type.name
+
+        return result
+    }
 }
 
 @IgnoreExtraProperties
