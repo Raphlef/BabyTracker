@@ -95,6 +95,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.kotlinx.datetime)
+    implementation(libs.kotlin.reflect)
 
     implementation(libs.haze)
 
