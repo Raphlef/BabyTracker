@@ -25,6 +25,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.babytracker.data.Baby
 import com.example.babytracker.data.Family
+import com.example.babytracker.data.PrivacyLevel
 import com.example.babytracker.data.Theme
 import com.example.babytracker.presentation.viewmodel.AuthViewModel
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
@@ -41,100 +42,133 @@ fun SettingsScreen(
     babyViewModel: BabyViewModel = hiltViewModel(),
     familyViewModel: FamilyViewModel = hiltViewModel()
 ) {
-    val state by authViewModel.state.collectAsState()
-    val profile = state.userProfile
+    // Collect state
+    val authState by authViewModel.state.collectAsState()
+    val profile = authState.userProfile
     val babies by babyViewModel.babies.collectAsState()
     val defaultBaby by babyViewModel.defaultBaby.collectAsState()
     val families by familyViewModel.families.collectAsState()
+
     val isAuthLoading by authViewModel.state.map { it.isLoading }.collectAsState(false)
-    val isBabyLoading by babyViewModel.isLoading.collectAsState()
+    val isBabyLoading by babyViewModel.isLoading.collectAsState(false)
     val isFamilyLoading by familyViewModel.state.map { it.isLoading }.collectAsState(false)
-    val isLoading = remember(isAuthLoading, isBabyLoading, isFamilyLoading) {
-        isAuthLoading || isBabyLoading || isFamilyLoading
-    }
+    val isLoading = isAuthLoading || isBabyLoading || isFamilyLoading
 
-    // Local editable state
-    var displayName by remember(profile) { mutableStateOf(profile?.displayName.orEmpty()) }
-    var themeChoice by remember(profile) { mutableStateOf(profile?.theme?.name.orEmpty()) }
-    var notificationsEnabled by remember(profile) {
-        mutableStateOf(profile?.notificationsEnabled == true)
-    }
-    var localeChoice by remember(profile) { mutableStateOf(profile?.locale.orEmpty()) }
-    var defaultBabyName by remember(defaultBaby) { mutableStateOf(defaultBaby?.name.orEmpty()) }
+    // Local editable values
+    var displayName by remember { mutableStateOf(profile?.displayName.orEmpty()) }
+    var themeChoice by remember { mutableStateOf(profile?.theme?.name.orEmpty()) }
+    var localeChoice by remember { mutableStateOf(profile?.locale.orEmpty()) }
+    var notificationsEnabled by remember { mutableStateOf(profile?.notificationsEnabled == true) }
+    var defaultBabyName by remember { mutableStateOf(defaultBaby?.name.orEmpty()) }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(remember { SnackbarHostState() }) },
-        modifier = Modifier.fillMaxSize()
-    ) { padding ->
+
+    Scaffold { padding ->
         LazyColumn(
             state = listState,
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
         ) {
-            // — User Profile Section —
+            // — Profile Section —
             item {
                 SectionTitle("Mon profil")
                 GlassCard {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         ReadOnlyField("Email", profile?.email.orEmpty())
+                        EditableField("Nom affiché", displayName, !isLoading) { displayName = it }
 
-                        EditableField("Nom affiché", displayName, !isLoading) {
-                            displayName = it
-                        }
-                        DropdownSetting("Thème", Theme.values().map { it.name }, themeChoice, !isLoading) {
-                            themeChoice = it
-                        }
-                        ToggleSetting("Notifications", notificationsEnabled, !isLoading) {
-                            notificationsEnabled = it
-                        }
-                        DropdownSetting("Langue", listOf("fr","en","es","de"), localeChoice, !isLoading) {
-                            localeChoice = it
-                        }
-                        DropdownSetting(
-                            "Bébé par défaut",
-                            babies.map { it.name }.ifEmpty { listOf("Aucun bébé") },
-                            defaultBabyName,
-                            !isLoading && babies.isNotEmpty()
-                        ) {
-                            defaultBabyName = it
-                        }
-
+                        // Save button for profile edits
                         Button(
                             onClick = {
-                                val updates = mapOf(
-                                    "displayName" to displayName,
-                                    "theme" to themeChoice,
-                                    "notificationsEnabled" to notificationsEnabled,
-                                    "locale" to localeChoice,
-                                    "defaultBabyId" to babies.find { it.name == defaultBabyName }?.id
+                                authViewModel.updateUserProfile(
+                                    mapOf("displayName" to displayName)
                                 )
-                                authViewModel.updateUserProfile(updates)
                             },
                             enabled = !isLoading,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Enregistrer les modifications")
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        Button(
-                            onClick = {
-                                authViewModel.logout()
-                                navController.navigate("auth") {
-                                    popUpTo("settings") { inclusive = true }
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Déconnexion")
+                            Text("Enregistrer le nom")
                         }
                     }
                 }
             }
 
-            // — Baby Settings Section (unchanged) —
+            // — Appearance & Language Section —
+            item {
+                SectionTitle("Apparence & Langue")
+                GlassCard {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        DropdownSetting(
+                            label = "Thème de l’application",
+                            options = Theme.entries.map { it.name },
+                            selected = themeChoice,
+                            enabled = !isLoading
+                        ) { themeChoice = it }
+
+                        DropdownSetting(
+                            label = "Langue de l’interface",
+                            options = listOf("fr", "en", "es", "de"),
+                            selected = localeChoice,
+                            enabled = !isLoading
+                        ) { localeChoice = it }
+
+                        Button(
+                            onClick = {
+                                authViewModel.updateUserProfile(
+                                    mapOf(
+                                        "theme" to themeChoice,
+                                        "locale" to localeChoice
+                                    )
+                                )
+                            },
+                            enabled = !isLoading,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Enregistrer les préférences")
+                        }
+                    }
+                }
+            }
+
+            // — Notifications & Default Baby Section —
+            item {
+                SectionTitle("Notifications & Bébé par défaut")
+                GlassCard {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        ToggleSetting(
+                            label = "Notifications activées",
+                            checked = notificationsEnabled,
+                            enabled = !isLoading
+                        ) { notificationsEnabled = it }
+
+                        DropdownSetting(
+                            label = "Bébé par défaut",
+                            options = babies.map { it.name }.ifEmpty { listOf("Aucun bébé") },
+                            selected = defaultBabyName,
+                            enabled = !isLoading && babies.isNotEmpty()
+                        ) { defaultBabyName = it }
+
+                        Button(
+                            onClick = {
+                                authViewModel.updateUserProfile(
+                                    mapOf(
+                                        "notificationsEnabled" to notificationsEnabled,
+                                        "defaultBabyId" to babies.find { it.name == defaultBabyName }?.id
+                                    )
+                                )
+                            },
+                            enabled = !isLoading,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Enregistrer les réglages")
+                        }
+                    }
+                }
+            }
+
+            // — Baby Co-parents Section (unchanged) —
             item {
                 SectionTitle("Mon bébé")
                 ParentsCard(babyViewModel)
@@ -143,72 +177,12 @@ fun SettingsScreen(
             // — Family Management Section —
             item {
                 SectionTitle("Gestion de la famille")
-                GlassCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        // List existing families
-                        Text("Vos familles", style = MaterialTheme.typography.titleSmall)
-                        if (families.isEmpty()) {
-                            Text("Aucune famille trouvée", color = Color.Gray)
-                        } else {
-                            families.forEach { family ->
-                                Row(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .clickable { familyViewModel.selectFamily(family) }
-                                        .padding(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(family.name, style = MaterialTheme.typography.bodyLarge)
-                                }
-                            }
-                        }
-
-                        // Create / Edit family
-                        val selectedFamily by familyViewModel.selectedFamily.collectAsState()
-                        var familyName by remember(selectedFamily) { mutableStateOf(selectedFamily?.name.orEmpty()) }
-
-                        OutlinedTextField(
-                            value = familyName,
-                            onValueChange = { familyName = it },
-                            label = { Text("Nom de la famille") },
-                            singleLine = true,
-                            enabled = !isLoading,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Button(
-                            onClick = {
-                                val fam = selectedFamily?.copy(name = familyName)
-                                    ?: Family(name = familyName)
-                                familyViewModel.createOrUpdateFamily(fam)
-                            },
-                            enabled = familyName.isNotBlank() && !isLoading,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(if (selectedFamily == null) "Créer la famille" else "Mettre à jour la famille")
-                        }
-                        selectedFamily?.let {
-                            TextButton(
-                                onClick = { familyViewModel.deleteFamily(it.id) },
-                                enabled = !isLoading
-                            ) {
-                                Text("Supprimer la famille", color = MaterialTheme.colorScheme.error)
-                            }
-                        }
-                    }
-                }
+                FamilyManagementCard(families, familyViewModel, isLoading)
             }
         }
 
         if (isLoading) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.4f)),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
+            FullScreenLoader()
         }
     }
 }
@@ -216,6 +190,152 @@ fun SettingsScreen(
 // Reusable Components
 //————————————————————————————————————————————————————————————————————————————————
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FamilyManagementCard(
+    families: List<Family>,
+    vm: FamilyViewModel,
+    isLoading: Boolean
+) {
+    // Selected family from ViewModel
+    val selected by vm.selectedFamily.collectAsState()
+    // Local editable state mirroring Family properties
+    var name by remember(selected) { mutableStateOf(selected?.name.orEmpty()) }
+    var description by remember(selected) { mutableStateOf(selected?.description.orEmpty()) }
+    var inviteCode by remember(selected) { mutableStateOf(selected?.inviteCode.orEmpty()) }
+    var allowInvites by remember(selected) { mutableStateOf(selected?.settings?.allowMemberInvites == true) }
+    var requireApproval by remember(selected) { mutableStateOf(selected?.settings?.requireApprovalForNewMembers == true) }
+    var sharedNotifications by remember(selected) { mutableStateOf(selected?.settings?.sharedNotifications == true) }
+    var privacyLevel by remember(selected) { mutableStateOf(selected?.settings?.defaultPrivacy?.name.orEmpty()) }
+    var timezone by remember(selected) { mutableStateOf(selected?.settings?.timezone.orEmpty()) }
+
+    GlassCard {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("Vos familles", style = MaterialTheme.typography.titleSmall)
+            if (families.isEmpty()) {
+                Text("Aucune famille enregistrée", color = Color.Gray)
+            } else {
+                families.forEach { family ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                vm.selectFamily(family)
+                            }
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(family.name, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+
+            Divider()
+
+            // Editable Form
+            Text(
+                if (selected == null) "Créer une nouvelle famille"
+                else "Modifier la famille",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Nom de la famille") },
+                enabled = !isLoading,
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                label = { Text("Description (optionnel)") },
+                enabled = !isLoading,
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = inviteCode,
+                onValueChange = { inviteCode = it },
+                label = { Text("Code d'invitation") },
+                enabled = false, // read-only; generated by backend
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // Settings toggles
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(allowInvites, onCheckedChange = { allowInvites = it }, enabled = !isLoading)
+                Spacer(Modifier.width(8.dp))
+                Text("Tous peuvent inviter")
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(requireApproval, onCheckedChange = { requireApproval = it }, enabled = !isLoading)
+                Spacer(Modifier.width(8.dp))
+                Text("Validation admin nécessaire")
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(sharedNotifications, onCheckedChange = { sharedNotifications = it }, enabled = !isLoading)
+                Spacer(Modifier.width(8.dp))
+                Text("Notifications partagées")
+            }
+
+            // Privacy & Timezone
+            DropdownSetting(
+                label = "Niveau de confidentialité",
+                options = PrivacyLevel.entries.map { it.name },
+                selected = privacyLevel,
+                enabled = !isLoading
+            ) { privacyLevel = it }
+            OutlinedTextField(
+                value = timezone,
+                onValueChange = { timezone = it },
+                label = { Text("Fuseau horaire") },
+                enabled = !isLoading,
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // Save / Delete buttons
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = {
+                        val base = selected?.copy() ?: Family()
+                        val updated = base.copy(
+                            name = name,
+                            description = description.ifBlank { null },
+                            settings = base.settings.copy(
+                                allowMemberInvites = allowInvites,
+                                requireApprovalForNewMembers = requireApproval,
+                                sharedNotifications = sharedNotifications,
+                                defaultPrivacy = PrivacyLevel.valueOf(privacyLevel),
+                                timezone = timezone
+                            )
+                        )
+                        vm.createOrUpdateFamily(updated)
+                    },
+                    enabled = name.isNotBlank() && !isLoading,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(if (selected == null) "Créer" else "Enregistrer")
+                }
+                if (selected != null) {
+                    TextButton(
+                        onClick = { vm.deleteFamily(selected!!.id) },
+                        enabled = !isLoading,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Supprimer", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
+
+            // Display any error
+            vm.state.collectAsState().value.error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error)
+            }
+        }
+    }
+}
 @Composable
 private fun SectionTitle(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium)
