@@ -1,17 +1,27 @@
 package com.example.babytracker.data // Ensure this matches your package structure [1]
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.MutableState
+import androidx.compose.ui.graphics.vector.ImageVector
 import java.util.UUID // For generating unique IDs
 
 // Enum for Gender, if not already defined elsewhere
-enum class Gender {
-    MALE,
-    FEMALE,
-    OTHER,
-    PREFER_NOT_TO_SAY,
-    UNKNOWN
+enum class Gender(val icon: ImageVector, val displayName: String) {
+    MALE(Icons.Filled.Male, "Male"),
+    FEMALE(Icons.Filled.Female, "Female"),
+    OTHER(Icons.Filled.Transgender, "Other"),
+    PREFER_NOT_TO_SAY(Icons.Filled.VisibilityOff, "Prefer Not to Say"),
+    UNKNOWN(Icons.Filled.HelpOutline, "Unknown")
 }
-enum class BloodType { A, B, AB, O, UNKNOWN }
+enum class BloodType(val icon: ImageVector) {
+    A(Icons.Filled.Bloodtype),
+    B(Icons.Filled.Bloodtype),
+    AB(Icons.Filled.Bloodtype),
+    O(Icons.Filled.Bloodtype),
+    UNKNOWN(Icons.AutoMirrored.Filled.HelpOutline)
+}
 
 data class Baby(
     val id: String = UUID.randomUUID().toString(), // Auto-generated unique ID [1]
