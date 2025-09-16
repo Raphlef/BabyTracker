@@ -10,6 +10,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +29,8 @@ import com.example.babytracker.data.Baby
 import com.example.babytracker.data.Family
 import com.example.babytracker.data.PrivacyLevel
 import com.example.babytracker.data.Theme
+import com.example.babytracker.presentation.dashboard.BabySelectorRow
+import com.example.babytracker.presentation.event.IconSelector
 import com.example.babytracker.presentation.viewmodel.AuthViewModel
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import com.example.babytracker.presentation.viewmodel.FamilyViewModel
@@ -60,6 +64,8 @@ fun SettingsScreen(
     var localeChoice by remember { mutableStateOf(profile?.locale.orEmpty()) }
     var notificationsEnabled by remember { mutableStateOf(profile?.notificationsEnabled == true) }
 
+    val themeOptions = Theme.entries.toList()
+    val localeOptions = listOf("fr", "en", "es", "de")
 
     Scaffold { padding ->
         LazyColumn(
@@ -99,19 +105,32 @@ fun SettingsScreen(
                 SectionTitle("Apparence & Langue")
                 GlassCard {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        DropdownSetting(
-                            label = "Thème de l’application",
-                            options = Theme.entries.map { it.name },
-                            selected = themeChoice,
-                            enabled = !isLoading
-                        ) { themeChoice = it }
+                        IconSelector(
+                            title = "Thème de l’application",
+                            options = themeOptions,
+                            selected = themeOptions.find { it.name == themeChoice },
+                            onSelect = { selected -> themeChoice = selected.name },
+                            getIcon = { theme ->
+                                when (theme) {
+                                    Theme.LIGHT -> Icons.Default.LightMode
+                                    Theme.DARK -> Icons.Default.DarkMode
+                                    Theme.SYSTEM -> Icons.Default.Settings  // or any icon you prefer
+                                }
+                            },
+                            getLabel = { it.name }
+                        )
 
-                        DropdownSetting(
-                            label = "Langue de l’interface",
-                            options = listOf("fr", "en", "es", "de"),
-                            selected = localeChoice,
-                            enabled = !isLoading
-                        ) { localeChoice = it }
+                        IconSelector(
+                            title = "Langue de l’interface",
+                            options = localeOptions,
+                            selected = localeOptions.find { it == localeChoice },
+                            onSelect = { selected -> localeChoice = selected },
+                            getIcon = {
+                                // Example: use flags or generic language icons if available
+                                Icons.Default.Language
+                            },
+                            getLabel = { it.uppercase() }
+                        )
 
                         Button(
                             onClick = {
@@ -162,7 +181,7 @@ fun SettingsScreen(
             // — Baby Co-parents Section (unchanged) —
             item {
                 SectionTitle("Mon bébé")
-                ParentsCard(babyViewModel)
+                ParentsCard(babyViewModel,navController)
             }
 
             // — Family Management Section —
@@ -255,17 +274,29 @@ fun FamilyManagementCard(
 
             // Settings toggles
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(allowInvites, onCheckedChange = { allowInvites = it }, enabled = !isLoading)
+                Checkbox(
+                    allowInvites,
+                    onCheckedChange = { allowInvites = it },
+                    enabled = !isLoading
+                )
                 Spacer(Modifier.width(8.dp))
                 Text("Tous peuvent inviter")
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(requireApproval, onCheckedChange = { requireApproval = it }, enabled = !isLoading)
+                Checkbox(
+                    requireApproval,
+                    onCheckedChange = { requireApproval = it },
+                    enabled = !isLoading
+                )
                 Spacer(Modifier.width(8.dp))
                 Text("Validation admin nécessaire")
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(sharedNotifications, onCheckedChange = { sharedNotifications = it }, enabled = !isLoading)
+                Checkbox(
+                    sharedNotifications,
+                    onCheckedChange = { sharedNotifications = it },
+                    enabled = !isLoading
+                )
                 Spacer(Modifier.width(8.dp))
                 Text("Notifications partagées")
             }
@@ -327,6 +358,7 @@ fun FamilyManagementCard(
         }
     }
 }
+
 @Composable
 private fun SectionTitle(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium)
@@ -455,7 +487,10 @@ private fun FullScreenLoader() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ParentsCard(babyViewModel: BabyViewModel) {
+private fun ParentsCard(
+    babyViewModel: BabyViewModel,
+    navController: NavController,
+) {
     val babies by babyViewModel.babies.collectAsState()
     val parents by babyViewModel.parents.collectAsState()
     val isLoading by babyViewModel.isLoading.collectAsState()
@@ -481,15 +516,15 @@ private fun ParentsCard(babyViewModel: BabyViewModel) {
     GlassCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             // Baby selector
-            DropdownSetting(
-                label = "Bébé",
-                options = babies.map { it.name }.ifEmpty { listOf("Aucun bébé disponible") },
-                selected = selectedBaby?.name ?: "Sélectionner un bébé",
-                enabled = !isLoading && babies.isNotEmpty()
-            ) { name ->
-                selectedBaby = babies.find { it.name == name }
-                selectedBaby?.id?.let { babyViewModel.loadParents(it) }
-            }
+            BabySelectorRow(
+                babies = babies,
+                selectedBaby = selectedBaby,
+                onSelectBaby = { baby ->
+                    selectedBaby = baby
+                    babyViewModel.loadParents(baby.id)
+                },
+                onAddBaby = { navController.navigate("add_baby") }
+            )
 
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 8.dp),
