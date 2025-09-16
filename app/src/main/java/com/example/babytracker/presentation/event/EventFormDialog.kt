@@ -31,6 +31,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.babytracker.data.*
 import com.example.babytracker.presentation.viewmodel.EventViewModel
+import android.text.format.DateFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -48,7 +49,9 @@ fun EventFormDialog(
     val errorMessage by viewModel.errorMessage.collectAsState()
     val currentType = formState.eventType
 
-    var selectedDate by remember { mutableStateOf(formState.eventTimestamp) }
+    var selectedDate by remember(formState.eventTimestamp) {
+        mutableStateOf(formState.eventTimestamp)
+    }
 
     LaunchedEffect(saveSuccess) {
         if (saveSuccess) {
@@ -357,20 +360,26 @@ fun ModernTimeSelector(
     onTimeSelected: (Date) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showDialog by remember { mutableStateOf(false) }
-    val cal = remember { Calendar.getInstance() }
-
-    // Initialize calendar with current time value
-    LaunchedEffect(time) {
-        time?.let { cal.time = it }
+    // Use Calendar only to extract hour/minute
+    val (initialHour, initialMinute) = remember(time) {
+        time?.let {
+            Calendar.getInstance().apply { this.time = it }
+        }?.let { cal ->
+            cal.get(Calendar.HOUR_OF_DAY) to cal.get(Calendar.MINUTE)
+        } ?: (0 to 0)
+    }
+    val context = LocalContext.current
+    val is24Hour = DateFormat.is24HourFormat(context)
+    // Now TimePickerState will reset on every new `time`
+    val timePickerState = remember(time) {
+        TimePickerState(
+            initialHour = initialHour,
+            initialMinute = initialMinute,
+            is24Hour = DateFormat.is24HourFormat(LocalContext.current)
+        )
     }
 
-    // Remember TimePickerState outside the dialog
-    val timePickerState = rememberTimePickerState(
-        initialHour = cal.get(Calendar.HOUR_OF_DAY),
-        initialMinute = cal.get(Calendar.MINUTE)
-    )
-
+    var showDialog by remember { mutableStateOf(false) }
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -411,12 +420,11 @@ fun ModernTimeSelector(
             onDismissRequest = { showDialog = false },
             title = { Text("Select Time") },
             text = {
-                // Correct usage: only pass the state
                 TimePicker(state = timePickerState)
             },
             confirmButton = {
                 TextButton(onClick = {
-                    // Read selected time from state
+                    val cal = Calendar.getInstance()
                     cal.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
                     cal.set(Calendar.MINUTE, timePickerState.minute)
                     onTimeSelected(cal.time)
@@ -427,7 +435,7 @@ fun ModernTimeSelector(
             },
             dismissButton = {
                 TextButton(onClick = { showDialog = false }) {
-                    Text("CANCEL")
+                    Text("Cancel")
                 }
             }
         )
