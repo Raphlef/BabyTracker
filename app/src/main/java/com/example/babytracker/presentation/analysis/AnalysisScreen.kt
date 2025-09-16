@@ -29,6 +29,7 @@ import com.github.mikephil.charting.components.*
 import com.github.mikephil.charting.data.*
 import com.github.mikephil.charting.formatter.ValueFormatter
 import android.graphics.Color as AndroidColor
+import androidx.core.graphics.toColorInt
 
 @Composable
 fun AnalysisScreen(
@@ -58,8 +59,7 @@ fun AnalysisScreen(
                 Brush.verticalGradient(
                     listOf(Color.White.copy(alpha = 0.6f), Color.White.copy(alpha = 0.2f))
                 )
-            )
-            .blur(16.dp),
+            ),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -99,6 +99,7 @@ fun AnalysisScreen(
                 val d = it.timestamp.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
                 d.dayOfMonth.toFloat() to (it.weightKg ?: 0.0).toFloat()
             }
+
         AnalysisCard(title = "Weight Growth (kg)") {
             MultiLineChartView(
                 labels = growthPoints.map { it.first.toInt().toString() },
@@ -208,7 +209,7 @@ fun BarChartView(labels: List<String>, values: List<Float>) {
         update = { chart ->
             val entries = values.mapIndexed { i, v -> BarEntry(i.toFloat(), v) }
             val set = BarDataSet(entries, "").apply {
-                color = AndroidColor.parseColor("#FFB300")
+                color = "#FFB300".toColorInt()
                 valueTextColor = AndroidColor.BLACK
                 valueTextSize = 10f
             }
