@@ -18,8 +18,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.babytracker.presentation.auth.AuthScreen
-import com.example.babytracker.presentation.baby.AddBabyScreen
-import com.example.babytracker.presentation.baby.BabySelectionScreen
 import com.example.babytracker.presentation.dashboard.DashboardScreen
 import com.example.babytracker.presentation.settings.ParentsScreen
 import com.example.babytracker.presentation.settings.SettingsScreen
@@ -60,33 +58,11 @@ fun BabyTrackerApp() {
         composable("auth") {
             AuthScreen(
                 onLoginSuccess = { firstBabyId ->
-                    if (firstBabyId != null) {
-                        navController.navigate("dashboard/$firstBabyId") {
-                            popUpTo("auth") { inclusive = true }
-                        }
-                    } else {
-                        navController.navigate("baby_selection") {
-                            popUpTo("auth") { inclusive = true }
-                        }
+                    // Always navigate to dashboard with babyId or empty string if none
+                    val babyIdToNavigate = firstBabyId ?: ""
+                    navController.navigate("dashboard/$babyIdToNavigate") {
+                        popUpTo("auth") { inclusive = true }
                     }
-                }
-            )
-        }
-        composable("baby_selection") {
-            BabySelectionScreen(
-                onAddBaby = { navController.navigate("add_baby") },
-                onContinue = { selectedBabyId ->
-                    navController.navigate("dashboard/$selectedBabyId")
-                }
-            )
-        }
-        composable("add_baby") {
-            AddBabyScreen(
-                onBabyAdded = {
-                    navController.popBackStack() // Retour à baby_selection
-                },
-                onCancel = {
-                    navController.popBackStack()
                 }
             )
         }

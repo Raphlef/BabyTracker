@@ -1,20 +1,16 @@
 package com.example.babytracker.presentation.home
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -23,16 +19,11 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Event
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -50,7 +41,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
@@ -63,16 +53,14 @@ import com.example.babytracker.data.FeedType
 import com.example.babytracker.data.FeedingEvent
 import com.example.babytracker.data.GrowthEvent
 import com.example.babytracker.data.SleepEvent
+import com.example.babytracker.presentation.baby.BabyFormDialog
 import com.example.babytracker.presentation.event.EventFormDialog
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import com.example.babytracker.presentation.viewmodel.EventViewModel
 import com.example.babytracker.ui.components.TimelineList
-import java.text.SimpleDateFormat
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
-import java.util.Locale
 import kotlin.math.ceil
 
 @SuppressLint("DefaultLocale", "UnusedMaterial3ScaffoldPaddingParameter")
@@ -93,9 +81,10 @@ fun HomeScreen(
     val gridHeight = cardSize * rows + spacing * (rows + 1)
 
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
-
+    val babies by babyViewModel.babies.collectAsState()
     var editingEvent by remember { mutableStateOf<Event?>(null) }
-    var showDialog by remember { mutableStateOf(false) }
+    var showEventDialog by remember { mutableStateOf(false) }
+    var showBabyDialog by remember { mutableStateOf(false) }
 
     val isLoading by eventViewModel.isLoading.collectAsState()
     val errorMessage by eventViewModel.errorMessage.collectAsState()
@@ -111,7 +100,7 @@ fun HomeScreen(
     LaunchedEffect(editingEvent) {
         editingEvent?.let {
             eventViewModel.loadEventIntoForm(it)
-            showDialog = true
+            showEventDialog = true
         }
     }
     DisposableEffect(Unit) {
@@ -206,6 +195,18 @@ fun HomeScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (babies.isEmpty()) {
+                        Button(
+                            onClick = {
+                                showBabyDialog = true
+                            },
+                            modifier = Modifier
+                                .height(56.dp)
+                                .width(180.dp)
+                        ) {
+                            Text("Add a Baby")
+                        }
+                    }
                 }
             } else {
                 // Build filtered lists for the selected baby
@@ -315,15 +316,26 @@ fun HomeScreen(
                 }
             }
             // dialog handling:
-            if (showDialog && editingEvent != null) {
+            if (showEventDialog && editingEvent != null) {
                 EventFormDialog(
                     babyId = selectedBaby?.id ?: return@Box,
                     onDismiss = {
-                        showDialog = false
+                        showEventDialog = false
                         editingEvent = null
                         eventViewModel.resetFormState()
                         // refresh if needed
                     }
+                )
+            }
+            if (showBabyDialog) {
+                BabyFormDialog(
+                    babyToEdit = null,
+                    onBabyUpdated = { savedOrDeletedBaby ->
+                        showBabyDialog = false
+                        savedOrDeletedBaby?.let { babyViewModel.selectBaby(it) }
+                    },
+                    onCancel = { showBabyDialog = false },
+                    viewModel = babyViewModel
                 )
             }
         }
