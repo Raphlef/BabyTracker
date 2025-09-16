@@ -108,7 +108,12 @@ fun HomeScreen(
             eventViewModel.streamEventsInRangeForBaby(babyId)
         }
     }
-
+    LaunchedEffect(editingEvent) {
+        editingEvent?.let {
+            eventViewModel.loadEventIntoForm(it)
+            showDialog = true
+        }
+    }
     DisposableEffect(Unit) {
         onDispose { eventViewModel.stopStreaming() }
     }
@@ -263,7 +268,6 @@ fun HomeScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 onEdit = { event ->
                                     editingEvent = event
-                                    showDialog = true
                                 }
                             )
                         } else {
