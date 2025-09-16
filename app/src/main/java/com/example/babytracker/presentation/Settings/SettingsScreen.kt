@@ -59,7 +59,6 @@ fun SettingsScreen(
     var themeChoice by remember { mutableStateOf(profile?.theme?.name.orEmpty()) }
     var localeChoice by remember { mutableStateOf(profile?.locale.orEmpty()) }
     var notificationsEnabled by remember { mutableStateOf(profile?.notificationsEnabled == true) }
-    var defaultBabyName by remember { mutableStateOf(defaultBaby?.name.orEmpty()) }
 
 
     Scaffold { padding ->
@@ -134,7 +133,7 @@ fun SettingsScreen(
 
             // — Notifications & Default Baby Section —
             item {
-                SectionTitle("Notifications & Bébé par défaut")
+                SectionTitle("Notifications")
                 GlassCard {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         ToggleSetting(
@@ -143,19 +142,11 @@ fun SettingsScreen(
                             enabled = !isLoading
                         ) { notificationsEnabled = it }
 
-                        DropdownSetting(
-                            label = "Bébé par défaut",
-                            options = babies.map { it.name }.ifEmpty { listOf("Aucun bébé") },
-                            selected = defaultBabyName,
-                            enabled = !isLoading && babies.isNotEmpty()
-                        ) { defaultBabyName = it }
-
                         Button(
                             onClick = {
                                 authViewModel.updateUserProfile(
                                     mapOf(
                                         "notificationsEnabled" to notificationsEnabled,
-                                        "defaultBabyId" to babies.find { it.name == defaultBabyName }?.id
                                     )
                                 )
                             },
