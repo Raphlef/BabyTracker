@@ -137,7 +137,7 @@ fun EventFormDialog(
                             }
                         }
                     }
-                }else{
+                } else {
                     IconSelector(
                         title = "Event Type",
                         options = EventType.entries,
@@ -267,6 +267,7 @@ fun <T> IconSelector(
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModernDateSelector(
@@ -450,7 +451,7 @@ private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) 
                 DiaperType.WET -> Icons.Default.Opacity
                 DiaperType.DIRTY -> Icons.Default.Circle
                 DiaperType.MIXED -> Icons.Default.Merge
-                DiaperType.DRY   -> Icons.Default.InvertColorsOff
+                DiaperType.DRY -> Icons.Default.InvertColorsOff
             }
         },
         getLabel = { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } }
@@ -494,7 +495,9 @@ private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) 
         },
         label = { Text("Notes (optional)") },
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth().height(80.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp)
     )
 }
 
@@ -548,7 +551,9 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(16.dp).fillMaxWidth()
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth()
             ) {
                 Icon(Icons.Default.Timer, contentDescription = null)
                 Spacer(Modifier.width(12.dp))
@@ -566,7 +571,9 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
         onValueChange = { viewModel.updateForm { (this as EventFormState.Sleep).copy(notes = it) } },
         label = { Text("Notes (optional)") },
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth().height(80.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp)
     )
 }
 
@@ -649,7 +656,9 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
         onValueChange = { viewModel.updateForm { (this as EventFormState.Feeding).copy(notes = it) } },
         label = { Text("Notes (optional)") },
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth().height(80.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp)
     )
 }
 
@@ -678,7 +687,13 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
 
     OutlinedTextField(
         value = state.headCircumferenceCm,
-        onValueChange = { viewModel.updateForm { (this as EventFormState.Growth).copy(headCircumferenceCm = it) } },
+        onValueChange = {
+            viewModel.updateForm {
+                (this as EventFormState.Growth).copy(
+                    headCircumferenceCm = it
+                )
+            }
+        },
         label = { Text("Head Circumference (cm)") },
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth()
@@ -689,7 +704,9 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
         onValueChange = { viewModel.updateForm { (this as EventFormState.Growth).copy(notes = it) } },
         label = { Text("Notes (optional)") },
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth().height(80.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp)
     )
 }
 
