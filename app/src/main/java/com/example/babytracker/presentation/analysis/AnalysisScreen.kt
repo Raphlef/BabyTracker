@@ -30,6 +30,9 @@ import com.github.mikephil.charting.data.*
 import com.github.mikephil.charting.formatter.ValueFormatter
 import android.graphics.Color as AndroidColor
 import androidx.core.graphics.toColorInt
+import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.util.Locale
 
 @Composable
 fun AnalysisScreen(
@@ -45,6 +48,11 @@ fun AnalysisScreen(
 
     val today = LocalDate.now()
     val last7Days = (0L..6L).map { today.minusDays(6 - it) }
+    val last7DaysLabels = last7Days.map { date ->
+        val dayName = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+        "$dayName"
+    }
+
     val omsGender = when (selectedBaby?.gender) {
         Gender.MALE -> Gender.MALE
         Gender.FEMALE -> Gender.FEMALE
@@ -62,8 +70,10 @@ fun AnalysisScreen(
             ),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        val startDate = last7Days.first().format(DateTimeFormatter.ofPattern("dd/MM"))
+        val endDate = last7Days.last().format(DateTimeFormatter.ofPattern("dd/MM"))
         Text(
-            "Weekly Analysis",
+            "Weekly Analysis \n($startDate - $endDate)",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary
         )
@@ -76,7 +86,7 @@ fun AnalysisScreen(
         }
         AnalysisCard(title = "Daily Poop Count") {
             BarChartView(
-                labels = last7Days.map { it.dayOfMonth.toString() },
+                labels = last7DaysLabels,
                 values = poopCounts.map { it.toFloat() }
             )
         }
@@ -88,7 +98,7 @@ fun AnalysisScreen(
         }
         AnalysisCard(title = "Daily Sleep (min)") {
             LineChartView(
-                labels = last7Days.map { it.dayOfMonth.toString() },
+                labels = last7DaysLabels,
                 values = sleepMins
             )
         }
@@ -102,7 +112,7 @@ fun AnalysisScreen(
 
         AnalysisCard(title = "Weight Growth (kg)") {
             MultiLineChartView(
-                labels = growthPoints.map { it.first.toInt().toString() },
+                labels = last7DaysLabels,
                 series = listOf(
                     "Baby" to growthPoints.map { it.second },
                     "15th pct" to WHOWeightCurve(omsGender, 15).map { it.second },
@@ -115,7 +125,7 @@ fun AnalysisScreen(
         // Similarly for length
         AnalysisCard(title = "Length Growth (cm)") {
             MultiLineChartView(
-                labels = growthPoints.map { it.first.toInt().toString() },
+                labels = last7DaysLabels,
                 series = listOf(
                     "Baby" to growthPoints.map { (_, weight) ->
                         // You'll need height data from GrowthEvent.heightCm
@@ -152,7 +162,7 @@ fun AnalysisScreen(
         }
         AnalysisCard(title = "Meals & Volume") {
             ComboChartView(
-                labels = last7Days.map { it.dayOfMonth.toString() },
+                labels = last7DaysLabels,
                 barValues = mealCounts.map { it.toFloat() },
                 lineValues = mealVolumes
             )
@@ -179,9 +189,11 @@ fun AnalysisCard(
                 title, style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(12.dp)
             )
-            Box(Modifier
-                .fillMaxSize()
-                .padding(8.dp), content = content)
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(8.dp), content = content
+            )
         }
     }
 }
@@ -313,7 +325,6 @@ fun ComboChartView(
             CombinedChart(context).apply {
                 description.isEnabled = false
                 setTouchEnabled(false)
-                axisRight.isEnabled = false
                 xAxis.apply {
                     position = XAxis.XAxisPosition.BOTTOM
                     granularity = 1f
@@ -321,21 +332,40 @@ fun ComboChartView(
                         override fun getFormattedValue(v: Float) = labels[v.toInt()]
                     }
                 }
+                // Left axis for bar (meals)
+                axisLeft.apply {
+                    isEnabled = true
+                    axisMinimum = 0f
+                    textColor = AndroidColor.parseColor("#FF5722")
+                    granularity = 1f
+                }
+                // Right axis for line (ml)
+                axisRight.apply {
+                    isEnabled = true
+                    axisMinimum = 0f
+                    textColor = AndroidColor.parseColor("#009688")
+                    granularity = 1f
+                }
                 legend.isEnabled = true
-                axisLeft.axisMinimum = 0f
             }
         },
         update = { chart ->
+            // Bar entries and dataset
             val barEntries = barValues.mapIndexed { i, v -> BarEntry(i.toFloat(), v) }
             val barSet = BarDataSet(barEntries, "Meals").apply {
                 color = AndroidColor.parseColor("#FF5722")
+                axisDependency = YAxis.AxisDependency.LEFT
             }
+            // Line entries and dataset
             val lineEntries = lineValues.mapIndexed { i, v -> Entry(i.toFloat(), v) }
-            val lineSet = LineDataSet(lineEntries, "ml").apply {
+            val lineSet = LineDataSet(lineEntries, "Volume (ml)").apply {
                 color = AndroidColor.parseColor("#009688")
                 lineWidth = 2f
                 setDrawCircles(true)
+                circleRadius = 4f
+                axisDependency = YAxis.AxisDependency.RIGHT
             }
+            // Combine data
             chart.data = CombinedData().apply {
                 setData(BarData(barSet).apply { barWidth = 0.4f })
                 setData(LineData(lineSet))
