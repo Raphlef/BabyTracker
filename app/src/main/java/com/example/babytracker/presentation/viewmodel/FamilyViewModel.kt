@@ -55,7 +55,16 @@ class FamilyViewModel @Inject constructor(
     fun createOrUpdateFamily(family: Family) {
         _state.value = _state.value.copy(isLoading = true, error = null)
         viewModelScope.launch {
-            repository.addOrUpdateFamily(family)
+            // For new families, ensure current user is added as admin
+            val familyToSave = if (family.id.isBlank()) {
+                val currentUserId = repository.getCurrentUserId()
+                    ?: return@launch _state.update { it.copy(isLoading = false, error = "User not authenticated") }
+                family.copy(adminIds = listOf(currentUserId))
+            } else {
+                family
+            }
+
+            repository.addOrUpdateFamily(familyToSave)
                 .onSuccess {
                     _state.value = _state.value.copy(isLoading = false)
                 }
