@@ -74,6 +74,7 @@ fun CalendarScreen(
         listState.scrollToItem(0)
         refresh()
     }
+
     LaunchedEffect(currentMonth, selectedBaby?.id) { refresh() }
     LaunchedEffect(errorMessage) {
         errorMessage?.let {

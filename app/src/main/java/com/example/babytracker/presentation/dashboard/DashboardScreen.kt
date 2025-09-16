@@ -137,6 +137,10 @@ fun DashboardScreen(
             listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset < 20
         }
     }
+    // Reset scroll when baby changes or when switching tab
+    LaunchedEffect(selectedTab,selectedBaby?.id) {
+        listState.scrollToItem(0)
+    }
 
     Scaffold(
         // Turn off the automatic bottom padding inset

@@ -108,10 +108,7 @@ fun HomeScreen(
             eventViewModel.streamEventsInRangeForBaby(babyId)
         }
     }
-    // Reset scroll when baby changes
-    LaunchedEffect(selectedBaby?.id) {
-        listState.scrollToItem(0)
-    }
+
     DisposableEffect(Unit) {
         onDispose { eventViewModel.stopStreaming() }
     }
