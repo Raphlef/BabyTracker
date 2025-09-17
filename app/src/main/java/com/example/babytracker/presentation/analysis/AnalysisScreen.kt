@@ -84,6 +84,11 @@ fun AnalysisScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = Modifier.fillMaxSize()
     ) { padding ->
+
+        val bgTop = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+        val bgBottom = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+
+
         LazyColumn(
             state = listState,
             contentPadding = PaddingValues(
@@ -97,7 +102,7 @@ fun AnalysisScreen(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        listOf(Color.White.copy(alpha = 0.6f), Color.White.copy(alpha = 0.2f))
+                        listOf(bgTop, bgBottom)
                     )
                 )
         ) {
@@ -228,7 +233,7 @@ fun AnalysisScreen(
                     Box(
                         Modifier
                             .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.3f))
+                            .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f))
                     ) {
                         CircularProgressIndicator(Modifier.align(Alignment.Center))
                     }
