@@ -106,46 +106,8 @@ class BabyViewModel @Inject constructor(
         _selectedBaby.value = baby
     }
 
-    fun addBaby(
-        name: String,
-        birthDate: Long,
-        gender: Gender = Gender.UNKNOWN,
-        photoUri: Uri? = null
-    ) {
-        _isLoading.value = true
-        _errorMessage.value = null
-
-        viewModelScope.launch {
-            try {
-                // 1. Create baby without photo first
-                val baby = Baby(name = name, birthDate = birthDate, gender = gender)
-                val result = repository.addOrUpdateBaby(baby)
-
-                if (result.isFailure) {
-                    _errorMessage.value = result.exceptionOrNull()?.message ?: "Échec inattendu"
-                    return@launch
-                }
-
-                // 2. Upload photo if provided
-                photoUri?.let { uri ->
-                    // Find the newly created baby to get its ID
-                    val createdBaby = repository.getBabies().getOrNull()
-                        ?.find { it.name == name && it.birthDate == birthDate }
-
-                    createdBaby?.let { baby ->
-                        uploadBabyPhoto(baby.id, uri)
-                    }
-                }
-            } catch (e: Exception) {
-                _errorMessage.value = e.message ?: "Unexpected error"
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    fun updateBaby(
-        id: String,
+    fun saveBaby(
+        id: String?,                // null or blank means new baby
         name: String,
         birthDate: Long,
         gender: Gender = Gender.UNKNOWN,
@@ -165,40 +127,82 @@ class BabyViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                // 1. Upload photo first if provided
-                val photoUrl = photoUri?.let { uri ->
-                    uploadBabyPhoto(id, uri)
+                val babyId: String
+
+                if (id.isNullOrBlank()) {
+                    // New baby: create without photo first
+                    val baby = Baby(
+                        id = "",
+                        name = name,
+                        birthDate = birthDate,
+                        gender = gender,
+                        birthWeightKg = birthWeightKg,
+                        birthLengthCm = birthLengthCm,
+                        birthHeadCircumferenceCm = birthHeadCircumferenceCm,
+                        birthTime = birthTime,
+                        bloodType = bloodType,
+                        allergies = allergies,
+                        medicalConditions = medicalConditions,
+                        pediatricianContact = pediatricianContact,
+                        notes = notes,
+                        photoUri = null,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                    repository.addOrUpdateBaby(baby).getOrThrow()
+
+                    // Retrieve created baby's ID (assumed unique by name+birthDate)
+                    val createdBaby = repository.getBabies().getOrNull()
+                        ?.find { it.name == name && it.birthDate == birthDate }
+                        ?: throw IllegalStateException("Created baby not found")
+
+                    babyId = createdBaby.id
+
+                    // Upload photo if provided
+                    photoUri?.let { uri ->
+                        val photoUrl = uploadBabyPhoto(babyId, uri)
+                        // Update baby with photoUrl field
+                        val updatedBaby = createdBaby.copy(photoUri = photoUrl, updatedAt = System.currentTimeMillis())
+                        repository.addOrUpdateBaby(updatedBaby).getOrThrow()
+                        _selectedBaby.value = updatedBaby
+                    } ?: run {
+                        _selectedBaby.value = createdBaby
+                    }
+
+                } else {
+                    // Existing baby: upload photo first if provided
+                    val photoUrl = photoUri?.let { uri ->
+                        uploadBabyPhoto(id, uri)
+                    }
+
+                    // Fetch current to preserve fields
+                    val current = _selectedBaby.value
+                        ?: repository.getBabyById(id).getOrThrow()
+
+                    val updated = Baby(
+                        id = id,
+                        name = name,
+                        birthDate = birthDate,
+                        gender = gender,
+                        birthWeightKg = birthWeightKg,
+                        birthLengthCm = birthLengthCm,
+                        birthHeadCircumferenceCm = birthHeadCircumferenceCm,
+                        birthTime = birthTime,
+                        bloodType = bloodType,
+                        allergies = allergies,
+                        medicalConditions = medicalConditions,
+                        pediatricianContact = pediatricianContact,
+                        notes = notes,
+                        photoUri = photoUrl ?: current!!.photoUri,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                    repository.addOrUpdateBaby(updated).getOrThrow()
+                    _selectedBaby.value = updated
+                    babyId = id
                 }
 
-                // 2. Get current baby
-                val current = _selectedBaby.value
-                    ?: repository.getBabyById(id).getOrThrow()
-
-                // 3. Update baby with new photo URL or keep existing
-                val updated = Baby(
-                    id = id,
-                    name = name,
-                    birthDate = birthDate,
-                    gender = gender,
-                    birthWeightKg = birthWeightKg,
-                    birthLengthCm = birthLengthCm,
-                    birthHeadCircumferenceCm = birthHeadCircumferenceCm,
-                    birthTime = birthTime,
-                    bloodType = bloodType,
-                    allergies = allergies,
-                    medicalConditions = medicalConditions,
-                    pediatricianContact = pediatricianContact,
-                    notes = notes,
-                    photoUri = photoUrl ?: current!!.photoUri,
-                    updatedAt = System.currentTimeMillis()
-                )
-
-                repository.addOrUpdateBaby(updated).getOrThrow()
-                _selectedBaby.value = updated
-
             } catch (e: Exception) {
-                Log.e("BabyViewModel", "Error updating baby with photo: ${e.message}", e)
-                _errorMessage.value = "Échec de la mise à jour: ${e.localizedMessage}"
+                Log.e("BabyViewModel", "Error saving baby: ${e.message}", e)
+                _errorMessage.value = "Échec de la sauvegarde: ${e.localizedMessage}"
             } finally {
                 _isLoading.value = false
             }
