@@ -1,23 +1,31 @@
 package com.example.babytracker.presentation.baby
 
 import android.app.DatePickerDialog
+import android.content.Intent
+import android.net.Uri
 import android.provider.ContactsContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.example.babytracker.data.Baby
 import com.example.babytracker.data.BloodType
 import com.example.babytracker.data.Gender
@@ -76,6 +84,7 @@ fun BabyFormDialog(
             baby?.let { timeInMillis = it.birthDate }
         })
     }
+    var photoUri by remember { mutableStateOf(baby?.photoUri?.let { Uri.parse(it) }) }
     var gender by remember { mutableStateOf(baby?.gender ?: Gender.UNKNOWN) }
     var weight by remember { mutableStateOf(baby?.birthWeightKg?.toString().orEmpty()) }
     var lengthCm by remember { mutableStateOf(baby?.birthLengthCm?.toString().orEmpty()) }
@@ -153,6 +162,9 @@ fun BabyFormDialog(
                         modifier = Modifier.fillMaxWidth()
                     )
                     if (nameError) Text("Name is required", color = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.height(12.dp))
+
+                    PhotoPicker(photoUri = photoUri, onPhotoSelected = { photoUri = it })
                     Spacer(Modifier.height(12.dp))
 
                     Button(onClick = { datePicker.show() }) {
@@ -426,4 +438,59 @@ fun NumericField(
         modifier = Modifier.fillMaxWidth()
     )
     errorMsg?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+}
+
+@Composable
+fun PhotoPicker(
+    photoUri: Uri?,
+    onPhotoSelected: (Uri?) -> Unit
+) {
+    // Launcher for a generic Intent chooser
+    val chooserLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        // Get the first non-null URI from data or clipData
+        val uri = result.data?.data
+            ?: result.data?.clipData?.let { it.getItemAt(0).uri }
+        onPhotoSelected(uri)
+    }
+
+    // Build the chooser Intent once
+    val context = LocalContext.current
+    val pickImageIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
+        type = "image/*"
+    }
+    val openDocIntent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+        addCategory(Intent.CATEGORY_OPENABLE)
+        type = "image/*"
+    }
+    val chooserIntent = Intent.createChooser(pickImageIntent, "Select Photo").apply {
+        putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(openDocIntent))
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(150.dp)
+            .clip(MaterialTheme.shapes.medium)
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+            .clickable { chooserLauncher.launch(chooserIntent) },
+        contentAlignment = Alignment.Center
+    ) {
+        if (photoUri != null) {
+            AsyncImage(
+                model = photoUri,
+                contentDescription = "Selected Photo",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Default.CameraAlt,
+                contentDescription = "Add Photo",
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                modifier = Modifier.size(48.dp)
+            )
+        }
+    }
 }
