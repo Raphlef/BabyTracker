@@ -1,6 +1,8 @@
 package com.example.babytracker.data
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.provider.Settings.Global.getString
 import android.util.Log // For logging
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -9,19 +11,23 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldPath
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.snapshots
 import com.google.firebase.firestore.toObject
 import com.google.firebase.firestore.toObjects
+import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.util.Calendar
-import java.util.Date // Keep this if your Baby class uses it directly
+import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 
@@ -122,6 +128,108 @@ class FirebaseRepository @Inject constructor(
         }
     }
 
+    /**
+     * Uploads an image URI to Firebase Storage under a common “photos/{entityType}/{entityId}/” path
+     * and updates the corresponding Firestore document with the resulting download URL.
+     *
+     * Can be used for any entity collection (e.g. “babies”, “events”, “users”).
+     */
+    suspend fun addPhotoToEntity(
+        entityType: String,
+        entityId: String,
+        uri: Uri
+    ): String = withContext(Dispatchers.IO) {
+        val TAG = "FirebaseRepository"
+
+        val userId = auth.currentUser?.uid
+            ?: throw IllegalStateException("User not authenticated")
+
+        Log.d(TAG, "Starting photo upload for entityType=$entityType, entityId=$entityId, userId=$userId")
+
+        // 1. Persistable URI permission if needed (for ACTION_OPEN_DOCUMENT)
+        try {
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            Log.d(TAG, "Persistable URI permission granted for $uri")
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Persistable URI permission already granted or failed: ${e.message}")
+            // May already have permission; ignoring
+        }
+
+        // 2. Upload to Storage under photos/{entityType}/{userId}/{entityId}.jpg
+        val storageRef = FirebaseStorage.getInstance().reference
+            .child("photos")
+            .child(entityType)
+            .child(userId)
+            .child("$entityId.jpg")
+
+        Log.d(TAG, "Uploading photo to Storage at path: ${storageRef.path}")
+
+        context.contentResolver.openInputStream(uri).use { stream ->
+            requireNotNull(stream) { "Unable to open image URI: $uri" }
+            storageRef.putStream(stream).await()
+            Log.d(TAG, "Upload complete for $uri")
+        }
+
+        // 3. Fetch download URL
+        val downloadUrl = storageRef.downloadUrl.await().toString()
+        Log.d(TAG, "Download URL fetched: $downloadUrl")
+
+        // 4. Update Firestore document with the field "photoUrl"
+        db.collection(entityType)
+            .document(entityId)
+            .update(
+                mapOf(
+                    "photoUrl" to downloadUrl,
+                    "updatedAt" to System.currentTimeMillis()
+                )
+            )
+            .await()
+
+        Log.d(TAG, "Firestore document updated with photoUrl for $entityType/$entityId")
+
+        downloadUrl
+    }
+
+    suspend fun deletePhotoFromEntity(
+        entityType: String,
+        entityId: String
+    ) = withContext(Dispatchers.IO) {
+        val userId = auth.currentUser?.uid
+            ?: throw IllegalStateException("User not authenticated")
+
+        // Reference to the photo in Storage
+        val photoRef = FirebaseStorage.getInstance().reference
+            .child("photos")
+            .child(entityType)
+            .child(userId)
+            .child("$entityId.jpg")
+
+        // Delete photo from Storage
+        try {
+            photoRef.delete().await()
+        } catch (e: Exception) {
+            // Optionally log error but don’t fail if photo missing
+            if (e is com.google.firebase.storage.StorageException && e.errorCode == 404) {
+                // Not found is OK, photo already deleted or never uploaded
+            } else {
+                throw e
+            }
+        }
+
+        // Remove photoUrl from Firestore document
+        db.collection(entityType)
+            .document(entityId)
+            .update(
+                mapOf(
+                    "photoUrl" to FieldValue.delete(),
+                    "updatedAt" to System.currentTimeMillis()
+                )
+            )
+            .await()
+    }
     // --- Baby Methods ---
     suspend fun addOrUpdateBaby(baby: Baby): Result<Unit> = runCatching {
         val userId = auth.currentUser?.uid
