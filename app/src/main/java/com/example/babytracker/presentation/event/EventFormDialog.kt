@@ -1,10 +1,7 @@
 package com.example.babytracker.presentation.event
 
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -19,8 +16,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -293,19 +288,19 @@ fun ModernDateSelector(
     onDateSelected: (Date) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showPicker by remember { mutableStateOf(false) }
-    // DatePickerState requires epoch millis UTC
-    val initialMillis = remember(selectedDate) {
-        selectedDate.toInstant().toEpochMilli()
-    }
-    // Create state and update when selection changes
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    // Hold interim date before time selection
+    var interimDateMillis by remember { mutableStateOf(selectedDate.time) }
+
+    // Date picker state
     val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = initialMillis
+        initialSelectedDateMillis = selectedDate.time
     )
 
-    // Trigger to open picker
+    // Trigger surface
     Surface(
-        onClick = { showPicker = true },
+        onClick = { showDatePicker = true },
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = modifier
@@ -323,12 +318,12 @@ fun ModernDateSelector(
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Event Date",
+                    "Event Date & Time",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    SimpleDateFormat("EEEE, MMM dd, yyyy", Locale.getDefault())
+                    SimpleDateFormat("EEE, MMM dd, yyyy • hh:mm a", Locale.getDefault())
                         .format(selectedDate),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium
@@ -342,22 +337,23 @@ fun ModernDateSelector(
         }
     }
 
-    if (showPicker) {
+    // Date picker dialog
+    if (showDatePicker) {
         DatePickerDialog(
-            onDismissRequest = { showPicker = false },
+            onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    showPicker = false
-                    // Get the single selected date
+                    showDatePicker = false
                     datePickerState.selectedDateMillis?.let { ms ->
-                        onDateSelected(Date(ms))
+                        interimDateMillis = ms
+                        showTimePicker = true
                     }
                 }) {
-                    Text("OK")
+                    Text("Next")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showPicker = false }) {
+                TextButton(onClick = { showDatePicker = false }) {
                     Text("Cancel")
                 }
             }
@@ -365,7 +361,29 @@ fun ModernDateSelector(
             DatePicker(state = datePickerState)
         }
     }
+
+    // Time picker dialog (reuses ModernTimeSelector internals)
+    if (showTimePicker) {
+        ShowTimePickerDialog(
+            label = "Event Time",
+            initialDate  = Date(interimDateMillis),
+            onTimeSelected = { timeDate ->
+                // Merge date + time
+                val cal = Calendar.getInstance().apply {
+                    timeInMillis = interimDateMillis
+                    set(Calendar.HOUR_OF_DAY, timeDate.hours)
+                    set(Calendar.MINUTE, timeDate.minutes)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                onDateSelected(cal.time)
+                showTimePicker = false
+            },
+            onDismiss = { showTimePicker = false }
+        )
+    }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -373,27 +391,9 @@ fun ModernTimeSelector(
     label: String,
     time: Date?,
     onTimeSelected: (Date) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onDismiss: () -> Unit
 ) {
-    // Use Calendar only to extract hour/minute
-    val (initialHour, initialMinute) = remember(time) {
-        time?.let {
-            Calendar.getInstance().apply { this.time = it }
-        }?.let { cal ->
-            cal.get(Calendar.HOUR_OF_DAY) to cal.get(Calendar.MINUTE)
-        } ?: (0 to 0)
-    }
-    val context = LocalContext.current
-    val is24Hour = DateFormat.is24HourFormat(context)
-    // Now TimePickerState will reset on every new `time`
-    val timePickerState = remember(time) {
-        TimePickerState(
-            initialHour = initialHour,
-            initialMinute = initialMinute,
-            is24Hour = is24Hour
-        )
-    }
-
     var showDialog by remember { mutableStateOf(false) }
     Surface(
         modifier = modifier
@@ -431,32 +431,65 @@ fun ModernTimeSelector(
     }
 
     if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = { Text("Select Time") },
-            text = {
-                TimePicker(state = timePickerState)
+        ShowTimePickerDialog(
+            label = label,
+            initialDate = time ?: Date().also { onDismiss() },
+            onTimeSelected = {
+                onTimeSelected(it)
+                showDialog = false
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    val cal = Calendar.getInstance()
-                    cal.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                    cal.set(Calendar.MINUTE, timePickerState.minute)
-                    onTimeSelected(cal.time)
-                    showDialog = false
-                }) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDialog = false }) {
-                    Text("Cancel")
-                }
+            onDismiss = {
+                onDismiss()
+                showDialog = false
             }
         )
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ShowTimePickerDialog(
+    label: String,
+    initialDate: Date,
+    onTimeSelected: (Date) -> Unit,
+    onDismiss: () -> Unit
+) {
+    // Extract initial hour/minute
+    val (initialHour, initialMinute) = remember(initialDate) {
+        Calendar.getInstance().apply { time = initialDate }.let { it.get(Calendar.HOUR_OF_DAY) to it.get(Calendar.MINUTE) }
+    }
+    val context = LocalContext.current
+    val is24Hour = DateFormat.is24HourFormat(context)
+    val timePickerState = remember {
+        TimePickerState(
+            initialHour = initialHour,
+            initialMinute = initialMinute,
+            is24Hour = is24Hour
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(label) },
+        text = { TimePicker(state = timePickerState) },
+        confirmButton = {
+            TextButton(onClick = {
+                val cal = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                    set(Calendar.MINUTE, timePickerState.minute)
+                }
+                onTimeSelected(cal.time)
+            }) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
 @Composable
 private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
     // Diaper Type
@@ -547,7 +580,8 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
                     )
                 }
             },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            onDismiss = { }
         )
 
         ModernTimeSelector(
@@ -562,7 +596,8 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
                     )
                 }
             },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            onDismiss = { }
         )
     }
 
