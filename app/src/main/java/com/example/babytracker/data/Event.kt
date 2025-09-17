@@ -16,17 +16,20 @@ import kotlin.reflect.full.memberProperties
 /**
  * EventType enum associates a display name and a color for each event kind.
  */
-enum class EventType(val displayName: String, val color: Color,val icon: ImageVector,
-                     val eventClass: KClass<out Event> ) {
-    DIAPER("Diaper", Color(0xFFFFC107), Icons.Filled.ChildCare,DiaperEvent::class),
-    FEEDING("Feeding", Color(0xFF4CAF50), Icons.Filled.Fastfood,FeedingEvent::class),
-    SLEEP("Sleep", Color(0xFF2196F3), Icons.Filled.Hotel,         SleepEvent::class),
+enum class EventType(
+    val displayName: String, val color: Color, val icon: ImageVector,
+    val eventClass: KClass<out Event>
+) {
+    DIAPER("Diaper", Color(0xFFFFC107), Icons.Filled.ChildCare, DiaperEvent::class),
+    FEEDING("Feeding", Color(0xFF4CAF50), Icons.Filled.Fastfood, FeedingEvent::class),
+    SLEEP("Sleep", Color(0xFF2196F3), Icons.Filled.Hotel, SleepEvent::class),
     GROWTH("Growth", Color(0xFF9C27B0), Icons.AutoMirrored.Filled.ShowChart, GrowthEvent::class),
-    PUMPING("Pumping", Color(0xFFFF5722), Icons.Filled.Add,       PumpingEvent::class);
+    PUMPING("Pumping", Color(0xFFFF5722), Icons.Filled.Add, PumpingEvent::class);
 
     companion object {
-        fun forClass(clazz: KClass<out Event>): EventType = entries.firstOrNull { it.eventClass == clazz }
-            ?: DIAPER
+        fun forClass(clazz: KClass<out Event>): EventType =
+            entries.firstOrNull { it.eventClass == clazz }
+                ?: DIAPER
     }
 }
 
@@ -55,9 +58,9 @@ sealed class Event {
 
             // Convert Date→Timestamp and Enum→String
             val converted = when (value) {
-                is Date        -> com.google.firebase.Timestamp(value)
-                is Enum<*>     -> value.name
-                else           -> value
+                is Date -> com.google.firebase.Timestamp(value)
+                is Enum<*> -> value.name
+                else -> value
             }
 
             result[prop.name] = converted
@@ -89,6 +92,7 @@ fun DocumentSnapshot.toEvent(): Event? {
 
     return event
 }
+
 @IgnoreExtraProperties
 data class DiaperEvent(
     override val id: String = UUID.randomUUID().toString(),
@@ -163,6 +167,137 @@ sealed class EventFormState {
     abstract val eventId: String?
     abstract val eventType: EventType
     abstract val eventTimestamp: Date
+    fun validateAndToEvent(babyId: String): Result<Event> {
+        return when (this) {
+            is Diaper -> {
+                if ((diaperType == DiaperType.DIRTY || diaperType == DiaperType.MIXED)
+                    && poopColor == null && poopConsistency == null
+                ) {
+                    Result.failure(
+                        IllegalArgumentException("For dirty diapers, specify color or consistency.")
+                    )
+                } else {
+                    Result.success(
+                        DiaperEvent(
+                            id = eventId ?: UUID.randomUUID().toString(),
+                            babyId = babyId,
+                            timestamp = eventTimestamp,
+                            diaperType = diaperType,
+                            poopColor = poopColor,
+                            poopConsistency = poopConsistency,
+                            notes = notes.takeIf(String::isNotBlank)
+                        )
+                    )
+                }
+            }
+
+            is Sleep -> {
+                if (!isSleeping && beginTime == null && endTime == null) {
+                    Result.failure(
+                        IllegalArgumentException("Please start and stop sleep before saving.")
+                    )
+                } else {
+                    Result.success(
+                        SleepEvent(
+                            id = eventId ?: UUID.randomUUID().toString(),
+                            babyId = babyId,
+                            timestamp = eventTimestamp,
+                            isSleeping = isSleeping,
+                            beginTime = beginTime,
+                            endTime = endTime,
+                            durationMinutes = durationMinutes,
+                            notes = notes.takeIf(String::isNotBlank)
+                        )
+                    )
+                }
+            }
+
+            is Feeding -> {
+                val amount = amountMl.toDoubleOrNull()
+                val duration = durationMin.toIntOrNull()
+                when (feedType) {
+                    FeedType.BREAST_MILK -> {
+                        if (amount == null && duration == null && breastSide == null) {
+                            return Result.failure(
+                                IllegalArgumentException("Provide duration/side or amount for breast milk.")
+                            )
+                        }
+                    }
+
+                    FeedType.FORMULA -> {
+                        if (amount == null) {
+                            return Result.failure(
+                                IllegalArgumentException("Amount is required for formula.")
+                            )
+                        }
+                    }
+
+                    FeedType.SOLID -> {
+                        if (amount == null && notes.isBlank()) {
+                            return Result.failure(
+                                IllegalArgumentException("Provide notes or amount for solids.")
+                            )
+                        }
+                    }
+                }
+                Result.success(
+                    FeedingEvent(
+                        id = eventId ?: UUID.randomUUID().toString(),
+                        babyId = babyId,
+                        timestamp = eventTimestamp,
+                        feedType = feedType,
+                        amountMl = amount,
+                        durationMinutes = duration,
+                        breastSide = breastSide,
+                        notes = notes.takeIf(String::isNotBlank)
+                    )
+                )
+            }
+
+            is Growth -> {
+                val weight = weightKg.toDoubleOrNull()
+                val height = heightCm.toDoubleOrNull()
+                val head = headCircumferenceCm.toDoubleOrNull()
+                if (weight == null && height == null && head == null) {
+                    Result.failure(IllegalArgumentException("At least one measurement required."))
+                } else {
+                    Result.success(
+                        GrowthEvent(
+                            id = eventId ?: UUID.randomUUID().toString(),
+                            babyId = babyId,
+                            timestamp = eventTimestamp,
+                            weightKg = weight,
+                            heightCm = height,
+                            headCircumferenceCm = head,
+                            notes = notes.takeIf(String::isNotBlank)
+                        )
+                    )
+                }
+            }
+
+            is Pumping -> {
+                val amount = amountMl.toDoubleOrNull()
+                val duration = durationMin.toIntOrNull()
+                if (amount == null && duration == null) {
+                    Result.failure(
+                        IllegalArgumentException("Provide amount or duration for pumping.")
+                    )
+                } else {
+                    Result.success(
+                        PumpingEvent(
+                            id = eventId ?: UUID.randomUUID().toString(),
+                            babyId = babyId,
+                            timestamp = eventTimestamp,
+                            amountMl = amount,
+                            durationMinutes = duration,
+                            breastSide = breastSide,
+                            notes = notes.takeIf(String::isNotBlank)
+                        )
+                    )
+                }
+            }
+        }
+    }
 
     data class Diaper(
         override val eventId: String? = null,
@@ -216,3 +351,58 @@ sealed class EventFormState {
         val notes: String = ""
     ) : EventFormState()
 }
+
+private fun EventFormState.toEvent(babyId: String): Event = when (this) {
+    is EventFormState.Diaper -> DiaperEvent(
+        id = eventId ?: UUID.randomUUID().toString(),
+        babyId = babyId,
+        timestamp = eventTimestamp,
+        notes = notes.takeIf(String::isNotBlank),
+        diaperType = diaperType,
+        poopColor = poopColor,
+        poopConsistency = poopConsistency
+    )
+
+    is EventFormState.Sleep -> SleepEvent(
+        id = eventId ?: UUID.randomUUID().toString(),
+        babyId = babyId,
+        timestamp = eventTimestamp,
+        notes = notes.takeIf(String::isNotBlank),
+        isSleeping = isSleeping,
+        beginTime = beginTime,
+        endTime = endTime,
+        durationMinutes = durationMinutes
+    )
+
+    is EventFormState.Feeding -> FeedingEvent(
+        id = eventId ?: UUID.randomUUID().toString(),
+        babyId = babyId,
+        timestamp = eventTimestamp,
+        notes = notes.takeIf(String::isNotBlank),
+        feedType = feedType,
+        amountMl = amountMl.toDoubleOrNull(),
+        durationMinutes = durationMin.toIntOrNull(),
+        breastSide = breastSide
+    )
+
+    is EventFormState.Growth -> GrowthEvent(
+        id = eventId ?: UUID.randomUUID().toString(),
+        babyId = babyId,
+        timestamp = eventTimestamp,
+        notes = notes.takeIf(String::isNotBlank),
+        weightKg = weightKg.toDoubleOrNull(),
+        heightCm = heightCm.toDoubleOrNull(),
+        headCircumferenceCm = headCircumferenceCm.toDoubleOrNull()
+    )
+
+    is EventFormState.Pumping -> PumpingEvent(
+        id = eventId ?: UUID.randomUUID().toString(),
+        babyId = babyId,
+        timestamp = eventTimestamp,
+        notes = notes.takeIf(String::isNotBlank),
+        amountMl = amountMl.toDoubleOrNull(),
+        durationMinutes = durationMin.toIntOrNull(),
+        breastSide = breastSide
+    )
+}
+

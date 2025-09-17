@@ -203,181 +203,22 @@ class EventViewModel @Inject constructor(
 
         viewModelScope.launch {
             val state = _formState.value
-            val result: Result<Unit> = if (state.eventId != null) {
-                // EDITING
-                when (state) {
-                    is EventFormState.Diaper -> repository.updateEvent(
-                        eventId = state.eventId!!,
-                        event = DiaperEvent(
-                            id = state.eventId,
-                            babyId = babyId,
-                            diaperType = state.diaperType,
-                            poopColor = state.poopColor,
-                            poopConsistency = state.poopConsistency,
-                            notes = state.notes.takeIf(String::isNotBlank)
+            // Reuse create/update logic from previous refactor:
+            state.validateAndToEvent(babyId)
+                .fold(
+                    onFailure = { _errorMessage.value = it.message; _isSaving.value = false },
+                    onSuccess = { event ->
+                        val result = event.id
+                            ?.let { repository.updateEvent(it, event) }
+                            ?: repository.addEvent(event)
+                        result.fold(
+                            onSuccess = { _saveSuccess.value = true },
+                            onFailure = { _errorMessage.value = it.message }
                         )
-                    )
-
-                    is EventFormState.Sleep -> repository.updateEvent(
-                        eventId = state.eventId!!,
-                        event = SleepEvent(
-                            id = state.eventId,
-                            babyId = babyId,
-                            isSleeping = state.isSleeping,
-                            beginTime = state.beginTime,
-                            endTime = state.endTime,
-                            durationMinutes = state.durationMinutes,
-                            notes = state.notes.takeIf(String::isNotBlank)
-                        )
-                    )
-
-                    is EventFormState.Feeding -> repository.updateEvent(
-                        eventId = state.eventId!!,
-                        event = FeedingEvent(
-                            id = state.eventId,
-                            babyId = babyId,
-                            feedType = state.feedType,
-                            amountMl = state.amountMl.toDoubleOrNull(),
-                            durationMinutes = state.durationMin.toIntOrNull(),
-                            breastSide = state.breastSide,
-                            notes = state.notes.takeIf(String::isNotBlank)
-                        )
-                    )
-
-                    is EventFormState.Growth -> repository.updateEvent(
-                        eventId = state.eventId!!,
-                        event = GrowthEvent(
-                            id = state.eventId,
-                            babyId = babyId,
-                            weightKg = state.weightKg.toDoubleOrNull(),
-                            heightCm = state.heightCm.toDoubleOrNull(),
-                            headCircumferenceCm = state.headCircumferenceCm.toDoubleOrNull(),
-                            notes = state.notes.takeIf(String::isNotBlank)
-                        )
-                    )
-
-                    is EventFormState.Pumping -> {
-                        // Fallback to create for now or implement updatePump
-                        Result.failure(Exception("Updating pumping events not implemented"))
+                        _isSaving.value = false
                     }
-                }
-            } else {
-                // CREATING
-                when (state) {
-                    is EventFormState.Diaper -> saveDiaper(babyId, state)
-                    is EventFormState.Sleep -> saveSleep(babyId, state)
-                    is EventFormState.Feeding -> saveFeeding(babyId, state)
-                    is EventFormState.Growth -> saveGrowth(babyId, state)
-                    is EventFormState.Pumping -> Result.failure(Exception("Pumping event save not yet implemented"))
-                }
-            }
-
-            result.fold(
-                onSuccess = { _saveSuccess.value = true },
-                onFailure = { _errorMessage.value = it.message }
-            )
-            _isSaving.value = false
-        }
-    }
-
-    private suspend fun saveDiaper(babyId: String, s: EventFormState.Diaper): Result<Unit> {
-        // Validation for dirty or mixed diapers
-        if ((s.diaperType == DiaperType.DIRTY || s.diaperType == DiaperType.MIXED)
-            && s.poopColor == null && s.poopConsistency == null
-        ) {
-            return Result.failure(
-                IllegalArgumentException("For dirty diapers, specify color or consistency.")
-            )
-        }
-
-        // Construct the event
-        val event = DiaperEvent(
-            babyId = babyId,
-            diaperType = s.diaperType,
-            poopColor = s.poopColor,
-            poopConsistency = s.poopConsistency,
-            notes = s.notes.takeIf(String::isNotBlank)
-        )
-
-        // Persist via repository
-        return repository.addEvent(event)
-    }
-
-    private suspend fun saveSleep(babyId: String, s: EventFormState.Sleep): Result<Unit> {
-        if (!s.isSleeping && s.beginTime == null && s.endTime == null) {
-            return Result.failure(
-                IllegalArgumentException(
-                    "Please start and stop sleep before saving."
                 )
-            )
         }
-        val event = SleepEvent(
-            babyId = babyId,
-            isSleeping = s.isSleeping,
-            beginTime = s.beginTime,
-            endTime = s.endTime,
-            durationMinutes = s.durationMinutes,
-            notes = s.notes.takeIf(String::isNotBlank)
-        )
-        return repository.addEvent(event)
-    }
-
-    private suspend fun saveFeeding(babyId: String, s: EventFormState.Feeding): Result<Unit> {
-        val amount = s.amountMl.toDoubleOrNull()
-        val duration = s.durationMin.toIntOrNull()
-        when (s.feedType) {
-            FeedType.BREAST_MILK -> {
-                if (duration == null && s.breastSide == null && amount == null) {
-                    return Result.failure(
-                        IllegalArgumentException(
-                            "Provide duration/side or amount for breast milk."
-                        )
-                    )
-                }
-            }
-
-            FeedType.FORMULA -> if (amount == null) {
-                return Result.failure(IllegalArgumentException("Amount is required for formula."))
-            }
-
-            FeedType.SOLID -> if (s.notes.isBlank() && amount == null) {
-                return Result.failure(
-                    IllegalArgumentException(
-                        "Provide notes or amount for solids."
-                    )
-                )
-            }
-        }
-        val event = FeedingEvent(
-            babyId = babyId,
-            feedType = s.feedType,
-            amountMl = amount,
-            durationMinutes = duration,
-            breastSide = s.breastSide,
-            notes = s.notes.takeIf(String::isNotBlank)
-        )
-        return repository.addEvent(event)
-    }
-
-    private suspend fun saveGrowth(babyId: String, s: EventFormState.Growth): Result<Unit> {
-        val weight = s.weightKg.toDoubleOrNull()
-        val height = s.heightCm.toDoubleOrNull()
-        val head = s.headCircumferenceCm.toDoubleOrNull()
-        if (weight == null && height == null && head == null) {
-            return Result.failure(
-                IllegalArgumentException(
-                    "At least one measurement required."
-                )
-            )
-        }
-        val event = GrowthEvent(
-            babyId = babyId,
-            weightKg = weight,
-            heightCm = height,
-            headCircumferenceCm = head,
-            notes = s.notes.takeIf(String::isNotBlank)
-        )
-        return repository.addEvent(event)
     }
 
     fun loadEventsInRange(babyId: String) {
