@@ -35,6 +35,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun CalendarScreen(
     listState: LazyListState,
+    contentPadding: PaddingValues = PaddingValues(),
     viewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
@@ -102,6 +103,7 @@ fun CalendarScreen(
                     .fillMaxSize()
                     .padding(padding)
                     .padding(16.dp),
+                contentPadding = contentPadding,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item {

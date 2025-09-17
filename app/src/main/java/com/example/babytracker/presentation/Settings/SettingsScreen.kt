@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.map
 fun SettingsScreen(
     navController: NavController,
     listState: LazyListState,
+    contentPadding: PaddingValues = PaddingValues(),
     authViewModel: AuthViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel(),
     familyViewModel: FamilyViewModel = hiltViewModel()
@@ -71,7 +72,7 @@ fun SettingsScreen(
     Scaffold { padding ->
         LazyColumn(
             state = listState,
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = contentPadding,
             verticalArrangement = Arrangement.spacedBy(24.dp),
             modifier = Modifier
                 .fillMaxSize()

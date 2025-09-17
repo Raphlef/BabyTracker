@@ -64,6 +64,7 @@ import kotlin.math.sin
 
 @Composable
 fun BottomNavBar(
+    modifier: Modifier = Modifier,
     selectedTab: DashboardTab,
     onTabSelected: (DashboardTab) -> Unit,
     onAddClicked: () -> Unit,
@@ -72,11 +73,16 @@ fun BottomNavBar(
     eventTypes: List<Pair<String, @Composable () -> Unit>>,
     onEventTypeSelected: (String) -> Unit
 ) {
+    val baseColor = MaterialTheme.colorScheme.surface
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(bottom = 24.dp)
-            .background(Color.Transparent),
+            .background(
+                // 80% of the surface color for a subtle glass effect
+                baseColor.copy(alpha = 0.90f),
+                shape = RoundedCornerShape(24.dp)
+            ),
         contentAlignment = Alignment.BottomCenter
     ) {
         GlassIslandNavBar(

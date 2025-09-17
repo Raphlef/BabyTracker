@@ -7,11 +7,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -42,6 +44,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -83,6 +86,9 @@ fun DashboardScreen(
 ) {
     // HazeState for glassmorphic blur
     val hazeState = remember { HazeState() }
+    // Calculate floating nav total height dynamically
+    val floatingNavHeight = 64.dp + 24.dp + 42.dp // nav + bottom padding + FAB offset
+    val contentBottomPadding = PaddingValues(bottom = floatingNavHeight)
 
     // Load all babies – ensure BabyViewModel manages this
     val babies by babyViewModel.babies.collectAsState()
@@ -132,12 +138,102 @@ fun DashboardScreen(
         listState.scrollToItem(0)
     }
     Scaffold(
-        // Turn off the automatic bottom padding inset
-        //contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        containerColor = Color.Transparent, // remove Scaffold’s own background
-        bottomBar = {
-            val eventTypes = EventType.values().toList()
+    ) { paddingValues ->
+        Box(Modifier.fillMaxSize()) {
+            Column(Modifier.padding(paddingValues)) {
+                Spacer(modifier = Modifier.height(4.dp))
+                // --- BABY SELECTOR + INFO ---
+                BabySelectorRow(
+                    babies = babies,
+                    selectedBaby = selectedBaby,
+                    onSelectBaby = { babyViewModel.selectBaby(it) },
+                    onAddBaby = {
+                        // Open create baby dialog
+                        editingBaby = null
+                        showBabyDialog = true
+                    }
+                )
+
+                AnimatedVisibility(
+                    visible = showInfoBar && selectedBaby != null,
+                    enter = fadeIn(), exit = fadeOut()
+                ) {
+                    selectedBaby?.let {
+                        BabyInfoBar(it) { editingBaby = it }
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                // --- MAIN CONTENT for selected tab ---
+                Box(Modifier.weight(1f)) {
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        when (selectedTab) {
+                            DashboardTab.Home -> HomeScreen(
+                                listState,
+                                contentPadding = contentBottomPadding
+                            )
+
+                            DashboardTab.Calendar -> CalendarScreen(
+                                listState,
+                                contentPadding = contentBottomPadding
+                            )
+
+                            DashboardTab.Analysis -> AnalysisScreen(
+                                listState,
+                                contentPadding = contentBottomPadding
+                            )
+
+                            DashboardTab.Settings -> SettingsScreen(
+                                navController, listState,
+                                contentPadding = contentBottomPadding
+                            )
+                        }
+                    }
+                }
+                // --- Dialogs ---
+                // Dialog display condition
+                selectedBaby?.takeIf { showEventForm }?.let { baby ->
+                    val formState =
+                        selectedEventFormState ?: EventFormState.Diaper() // fallback default
+                    EventFormDialog(
+                        babyId = baby.id,
+                        initialEventType = formState.eventType,
+                        onDismiss = {
+                            showEventForm = false
+                            selectedEventFormState = null
+                        }
+                    )
+                }
+                editingBaby?.let { baby ->
+                    BabyFormDialog(
+                        babyToEdit = baby,
+                        onBabyUpdated = { editingBaby = null },
+                        onCancel = { editingBaby = null }
+                    )
+                }
+                if (showBabyDialog && editingBaby == null) {
+                    BabyFormDialog(
+                        babyToEdit = null,
+                        onBabyUpdated = { savedOrDeletedBaby ->
+                            showBabyDialog = false
+                            savedOrDeletedBaby?.let { babyViewModel.selectBaby(it) }
+                        },
+                        onCancel = { showBabyDialog = false },
+                        viewModel = babyViewModel
+                    )
+                }
+            }
+
+            // Floating nav sits on top, aligned bottom center
+            val eventTypes = EventType.entries
             BottomNavBar(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
                 selectedTab = selectedTab,
                 onTabSelected = { tab ->
                     // Animation vers la page correspondante
@@ -179,79 +275,6 @@ fun DashboardScreen(
                     }
                 }
             )
-        }
-    ) { paddingValues ->
-        Column(Modifier.padding(paddingValues)) {
-            Spacer(modifier = Modifier.height(4.dp))
-            // --- BABY SELECTOR + INFO ---
-            BabySelectorRow(
-                babies = babies,
-                selectedBaby = selectedBaby,
-                onSelectBaby = { babyViewModel.selectBaby(it) },
-                onAddBaby = {
-                    // Open create baby dialog
-                    editingBaby = null
-                    showBabyDialog = true
-                }
-            )
-
-            AnimatedVisibility(
-                visible = showInfoBar && selectedBaby != null,
-                enter = fadeIn(), exit = fadeOut()
-            ) {
-                selectedBaby?.let {
-                    BabyInfoBar(it) { editingBaby = it }
-                }
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            // --- MAIN CONTENT for selected tab ---
-            Box(Modifier.weight(1f)) {
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    when (selectedTab) {
-                        DashboardTab.Home -> HomeScreen(listState)
-                        DashboardTab.Calendar -> CalendarScreen(listState)
-                        DashboardTab.Analysis -> AnalysisScreen(listState)
-                        DashboardTab.Settings -> SettingsScreen(navController, listState)
-                    }
-                }
-            }
-            // --- Dialogs ---
-            // Dialog display condition
-            selectedBaby?.takeIf { showEventForm }?.let { baby ->
-                val formState =
-                    selectedEventFormState ?: EventFormState.Diaper() // fallback default
-                EventFormDialog(
-                    babyId = baby.id,
-                    initialEventType = formState.eventType,
-                    onDismiss = {
-                        showEventForm = false
-                        selectedEventFormState = null
-                    }
-                )
-            }
-            editingBaby?.let { baby ->
-                BabyFormDialog(
-                    babyToEdit = baby,
-                    onBabyUpdated = { editingBaby = null },
-                    onCancel = { editingBaby = null }
-                )
-            }
-            if (showBabyDialog && editingBaby == null) {
-                BabyFormDialog(
-                    babyToEdit = null,
-                    onBabyUpdated = { savedOrDeletedBaby ->
-                        showBabyDialog = false
-                        savedOrDeletedBaby?.let { babyViewModel.selectBaby(it) }
-                    },
-                    onCancel = { showBabyDialog = false },
-                    viewModel = babyViewModel
-                )
-            }
         }
     }
 }

@@ -44,6 +44,7 @@ import java.util.Locale
 @Composable
 fun AnalysisScreen(
     listState: LazyListState,
+    contentPadding: PaddingValues = PaddingValues(),
     eventViewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
@@ -93,7 +94,7 @@ fun AnalysisScreen(
             state = listState,
             contentPadding = PaddingValues(
                 top = padding.calculateTopPadding(),
-                bottom = 64.dp,        // allow space under island
+                bottom = contentPadding.calculateBottomPadding(),
                 start = 16.dp,
                 end = 16.dp
             ),
