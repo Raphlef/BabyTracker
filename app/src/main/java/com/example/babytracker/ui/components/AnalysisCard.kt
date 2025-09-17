@@ -315,7 +315,9 @@ fun ComboChartView(
         modifier = Modifier.fillMaxSize()
     )
 }
-
+/**
+ * Calculate optimal axis range ensuring no negative values for positive data
+ */
 fun calculateAxisRange(
     values: List<Float>,
     paddingPercentage: Float = 0.1f,
@@ -323,25 +325,40 @@ fun calculateAxisRange(
 ): Pair<Float, Float> {
     if (values.isEmpty()) return 0f to 1f
 
-    var minVal = values.minOrNull() ?: 0f
-    var maxVal = values.maxOrNull() ?: 1f
+    val minVal = values.minOrNull() ?: 0f
+    val maxVal = values.maxOrNull() ?: 1f
 
-    // Smart zero inclusion logic
-    if (forceIncludeZero || shouldIncludeZero(values)) {
-        minVal = minOf(minVal, 0f)
-        maxVal = maxOf(maxVal, 0f)
-    }
-
-    // Handle identical values
+    // Handle case where all values are the same
     if (minVal == maxVal) {
-        val padding = if (minVal == 0f) 1f else abs(minVal) * 0.1f
-        return (minVal - padding) to (maxVal + padding)
+        if (minVal >= 0f) {
+            // For non-negative single values, create small range around the value
+            val padding = if (minVal == 0f) 1f else minVal * 0.1f
+            return minVal to (minVal + padding)
+        } else {
+            // For negative single values, add padding normally
+            val padding = abs(minVal) * 0.1f
+            return (minVal - padding) to (maxVal + padding)
+        }
     }
 
-    // Add padding for visual breathing room
+    // If all values are non-negative, ensure axis minimum is never negative
+    if (minVal >= 0f) {
+        val dataRange = maxVal - minVal
+        val padding = dataRange * paddingPercentage
+
+        val calculatedMin = if (forceIncludeZero || shouldIncludeZero(values)) {
+            0f  // Include zero and don't go below it
+        } else {
+            maxOf(0f, minVal - padding)  // NEVER go below 0 for positive data
+        }
+
+        val calculatedMax = maxVal + padding
+        return calculatedMin to calculatedMax
+    }
+
+    // If data contains actual negative values, use normal calculation
     val dataRange = maxVal - minVal
     val padding = dataRange * paddingPercentage
-
     return (minVal - padding) to (maxVal + padding)
 }
 
@@ -349,12 +366,11 @@ private fun shouldIncludeZero(values: List<Float>): Boolean {
     val min = values.minOrNull() ?: 0f
     val max = values.maxOrNull() ?: 0f
 
-    // Include zero if data spans across it
+    // If data spans across zero, include it
     if (min < 0 && max > 0) return true
 
-    // Include zero if minimum is close to zero (within 20% of range)
+    // If all positive and min is less than 20% of range, include zero
     if (min >= 0 && min <= (max - min) * 0.2f) return true
 
     return false
 }
-
