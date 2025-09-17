@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,6 +17,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
@@ -37,6 +40,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -57,6 +61,7 @@ import com.example.babytracker.presentation.settings.SettingsScreen
 import com.example.babytracker.ui.components.BabyInfoBar
 import com.example.babytracker.ui.components.BottomNavBar
 import dev.chrisbanes.haze.HazeState
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 
@@ -87,8 +92,6 @@ fun DashboardScreen(
     var showEventForm by remember { mutableStateOf(false) }
     var selectedEventFormState by remember { mutableStateOf<EventFormState?>(null) }
 
-    // Tabs state
-    var selectedTab by remember { mutableStateOf(DashboardTab.Home) }
 
     // Initialize selectedBaby on first composition
     LaunchedEffect(babies, initialBabyId) {
@@ -107,11 +110,27 @@ fun DashboardScreen(
             listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset < 20
         }
     }
+
+    val tabs = listOf(
+        DashboardTab.Home,
+        DashboardTab.Calendar,
+        DashboardTab.Analysis,
+        DashboardTab.Settings
+    )
+    val pagerState = rememberPagerState(
+        initialPage = 0,
+        pageCount = { tabs.size }
+    )
+    val coroutineScope = rememberCoroutineScope()
+
+    // Synchronisation entre l'onglet sélectionné et le pager
+    val selectedTab by remember {
+        derivedStateOf { tabs[pagerState.currentPage] }
+    }
     // Reset scroll when baby changes or when switching tab
     LaunchedEffect(selectedTab, selectedBaby?.id) {
         listState.scrollToItem(0)
     }
-
     Scaffold(
         // Turn off the automatic bottom padding inset
         //contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -120,14 +139,17 @@ fun DashboardScreen(
             val eventTypes = EventType.values().toList()
             BottomNavBar(
                 selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it },
+                onTabSelected = { tab ->
+                    // Animation vers la page correspondante
+                    val index = tabs.indexOf(tab)
+                    if (index != -1) {
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(index)
+                        }
+                    }
+                },
                 onAddClicked = { showEventForm = true },
-                navItems = listOf(
-                    DashboardTab.Home,
-                    DashboardTab.Calendar,
-                    DashboardTab.Analysis,
-                    DashboardTab.Settings
-                ),
+                navItems = tabs,
                 hazeState = hazeState,
                 eventTypes = eventTypes.map { et ->
                     et.displayName to @Composable {
@@ -186,11 +208,16 @@ fun DashboardScreen(
 
             // --- MAIN CONTENT for selected tab ---
             Box(Modifier.weight(1f)) {
-                when (selectedTab) {
-                    DashboardTab.Home -> HomeScreen(listState)
-                    DashboardTab.Calendar -> CalendarScreen(listState)
-                    DashboardTab.Analysis -> AnalysisScreen(listState)
-                    DashboardTab.Settings -> SettingsScreen(navController, listState)
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    when (selectedTab) {
+                        DashboardTab.Home -> HomeScreen(listState)
+                        DashboardTab.Calendar -> CalendarScreen(listState)
+                        DashboardTab.Analysis -> AnalysisScreen(listState)
+                        DashboardTab.Settings -> SettingsScreen(navController, listState)
+                    }
                 }
             }
             // --- Dialogs ---
