@@ -1,5 +1,6 @@
 [versions]
 agp = "8.13.0"
+coilCompose = "2.7.0"
 foundation = "1.9.1"
 foundationVersion = "1.4.3"
 gradle = "8.13.0"
@@ -33,6 +34,7 @@ androidx-compose-foundation = { module = "androidx.compose.foundation:foundation
 androidx-compose-ui-text = { module = "androidx.compose.ui:ui-text", version.ref = "uiText" }
 androidx-datastore-preferences = "androidx.datastore:datastore-preferences:1.1.7"
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }

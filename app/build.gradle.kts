@@ -99,4 +99,6 @@ dependencies {
 
     implementation(libs.haze)
 
+    implementation(libs.coil.compose)
+
 }
