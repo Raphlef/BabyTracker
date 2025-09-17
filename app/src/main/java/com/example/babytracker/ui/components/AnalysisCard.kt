@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -44,14 +45,21 @@ fun AnalysisCard(
         modifier = Modifier
             .fillMaxWidth()
             .height(260.dp)
-            .padding(vertical = 8.dp),
+            .padding(vertical = 8.dp)
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(16.dp),
+                clip = false
+            ),
         shape = RoundedCornerShape(16.dp),
-        color = Color.White.copy(alpha = 0.4f),
-        tonalElevation = 8.dp
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 4.dp
     ) {
         Column(Modifier.fillMaxSize()) {
             Text(
-                title, style = MaterialTheme.typography.titleLarge,
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(12.dp)
             )
             Box(
@@ -315,6 +323,7 @@ fun ComboChartView(
         modifier = Modifier.fillMaxSize()
     )
 }
+
 /**
  * Calculate optimal axis range ensuring no negative values for positive data
  */
