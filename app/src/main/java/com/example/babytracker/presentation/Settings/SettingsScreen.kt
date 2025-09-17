@@ -72,7 +72,7 @@ fun SettingsScreen(
     Scaffold { padding ->
         LazyColumn(
             state = listState,
-            contentPadding = contentPadding,
+            contentPadding = contentPadding ,
             verticalArrangement = Arrangement.spacedBy(24.dp),
             modifier = Modifier
                 .fillMaxSize()
@@ -183,7 +183,7 @@ fun SettingsScreen(
             // — Baby Co-parents Section (unchanged) —
             item {
                 SectionTitle("Mon bébé")
-                ParentsCard(babyViewModel,navController)
+                ParentsCard(babyViewModel, navController)
             }
 
             // — Family Management Section —
@@ -529,7 +529,7 @@ private fun ParentsCard(
                     selectedBaby = baby
                     babyViewModel.loadParents(baby.id)
                 },
-                onAddBaby = {  showBabyDialog = true }
+                onAddBaby = { showBabyDialog = true }
             )
 
             HorizontalDivider(

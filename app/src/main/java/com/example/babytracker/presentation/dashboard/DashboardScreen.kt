@@ -50,6 +50,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.example.babytracker.data.Baby
 import com.example.babytracker.data.EventFormState
@@ -86,10 +88,12 @@ fun DashboardScreen(
 ) {
     // HazeState for glassmorphic blur
     val hazeState = remember { HazeState() }
-    // Calculate floating nav total height dynamically
-    val floatingNavHeight = 64.dp + 24.dp + 42.dp // nav + bottom padding + FAB offset
-    val contentBottomPadding = PaddingValues(bottom = floatingNavHeight)
 
+    val density = LocalDensity.current
+
+    // State for measured height in Dp
+    var bottomBarHeightDp by remember { mutableStateOf(0.dp) }
+    val contentPadding = PaddingValues(bottom = bottomBarHeightDp)
     // Load all babies – ensure BabyViewModel manages this
     val babies by babyViewModel.babies.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
@@ -174,22 +178,22 @@ fun DashboardScreen(
                         when (selectedTab) {
                             DashboardTab.Home -> HomeScreen(
                                 listState,
-                                contentPadding = contentBottomPadding
+                                contentPadding = contentPadding
                             )
 
                             DashboardTab.Calendar -> CalendarScreen(
                                 listState,
-                                contentPadding = contentBottomPadding
+                                contentPadding = contentPadding
                             )
 
                             DashboardTab.Analysis -> AnalysisScreen(
                                 listState,
-                                contentPadding = contentBottomPadding
+                                contentPadding = contentPadding
                             )
 
                             DashboardTab.Settings -> SettingsScreen(
                                 navController, listState,
-                                contentPadding = contentBottomPadding
+                                contentPadding = contentPadding
                             )
                         }
                     }
@@ -229,52 +233,61 @@ fun DashboardScreen(
             }
 
             // Floating nav sits on top, aligned bottom center
-            val eventTypes = EventType.entries
-            BottomNavBar(
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .fillMaxWidth(),
-                selectedTab = selectedTab,
-                onTabSelected = { tab ->
-                    // Animation vers la page correspondante
-                    val index = tabs.indexOf(tab)
-                    if (index != -1) {
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage(index)
+                    .onGloballyPositioned { coords ->
+                        // Measure height of this Box (nav + offsets)
+                        bottomBarHeightDp = with(density) { coords.size.height.toDp() }
+                    }
+            ) {
+                val eventTypes = EventType.entries
+                BottomNavBar(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth(),
+                    selectedTab = selectedTab,
+                    onTabSelected = { tab ->
+                        // Animation vers la page correspondante
+                        val index = tabs.indexOf(tab)
+                        if (index != -1) {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(index)
+                            }
                         }
-                    }
-                },
-                onAddClicked = { showEventForm = true },
-                navItems = tabs,
-                hazeState = hazeState,
-                eventTypes = eventTypes.map { et ->
-                    et.displayName to @Composable {
-                        Icon(
-                            et.icon,
-                            et.displayName
-                        )
-                    }
-                },
-                onEventTypeSelected = { eventTypeName ->
-                    val eventType = try {
-                        EventType.valueOf(eventTypeName.uppercase(Locale.getDefault()))
-                    } catch (e: IllegalArgumentException) {
-                        Log.w("EventForm", "Unknown eventTypeString: $eventTypeName")
-                        null
-                    }
+                    },
+                    onAddClicked = { showEventForm = true },
+                    navItems = tabs,
+                    hazeState = hazeState,
+                    eventTypes = eventTypes.map { et ->
+                        et.displayName to @Composable {
+                            Icon(
+                                et.icon,
+                                et.displayName
+                            )
+                        }
+                    },
+                    onEventTypeSelected = { eventTypeName ->
+                        val eventType = try {
+                            EventType.valueOf(eventTypeName.uppercase(Locale.getDefault()))
+                        } catch (e: IllegalArgumentException) {
+                            Log.w("EventForm", "Unknown eventTypeString: $eventTypeName")
+                            null
+                        }
 
-                    eventType?.let {
-                        selectedEventFormState = when (it) {
-                            EventType.DIAPER -> EventFormState.Diaper()
-                            EventType.FEEDING -> EventFormState.Feeding()
-                            EventType.SLEEP -> EventFormState.Sleep()
-                            EventType.GROWTH -> EventFormState.Growth()
-                            EventType.PUMPING -> EventFormState.Pumping()
+                        eventType?.let {
+                            selectedEventFormState = when (it) {
+                                EventType.DIAPER -> EventFormState.Diaper()
+                                EventType.FEEDING -> EventFormState.Feeding()
+                                EventType.SLEEP -> EventFormState.Sleep()
+                                EventType.GROWTH -> EventFormState.Growth()
+                                EventType.PUMPING -> EventFormState.Pumping()
+                            }
+                            showEventForm = true
                         }
-                        showEventForm = true
                     }
-                }
-            )
+                )
+            }
         }
     }
 }

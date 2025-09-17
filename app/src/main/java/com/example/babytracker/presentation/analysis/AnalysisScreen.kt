@@ -80,11 +80,10 @@ fun AnalysisScreen(
         }
     }
     Scaffold(
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = Modifier.fillMaxSize()
-    ) { padding ->
+    ) { innerPadding ->
 
         val bgTop = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
         val bgBottom = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
@@ -92,12 +91,7 @@ fun AnalysisScreen(
 
         LazyColumn(
             state = listState,
-            contentPadding = PaddingValues(
-                top = padding.calculateTopPadding(),
-                bottom = contentPadding.calculateBottomPadding(),
-                start = 16.dp,
-                end = 16.dp
-            ),
+            contentPadding = contentPadding,
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
                 .fillMaxSize()
@@ -105,7 +99,7 @@ fun AnalysisScreen(
                     Brush.verticalGradient(
                         listOf(bgTop, bgBottom)
                     )
-                )
+                ).padding(innerPadding)
         ) {
             item {
                 val startDate = last7Days.first().format(DateTimeFormatter.ofPattern("dd/MM"))
