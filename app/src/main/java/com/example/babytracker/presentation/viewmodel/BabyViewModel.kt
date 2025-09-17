@@ -1,5 +1,6 @@
 package com.example.babytracker.presentation.viewmodel
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.babytracker.data.Baby
@@ -105,22 +106,41 @@ class BabyViewModel @Inject constructor(
         _selectedBaby.value = baby
     }
 
-    fun addBaby(name: String, birthDate: Long, gender: Gender = Gender.UNKNOWN) {
+    fun addBaby(
+        name: String,
+        birthDate: Long,
+        gender: Gender = Gender.UNKNOWN,
+        photoUri: Uri? = null
+    ) {
         _isLoading.value = true
+        _errorMessage.value = null
+
         viewModelScope.launch {
-            // 1. Appel repository
-            val result = repository.addOrUpdateBaby(
-                Baby(name = name, birthDate = birthDate, gender = gender)
-            )
-            // 2. Vérifier échec
-            if (result.isFailure) {
-                // Extraire la cause
-                val cause = result.exceptionOrNull()
-                _errorMessage.value = cause?.message ?: "Échec inattendu"
-            } else {
-                _errorMessage.value = null
+            try {
+                // 1. Create baby without photo first
+                val baby = Baby(name = name, birthDate = birthDate, gender = gender)
+                val result = repository.addOrUpdateBaby(baby)
+
+                if (result.isFailure) {
+                    _errorMessage.value = result.exceptionOrNull()?.message ?: "Échec inattendu"
+                    return@launch
+                }
+
+                // 2. Upload photo if provided
+                photoUri?.let { uri ->
+                    // Find the newly created baby to get its ID
+                    val createdBaby = repository.getBabies().getOrNull()
+                        ?.find { it.name == name && it.birthDate == birthDate }
+
+                    createdBaby?.let { baby ->
+                        uploadBabyPhoto(baby.id, uri)
+                    }
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = e.message ?: "Unexpected error"
+            } finally {
+                _isLoading.value = false
             }
-            _isLoading.value = false
         }
     }
 
@@ -137,19 +157,24 @@ class BabyViewModel @Inject constructor(
         allergies: List<String> = emptyList(),
         medicalConditions: List<String> = emptyList(),
         pediatricianContact: String? = null,
-        notes: String? = null
+        notes: String? = null,
+        photoUri: Uri? = null
     ) {
         _isLoading.value = true
         _errorMessage.value = null
 
         viewModelScope.launch {
             try {
-                // Get current baby or fallback to a blank one
-                val current = _selectedBaby.value
-                    ?: repository.getBabyById(id)
-                    ?: throw IllegalStateException("Baby not found")
+                // 1. Upload photo first if provided
+                val photoUrl = photoUri?.let { uri ->
+                    uploadBabyPhoto(id, uri)
+                }
 
-                // Build the updated Baby object, copying over preserved fields
+                // 2. Get current baby
+                val current = _selectedBaby.value
+                    ?: repository.getBabyById(id).getOrThrow()
+
+                // 3. Update baby with new photo URL or keep existing
                 val updated = Baby(
                     id = id,
                     name = name,
@@ -164,21 +189,30 @@ class BabyViewModel @Inject constructor(
                     medicalConditions = medicalConditions,
                     pediatricianContact = pediatricianContact,
                     notes = notes,
+                    photoUri = photoUrl ?: current!!.photoUri,
                     updatedAt = System.currentTimeMillis()
                 )
 
-                repository.addOrUpdateBaby(updated)
+                repository.addOrUpdateBaby(updated).getOrThrow()
                 _selectedBaby.value = updated
 
             } catch (e: Exception) {
-                Log.e("BabyViewModel", "Error updating baby: ${e.message}", e)
+                Log.e("BabyViewModel", "Error updating baby with photo: ${e.message}", e)
                 _errorMessage.value = "Échec de la mise à jour: ${e.localizedMessage}"
             } finally {
                 _isLoading.value = false
             }
         }
     }
-
+    private suspend fun uploadBabyPhoto(babyId: String, photoUri: Uri): String? {
+        return try {
+            repository.addPhotoToEntity("babies", babyId, photoUri)
+        } catch (e: Exception) {
+            Log.e("BabyViewModel", "Photo upload failed: ${e.message}", e)
+            _errorMessage.value = "Photo upload failed: ${e.localizedMessage}"
+            null
+        }
+    }
     fun loadDefaultBaby(defaultBabyId: String?) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -213,13 +247,23 @@ class BabyViewModel @Inject constructor(
     fun deleteBaby(babyId: String) {
         _isLoading.value = true
         viewModelScope.launch {
-            repository.deleteBabyAndEvents(babyId).onFailure {
-                _errorMessage.value = "Échec de la suppression : ${it.message}"
+            try {
+                // 1. Delete photo from Firebase Storage and Firestore field
+                repository.deletePhotoFromEntity("babies", babyId)
+
+                // 2. Delete Firestore baby document and related events
+                repository.deleteBabyAndEvents(babyId).getOrThrow()
+
+                // 3. Clear selected baby if it was deleted
+                if (_selectedBaby.value?.id == babyId) {
+                    _selectedBaby.value = null
+                }
+
+            } catch (e: Exception) {
+                _errorMessage.value = "Échec de la suppression : ${e.message}"
+            } finally {
+                _isLoading.value = false
             }
-            if (_selectedBaby.value?.id == babyId) {
-                _selectedBaby.value = null
-            }
-            _isLoading.value = false
         }
     }
 }

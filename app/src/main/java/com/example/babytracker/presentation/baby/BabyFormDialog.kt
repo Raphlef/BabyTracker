@@ -325,7 +325,8 @@ fun BabyFormDialog(
                             allergies = babyBeingSaved.allergies,
                             medicalConditions = babyBeingSaved.medicalConditions,
                             pediatricianContact = babyBeingSaved.pediatricianContact,
-                            notes = babyBeingSaved.notes
+                            notes = babyBeingSaved.notes,
+                            photoUri= photoUri,
                         )
                     } else {
                         viewModel.addBaby(
