@@ -121,7 +121,8 @@ fun AnalysisScreen(
                 AnalysisCard(title = "Daily Poop Count") {
                     BarChartView(
                         labels = last7DaysLabels,
-                        values = poopCounts.map { it.toFloat() }
+                        values = poopCounts.map { it.toFloat() },
+                        forceIncludeZero = true
                     )
                 }
             }
@@ -134,7 +135,8 @@ fun AnalysisScreen(
                 AnalysisCard(title = "Daily Sleep (min)") {
                     LineChartView(
                         labels = last7DaysLabels,
-                        values = sleepMins
+                        values = sleepMins,
+                        forceIncludeZero = true
                     )
                 }
             }
