@@ -27,6 +27,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.babytracker.data.*
 import com.example.babytracker.presentation.viewmodel.EventViewModel
 import android.text.format.DateFormat
+import androidx.compose.ui.platform.LocalConfiguration
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -44,6 +45,15 @@ fun EventFormDialog(
     val saveSuccess by viewModel.saveSuccess.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val currentType = formState.eventType
+
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+    val verticalPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() +
+            WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
+
+
+    val footerHeight = 72.dp
+    val maxDialogHeight = screenHeight - verticalPadding - footerHeight // extra buffer
 
     var selectedDate by remember(formState.eventTimestamp) {
         mutableStateOf(formState.eventTimestamp)
@@ -74,143 +84,165 @@ fun EventFormDialog(
         Surface(
             shape = RoundedCornerShape(24.dp),
             tonalElevation = 8.dp,
+            color = MaterialTheme.colorScheme.surface,
             modifier = Modifier
                 .fillMaxWidth()          // use full width
                 .padding(horizontal = 16.dp)
                 .wrapContentHeight()
         ) {
-            Column(
+
+            Box(
                 modifier = Modifier
-                    .verticalScroll(rememberScrollState())
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                    .fillMaxWidth()
+                    .heightIn(max = maxDialogHeight)
             ) {
-                // Header
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = if (formState.eventId == null) "Add Event" else "Edit Event",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier
-                            .background(
-                                MaterialTheme.colorScheme.surfaceVariant,
-                                CircleShape
-                            )
-                            .size(40.dp)
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
-                    }
-                }
-
-                if (errorMessage != null) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(
-                            errorMessage!!,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.padding(12.dp)
-                        )
-                    }
-                }
-
-                // Event Type Selector (only for new events)
-                val isEditMode = formState.eventId != null
-                if (isEditMode) {
-                    // Edit mode: show only the selected icon (no list)
-                    Column {
-                        Text(
-                            text = "Event Type",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(bottom = 12.dp)
-                        )
-                        Row {
-                            currentType?.let { type ->
-                                Icon(
-                                    imageVector = type.icon,
-                                    contentDescription = type.displayName,
-                                    tint = type.color,
-                                    modifier = Modifier.size(32.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = type.displayName,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    IconSelector(
-                        title = "Event Type",
-                        options = EventType.entries,
-                        selected = currentType,
-                        onSelect = { type ->
-                            val newState = when (type) {
-                                EventType.DIAPER -> EventFormState.Diaper()
-                                EventType.FEEDING -> EventFormState.Feeding()
-                                EventType.SLEEP -> EventFormState.Sleep()
-                                EventType.GROWTH -> EventFormState.Growth()
-                                EventType.PUMPING -> EventFormState.Pumping()
-                            }
-                            viewModel.updateForm { newState }
-                        },
-                        getIcon = { it.icon },
-                        getLabel = { it.displayName },
-                        getColor = { it.color }
-                    )
-                }
-
-                // Date Selector
-                ModernDateSelector(
-                    selectedDate = selectedDate,
-                    onDateSelected = {
-                        selectedDate = it
-                        viewModel.updateEventTimestamp(it)
-                    }
-                )
-
-                // Event-specific form content
-                when (val s = formState) {
-                    is EventFormState.Diaper -> DiaperForm(s, viewModel)
-                    is EventFormState.Sleep -> SleepForm(s, viewModel)
-                    is EventFormState.Feeding -> FeedingForm(s, viewModel)
-                    is EventFormState.Growth -> GrowthForm(s, viewModel)
-                    is EventFormState.Pumping -> PumpingForm()
-                }
-
-                // Save button
-                Button(
-                    onClick = { viewModel.validateAndSave(babyId) },
-                    enabled = !isSaving,
-                    shape = RoundedCornerShape(16.dp),
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
+                        .padding(horizontal = 24.dp, vertical = 20.dp)
+                        .padding(bottom = footerHeight)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    if (isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text("Saving…")
-                    } else {
+                    // Header
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Text(
-                            if (formState.eventId == null) "Create Event" else "Update Event",
-                            style = MaterialTheme.typography.titleMedium
+                            text = if (formState.eventId == null) "Add Event" else "Edit Event",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
                         )
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceVariant,
+                                    CircleShape
+                                )
+                                .size(40.dp)
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = "Close")
+                        }
+                    }
+
+                    if (errorMessage != null) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                errorMessage!!,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    }
+
+                    // Event Type Selector (only for new events)
+                    val isEditMode = formState.eventId != null
+                    if (isEditMode) {
+                        // Edit mode: show only the selected icon (no list)
+                        Column {
+                            Text(
+                                text = "Event Type",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+                            Row {
+                                currentType?.let { type ->
+                                    Icon(
+                                        imageVector = type.icon,
+                                        contentDescription = type.displayName,
+                                        tint = type.color,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = type.displayName,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        IconSelector(
+                            title = "Event Type",
+                            options = EventType.entries,
+                            selected = currentType,
+                            onSelect = { type ->
+                                val newState = when (type) {
+                                    EventType.DIAPER -> EventFormState.Diaper()
+                                    EventType.FEEDING -> EventFormState.Feeding()
+                                    EventType.SLEEP -> EventFormState.Sleep()
+                                    EventType.GROWTH -> EventFormState.Growth()
+                                    EventType.PUMPING -> EventFormState.Pumping()
+                                }
+                                viewModel.updateForm { newState }
+                            },
+                            getIcon = { it.icon },
+                            getLabel = { it.displayName },
+                            getColor = { it.color }
+                        )
+                    }
+
+                    // Date Selector
+                    ModernDateSelector(
+                        selectedDate = selectedDate,
+                        onDateSelected = {
+                            selectedDate = it
+                            viewModel.updateEventTimestamp(it)
+                        }
+                    )
+
+                    // Event-specific form content
+                    when (val s = formState) {
+                        is EventFormState.Diaper -> DiaperForm(s, viewModel)
+                        is EventFormState.Sleep -> SleepForm(s, viewModel)
+                        is EventFormState.Feeding -> FeedingForm(s, viewModel)
+                        is EventFormState.Growth -> GrowthForm(s, viewModel)
+                        is EventFormState.Pumping -> PumpingForm()
+                    }
+                }
+                // Save button
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel", color  = MaterialTheme.colorScheme.primary)
+                    }
+                    Spacer(Modifier.weight(1f))
+                    Button(
+                        onClick = { viewModel.validateAndSave(babyId) },
+                        enabled = !isSaving,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                    ) {
+                        if (isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("Saving…")
+                        } else {
+                            Text(
+                                if (formState.eventId == null) "Create Event" else "Update Event",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
                     }
                 }
             }
@@ -366,7 +398,7 @@ fun ModernDateSelector(
     if (showTimePicker) {
         ShowTimePickerDialog(
             label = "Event Time",
-            initialDate  = Date(interimDateMillis),
+            initialDate = Date(interimDateMillis),
             onTimeSelected = { timeDate ->
                 // Merge date + time
                 val cal = Calendar.getInstance().apply {
@@ -456,7 +488,8 @@ private fun ShowTimePickerDialog(
 ) {
     // Extract initial hour/minute
     val (initialHour, initialMinute) = remember(initialDate) {
-        Calendar.getInstance().apply { time = initialDate }.let { it.get(Calendar.HOUR_OF_DAY) to it.get(Calendar.MINUTE) }
+        Calendar.getInstance().apply { time = initialDate }
+            .let { it.get(Calendar.HOUR_OF_DAY) to it.get(Calendar.MINUTE) }
     }
     val context = LocalContext.current
     val is24Hour = DateFormat.is24HourFormat(context)
@@ -490,6 +523,7 @@ private fun ShowTimePickerDialog(
         }
     )
 }
+
 @Composable
 private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
     // Diaper Type
