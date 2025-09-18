@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,17 +24,15 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.example.babytracker.data.Baby
 import com.example.babytracker.data.Family
 import com.example.babytracker.data.PrivacyLevel
 import com.example.babytracker.data.Theme
-import com.example.babytracker.presentation.baby.BabyFormDialog
-import com.example.babytracker.presentation.dashboard.BabySelectorRow
 import com.example.babytracker.presentation.event.IconSelector
 import com.example.babytracker.presentation.viewmodel.AuthViewModel
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import com.example.babytracker.presentation.viewmodel.FamilyViewModel
 import kotlinx.coroutines.flow.map
+import java.util.Locale
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -219,15 +218,15 @@ fun SettingsScreen(
 @Composable
 fun FamilyManagementCard(
     families: List<Family>,
-    vm: FamilyViewModel,
+    familyViewModel: FamilyViewModel,
     isLoading: Boolean
 ) {
     // Selected family from ViewModel
-    val selected by vm.selectedFamily.collectAsState()
+    val selected by familyViewModel.selectedFamily.collectAsState()
     // **Automatically select the first family when the list loads (or changes)**
     LaunchedEffect(families) {
         if (selected == null && families.isNotEmpty()) {
-            vm.selectFamily(families.first())
+            familyViewModel.selectFamily(families.first())
         }
     }
     // Local editable state mirroring Family properties
@@ -247,19 +246,27 @@ fun FamilyManagementCard(
             if (families.isEmpty()) {
                 Text("Aucune famille enregistrée", color = Color.Gray)
             } else {
-                families.forEach { family ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                vm.selectFamily(family)
-                            }
-                            .padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(family.name, style = MaterialTheme.typography.bodyLarge)
-                    }
+                // "Créer nouvelle famille" option always visible
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { familyViewModel.selectFamily(null) }
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "➕ Créer une nouvelle famille",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (selected == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                    )
                 }
+
+                Divider()
+                FamilyList(
+                    families = families,
+                    selectedFamily = selected,
+                    onSelect = { familyViewModel.selectFamily(it) }
+                )
             }
 
             Divider()
@@ -324,19 +331,27 @@ fun FamilyManagementCard(
             }
 
             // Privacy & Timezone
-            DropdownSetting(
-                label = "Niveau de confidentialité",
-                options = PrivacyLevel.entries.map { it.name },
-                selected = privacyLevel,
-                enabled = !isLoading
-            ) { privacyLevel = it }
+            IconSelector(
+                title = "Niveau de confidentialité",
+                options = PrivacyLevel.entries.toList(),
+                selected = PrivacyLevel.values().find { it.name == privacyLevel },
+                onSelect = { selected -> privacyLevel = selected.name },
+                getIcon = { level ->
+                    when (level) {
+                        PrivacyLevel.PRIVATE     -> Icons.Default.Lock
+                        PrivacyLevel.FAMILY_ONLY -> Icons.Default.Group
+                        PrivacyLevel.PUBLIC      -> Icons.Default.Public
+                    }
+                },
+                getLabel = { it.name.replace('_', ' ').lowercase() }
+            )
 
 
             // Save / Delete buttons
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 selected?.let {
                     TextButton(
-                        onClick = { vm.deleteFamily(it.id) },
+                        onClick = { familyViewModel.deleteFamily(it.id) },
                         enabled = !isLoading,
                         modifier = Modifier.weight(1f)
                     ) {
@@ -356,7 +371,7 @@ fun FamilyManagementCard(
                                 defaultPrivacy = PrivacyLevel.valueOf(privacyLevel)
                             )
                         )
-                        vm.createOrUpdateFamily(updated)
+                        familyViewModel.createOrUpdateFamily(updated)
                     },
                     enabled = name.isNotBlank() && !isLoading,
                     modifier = Modifier.weight(1f)
@@ -366,7 +381,7 @@ fun FamilyManagementCard(
             }
 
             // Display any error
-            vm.state.collectAsState().value.error?.let {
+            familyViewModel.state.collectAsState().value.error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error)
             }
 
@@ -374,6 +389,60 @@ fun FamilyManagementCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FamilyList(
+    families: List<Family>,
+    selectedFamily: Family?,
+    onSelect: (Family) -> Unit
+) {
+    Column  {
+        families.forEach{ family ->
+            val isSelected = family.id == selectedFamily?.id
+            Surface(
+                tonalElevation = if (isSelected) 4.dp else 0.dp,
+                shape = MaterialTheme.shapes.medium,
+                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                else MaterialTheme.colorScheme.surface,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .clickable { onSelect(family) }
+            ) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FamilyRestroom,
+                        contentDescription = null,
+                        tint = if (isSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = family.name,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            color = if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurface
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (isSelected) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "Selected",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SectionCard(
