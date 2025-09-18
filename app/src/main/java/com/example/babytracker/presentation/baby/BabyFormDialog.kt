@@ -34,7 +34,6 @@ import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import com.example.babytracker.presentation.viewmodel.EventViewModel
 import java.text.SimpleDateFormat
 import java.util.*
-import androidx.core.net.toUri
 
 @Composable
 fun BabyFormDialog(
@@ -85,7 +84,7 @@ fun BabyFormDialog(
             baby?.let { timeInMillis = it.birthDate }
         })
     }
-    var photoUri by remember { mutableStateOf(baby?.photoUri?.let { Uri.parse(it) }) }
+    var photoUrl by remember { mutableStateOf(baby?.photoUrl?.let { Uri.parse(it) }) }
     var gender by remember { mutableStateOf(baby?.gender ?: Gender.UNKNOWN) }
     var weight by remember { mutableStateOf(baby?.birthWeightKg?.toString().orEmpty()) }
     var lengthCm by remember { mutableStateOf(baby?.birthLengthCm?.toString().orEmpty()) }
@@ -171,7 +170,7 @@ fun BabyFormDialog(
                     if (nameError) Text("Name is required", color = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.height(12.dp))
 
-                    PhotoPicker(photoUri = photoUri, onPhotoSelected = { photoUri = it })
+                    PhotoPicker(photoUrl = photoUrl, onPhotoSelected = { photoUrl = it })
                     Spacer(Modifier.height(12.dp))
 
                     Button(onClick = { datePicker.show() }) {
@@ -300,49 +299,51 @@ fun BabyFormDialog(
                         return@TextButton
                     }
 
-                    fun buildBaby(id: String): Baby = Baby(
-                        id = id,
-                        name = name.trim(),
-                        birthDate = birthDate.timeInMillis,
-                        gender = gender,
-                        birthWeightKg = weight.toDoubleOrNull(),
-                        birthLengthCm = lengthCm.toDoubleOrNull(),
-                        birthHeadCircumferenceCm = headCirc.toDoubleOrNull(),
-                        birthTime = birthTime.ifBlank { null },
-                        bloodType = bloodType,
-                        allergies = allergies.split(",").map { it.trim() }
-                            .filter { it.isNotEmpty() },
-                        medicalConditions = conditions.split(",").map { it.trim() }
-                            .filter { it.isNotEmpty() },
-                        pediatricianContact = pediatricianContact.ifBlank { null },
-                        notes = notes.ifBlank { null },
-                        updatedAt = System.currentTimeMillis(),
-                        photoUri = photoUri as String?
-                    )
+                    fun buildBabyData(): Pair<Baby, Uri?> {
+                        val baby = Baby(
+                            id = if (isEditMode) babyToEdit.id else "",
+                            name = name.trim(),
+                            birthDate = birthDate.timeInMillis,
+                            gender = gender,
+                            birthWeightKg = weight.toDoubleOrNull(),
+                            birthLengthCm = lengthCm.toDoubleOrNull(),
+                            birthHeadCircumferenceCm = headCirc.toDoubleOrNull(),
+                            birthTime = birthTime.ifBlank { null },
+                            bloodType = bloodType,
+                            allergies = allergies.split(",").map { it.trim() }
+                                .filter { it.isNotEmpty() },
+                            medicalConditions = conditions.split(",").map { it.trim() }
+                                .filter { it.isNotEmpty() },
+                            pediatricianContact = pediatricianContact.ifBlank { null },
+                            notes = notes.ifBlank { null },
+                            updatedAt = System.currentTimeMillis(),
+                            // Keep existing photoUrl for edit mode, null for new baby
+                            photoUrl = if (isEditMode) babyToEdit.photoUrl else null
+                        )
+                        return Pair(baby, photoUrl) // Return both baby data and new photo URI
+                    }
 
-                    val babyBeingSaved =
-                        if (isEditMode) buildBaby(babyToEdit!!.id) else buildBaby("")
+                    val (babyData, newPhotoUrl) = buildBabyData()
 
-                    savedBabyLocal = babyBeingSaved
+                    savedBabyLocal = babyData
                     saveClicked = true
 
                     viewModel.saveBaby(
-                        id = babyBeingSaved.id,
-                        name = babyBeingSaved.name,
-                        birthDate = babyBeingSaved.birthDate,
-                        gender = babyBeingSaved.gender,
-                        birthWeightKg = babyBeingSaved.birthWeightKg,
-                        birthLengthCm = babyBeingSaved.birthLengthCm,
-                        birthHeadCircumferenceCm = babyBeingSaved.birthHeadCircumferenceCm,
-                        birthTime = babyBeingSaved.birthTime,
-                        bloodType = babyBeingSaved.bloodType,
-                        allergies = babyBeingSaved.allergies,
-                        medicalConditions = babyBeingSaved.medicalConditions,
-                        pediatricianContact = babyBeingSaved.pediatricianContact,
-                        notes = babyBeingSaved.notes,
-                        photoUri = babyBeingSaved.photoUri?.toUri(),
+                        id = babyData.id,
+                        name = babyData.name,
+                        birthDate = babyData.birthDate,
+                        gender = babyData.gender,
+                        birthWeightKg = babyData.birthWeightKg,
+                        birthLengthCm = babyData.birthLengthCm,
+                        birthHeadCircumferenceCm = babyData.birthHeadCircumferenceCm,
+                        birthTime = babyData.birthTime,
+                        bloodType = babyData.bloodType,
+                        allergies = babyData.allergies,
+                        medicalConditions = babyData.medicalConditions,
+                        pediatricianContact = babyData.pediatricianContact,
+                        notes = babyData.notes,
+                        photoUrl = newPhotoUrl // Pass the Uri directly
                     )
-
                 },
                 enabled = !isLoading
             ) {
@@ -450,7 +451,7 @@ fun NumericField(
 
 @Composable
 fun PhotoPicker(
-    photoUri: Uri?,
+    photoUrl: Uri?,
     onPhotoSelected: (Uri?) -> Unit
 ) {
     // Launcher for a generic Intent chooser
@@ -485,9 +486,9 @@ fun PhotoPicker(
             .clickable { chooserLauncher.launch(chooserIntent) },
         contentAlignment = Alignment.Center
     ) {
-        if (photoUri != null) {
+        if (photoUrl != null) {
             AsyncImage(
-                model = photoUri,
+                model = photoUrl,
                 contentDescription = "Selected Photo",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop

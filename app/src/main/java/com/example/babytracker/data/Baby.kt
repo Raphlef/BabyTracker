@@ -3,7 +3,6 @@ package com.example.babytracker.data // Ensure this matches your package structu
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.*
-import androidx.compose.runtime.MutableState
 import androidx.compose.ui.graphics.vector.ImageVector
 import java.util.UUID // For generating unique IDs
 
@@ -28,7 +27,8 @@ data class Baby(
     val name: String = "",                         // [1]
     val birthDate: Long = 0L,                      // Timestamp (milliseconds since epoch) [1]
     val gender: Gender = Gender.UNKNOWN,
-    val photoUri: String? = null,                  // URI for a profile picture (local or remote)
+
+    val photoUrl: String? = null,                  // URI for a profile picture (local or remote)
     val parentIds: List<String> = emptyList(),     // IDs of associated users/parents [1]
 
     // Optional detailed birth information
