@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -16,7 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -66,7 +67,7 @@ fun SettingsScreen(
 
     Scaffold { padding ->
         LazyColumn(
-            contentPadding = contentPadding ,
+            contentPadding = contentPadding,
             verticalArrangement = Arrangement.spacedBy(24.dp),
             modifier = Modifier
                 .fillMaxSize()
@@ -74,23 +75,29 @@ fun SettingsScreen(
         ) {
             // — Profile Section —
             item {
-                SectionTitle("Mon profil")
-                GlassCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        ReadOnlyField("Email", profile?.email.orEmpty())
-                        EditableField("Nom affiché", displayName, !isLoading) { displayName = it }
+                SectionCard(
+                    "Mon profil",
+                    icon = Icons.Default.Person
+                ) {
+                    GlassCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            ReadOnlyField("Email", profile?.email.orEmpty())
+                            EditableField("Nom affiché", displayName, !isLoading) {
+                                displayName = it
+                            }
 
-                        // Save button for profile edits
-                        Button(
-                            onClick = {
-                                authViewModel.updateUserProfile(
-                                    mapOf("displayName" to displayName)
-                                )
-                            },
-                            enabled = !isLoading,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Enregistrer le nom")
+                            // Save button for profile edits
+                            Button(
+                                onClick = {
+                                    authViewModel.updateUserProfile(
+                                        mapOf("displayName" to displayName)
+                                    )
+                                },
+                                enabled = !isLoading,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Enregistrer le nom")
+                            }
                         }
                     }
                 }
@@ -98,49 +105,53 @@ fun SettingsScreen(
 
             // — Appearance & Language Section —
             item {
-                SectionTitle("Apparence & Langue")
-                GlassCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        IconSelector(
-                            title = "Thème de l’application",
-                            options = themeOptions,
-                            selected = themeOptions.find { it.name == themeChoice },
-                            onSelect = { selected -> themeChoice = selected.name },
-                            getIcon = { theme ->
-                                when (theme) {
-                                    Theme.LIGHT -> Icons.Default.LightMode
-                                    Theme.DARK -> Icons.Default.DarkMode
-                                    Theme.SYSTEM -> Icons.Default.Settings  // or any icon you prefer
-                                }
-                            },
-                            getLabel = { it.name }
-                        )
+                SectionCard(
+                    "Apparence & Langue",
+                    icon = Icons.Default.Palette
+                ) {
+                    GlassCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            IconSelector(
+                                title = "Thème de l’application",
+                                options = themeOptions,
+                                selected = themeOptions.find { it.name == themeChoice },
+                                onSelect = { selected -> themeChoice = selected.name },
+                                getIcon = { theme ->
+                                    when (theme) {
+                                        Theme.LIGHT -> Icons.Default.LightMode
+                                        Theme.DARK -> Icons.Default.DarkMode
+                                        Theme.SYSTEM -> Icons.Default.Settings  // or any icon you prefer
+                                    }
+                                },
+                                getLabel = { it.name }
+                            )
 
-                        IconSelector(
-                            title = "Langue de l’interface",
-                            options = localeOptions,
-                            selected = localeOptions.find { it == localeChoice },
-                            onSelect = { selected -> localeChoice = selected },
-                            getIcon = {
-                                // Example: use flags or generic language icons if available
-                                Icons.Default.Language
-                            },
-                            getLabel = { it.uppercase() }
-                        )
+                            IconSelector(
+                                title = "Langue de l’interface",
+                                options = localeOptions,
+                                selected = localeOptions.find { it == localeChoice },
+                                onSelect = { selected -> localeChoice = selected },
+                                getIcon = {
+                                    // Example: use flags or generic language icons if available
+                                    Icons.Default.Language
+                                },
+                                getLabel = { it.uppercase() }
+                            )
 
-                        Button(
-                            onClick = {
-                                authViewModel.updateUserProfile(
-                                    mapOf(
-                                        "theme" to themeChoice,
-                                        "locale" to localeChoice
+                            Button(
+                                onClick = {
+                                    authViewModel.updateUserProfile(
+                                        mapOf(
+                                            "theme" to themeChoice,
+                                            "locale" to localeChoice
+                                        )
                                     )
-                                )
-                            },
-                            enabled = !isLoading,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Enregistrer les préférences")
+                                },
+                                enabled = !isLoading,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Enregistrer les préférences")
+                            }
                         }
                     }
                 }
@@ -148,42 +159,46 @@ fun SettingsScreen(
 
             // — Notifications & Default Baby Section —
             item {
-                SectionTitle("Notifications")
-                GlassCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        ToggleSetting(
-                            label = "Notifications activées",
-                            checked = notificationsEnabled,
-                            enabled = !isLoading
-                        ) { notificationsEnabled = it }
+                SectionCard(
+                    "Notifications",
+                    icon = Icons.Default.Notifications
+                )
+                {
+                    GlassCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            ToggleSetting(
+                                label = "Notifications activées",
+                                checked = notificationsEnabled,
+                                enabled = !isLoading
+                            ) { notificationsEnabled = it }
 
-                        Button(
-                            onClick = {
-                                authViewModel.updateUserProfile(
-                                    mapOf(
-                                        "notificationsEnabled" to notificationsEnabled,
+                            Button(
+                                onClick = {
+                                    authViewModel.updateUserProfile(
+                                        mapOf(
+                                            "notificationsEnabled" to notificationsEnabled,
+                                        )
                                     )
-                                )
-                            },
-                            enabled = !isLoading,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Enregistrer les réglages")
+                                },
+                                enabled = !isLoading,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Enregistrer les réglages")
+                            }
                         }
                     }
                 }
             }
 
-            // — Baby Co-parents Section (unchanged) —
-            item {
-                SectionTitle("Mon bébé")
-                ParentsCard(babyViewModel, navController)
-            }
-
             // — Family Management Section —
             item {
-                SectionTitle("Gestion de la famille")
-                FamilyManagementCard(families, familyViewModel, isLoading)
+                SectionCard(
+                    "Gestion de la famille",
+                    icon = Icons.Default.FamilyRestroom
+                )
+                {
+                    FamilyManagementCard(families, familyViewModel, isLoading)
+                }
             }
         }
 
@@ -357,9 +372,68 @@ fun FamilyManagementCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SectionTitle(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium)
+fun SectionCard(
+    title: String,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    onClickHeader: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column {
+            // Header row
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = onClickHeader != null) {
+                        onClickHeader?.invoke()
+                    }
+                    .padding(16.dp)
+            ) {
+                icon?.let {
+                    Icon(
+                        imageVector = it,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                )
+            }
+
+            // Divider between header and content
+            Divider(color = MaterialTheme.colorScheme.outline)
+
+            // Subcard content area
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(16.dp)
+            ) {
+                content()
+            }
+        }
+    }
 }
 
 @Composable
@@ -483,159 +557,3 @@ private fun FullScreenLoader() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ParentsCard(
-    babyViewModel: BabyViewModel,
-    navController: NavController,
-) {
-
-    var showBabyDialog by remember { mutableStateOf(false) }
-    val babies by babyViewModel.babies.collectAsState()
-    val parents by babyViewModel.parents.collectAsState()
-    val isLoading by babyViewModel.isLoading.collectAsState()
-    val error by babyViewModel.errorMessage.collectAsState()
-    var selectedBaby by remember { mutableStateOf<Baby?>(null) }
-    var expanded by remember { mutableStateOf(false) }
-    var email by remember { mutableStateOf("") }
-    var emailError by remember { mutableStateOf<String?>(null) }
-    var previousLoading by remember { mutableStateOf(false) }
-
-    fun validateEmail(input: String) =
-        android.util.Patterns.EMAIL_ADDRESS.matcher(input).matches()
-
-    // Clear email when loading finishes successfully
-    LaunchedEffect(isLoading, error) {
-        if (previousLoading && !isLoading && error == null) {
-            email = ""
-            emailError = null
-        }
-        previousLoading = isLoading
-    }
-
-    GlassCard {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Baby selector
-            BabySelectorRow(
-                babies = babies,
-                selectedBaby = selectedBaby,
-                onSelectBaby = { baby ->
-                    selectedBaby = baby
-                    babyViewModel.loadParents(baby.id)
-                },
-                onAddBaby = { showBabyDialog = true }
-            )
-
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 8.dp),
-                thickness = DividerDefaults.Thickness,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-            )
-
-            // Invite co-parent section
-            Text("Inviter un coparent", style = MaterialTheme.typography.titleSmall)
-
-            OutlinedTextField(
-                value = email,
-                onValueChange = {
-                    email = it
-                    emailError = if (it.isBlank() || validateEmail(it)) null else "Email invalide"
-                },
-                label = { Text("Email coparent") },
-                isError = emailError != null,
-                singleLine = true,
-                enabled = !isLoading,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = {
-                    if (email.isNotBlank() && emailError == null) {
-                        babyViewModel.inviteParent(selectedBaby!!.id, email.trim())
-                    }
-                }),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            emailError?.let {
-                Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(start = 16.dp)
-                )
-            }
-
-            Button(
-                onClick = {
-                    babyViewModel.inviteParent(selectedBaby!!.id, email.trim())
-                },
-                enabled = email.isNotBlank() && emailError == null && !isLoading,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Inviter")
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Parents list
-            Text("Parents actuels", style = MaterialTheme.typography.titleSmall)
-
-            if (isLoading && parents.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else if (parents.isEmpty()) {
-                Text(
-                    text = "Aucun parent pour ce bébé",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    parents.forEach { user ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp)
-                            ) {
-                                Text(
-                                    text = user.displayName.ifBlank { user.email },
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Text(
-                                    text = user.email,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            error?.let {
-                Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            if (showBabyDialog) {
-                BabyFormDialog(
-                    babyToEdit = null,
-                    onBabyUpdated = { savedOrDeletedBaby ->
-                        showBabyDialog = false
-                        savedOrDeletedBaby?.let { babyViewModel.selectBaby(it) }
-                    },
-                    onCancel = { showBabyDialog = false },
-                    babyViewModel = babyViewModel
-                )
-            }
-        }
-    }
-}
