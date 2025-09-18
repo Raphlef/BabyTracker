@@ -36,10 +36,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.babytracker.data.Family
 import com.example.babytracker.data.PrivacyLevel
+import com.example.babytracker.presentation.dashboard.BabySelectorRow
 import com.example.babytracker.presentation.event.IconSelector
 import com.example.babytracker.presentation.settings.GlassCard
+import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import com.example.babytracker.presentation.viewmodel.FamilyViewModel
 import kotlin.collections.forEach
 
@@ -49,24 +52,33 @@ import kotlin.collections.forEach
 fun FamilyManagementCard(
     families: List<Family>,
     familyViewModel: FamilyViewModel,
-    isLoading: Boolean
+    isLoading: Boolean,
+    babyViewModel: BabyViewModel = hiltViewModel(),
 ) {
     // Selected family from ViewModel
-    val selected by familyViewModel.selectedFamily.collectAsState()
+    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
+    val babies by babyViewModel.babies.collectAsState()
+    val selectedBaby by babyViewModel.selectedBaby.collectAsState()
     // **Automatically select the first family when the list loads (or changes)**
     LaunchedEffect(families) {
-        if (selected == null && families.isNotEmpty()) {
+        if (selectedFamily == null && families.isNotEmpty()) {
             familyViewModel.selectFamily(families.first())
         }
     }
+    // When family changes, load its babies
+    val familyBabies = remember(babies, selectedFamily) {
+        selectedFamily?.let { fam ->
+            babies.filter { it.id in fam.babyIds }
+        } ?: emptyList()
+    }
     // Local editable state mirroring Family properties
-    var name by remember(selected) { mutableStateOf(selected?.name.orEmpty()) }
-    var description by remember(selected) { mutableStateOf(selected?.description.orEmpty()) }
-    var inviteCode by remember(selected) { mutableStateOf(selected?.inviteCode.orEmpty()) }
-    var allowInvites by remember(selected) { mutableStateOf(selected?.settings?.allowMemberInvites == true) }
-    var requireApproval by remember(selected) { mutableStateOf(selected?.settings?.requireApprovalForNewMembers == true) }
-    var sharedNotifications by remember(selected) { mutableStateOf(selected?.settings?.sharedNotifications == true) }
-    var privacyLevel by remember(selected) { mutableStateOf(selected?.settings?.defaultPrivacy?.name.orEmpty()) }
+    var name by remember(selectedFamily) { mutableStateOf(selectedFamily?.name.orEmpty()) }
+    var description by remember(selectedFamily) { mutableStateOf(selectedFamily?.description.orEmpty()) }
+    var inviteCode by remember(selectedFamily) { mutableStateOf(selectedFamily?.inviteCode.orEmpty()) }
+    var allowInvites by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.allowMemberInvites == true) }
+    var requireApproval by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.requireApprovalForNewMembers == true) }
+    var sharedNotifications by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.sharedNotifications == true) }
+    var privacyLevel by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.defaultPrivacy?.name.orEmpty()) }
 
     GlassCard(
         loading = isLoading
@@ -87,23 +99,35 @@ fun FamilyManagementCard(
                     Text(
                         "➕ Créer une nouvelle famille",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = if (selected == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        color = if (selectedFamily == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                     )
                 }
 
                 Divider()
                 FamilyList(
                     families = families,
-                    selectedFamily = selected,
+                    selectedFamily = selectedFamily,
                     onSelect = { familyViewModel.selectFamily(it) }
                 )
+                Divider()
+
+                // Baby selector row
+                if (selectedFamily != null) {
+                    Text("Bébés", style = MaterialTheme.typography.titleSmall)
+                    BabySelectorRow(
+                        babies = babies,
+                        selectedBaby = selectedBaby,
+                        onSelectBaby = { babyViewModel.selectBaby(it) },
+                        onAddBaby = { /* navigate to baby creation screen */ }
+                    )
+                }
             }
 
             Divider()
 
             // Editable Form
             Text(
-                if (selected == null) "Créer une nouvelle famille"
+                if (selectedFamily == null) "Créer une nouvelle famille"
                 else "Modifier la famille",
                 style = MaterialTheme.typography.titleMedium
             )
@@ -179,7 +203,7 @@ fun FamilyManagementCard(
 
             // Save / Delete buttons
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                selected?.let {
+                selectedFamily?.let {
                     TextButton(
                         onClick = { familyViewModel.deleteFamily(it.id) },
                         enabled = !isLoading,
@@ -190,7 +214,7 @@ fun FamilyManagementCard(
                 }
                 Button(
                     onClick = {
-                        val base = selected?.copy() ?: Family()
+                        val base = selectedFamily?.copy() ?: Family()
                         val updated = base.copy(
                             name = name,
                             description = description.ifBlank { null },
@@ -206,7 +230,7 @@ fun FamilyManagementCard(
                     enabled = name.isNotBlank() && !isLoading,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(if (selected == null) "Créer" else "Enregistrer")
+                    Text(if (selectedFamily == null) "Créer" else "Enregistrer")
                 }
             }
 
