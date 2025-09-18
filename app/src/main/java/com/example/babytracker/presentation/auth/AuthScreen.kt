@@ -29,6 +29,7 @@ fun AuthScreen(
         if (state.isAuthenticated) onLoginSuccess(state.firstBabyId)
     }
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -108,7 +109,7 @@ fun AuthScreen(
         }
     }
 
-    LoadingOverlay(isVisible = state.isLoading)
+    LoadingOverlay(isVisible =  state.isLoading || state.isAuthenticated)
 }
 // ValidationUtils.kt
 object ValidationUtils {
