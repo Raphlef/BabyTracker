@@ -49,7 +49,6 @@ fun SettingsScreen(
     val authState by authViewModel.state.collectAsState()
     val profile = authState.userProfile
     val babies by babyViewModel.babies.collectAsState()
-    val defaultBaby by babyViewModel.defaultBaby.collectAsState()
     val families by familyViewModel.families.collectAsState()
 
     val isAuthLoading by authViewModel.state.map { it.isLoading }.collectAsState(false)
@@ -225,6 +224,12 @@ fun FamilyManagementCard(
 ) {
     // Selected family from ViewModel
     val selected by vm.selectedFamily.collectAsState()
+    // **Automatically select the first family when the list loads (or changes)**
+    LaunchedEffect(families) {
+        if (selected == null && families.isNotEmpty()) {
+            vm.selectFamily(families.first())
+        }
+    }
     // Local editable state mirroring Family properties
     var name by remember(selected) { mutableStateOf(selected?.name.orEmpty()) }
     var description by remember(selected) { mutableStateOf(selected?.description.orEmpty()) }
@@ -233,7 +238,6 @@ fun FamilyManagementCard(
     var requireApproval by remember(selected) { mutableStateOf(selected?.settings?.requireApprovalForNewMembers == true) }
     var sharedNotifications by remember(selected) { mutableStateOf(selected?.settings?.sharedNotifications == true) }
     var privacyLevel by remember(selected) { mutableStateOf(selected?.settings?.defaultPrivacy?.name.orEmpty()) }
-    var timezone by remember(selected) { mutableStateOf(selected?.settings?.timezone.orEmpty()) }
 
     GlassCard(
         loading = isLoading
@@ -326,17 +330,19 @@ fun FamilyManagementCard(
                 selected = privacyLevel,
                 enabled = !isLoading
             ) { privacyLevel = it }
-            OutlinedTextField(
-                value = timezone,
-                onValueChange = { timezone = it },
-                label = { Text("Fuseau horaire") },
-                enabled = !isLoading,
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
+
 
             // Save / Delete buttons
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                selected?.let {
+                    TextButton(
+                        onClick = { vm.deleteFamily(it.id) },
+                        enabled = !isLoading,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Supprimer", color = MaterialTheme.colorScheme.error)
+                    }
+                }
                 Button(
                     onClick = {
                         val base = selected?.copy() ?: Family()
@@ -347,8 +353,7 @@ fun FamilyManagementCard(
                                 allowMemberInvites = allowInvites,
                                 requireApprovalForNewMembers = requireApproval,
                                 sharedNotifications = sharedNotifications,
-                                defaultPrivacy = PrivacyLevel.valueOf(privacyLevel),
-                                timezone = timezone
+                                defaultPrivacy = PrivacyLevel.valueOf(privacyLevel)
                             )
                         )
                         vm.createOrUpdateFamily(updated)
@@ -357,15 +362,6 @@ fun FamilyManagementCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(if (selected == null) "Créer" else "Enregistrer")
-                }
-                if (selected != null) {
-                    TextButton(
-                        onClick = { vm.deleteFamily(selected!!.id) },
-                        enabled = !isLoading,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Supprimer", color = MaterialTheme.colorScheme.error)
-                    }
                 }
             }
 
