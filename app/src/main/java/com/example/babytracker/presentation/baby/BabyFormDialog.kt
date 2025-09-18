@@ -24,6 +24,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.babytracker.data.Baby
@@ -84,7 +85,8 @@ fun BabyFormDialog(
             baby?.let { timeInMillis = it.birthDate }
         })
     }
-    var photoUrl by remember { mutableStateOf(baby?.photoUrl?.let { Uri.parse(it) }) }
+    var newPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    val existingPhotoUrl = if (isEditMode) babyToEdit.photoUrl else null
     var gender by remember { mutableStateOf(baby?.gender ?: Gender.UNKNOWN) }
     var weight by remember { mutableStateOf(baby?.birthWeightKg?.toString().orEmpty()) }
     var lengthCm by remember { mutableStateOf(baby?.birthLengthCm?.toString().orEmpty()) }
@@ -170,7 +172,9 @@ fun BabyFormDialog(
                     if (nameError) Text("Name is required", color = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.height(12.dp))
 
-                    PhotoPicker(photoUrl = photoUrl, onPhotoSelected = { photoUrl = it })
+                    PhotoPicker(
+                        photoUrl = newPhotoUri ?: existingPhotoUrl?.toUri(),
+                        onPhotoSelected = { newPhotoUri = it })
                     Spacer(Modifier.height(12.dp))
 
                     Button(onClick = { datePicker.show() }) {
@@ -316,11 +320,12 @@ fun BabyFormDialog(
                                 .filter { it.isNotEmpty() },
                             pediatricianContact = pediatricianContact.ifBlank { null },
                             notes = notes.ifBlank { null },
+                            createdAt = babyToEdit?.createdAt ?: System.currentTimeMillis(),
                             updatedAt = System.currentTimeMillis(),
-                            // Keep existing photoUrl for edit mode, null for new baby
                             photoUrl = if (isEditMode) babyToEdit.photoUrl else null
                         )
-                        return Pair(baby, photoUrl) // Return both baby data and new photo URI
+                        // Return the new local Uri, not the baby's stored URL
+                        return Pair(baby, newPhotoUri)
                     }
 
                     val (babyData, newPhotoUrl) = buildBabyData()
@@ -342,6 +347,7 @@ fun BabyFormDialog(
                         medicalConditions = babyData.medicalConditions,
                         pediatricianContact = babyData.pediatricianContact,
                         notes = babyData.notes,
+                        existingPhotoUrl = existingPhotoUrl,
                         photoUrl = newPhotoUrl // Pass the Uri directly
                     )
                 },

@@ -119,6 +119,7 @@ class BabyViewModel @Inject constructor(
         medicalConditions: List<String> = emptyList(),
         pediatricianContact: String? = null,
         notes: String? = null,
+        existingPhotoUrl: String?,
         photoUrl: Uri? = null
     ) {
         _isLoading.value = true
@@ -138,7 +139,7 @@ class BabyViewModel @Inject constructor(
                     updateExistingBaby(
                         id, name, birthDate, gender, birthWeightKg, birthLengthCm,
                         birthHeadCircumferenceCm, birthTime, bloodType, allergies,
-                        medicalConditions, pediatricianContact, notes, photoUrl
+                        medicalConditions, pediatricianContact, notes, existingPhotoUrl, photoUrl
                     )
                 }
             } catch (e: Exception) {
@@ -153,10 +154,18 @@ class BabyViewModel @Inject constructor(
         id: String, name: String, birthDate: Long, gender: Gender, birthWeightKg: Double?,
         birthLengthCm: Double?, birthHeadCircumferenceCm: Double?, birthTime: String?,
         bloodType: BloodType, allergies: List<String>, medicalConditions: List<String>,
-        pediatricianContact: String?, notes: String?, photoUrl: Uri?
+        pediatricianContact: String?, notes: String?,  existingPhotoUrl: String?,
+        newPhotoUrl: Uri?
     ) {
         // Get current baby to preserve existing photo if no new photo provided
         val currentBaby = _selectedBaby.value ?: repository.getBabyById(id).getOrThrow()
+
+        val finalPhotoUrl = if (newPhotoUrl != null) {
+            uploadBabyPhoto(id, newPhotoUrl)    // safe: content:// URI
+        } else {
+            existingPhotoUrl                     // keep remote URL
+        }
+
         // Create updated baby with new data
         val updatedBaby = currentBaby?.copy(
             name = name,
@@ -171,13 +180,12 @@ class BabyViewModel @Inject constructor(
             medicalConditions = medicalConditions,
             pediatricianContact = pediatricianContact,
             notes = notes,
+            photoUrl = finalPhotoUrl,
             updatedAt = System.currentTimeMillis()
-            // photoUrl will be handled separately if new photo provided
         )
 
-        val finalBaby = updatedBaby?.let { handlePhotoUpload(it, photoUrl) }
-        finalBaby?.let { repository.addOrUpdateBaby(it) }?.getOrThrow()
-        _selectedBaby.value = finalBaby
+        updatedBaby?.let { repository.addOrUpdateBaby(it) }?.getOrThrow()
+        _selectedBaby.value = updatedBaby
     }
     private suspend fun createNewBaby(
         name: String, birthDate: Long, gender: Gender, birthWeightKg: Double?,
