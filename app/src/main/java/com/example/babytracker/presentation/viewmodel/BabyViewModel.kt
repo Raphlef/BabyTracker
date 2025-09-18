@@ -15,6 +15,7 @@ import android.util.Log // For logging errors
 import com.example.babytracker.data.BloodType
 import com.example.babytracker.data.Gender
 import com.example.babytracker.data.User
+import com.google.firebase.storage.StorageException
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onEach
@@ -293,6 +294,45 @@ class BabyViewModel @Inject constructor(
 
             } catch (e: Exception) {
                 _errorMessage.value = "Échec de la suppression : ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+    fun deleteBabyPhoto(babyId: String) {
+        _isLoading.value = true
+        viewModelScope.launch {
+            try {
+                // 1. Remove photo from storage & clear Firestore field
+                try {
+                    repository.deletePhotoFromEntity("babies", babyId)
+                } catch (e: Exception) {
+                    // If it’s a Firebase Storage 404, ignore it
+                    if (e is StorageException && e.errorCode == StorageException.ERROR_OBJECT_NOT_FOUND) {
+                        // no-op
+                    } else {
+                        throw e
+                    }
+                }
+
+                // 2. Fetch current baby to update local state
+                val current = _selectedBaby.value
+                    ?: repository.getBabyById(babyId).getOrThrow()
+
+                // 3. Create updated Baby without photo
+                val updated = current!!.copy(
+                    photoUrl = null,
+                    updatedAt = System.currentTimeMillis()
+                )
+
+                // 4. Persist the change
+                repository.addOrUpdateBaby(updated).getOrThrow()
+
+                // 5. Update selected baby
+                _selectedBaby.value = updated
+
+            } catch (e: Exception) {
+                _errorMessage.value = "Échec de la suppression de la photo : ${e.localizedMessage}"
             } finally {
                 _isLoading.value = false
             }
