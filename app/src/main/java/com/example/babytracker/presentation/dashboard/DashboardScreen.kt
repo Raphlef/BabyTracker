@@ -99,6 +99,7 @@ fun DashboardScreen(
     var showEventForm by remember { mutableStateOf(false) }
     var selectedEventFormState by remember { mutableStateOf<EventFormState?>(null) }
 
+    var showBabyInfoBar by remember { mutableStateOf(false) }
 
     // Initialize selectedBaby on first composition
     LaunchedEffect(babies, initialBabyId) {
@@ -109,12 +110,11 @@ fun DashboardScreen(
             babyViewModel.selectBaby(toSelect)
         }
     }
-
-    // Track scroll for BabyInfoBar visibility
-    val listState = rememberLazyListState()
-    val showInfoBar by remember {
-        derivedStateOf {
-            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset < 20
+    // Auto-hide BabyInfoBar after 3 seconds when shown
+    LaunchedEffect(showBabyInfoBar) {
+        if (showBabyInfoBar) {
+            kotlinx.coroutines.delay(3000) // 3 seconds
+            showBabyInfoBar = false
         }
     }
 
@@ -134,10 +134,7 @@ fun DashboardScreen(
     val selectedTab by remember {
         derivedStateOf { tabs[pagerState.currentPage] }
     }
-    // Reset scroll when baby changes or when switching tab
-    LaunchedEffect(selectedTab, selectedBaby?.id) {
-        listState.scrollToItem(0)
-    }
+
     Scaffold(
     ) { paddingValues ->
         Box(Modifier.fillMaxSize()) {
@@ -147,23 +144,26 @@ fun DashboardScreen(
                 BabySelectorRow(
                     babies = babies,
                     selectedBaby = selectedBaby,
-                    onSelectBaby = { babyViewModel.selectBaby(it) },
+                    onSelectBaby = {
+                        babyViewModel.selectBaby(it)
+                        showBabyInfoBar = true
+                    },
                     onAddBaby = {
                         // Open create baby dialog
                         editingBaby = null
                         showBabyDialog = true
+                        showBabyInfoBar = false
                     }
                 )
-
                 AnimatedVisibility(
-                    visible = showInfoBar && selectedBaby != null,
-                    enter = fadeIn(), exit = fadeOut()
+                    visible = showBabyInfoBar && selectedBaby != null,
+                    enter = fadeIn(),
+                    exit = fadeOut()
                 ) {
-                    selectedBaby?.let {
-                        BabyInfoBar(it) { editingBaby = it }
+                    selectedBaby?.let { baby ->
+                        BabyInfoBar(baby) { editingBaby = baby }
                     }
                 }
-
                 Spacer(Modifier.height(8.dp))
 
                 // --- MAIN CONTENT for selected tab ---
@@ -174,22 +174,19 @@ fun DashboardScreen(
                     ) { page ->
                         when (tabs[page]) {
                             DashboardTab.Home -> HomeScreen(
-                                listState,
                                 contentPadding = contentPadding
                             )
 
                             DashboardTab.Calendar -> CalendarScreen(
-                                listState,
                                 contentPadding = contentPadding
                             )
 
                             DashboardTab.Analysis -> AnalysisScreen(
-                                listState,
                                 contentPadding = contentPadding
                             )
 
                             DashboardTab.Settings -> SettingsScreen(
-                                navController, listState,
+                                navController,
                                 contentPadding = contentPadding
                             )
                         }

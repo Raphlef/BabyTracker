@@ -67,7 +67,6 @@ import kotlin.math.ceil
 @SuppressLint("DefaultLocale", "UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun HomeScreen(
-    listState: LazyListState,
     contentPadding: PaddingValues = PaddingValues(),
     babyViewModel: BabyViewModel = hiltViewModel(),
     eventViewModel: EventViewModel = hiltViewModel()
@@ -225,7 +224,6 @@ fun HomeScreen(
                 }
 
                 LazyColumn(
-                    state = listState,
                     contentPadding = contentPadding,
                     modifier = Modifier
                         .fillMaxSize()

@@ -43,7 +43,6 @@ import java.util.Locale
 
 @Composable
 fun AnalysisScreen(
-    listState: LazyListState,
     contentPadding: PaddingValues = PaddingValues(),
     eventViewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel()
@@ -90,7 +89,6 @@ fun AnalysisScreen(
 
 
         LazyColumn(
-            state = listState,
             contentPadding = contentPadding,
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
