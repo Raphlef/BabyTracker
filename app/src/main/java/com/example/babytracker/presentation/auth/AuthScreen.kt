@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.babytracker.presentation.viewmodel.AuthViewModel
@@ -21,18 +22,11 @@ fun AuthScreen(
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
-
     var emailError by remember { mutableStateOf<String?>(null) }
 
-    // Email validation
-    fun validateEmail(input: String): Boolean =
-        Patterns.EMAIL_ADDRESS.matcher(input).matches()
-
-    // Dès que l'auth est réussie ET que firstBabyId est chargé, on notifie
+    // Trigger navigation on successful auth
     LaunchedEffect(state.isAuthenticated, state.firstBabyId) {
-        if (state.isAuthenticated) {
-            onLoginSuccess(state.firstBabyId)
-        }
+        if (state.isAuthenticated) onLoginSuccess(state.firstBabyId)
     }
 
     Column(
@@ -43,59 +37,42 @@ fun AuthScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Baby Tracker", style = MaterialTheme.typography.headlineLarge)
+        Spacer(Modifier.height(40.dp))
 
-        Spacer(modifier = Modifier.height(40.dp))
-
-        // Email field with validation
-        OutlinedTextField(
+        // Email field
+        LabeledTextField(
             value = state.email,
             onValueChange = {
                 viewModel.onEmailChange(it)
                 emailError = when {
                     it.isBlank() -> "Email requis"
-                    !validateEmail(it) -> "Email invalide"
+                    !ValidationUtils.isValidEmail(it) -> "Email invalide"
                     else -> null
                 }
             },
-            label = { Text("Email") },
+            label = "Email",
             isError = emailError != null,
-            singleLine = true,
+            errorMessage = emailError,
             enabled = !state.isLoading,
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
+            imeAction = ImeAction.Next
         )
-        emailError?.let {
-            Text(
-                text = it,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier
-                    .align(Alignment.Start)
-                    .padding(start = 16.dp, top = 4.dp)
-            )
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(Modifier.height(16.dp))
 
-        // Champ mot de passe
-        OutlinedTextField(
+        // Password field
+        LabeledTextField(
             value = state.password,
             onValueChange = viewModel::onPasswordChange,
-            label = { Text("Mot de passe") },
+            label = "Mot de passe",
             visualTransformation = PasswordVisualTransformation(),
-            singleLine = true,
             enabled = !state.isLoading,
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done)
+            imeAction = ImeAction.Done
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(Modifier.height(16.dp))
 
-        // Case à cocher "Se souvenir de moi"
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        // Remember me
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(
                 checked = state.rememberMe,
                 onCheckedChange = viewModel::onRememberMeChanged,
@@ -105,57 +82,112 @@ fun AuthScreen(
             Text("Se souvenir de moi")
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(Modifier.height(24.dp))
 
-        val canSubmit =
-            emailError == null && state.email.isNotBlank() && state.password.isNotBlank()
-        // Bouton de connexion
-        Button(
+        val canSubmit = emailError == null && state.email.isNotBlank() && state.password.isNotBlank()
+        PrimaryButton(
+            text = "Connexion",
             onClick = { viewModel.login() },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = canSubmit && !state.isLoading
-        ) {
-            if (state.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text("Connexion")
-            }
-        }
+            enabled = canSubmit && !state.isLoading,
+            isLoading = state.isLoading
+        )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(Modifier.height(16.dp))
 
-        // Bouton d'inscription
         TextButton(
             onClick = { viewModel.register() },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !state.isLoading
+            enabled = !state.isLoading,
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text("Créer un compte")
         }
 
-        // Affichage des erreurs
-        state.error?.let { errorMsg ->
+        state.error?.let {
             Spacer(Modifier.height(16.dp))
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
+    }
+
+    LoadingOverlay(isVisible = state.isLoading)
+}
+// ValidationUtils.kt
+object ValidationUtils {
+    fun isValidEmail(email: String): Boolean =
+        Patterns.EMAIL_ADDRESS.matcher(email).matches()
+}
+
+// UiComponents.kt
+@Composable
+fun LabeledTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    isError: Boolean = false,
+    errorMessage: String? = null,
+    enabled: Boolean = true,
+    singleLine: Boolean = true,
+    imeAction: ImeAction = ImeAction.Next,
+    visualTransformation: VisualTransformation = VisualTransformation.None
+) {
+    Column {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(label) },
+            isError = isError,
+            singleLine = singleLine,
+            enabled = enabled,
+            visualTransformation = visualTransformation,
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = imeAction),
+            modifier = Modifier.fillMaxWidth()
+        )
+        if (errorMessage != null) {
             Text(
-                errorMsg,
+                text = errorMessage,
                 color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier
+                    .padding(start = 16.dp, top = 4.dp)
             )
         }
+    }
+}
 
-        if (state.isLoading) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f)),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
+@Composable
+fun PrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    isLoading: Boolean = false,
+    modifier: Modifier = Modifier.fillMaxWidth()
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                color = MaterialTheme.colorScheme.onPrimary,
+                strokeWidth = 2.dp
+            )
+        } else {
+            Text(text)
+        }
+    }
+}
+
+@Composable
+fun LoadingOverlay(isVisible: Boolean) {
+    if (isVisible) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f)),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
         }
     }
 }

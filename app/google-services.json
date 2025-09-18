@@ -12,7 +12,20 @@
           "package_name": "com.example.babytracker"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "890184927478-ouq0j9rlvinj3q8ot7nfr5j4gslt5cvu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.babytracker",
+            "certificate_hash": "cb343ca79f2649018c8c0838608a9dc9adda9f06"
+          }
+        },
+        {
+          "client_id": "890184927478-154bf25kp5defnvhsv5abor9395oonjm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyB8FYoTIilWpclp0OE9Sz6V7ksRkwpcqYE"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "890184927478-154bf25kp5defnvhsv5abor9395oonjm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
