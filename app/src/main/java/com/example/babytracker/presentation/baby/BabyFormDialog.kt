@@ -10,10 +10,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -174,7 +176,14 @@ fun BabyFormDialog(
 
                     PhotoPicker(
                         photoUrl = newPhotoUri ?: existingPhotoUrl?.toUri(),
-                        onPhotoSelected = { newPhotoUri = it })
+                        onPhotoSelected = { newPhotoUri = it },
+                        onPhotoRemoved = {
+                            // Only remove from storage if this baby already exists:
+                            if (isEditMode) {
+                                babyViewModel.deleteBabyPhoto(babyToEdit.id)
+                            }
+                            newPhotoUri = null
+                        })
                     Spacer(Modifier.height(12.dp))
 
                     Button(onClick = { datePicker.show() }) {
@@ -458,23 +467,19 @@ fun NumericField(
 @Composable
 fun PhotoPicker(
     photoUrl: Uri?,
-    onPhotoSelected: (Uri?) -> Unit
+    onPhotoSelected: (Uri?) -> Unit,
+    onPhotoRemoved: () -> Unit
 ) {
-    // Launcher for a generic Intent chooser
     val chooserLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        // Get the first non-null URI from data or clipData
         val uri = result.data?.data
             ?: result.data?.clipData?.let { it.getItemAt(0).uri }
         onPhotoSelected(uri)
     }
 
-    // Build the chooser Intent once
     val context = LocalContext.current
-    val pickImageIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
-        type = "image/*"
-    }
+    val pickImageIntent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "image/*" }
     val openDocIntent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
         addCategory(Intent.CATEGORY_OPENABLE)
         type = "image/*"
@@ -489,23 +494,49 @@ fun PhotoPicker(
             .height(150.dp)
             .clip(MaterialTheme.shapes.medium)
             .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-            .clickable { chooserLauncher.launch(chooserIntent) },
-        contentAlignment = Alignment.Center
     ) {
         if (photoUrl != null) {
+            // Display the image
             AsyncImage(
                 model = photoUrl,
                 contentDescription = "Selected Photo",
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable { chooserLauncher.launch(chooserIntent) },
                 contentScale = ContentScale.Crop
             )
+            // Overlay delete icon
+            IconButton(
+                onClick = onPhotoRemoved,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                        shape = CircleShape
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Remove Photo",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
         } else {
-            Icon(
-                imageVector = Icons.Default.CameraAlt,
-                contentDescription = "Add Photo",
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                modifier = Modifier.size(48.dp)
-            )
+            // Placeholder: tap anywhere to pick
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable { chooserLauncher.launch(chooserIntent) },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CameraAlt,
+                    contentDescription = "Add Photo",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                    modifier = Modifier.size(48.dp)
+                )
+            }
         }
     }
 }
