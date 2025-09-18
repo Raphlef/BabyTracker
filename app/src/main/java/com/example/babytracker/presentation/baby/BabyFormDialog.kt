@@ -87,8 +87,9 @@ fun BabyFormDialog(
             baby?.let { timeInMillis = it.birthDate }
         })
     }
-    var newPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    var newPhotoUrl by remember { mutableStateOf<Uri?>(null) }
     val existingPhotoUrl = if (isEditMode) babyToEdit.photoUrl else null
+    var photoRemoved by remember { mutableStateOf(false) }
     var gender by remember { mutableStateOf(baby?.gender ?: Gender.UNKNOWN) }
     var weight by remember { mutableStateOf(baby?.birthWeightKg?.toString().orEmpty()) }
     var lengthCm by remember { mutableStateOf(baby?.birthLengthCm?.toString().orEmpty()) }
@@ -175,14 +176,18 @@ fun BabyFormDialog(
                     Spacer(Modifier.height(12.dp))
 
                     PhotoPicker(
-                        photoUrl = newPhotoUri ?: existingPhotoUrl?.toUri(),
-                        onPhotoSelected = { newPhotoUri = it },
+                        photoUrl = newPhotoUrl ?: existingPhotoUrl?.toUri(),
+                        onPhotoSelected = {
+                            newPhotoUrl = it
+                            photoRemoved = false
+                        },
                         onPhotoRemoved = {
                             // Only remove from storage if this baby already exists:
                             if (isEditMode) {
                                 babyViewModel.deleteBabyPhoto(babyToEdit.id)
                             }
-                            newPhotoUri = null
+                            newPhotoUrl = null
+                            photoRemoved = true
                         })
                     Spacer(Modifier.height(12.dp))
 
@@ -312,7 +317,7 @@ fun BabyFormDialog(
                         return@TextButton
                     }
 
-                    fun buildBabyData(): Pair<Baby, Uri?> {
+                    fun buildBabyData(): Triple<Baby, Uri?, Boolean> {
                         val baby = Baby(
                             id = if (isEditMode) babyToEdit.id else "",
                             name = name.trim(),
@@ -331,13 +336,13 @@ fun BabyFormDialog(
                             notes = notes.ifBlank { null },
                             createdAt = babyToEdit?.createdAt ?: System.currentTimeMillis(),
                             updatedAt = System.currentTimeMillis(),
-                            photoUrl = if (isEditMode) babyToEdit.photoUrl else null
+                            photoUrl = babyToEdit!!.photoUrl    // placeholder
                         )
                         // Return the new local Uri, not the baby's stored URL
-                        return Pair(baby, newPhotoUri)
+                        return Triple(baby, newPhotoUrl, photoRemoved)
                     }
 
-                    val (babyData, newPhotoUrl) = buildBabyData()
+                    val (babyData, newPhotoUri, photoRemoved) = buildBabyData()
 
                     savedBabyLocal = babyData
                     saveClicked = true
@@ -357,7 +362,8 @@ fun BabyFormDialog(
                         pediatricianContact = babyData.pediatricianContact,
                         notes = babyData.notes,
                         existingPhotoUrl = existingPhotoUrl,
-                        photoUrl = newPhotoUrl // Pass the Uri directly
+                        photoUrl = newPhotoUrl,// Pass the Uri directly
+                        photoRemoved     = photoRemoved
                     )
                 },
                 enabled = !isLoading

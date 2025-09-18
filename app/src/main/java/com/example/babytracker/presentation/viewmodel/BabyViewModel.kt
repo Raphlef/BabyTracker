@@ -121,7 +121,8 @@ class BabyViewModel @Inject constructor(
         pediatricianContact: String? = null,
         notes: String? = null,
         existingPhotoUrl: String?,
-        photoUrl: Uri? = null
+        photoUrl: Uri? = null,
+        photoRemoved: Boolean = false
     ) {
         _isLoading.value = true
         _errorMessage.value = null
@@ -138,9 +139,22 @@ class BabyViewModel @Inject constructor(
                 } else {
                     // Update existing baby
                     updateExistingBaby(
-                        id, name, birthDate, gender, birthWeightKg, birthLengthCm,
-                        birthHeadCircumferenceCm, birthTime, bloodType, allergies,
-                        medicalConditions, pediatricianContact, notes, existingPhotoUrl, photoUrl
+                        id,
+                        name,
+                        birthDate,
+                        gender,
+                        birthWeightKg,
+                        birthLengthCm,
+                        birthHeadCircumferenceCm,
+                        birthTime,
+                        bloodType,
+                        allergies,
+                        medicalConditions,
+                        pediatricianContact,
+                        notes,
+                        existingPhotoUrl,
+                        photoUrl,
+                        photoRemoved
                     )
                 }
             } catch (e: Exception) {
@@ -151,20 +165,22 @@ class BabyViewModel @Inject constructor(
             }
         }
     }
+
     private suspend fun updateExistingBaby(
         id: String, name: String, birthDate: Long, gender: Gender, birthWeightKg: Double?,
         birthLengthCm: Double?, birthHeadCircumferenceCm: Double?, birthTime: String?,
         bloodType: BloodType, allergies: List<String>, medicalConditions: List<String>,
-        pediatricianContact: String?, notes: String?,  existingPhotoUrl: String?,
-        newPhotoUrl: Uri?
+        pediatricianContact: String?, notes: String?, existingPhotoUrl: String?,
+        newPhotoUrl: Uri?,
+        photoRemoved: Boolean
     ) {
         // Get current baby to preserve existing photo if no new photo provided
         val currentBaby = _selectedBaby.value ?: repository.getBabyById(id).getOrThrow()
 
-        val finalPhotoUrl = if (newPhotoUrl != null) {
-            uploadBabyPhoto(id, newPhotoUrl)    // safe: content:// URI
-        } else {
-            existingPhotoUrl                     // keep remote URL
+        val finalPhotoUrl: String? = when {
+            newPhotoUrl != null -> uploadBabyPhoto(id, newPhotoUrl)
+            photoRemoved        -> null
+            else                -> existingPhotoUrl
         }
 
         // Create updated baby with new data
@@ -188,6 +204,7 @@ class BabyViewModel @Inject constructor(
         updatedBaby?.let { repository.addOrUpdateBaby(it) }?.getOrThrow()
         _selectedBaby.value = updatedBaby
     }
+
     private suspend fun createNewBaby(
         name: String, birthDate: Long, gender: Gender, birthWeightKg: Double?,
         birthLengthCm: Double?, birthHeadCircumferenceCm: Double?, birthTime: String?,
@@ -224,6 +241,7 @@ class BabyViewModel @Inject constructor(
         val finalBaby = handlePhotoUpload(createdBaby, photoUrl)
         _selectedBaby.value = finalBaby
     }
+
     private suspend fun handlePhotoUpload(baby: Baby, photoUrl: Uri?): Baby {
         return if (photoUrl != null) {
             val newPhotoUrl = uploadBabyPhoto(baby.id, photoUrl)
@@ -237,6 +255,7 @@ class BabyViewModel @Inject constructor(
             baby
         }
     }
+
     private suspend fun uploadBabyPhoto(babyId: String, photoUrl: Uri): String? {
         return try {
             repository.addPhotoToEntity("babies", babyId, photoUrl)
@@ -246,6 +265,7 @@ class BabyViewModel @Inject constructor(
             null
         }
     }
+
     fun loadDefaultBaby(defaultBabyId: String?) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -299,6 +319,7 @@ class BabyViewModel @Inject constructor(
             }
         }
     }
+
     fun deleteBabyPhoto(babyId: String) {
         _isLoading.value = true
         viewModelScope.launch {
