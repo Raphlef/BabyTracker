@@ -336,7 +336,7 @@ fun BabyFormDialog(
                             notes = notes.ifBlank { null },
                             createdAt = babyToEdit?.createdAt ?: System.currentTimeMillis(),
                             updatedAt = System.currentTimeMillis(),
-                            photoUrl = babyToEdit!!.photoUrl    // placeholder
+                            photoUrl = babyToEdit?.photoUrl    // placeholder
                         )
                         // Return the new local Uri, not the baby's stored URL
                         return Triple(baby, newPhotoUrl, photoRemoved)
