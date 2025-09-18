@@ -47,7 +47,6 @@ class BabyViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
-
     private val _selectedBaby = MutableStateFlow<Baby?>(null)
     val selectedBaby: StateFlow<Baby?> = _selectedBaby.asStateFlow()
 
