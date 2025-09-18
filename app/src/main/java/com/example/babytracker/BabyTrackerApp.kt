@@ -64,9 +64,7 @@ fun BabyTrackerApp() {
         composable("auth") {
             AuthScreen(
                 onLoginSuccess = { firstBabyId ->
-                    // Always navigate to dashboard with babyId or empty string if none
-                    val babyIdToNavigate = firstBabyId ?: ""
-                    navController.navigate("dashboard/$babyIdToNavigate") {
+                    navController.navigate("dashboard/${firstBabyId.orEmpty()}") {
                         popUpTo("auth") { inclusive = true }
                     }
                 }
