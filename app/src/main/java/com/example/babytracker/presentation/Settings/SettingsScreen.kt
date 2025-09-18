@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -54,7 +55,7 @@ fun SettingsScreen(
     val isAuthLoading by authViewModel.state.map { it.isLoading }.collectAsState(false)
     val isBabyLoading by babyViewModel.isLoading.collectAsState(false)
     val isFamilyLoading by familyViewModel.state.map { it.isLoading }.collectAsState(false)
-    val isLoading = isAuthLoading || isBabyLoading || isFamilyLoading
+    // val isLoading = isAuthLoading || isBabyLoading || isFamilyLoading
 
     // Local editable values
     var displayName by remember { mutableStateOf(profile?.displayName.orEmpty()) }
@@ -79,10 +80,12 @@ fun SettingsScreen(
                     "Mon profil",
                     icon = Icons.Default.Person
                 ) {
-                    GlassCard {
+                    GlassCard(
+                        loading = isAuthLoading
+                    ) {
                         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             ReadOnlyField("Email", profile?.email.orEmpty())
-                            EditableField("Nom affiché", displayName, !isLoading) {
+                            EditableField("Nom affiché", displayName, !isAuthLoading) {
                                 displayName = it
                             }
 
@@ -93,7 +96,7 @@ fun SettingsScreen(
                                         mapOf("displayName" to displayName)
                                     )
                                 },
-                                enabled = !isLoading,
+                                enabled = !isAuthLoading,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text("Enregistrer le nom")
@@ -109,7 +112,9 @@ fun SettingsScreen(
                     "Apparence & Langue",
                     icon = Icons.Default.Palette
                 ) {
-                    GlassCard {
+                    GlassCard(
+                        loading = isAuthLoading
+                    ) {
                         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             IconSelector(
                                 title = "Thème de l’application",
@@ -147,7 +152,7 @@ fun SettingsScreen(
                                         )
                                     )
                                 },
-                                enabled = !isLoading,
+                                enabled = !isAuthLoading,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text("Enregistrer les préférences")
@@ -164,12 +169,14 @@ fun SettingsScreen(
                     icon = Icons.Default.Notifications
                 )
                 {
-                    GlassCard {
+                    GlassCard(
+                        loading = isAuthLoading
+                    ) {
                         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             ToggleSetting(
                                 label = "Notifications activées",
                                 checked = notificationsEnabled,
-                                enabled = !isLoading
+                                enabled = !isAuthLoading
                             ) { notificationsEnabled = it }
 
                             Button(
@@ -180,7 +187,7 @@ fun SettingsScreen(
                                         )
                                     )
                                 },
-                                enabled = !isLoading,
+                                enabled = !isAuthLoading,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text("Enregistrer les réglages")
@@ -197,14 +204,11 @@ fun SettingsScreen(
                     icon = Icons.Default.FamilyRestroom
                 )
                 {
-                    FamilyManagementCard(families, familyViewModel, isLoading)
+                    FamilyManagementCard(families, familyViewModel, isFamilyLoading)
                 }
             }
         }
 
-        if (isLoading) {
-            FullScreenLoader()
-        }
 
     }
 }
@@ -231,7 +235,9 @@ fun FamilyManagementCard(
     var privacyLevel by remember(selected) { mutableStateOf(selected?.settings?.defaultPrivacy?.name.orEmpty()) }
     var timezone by remember(selected) { mutableStateOf(selected?.settings?.timezone.orEmpty()) }
 
-    GlassCard {
+    GlassCard(
+        loading = isLoading
+    ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("Vos familles", style = MaterialTheme.typography.titleSmall)
             if (families.isEmpty()) {
@@ -437,19 +443,41 @@ fun SectionCard(
 }
 
 @Composable
-private fun GlassCard(content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .padding(16.dp),
-        content = content
-    )
-}
+fun GlassCard(
+    modifier: Modifier = Modifier,
+    loading: Boolean = false,
+    shape: Shape = RoundedCornerShape(16.dp),
+    backgroundAlpha: Float = 0.6f,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Box(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = backgroundAlpha),
+                    shape = shape
+                )
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            content = content
+        )
 
+        if (loading) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = backgroundAlpha)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = 2.dp
+                )
+            }
+        }
+    }
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReadOnlyField(label: String, value: String) {
@@ -542,18 +570,6 @@ private fun ToggleSetting(
         Checkbox(checked, onCheckedChange = onToggle, enabled = enabled)
         Spacer(Modifier.width(8.dp))
         Text(label)
-    }
-}
-
-@Composable
-private fun FullScreenLoader() {
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f)),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator()
     }
 }
 
