@@ -283,18 +283,18 @@ fun BabyFormDialog(
                             .fillMaxWidth()
                             .height(100.dp)
                     )
-
-                    babyError?.let {
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            it,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
                 }
             }
+            babyError?.let {
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    it,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         },
+
         confirmButton = {
             TextButton(
                 onClick = {
