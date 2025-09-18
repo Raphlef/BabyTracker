@@ -121,8 +121,7 @@ fun GlassIslandNavBar(
                 // updated API
                 state = hazeState,
                 style = HazeStyle.Unspecified,  // or HazeStyle.Light / Dark
-            )
-            .shadow(16.dp, RoundedCornerShape(32.dp)),
+            ),
         shape = RoundedCornerShape(32.dp),
         color = Color.White.copy(alpha = 0.10f)
     ) {
