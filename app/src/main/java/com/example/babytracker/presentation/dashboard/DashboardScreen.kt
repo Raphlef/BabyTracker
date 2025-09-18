@@ -171,8 +171,8 @@ fun DashboardScreen(
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize()
-                    ) {
-                        when (selectedTab) {
+                    ) { page ->
+                        when (tabs[page]) {
                             DashboardTab.Home -> HomeScreen(
                                 listState,
                                 contentPadding = contentPadding
