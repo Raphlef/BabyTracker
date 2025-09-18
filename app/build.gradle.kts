@@ -72,6 +72,9 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.storage.ktx)
+    implementation( libs.firebase.appcheck)// App Check dependency
+    implementation(libs.firebase.appcheck.playintegrity)   // Play Integrity provider (recommended for production)
+    implementation(libs.firebase.appcheck.debug)// Debug provider (for development/testing)
 
     // Graphics
     implementation(libs.mpandroidchart)
@@ -101,5 +104,8 @@ dependencies {
     implementation(libs.haze)
 
     implementation(libs.coil.compose)
+
+
+
 
 }

@@ -23,6 +23,11 @@ import com.example.babytracker.presentation.settings.ParentsScreen
 import com.example.babytracker.presentation.settings.SettingsScreen
 import com.example.babytracker.presentation.viewmodel.AuthViewModel
 import com.example.babytracker.ui.theme.BabyTrackerTheme
+import com.google.firebase.BuildConfig
+import com.google.firebase.FirebaseApp
+import com.google.firebase.appcheck.FirebaseAppCheck
+import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
+import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.HiltAndroidApp
 
@@ -90,5 +95,30 @@ fun BabyTrackerApp() {
 
 @HiltAndroidApp
 class BabyTrackerApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
 
+        // Initialize Firebase first
+        FirebaseApp.initializeApp(this)
+
+        // Initialize App Check
+        initializeAppCheck()
+    }
+
+    private fun initializeAppCheck() {
+        val firebaseAppCheck = FirebaseAppCheck.getInstance()
+
+        // Use different providers for debug vs release builds
+        if (BuildConfig.DEBUG) {
+            // For development - use debug provider
+            firebaseAppCheck.installAppCheckProviderFactory(
+                DebugAppCheckProviderFactory.getInstance()
+            )
+        } else {
+            // For production - use Play Integrity provider
+            firebaseAppCheck.installAppCheckProviderFactory(
+                PlayIntegrityAppCheckProviderFactory.getInstance()
+            )
+        }
+    }
 }
