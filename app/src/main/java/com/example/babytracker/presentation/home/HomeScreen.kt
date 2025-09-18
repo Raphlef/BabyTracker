@@ -338,7 +338,7 @@ fun HomeScreen(
                         savedOrDeletedBaby?.let { babyViewModel.selectBaby(it) }
                     },
                     onCancel = { showBabyDialog = false },
-                    viewModel = babyViewModel
+                    babyViewModel = babyViewModel
                 )
             }
         }

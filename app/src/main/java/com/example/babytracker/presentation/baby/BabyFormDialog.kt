@@ -41,7 +41,7 @@ fun BabyFormDialog(
     babyToEdit: Baby? = null,
     onBabyUpdated: (Baby?) -> Unit,
     onCancel: () -> Unit,
-    viewModel: BabyViewModel = hiltViewModel(),
+    babyViewModel: BabyViewModel = hiltViewModel(),
     eventViewModel: EventViewModel = hiltViewModel(),
 ) {
     val isEditMode = babyToEdit != null
@@ -52,8 +52,8 @@ fun BabyFormDialog(
     var headCircError by remember { mutableStateOf<String?>(null) }
     var timeError by remember { mutableStateOf<String?>(null) }
 
-    val isLoading by viewModel.isLoading.collectAsState()
-    val repoError by viewModel.errorMessage.collectAsState()
+    val isLoading by babyViewModel.isLoading.collectAsState()
+    val babyError by babyViewModel.errorMessage.collectAsState()
 
     var saveClicked by remember { mutableStateOf(false) }
     var deleteClicked by remember { mutableStateOf(false) }
@@ -61,8 +61,8 @@ fun BabyFormDialog(
 
     val openDeleteDialog = remember { mutableStateOf(false) }
     var savedBabyLocal by remember { mutableStateOf<Baby?>(null) }
-    LaunchedEffect(isLoading, repoError) {
-        if ((saveClicked || deleteClicked) && wasLoading && !isLoading && repoError == null) {
+    LaunchedEffect(isLoading, babyError) {
+        if ((saveClicked || deleteClicked) && wasLoading && !isLoading && babyError == null) {
             if (deleteClicked) {
                 // After deletion, close dialog (no baby returned)
                 onBabyUpdated(null) // null to signal deletion or alternatively use a separate onDeleted callback
@@ -75,7 +75,7 @@ fun BabyFormDialog(
         wasLoading = isLoading
     }
     // Load current baby
-    val babies by viewModel.babies.collectAsState()
+    val babies by babyViewModel.babies.collectAsState()
     val baby = remember(babies) { babyToEdit?.let { b -> babies.find { it.id == b.id } } }
 
     // Local editable state
@@ -284,7 +284,7 @@ fun BabyFormDialog(
                             .height(100.dp)
                     )
 
-                    repoError?.let {
+                    babyError?.let {
                         Spacer(Modifier.height(16.dp))
                         Text(
                             it,
@@ -333,7 +333,7 @@ fun BabyFormDialog(
                     savedBabyLocal = babyData
                     saveClicked = true
 
-                    viewModel.saveBaby(
+                    babyViewModel.saveBaby(
                         id = babyData.id,
                         name = babyData.name,
                         birthDate = babyData.birthDate,
@@ -411,7 +411,7 @@ fun BabyFormDialog(
                     deleteClicked = true
                     saveClicked = false
                     openDeleteDialog.value = false
-                    viewModel.deleteBaby(babyToEdit!!.id)
+                    babyViewModel.deleteBaby(babyToEdit!!.id)
                 }) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
