@@ -14,7 +14,7 @@ data class Family(
     val adminIds: List<String> = emptyList(),        // User IDs with admin privileges
     val memberIds: List<String> = emptyList(),       // All family member User IDs (includes admins)
     val babyIds: List<String> = emptyList(),         // Baby IDs associated with this family
-    val isActive: Boolean = true,                    // Whether the family is active
+    val active: Boolean = true,                    // Whether the family is active
     val settings: FamilySettings = FamilySettings(), // Family-specific settings
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
@@ -29,6 +29,12 @@ data class Family(
                 .map { chars.random() }
                 .joinToString("")
         }
+        /** Return a copy with a fresh inviteCode and updated timestamp */
+        fun withNewInviteCode(family: Family): Family =
+            family.copy(
+                inviteCode = generateInviteCode(),
+                updatedAt = System.currentTimeMillis()
+            )
     }
 }
 
