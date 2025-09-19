@@ -3,6 +3,7 @@ package com.example.babytracker.ui.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -196,7 +197,7 @@ fun FamilyManagementCard(
                 Text("Notifications partagées")
             }
 
-            // Privacy & Timezone
+            // Privacy
             IconSelector(
                 title = "Niveau de confidentialité",
                 options = PrivacyLevel.entries.toList(),
@@ -214,7 +215,13 @@ fun FamilyManagementCard(
 
 
             // Save / leave buttons
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 selectedFamily?.let {
                     FamilyLeaveButton(
                         selectedFamily = selectedFamily,
@@ -222,13 +229,24 @@ fun FamilyManagementCard(
                         isLoading = isLoading
                     )
                 }
-                // Inline join button
+            }
+            // Inline join button
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 TextButton(
                     onClick = { showJoinDialog = true },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.weight(1f),
+                    enabled = !isLoading
                 ) {
                     Text("Rejoindre une famille avec un code")
                 }
+
+                val createLabel = if (selectedFamily == null) "Créer" else "Enregistrer"
+
                 Button(
                     onClick = {
                         val base = selectedFamily?.copy() ?: Family()
@@ -247,7 +265,7 @@ fun FamilyManagementCard(
                     enabled = name.isNotBlank() && !isLoading,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(if (selectedFamily == null) "Créer" else "Enregistrer")
+                    Text(createLabel)
                 }
             }
 
@@ -258,15 +276,17 @@ fun FamilyManagementCard(
         }
     }
 
-    JoinFamilyDialog(
-        show = showJoinDialog,
-        onDismiss = { showJoinDialog = false },
-        onJoin = { code ->
-            familyViewModel.joinByCode(code)
-        },
-        inviteResult = inviteResult,
-        isLoading = isLoading
-    )
+    if (showJoinDialog) {
+        JoinFamilyDialog(
+            show = showJoinDialog,
+            onDismiss = { showJoinDialog = false },
+            onJoin = { code ->
+                familyViewModel.joinByCode(code)
+            },
+            inviteResult = inviteResult,
+            isLoading = isLoading
+        )
+    }
 
 }
 
@@ -383,38 +403,37 @@ fun FamilyLeaveButton(
     isLoading: Boolean
 ) {
     var showConfirmDialog by remember { mutableStateOf(false) }
-    val nonNullUserIdFlow  = familyViewModel.currentUserId        .map { it.orEmpty() }
+    val nonNullUserIdFlow = familyViewModel.currentUserId.map { it.orEmpty() }
     val currentUserId: String by nonNullUserIdFlow
         .collectAsState(initial = "")
     selectedFamily?.let { family ->
         val isOnlyAdmin =
             family.adminIds.contains(currentUserId) && family.adminIds.size == 1
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(
-                onClick = { showConfirmDialog = true },
-                enabled = !isLoading,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = if (isOnlyAdmin) MaterialTheme.colorScheme.outline
-                    else MaterialTheme.colorScheme.error
+
+        TextButton(
+            onClick = { showConfirmDialog = true },
+            enabled = !isLoading,
+            colors = ButtonDefaults.textButtonColors(
+                contentColor = if (isOnlyAdmin) MaterialTheme.colorScheme.outline
+                else MaterialTheme.colorScheme.error
+            )
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
                 )
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        if (isOnlyAdmin) "Impossible de quitter" else "Quitter la famille",
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    if (isOnlyAdmin) "Impossible de quitter" else "Quitter la famille",
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
+
 
         // Confirmation Dialog
         if (showConfirmDialog) {
