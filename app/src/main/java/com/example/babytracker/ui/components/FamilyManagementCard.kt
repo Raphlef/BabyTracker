@@ -6,20 +6,26 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FamilyRestroom
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -35,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.babytracker.data.Family
@@ -44,6 +51,7 @@ import com.example.babytracker.presentation.event.IconSelector
 import com.example.babytracker.presentation.settings.GlassCard
 import com.example.babytracker.presentation.viewmodel.BabyViewModel
 import com.example.babytracker.presentation.viewmodel.FamilyViewModel
+import kotlinx.coroutines.flow.map
 import kotlin.collections.forEach
 
 
@@ -53,12 +61,26 @@ fun FamilyManagementCard(
     families: List<Family>,
     familyViewModel: FamilyViewModel,
     isLoading: Boolean,
-    babyViewModel: BabyViewModel = hiltViewModel(),
+    babyViewModel: BabyViewModel = hiltViewModel()
 ) {
     // Selected family from ViewModel
     val selectedFamily by familyViewModel.selectedFamily.collectAsState()
     val babies by babyViewModel.babies.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
+
+    val inviteResult by familyViewModel.inviteResult.collectAsState(initial = null)
+
+    // Local editable state mirroring Family properties
+    var name by remember(selectedFamily) { mutableStateOf(selectedFamily?.name.orEmpty()) }
+    var description by remember(selectedFamily) { mutableStateOf(selectedFamily?.description.orEmpty()) }
+    var inviteCode by remember(selectedFamily) { mutableStateOf(selectedFamily?.inviteCode.orEmpty()) }
+    var allowInvites by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.allowMemberInvites == true) }
+    var requireApproval by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.requireApprovalForNewMembers == true) }
+    var sharedNotifications by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.sharedNotifications == true) }
+    var privacyLevel by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.defaultPrivacy?.name.orEmpty()) }
+    var showJoinDialog by remember { mutableStateOf(false) }
+
+
     // **Automatically select the first family when the list loads (or changes)**
     LaunchedEffect(families) {
         if (selectedFamily == null && families.isNotEmpty()) {
@@ -71,14 +93,14 @@ fun FamilyManagementCard(
             babies.filter { it.id in fam.babyIds }
         } ?: emptyList()
     }
-    // Local editable state mirroring Family properties
-    var name by remember(selectedFamily) { mutableStateOf(selectedFamily?.name.orEmpty()) }
-    var description by remember(selectedFamily) { mutableStateOf(selectedFamily?.description.orEmpty()) }
-    var inviteCode by remember(selectedFamily) { mutableStateOf(selectedFamily?.inviteCode.orEmpty()) }
-    var allowInvites by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.allowMemberInvites == true) }
-    var requireApproval by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.requireApprovalForNewMembers == true) }
-    var sharedNotifications by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.sharedNotifications == true) }
-    var privacyLevel by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.defaultPrivacy?.name.orEmpty()) }
+
+    // Handle successful join
+    LaunchedEffect(inviteResult) {
+        inviteResult?.onSuccess {
+            showJoinDialog = false
+            // TODO: show Snackbar("Rejoint avec succès !")
+        }
+    }
 
     GlassCard(
         loading = isLoading
@@ -88,29 +110,12 @@ fun FamilyManagementCard(
             if (families.isEmpty()) {
                 Text("Aucune famille enregistrée", color = Color.Gray)
             } else {
-                // "Créer nouvelle famille" option always visible
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable { familyViewModel.selectFamily(null) }
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "➕ Créer une nouvelle famille",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (selectedFamily == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                Divider()
                 FamilyList(
                     families = families,
                     selectedFamily = selectedFamily,
                     onSelect = { familyViewModel.selectFamily(it) }
                 )
                 Divider()
-
                 // Baby selector row
                 if (selectedFamily != null) {
                     Text("Bébés", style = MaterialTheme.typography.titleSmall)
@@ -121,9 +126,8 @@ fun FamilyManagementCard(
                         onAddBaby = { /* navigate to baby creation screen */ }
                     )
                 }
+                Divider()
             }
-
-            Divider()
 
             // Editable Form
             Text(
@@ -147,13 +151,21 @@ fun FamilyManagementCard(
                 enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth()
             )
-            OutlinedTextField(
-                value = inviteCode,
-                onValueChange = { inviteCode = it },
-                label = { Text("Code d'invitation") },
-                enabled = false, // read-only; generated by backend
-                modifier = Modifier.fillMaxWidth()
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = inviteCode,
+                    onValueChange = {},
+                    label = { Text("Code d'invitation") },
+                    readOnly = true,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(
+                    onClick = { familyViewModel.regenerateCode() },
+                    enabled = !isLoading
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Régénérer le code")
+                }
+            }
 
             // Settings toggles
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -192,25 +204,30 @@ fun FamilyManagementCard(
                 onSelect = { selected -> privacyLevel = selected.name },
                 getIcon = { level ->
                     when (level) {
-                        PrivacyLevel.PRIVATE     -> Icons.Default.Lock
+                        PrivacyLevel.PRIVATE -> Icons.Default.Lock
                         PrivacyLevel.FAMILY_ONLY -> Icons.Default.Group
-                        PrivacyLevel.PUBLIC      -> Icons.Default.Public
+                        PrivacyLevel.PUBLIC -> Icons.Default.Public
                     }
                 },
                 getLabel = { it.name.replace('_', ' ').lowercase() }
             )
 
 
-            // Save / Delete buttons
+            // Save / leave buttons
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 selectedFamily?.let {
-                    TextButton(
-                        onClick = { familyViewModel.deleteFamily(it.id) },
-                        enabled = !isLoading,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Supprimer", color = MaterialTheme.colorScheme.error)
-                    }
+                    FamilyLeaveButton(
+                        selectedFamily = selectedFamily,
+                        familyViewModel = familyViewModel,
+                        isLoading = isLoading
+                    )
+                }
+                // Inline join button
+                TextButton(
+                    onClick = { showJoinDialog = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Rejoindre une famille avec un code")
                 }
                 Button(
                     onClick = {
@@ -238,9 +255,19 @@ fun FamilyManagementCard(
             familyViewModel.state.collectAsState().value.error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error)
             }
-
         }
     }
+
+    JoinFamilyDialog(
+        show = showJoinDialog,
+        onDismiss = { showJoinDialog = false },
+        onJoin = { code ->
+            familyViewModel.joinByCode(code)
+        },
+        inviteResult = inviteResult,
+        isLoading = isLoading
+    )
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -250,8 +277,8 @@ fun FamilyList(
     selectedFamily: Family?,
     onSelect: (Family) -> Unit
 ) {
-    Column  {
-        families.forEach{ family ->
+    Column {
+        families.forEach { family ->
             val isSelected = family.id == selectedFamily?.id
             Surface(
                 tonalElevation = if (isSelected) 4.dp else 0.dp,
@@ -294,6 +321,137 @@ fun FamilyList(
                     }
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun JoinFamilyDialog(
+    show: Boolean,
+    onDismiss: () -> Unit,
+    onJoin: (String) -> Unit,
+    inviteResult: Result<Unit>?,
+    isLoading: Boolean
+) {
+    if (!show) return
+
+    var code by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Rejoindre une famille") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = code,
+                    onValueChange = { code = it.uppercase().trim() },
+                    label = { Text("Code d’invitation") },
+                    singleLine = true,
+                    enabled = !isLoading,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                inviteResult?.onFailure { ex ->
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = ex.message ?: "Erreur inconnue",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onJoin(code) },
+                enabled = code.length == 6 && !isLoading
+            ) {
+                Text("Rejoindre")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Annuler")
+            }
+        }
+    )
+}
+
+@Composable
+fun FamilyLeaveButton(
+    selectedFamily: Family?,
+    familyViewModel: FamilyViewModel,
+    isLoading: Boolean
+) {
+    var showConfirmDialog by remember { mutableStateOf(false) }
+    val nonNullUserIdFlow  = familyViewModel.currentUserId        .map { it.orEmpty() }
+    val currentUserId: String by nonNullUserIdFlow
+        .collectAsState(initial = "")
+    selectedFamily?.let { family ->
+        val isOnlyAdmin =
+            family.adminIds.contains(currentUserId) && family.adminIds.size == 1
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(
+                onClick = { showConfirmDialog = true },
+                enabled = !isLoading,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = if (isOnlyAdmin) MaterialTheme.colorScheme.outline
+                    else MaterialTheme.colorScheme.error
+                )
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        if (isOnlyAdmin) "Impossible de quitter" else "Quitter la famille",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+
+        // Confirmation Dialog
+        if (showConfirmDialog) {
+            AlertDialog(
+                onDismissRequest = { showConfirmDialog = false },
+                title = { Text("Quitter la famille") },
+                text = {
+                    Text(
+                        if (isOnlyAdmin) {
+                            "Vous ne pouvez pas quitter cette famille car vous êtes le seul administrateur. Nommez d'abord un autre membre comme administrateur."
+                        } else {
+                            "Êtes-vous sûr de vouloir quitter \"${family.name}\" ? Vous perdrez l'accès à tous les bébés et données de cette famille."
+                        }
+                    )
+                },
+                confirmButton = {
+                    if (!isOnlyAdmin) {
+                        TextButton(
+                            onClick = {
+                                showConfirmDialog = false
+                                familyViewModel.removeMember(
+                                    family.id,
+                                    currentUserId
+                                )
+
+                            }
+                        ) {
+                            Text("Quitter", color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showConfirmDialog = false }) {
+                        Text(if (isOnlyAdmin) "Compris" else "Annuler")
+                    }
+                }
+            )
         }
     }
 }
