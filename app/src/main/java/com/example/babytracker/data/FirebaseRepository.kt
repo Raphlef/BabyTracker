@@ -265,8 +265,26 @@ class FirebaseRepository @Inject constructor(
             db.collection(BABIES_COLLECTION).document(babyWithUser.id)
         }
 
+        val finalBaby = babyWithUser.copy(id = docRef.id)
         // 4. Write with the generated or provided ID
-        docRef.set(babyWithUser.copy(id = docRef.id)).await()
+        docRef.set(finalBaby).await()
+
+        // 5. For new baby, add its ID to every family of the user
+        // 4. If new, add baby to all user families
+        if (isNew) {
+            getFamilies().onSuccess { families ->
+                families.forEach { family ->
+                    // Append baby ID if not already present
+                    if (finalBaby.id !in family.babyIds) {
+                        val updated = family.copy(
+                            babyIds = (family.babyIds + finalBaby.id).distinct(),
+                            updatedAt = System.currentTimeMillis()
+                        )
+                        addOrUpdateFamily(updated)
+                    }
+                }
+            }
+        }
     }
 
     fun streamBabies(): Flow<List<Baby>> {
