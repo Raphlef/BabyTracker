@@ -2,6 +2,7 @@ package com.example.babytracker.data
 
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.FieldPath
+import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.map
@@ -112,3 +113,39 @@ suspend fun FirebaseRepository.removeMemberFromFamily(
 suspend fun FirebaseRepository.deleteFamily(familyId: String): Result<Unit> = runCatching {
     db.collection("families").document(familyId).delete().await()
 }
+/** Regenerates and persists a new invite code */
+suspend fun FirebaseRepository.regenerateInviteCode(family: Family): Result<String> = runCatching {
+    val newFamily = Family.withNewInviteCode(family)
+    db.collection("families")
+        .document(family.id)
+        .update(
+            "inviteCode", newFamily.inviteCode,
+            "updatedAt", newFamily.updatedAt
+        ).await()
+    newFamily.inviteCode
+}
+
+/** Adds the current user to the family identified by inviteCode */
+suspend fun FirebaseRepository.joinFamilyByCode(code: String, userId: String): Result<Unit> = runCatching {
+    val query = db.collection("families")
+        .whereEqualTo("inviteCode", code)
+        .get()
+        .await()
+
+    if (query.isEmpty) throw Exception("Code invalide")
+
+    val doc = query.documents.first()
+    val famId = doc.id
+
+    val settings = doc.get("settings") as? Map<*, *>
+        ?: throw Exception("Paramètres manquants")
+
+    val allowInvites = settings["allowMemberInvites"] as? Boolean ?: true
+    if (!allowInvites) throw Exception("Invitations désactivées")
+
+    db.collection("families")
+        .document(famId)
+        .update("memberIds", FieldValue.arrayUnion(userId))
+        .await()
+}
+

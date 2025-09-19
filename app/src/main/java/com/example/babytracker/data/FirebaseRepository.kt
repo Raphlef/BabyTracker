@@ -43,10 +43,11 @@ class FirebaseRepository @Inject constructor(
 ) {
     private val TAG = "FirebaseRepository"
 
-    companion object {
+   companion object {
         private const val USERS_COLLECTION = "users"
         private const val BABIES_COLLECTION = "babies"
         private const val EVENTS_COLLECTION = "events"
+        private const val FAMILIES_COLLECTION = "families"
         private val REMEMBER_ME_KEY = booleanPreferencesKey("remember_me")
     }
 
