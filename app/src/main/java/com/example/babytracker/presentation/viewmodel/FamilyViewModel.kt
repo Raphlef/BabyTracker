@@ -60,7 +60,7 @@ class FamilyViewModel @Inject constructor(
         }
     }
 
-    fun selectFamily(family: Family) {
+    fun selectFamily(family: Family?) {
         _selectedFamily.value = family
     }
 

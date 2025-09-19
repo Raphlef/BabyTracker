@@ -34,7 +34,6 @@ import java.time.format.DateTimeFormatter
 
 @Composable
 fun CalendarScreen(
-    listState: LazyListState,
     contentPadding: PaddingValues = PaddingValues(),
     viewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel()
@@ -68,12 +67,6 @@ fun CalendarScreen(
             viewModel.setDateRangeForMonth(currentMonth)
             viewModel.loadEventsInRange(it)
         }
-    }
-
-    /** Effects **/
-    LaunchedEffect(selectedBaby?.id) {
-        listState.scrollToItem(0)
-        refresh()
     }
 
     LaunchedEffect(currentMonth, selectedBaby?.id) { refresh() }

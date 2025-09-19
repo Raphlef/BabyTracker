@@ -102,6 +102,11 @@ fun BarChartView(
                     spaceBottom = 5f
                 }
                 legend.isEnabled = false
+                // Enable zoom and drag
+                setTouchEnabled(true)
+                isDragEnabled = true
+                setScaleEnabled(true)
+                setPinchZoom(true)
             }
         },
         update = { chart ->
@@ -148,6 +153,11 @@ fun LineChartView(
                     }
                 }
                 legend.isEnabled = false
+                // Enable zoom and drag
+                setTouchEnabled(true)
+                isDragEnabled = true
+                setScaleEnabled(true)
+                setPinchZoom(true)
                 axisLeft.apply {
                     axisMinimum = axisMin
                     axisMaximum = axisMax
@@ -203,6 +213,11 @@ fun MultiLineChartView(
                     }
                 }
                 legend.isEnabled = true
+                // Enable zoom and drag
+                setTouchEnabled(true)
+                isDragEnabled = true
+                setScaleEnabled(true)
+                setPinchZoom(true)
                 axisLeft.apply {
                     axisMinimum = axisMin
                     axisMaximum = axisMax
@@ -287,6 +302,11 @@ fun ComboChartView(
                     spaceBottom = 5f
                 }
                 legend.isEnabled = true
+                // Enable zoom and drag
+                setTouchEnabled(true)
+                isDragEnabled = true
+                setScaleEnabled(true)
+                setPinchZoom(true)
             }
         },
         update = { chart ->

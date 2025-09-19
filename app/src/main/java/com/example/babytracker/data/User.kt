@@ -10,7 +10,6 @@ data class User(
     val theme: Theme = Theme.SYSTEM,                 // Préférence de thème
     val notificationsEnabled: Boolean = true,        // Activer les notifications
     val locale: String = "en",                       // Code langue ("en","fr",…)
-    val defaultBabyId: String? = null,               // ID du bébé par défaut
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )
