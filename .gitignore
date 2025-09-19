@@ -13,3 +13,6 @@
 .externalNativeBuild
 .cxx
 local.properties
+/app/google-services.json
+/.idea/inspectionProfiles/Project_Default.xml
+/app/release/app-release.aab
