@@ -3,7 +3,9 @@ package com.kouloundissa.twinstracker.presentation.auth
 import android.util.Patterns
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,87 +52,96 @@ fun AuthScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(32.dp),
-                verticalArrangement = Arrangement.Center,
+                    .verticalScroll(rememberScrollState())  // Enable scrolling
+                    .padding(horizontal = 32.dp)
+                    .padding(top = 48.dp, bottom = 32.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Baby Tracker", style = MaterialTheme.typography.headlineLarge)
-                Spacer(Modifier.height(40.dp))
-
-                // Email field
-                LabeledTextField(
-                    value = state.email,
-                    onValueChange = {
-                        viewModel.onEmailChange(it)
-                        emailError = when {
-                            it.isBlank() -> "Email requis"
-                            !ValidationUtils.isValidEmail(it) -> "Email invalide"
-                            else -> null
-                        }
-                    },
-                    label = "Email",
-                    isError = emailError != null,
-                    errorMessage = emailError,
-                    enabled = !state.isLoading,
-                    imeAction = ImeAction.Next
-                )
-
-                Spacer(Modifier.height(16.dp))
-
-                // Password field
-                LabeledTextField(
-                    value = state.password,
-                    onValueChange = viewModel::onPasswordChange,
-                    label = "Mot de passe",
-                    visualTransformation = PasswordVisualTransformation(),
-                    enabled = !state.isLoading,
-                    imeAction = ImeAction.Done
-                )
-
-                Spacer(Modifier.height(16.dp))
-
-                // Remember me
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = state.rememberMe,
-                        onCheckedChange = viewModel::onRememberMeChanged,
-                        enabled = !state.isLoading
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text("Se souvenir de moi")
-                }
-
-                Spacer(Modifier.height(24.dp))
-
-                val canSubmit =
-                    emailError == null && state.email.isNotBlank() && state.password.isNotBlank()
-                PrimaryButton(
-                    text = "Connexion",
-                    onClick = { viewModel.login() },
-                    enabled = canSubmit && !state.isLoading,
-                    isLoading = state.isLoading
-                )
-
-                Spacer(Modifier.height(16.dp))
-
-                TextButton(
-                    onClick = { viewModel.register() },
-                    enabled = !state.isLoading,
-                    modifier = Modifier.fillMaxWidth()
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Créer un compte")
-                }
+                    Text("Baby Tracker", style = MaterialTheme.typography.headlineLarge)
+                    Spacer(Modifier.height(40.dp))
 
-                state.error?.let {
-                    Spacer(Modifier.height(16.dp))
-                    Text(
-                        it,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
+                    // Email field
+                    LabeledTextField(
+                        value = state.email,
+                        onValueChange = {
+                            viewModel.onEmailChange(it)
+                            emailError = when {
+                                it.isBlank() -> "Email requis"
+                                !ValidationUtils.isValidEmail(it) -> "Email invalide"
+                                else -> null
+                            }
+                        },
+                        label = "Email",
+                        isError = emailError != null,
+                        errorMessage = emailError,
+                        enabled = !state.isLoading,
+                        imeAction = ImeAction.Next
                     )
+
+                    Spacer(Modifier.height(16.dp))
+
+                    // Password field
+                    LabeledTextField(
+                        value = state.password,
+                        onValueChange = viewModel::onPasswordChange,
+                        label = "Mot de passe",
+                        visualTransformation = PasswordVisualTransformation(),
+                        enabled = !state.isLoading,
+                        imeAction = ImeAction.Done
+                    )
+
+                    Spacer(Modifier.height(16.dp))
+
+                    // Remember me
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = state.rememberMe,
+                            onCheckedChange = viewModel::onRememberMeChanged,
+                            enabled = !state.isLoading
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Se souvenir de moi")
+                    }
+
+                    Spacer(Modifier.height(24.dp))
+
+                    val canSubmit =
+                        emailError == null && state.email.isNotBlank() && state.password.isNotBlank()
+                    PrimaryButton(
+                        text = "Connexion",
+                        onClick = { viewModel.login() },
+                        enabled = canSubmit && !state.isLoading,
+                        isLoading = state.isLoading
+                    )
+
+                    Spacer(Modifier.height(16.dp))
+
+                    TextButton(
+                        onClick = { viewModel.register() },
+                        enabled = !state.isLoading,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Créer un compte")
+                    }
+
+                    state.error?.let {
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            it,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
             }
-
             LoadingOverlay(isVisible = state.isLoading || state.isAuthenticated)
         }
     }
