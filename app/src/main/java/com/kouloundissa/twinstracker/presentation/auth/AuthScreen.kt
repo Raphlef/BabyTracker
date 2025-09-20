@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -28,88 +29,113 @@ fun AuthScreen(
         if (state.isAuthenticated) onLoginSuccess(state.firstBabyId)
     }
 
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.primaryContainer
     ) {
-        Text("Baby Tracker", style = MaterialTheme.typography.headlineLarge)
-        Spacer(Modifier.height(40.dp))
-
-        // Email field
-        LabeledTextField(
-            value = state.email,
-            onValueChange = {
-                viewModel.onEmailChange(it)
-                emailError = when {
-                    it.isBlank() -> "Email requis"
-                    !ValidationUtils.isValidEmail(it) -> "Email invalide"
-                    else -> null
-                }
-            },
-            label = "Email",
-            isError = emailError != null,
-            errorMessage = emailError,
-            enabled = !state.isLoading,
-            imeAction = ImeAction.Next
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        // Password field
-        LabeledTextField(
-            value = state.password,
-            onValueChange = viewModel::onPasswordChange,
-            label = "Mot de passe",
-            visualTransformation = PasswordVisualTransformation(),
-            enabled = !state.isLoading,
-            imeAction = ImeAction.Done
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        // Remember me
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(
-                checked = state.rememberMe,
-                onCheckedChange = viewModel::onRememberMeChanged,
-                enabled = !state.isLoading
+        Box {
+            // Optional background image or gradient
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+                    )
             )
-            Spacer(Modifier.width(8.dp))
-            Text("Se souvenir de moi")
-        }
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Baby Tracker", style = MaterialTheme.typography.headlineLarge)
+                Spacer(Modifier.height(40.dp))
 
-        Spacer(Modifier.height(24.dp))
+                // Email field
+                LabeledTextField(
+                    value = state.email,
+                    onValueChange = {
+                        viewModel.onEmailChange(it)
+                        emailError = when {
+                            it.isBlank() -> "Email requis"
+                            !ValidationUtils.isValidEmail(it) -> "Email invalide"
+                            else -> null
+                        }
+                    },
+                    label = "Email",
+                    isError = emailError != null,
+                    errorMessage = emailError,
+                    enabled = !state.isLoading,
+                    imeAction = ImeAction.Next
+                )
 
-        val canSubmit = emailError == null && state.email.isNotBlank() && state.password.isNotBlank()
-        PrimaryButton(
-            text = "Connexion",
-            onClick = { viewModel.login() },
-            enabled = canSubmit && !state.isLoading,
-            isLoading = state.isLoading
-        )
+                Spacer(Modifier.height(16.dp))
 
-        Spacer(Modifier.height(16.dp))
+                // Password field
+                LabeledTextField(
+                    value = state.password,
+                    onValueChange = viewModel::onPasswordChange,
+                    label = "Mot de passe",
+                    visualTransformation = PasswordVisualTransformation(),
+                    enabled = !state.isLoading,
+                    imeAction = ImeAction.Done
+                )
 
-        TextButton(
-            onClick = { viewModel.register() },
-            enabled = !state.isLoading,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Créer un compte")
-        }
+                Spacer(Modifier.height(16.dp))
 
-        state.error?.let {
-            Spacer(Modifier.height(16.dp))
-            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                // Remember me
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = state.rememberMe,
+                        onCheckedChange = viewModel::onRememberMeChanged,
+                        enabled = !state.isLoading
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("Se souvenir de moi")
+                }
+
+                Spacer(Modifier.height(24.dp))
+
+                val canSubmit =
+                    emailError == null && state.email.isNotBlank() && state.password.isNotBlank()
+                PrimaryButton(
+                    text = "Connexion",
+                    onClick = { viewModel.login() },
+                    enabled = canSubmit && !state.isLoading,
+                    isLoading = state.isLoading
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                TextButton(
+                    onClick = { viewModel.register() },
+                    enabled = !state.isLoading,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Créer un compte")
+                }
+
+                state.error?.let {
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+
+            LoadingOverlay(isVisible = state.isLoading || state.isAuthenticated)
         }
     }
-
-    LoadingOverlay(isVisible =  state.isLoading || state.isAuthenticated)
 }
+
 // ValidationUtils.kt
 object ValidationUtils {
     fun isValidEmail(email: String): Boolean =
@@ -165,15 +191,18 @@ fun PrimaryButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier
-    ) {
+            .height(50.dp),
+        shape = MaterialTheme.shapes.medium,
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+    ){
         if (isLoading) {
             CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(24.dp),
                 color = MaterialTheme.colorScheme.onPrimary,
                 strokeWidth = 2.dp
             )
         } else {
-            Text(text)
+            Text(text = text, style = MaterialTheme.typography.labelLarge)
         }
     }
 }
