@@ -74,10 +74,6 @@ android {
             enableSplit = true
         }
     }
-    packagingOptions {
-        pickFirst("**/libc++_shared.so")
-        pickFirst("**/libjsc.so")
-    }
 }
 
 dependencies {
