@@ -44,8 +44,27 @@ android {
                 mappingFileUploadEnabled = true
             }
         }
+        create("stage") {
+            initWith(getByName("debug"))
+            isMinifyEnabled    = true
+            isShrinkResources  = true
+            isDebuggable       = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            ndk.debugSymbolLevel          = "FULL"
+            firebaseCrashlytics {
+                nativeSymbolUploadEnabled  = true
+                mappingFileUploadEnabled   = true
+            }
+        }
         named("debug") {
             isDebuggable = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             versionNameSuffix = "-debug"
             // You can disable collection in debug if desired
             firebaseCrashlytics {
