@@ -1,3 +1,7 @@
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.io.ByteArrayOutputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -16,8 +20,8 @@ android {
         applicationId = "com.kouloundissa.twinstracker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.4-debug"
+        versionCode = getGitCommitCount()
+        versionName = getGitVersionName()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -25,10 +29,19 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
+            isDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
+        }
+        debug {
+            isDebuggable = true
+            versionNameSuffix = "-debug"
         }
     }
     compileOptions {
@@ -40,6 +53,21 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+    bundle {
+        language {
+            enableSplit = true
+        }
+        density {
+            enableSplit = true
+        }
+        abi {
+            enableSplit = true
+        }
+    }
+    packagingOptions {
+        pickFirst("**/libc++_shared.so")
+        pickFirst("**/libjsc.so")
     }
 }
 
@@ -109,3 +137,38 @@ dependencies {
 
 
 }
+
+// --- Fonctions Git Versioning ---
+
+/**
+ * Retourne le nombre total de commits Git (versionCode).
+ * Renvoie 1 en cas d’erreur.
+ */
+fun getGitCommitCount(): Int = runCatching {
+    ByteArrayOutputStream().use { stdout ->
+        exec {
+            commandLine("git", "rev-list", "--count", "HEAD")
+            standardOutput = stdout
+        }
+        stdout.toString().trim().toInt()
+    }
+}.getOrDefault(1)
+
+/**
+ * Retourne la versionName basée sur le dernier tag Git et le nombre de commits depuis ce tag, sous la forme "X.Y.Z.N".
+ * Renvoie "1.0.0.0" en cas d’erreur.
+ */
+fun getGitVersionName(): String = runCatching {
+    ByteArrayOutputStream().use { stdout ->
+        exec {
+            commandLine("git", "describe", "--tags", "--long")
+            standardOutput = stdout
+        }
+        val desc = stdout.toString().trim()              // ex: v1.2.0-5-g1234567
+        val (rawTag, commits) = desc.split('-', limit = 3).let {
+            it[0] to it.getOrElse(1) { "0" }
+        }
+        val tag = rawTag.removePrefix("v")
+        "$tag.$commits"
+    }
+}.getOrDefault("1.0.0.0")
