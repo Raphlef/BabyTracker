@@ -16,6 +16,7 @@ buildscript {
         classpath(libs.gradle)
         classpath(libs.google.services)
         classpath(libs.firebase.crashlytics.gradle)
+
         // Autres classpath nécessaires
     }
 }
