@@ -20,6 +20,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "BabyTracker"
+rootProject.name = "TwinsTracker"
 include(":app")
  

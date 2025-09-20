@@ -1,0 +1,548 @@
+package com.kouloundissa.twinstracker.presentation.baby
+
+import android.app.DatePickerDialog
+import android.content.Intent
+import android.net.Uri
+import android.provider.ContactsContract
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.kouloundissa.twinstracker.data.Baby
+import com.kouloundissa.twinstracker.data.BloodType
+import com.kouloundissa.twinstracker.data.Gender
+import com.kouloundissa.twinstracker.presentation.event.IconSelector
+import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
+import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
+import java.text.SimpleDateFormat
+import java.util.*
+
+@Composable
+fun BabyFormDialog(
+    babyToEdit: Baby? = null,
+    onBabyUpdated: (Baby?) -> Unit,
+    onCancel: () -> Unit,
+    babyViewModel: BabyViewModel = hiltViewModel(),
+    eventViewModel: EventViewModel = hiltViewModel(),
+) {
+    val isEditMode = babyToEdit != null
+
+    var nameError by remember { mutableStateOf(false) }
+    var weightError by remember { mutableStateOf<String?>(null) }
+    var lengthError by remember { mutableStateOf<String?>(null) }
+    var headCircError by remember { mutableStateOf<String?>(null) }
+    var timeError by remember { mutableStateOf<String?>(null) }
+
+    val isLoading by babyViewModel.isLoading.collectAsState()
+    val babyError by babyViewModel.errorMessage.collectAsState()
+
+    var saveClicked by remember { mutableStateOf(false) }
+    var deleteClicked by remember { mutableStateOf(false) }
+    var wasLoading by remember { mutableStateOf(false) }
+
+    val openDeleteDialog = remember { mutableStateOf(false) }
+    var savedBabyLocal by remember { mutableStateOf<Baby?>(null) }
+    LaunchedEffect(isLoading, babyError) {
+        if ((saveClicked || deleteClicked) && wasLoading && !isLoading && babyError == null) {
+            if (deleteClicked) {
+                // After deletion, close dialog (no baby returned)
+                onBabyUpdated(null) // null to signal deletion or alternatively use a separate onDeleted callback
+            } else {
+                savedBabyLocal?.let { baby ->
+                    onBabyUpdated(baby)
+                }
+            }
+        }
+        wasLoading = isLoading
+    }
+    // Load current baby
+    val babies by babyViewModel.babies.collectAsState()
+    val baby = remember(babies) { babyToEdit?.let { b -> babies.find { it.id == b.id } } }
+
+    // Local editable state
+    var name by remember { mutableStateOf(baby?.name.orEmpty()) }
+    var birthDate by remember {
+        mutableStateOf(Calendar.getInstance().apply {
+            baby?.let { timeInMillis = it.birthDate }
+        })
+    }
+    var newPhotoUrl by remember { mutableStateOf<Uri?>(null) }
+    val existingPhotoUrl = if (isEditMode) babyToEdit.photoUrl else null
+    var photoRemoved by remember { mutableStateOf(false) }
+    var gender by remember { mutableStateOf(baby?.gender ?: Gender.UNKNOWN) }
+    var weight by remember { mutableStateOf(baby?.birthWeightKg?.toString().orEmpty()) }
+    var lengthCm by remember { mutableStateOf(baby?.birthLengthCm?.toString().orEmpty()) }
+    var headCirc by remember {
+        mutableStateOf(
+            baby?.birthHeadCircumferenceCm?.toString().orEmpty()
+        )
+    }
+    var birthTime by remember { mutableStateOf(baby?.birthTime.orEmpty()) }
+    var bloodType by remember(baby) {
+        // Map the baby's bloodType string to the BloodType enum, or default to UNKNOWN
+        val initial: BloodType = baby?.bloodType?.let { btString ->
+            BloodType.entries.firstOrNull { enum -> enum == btString }
+        } ?: BloodType.UNKNOWN
+
+        mutableStateOf(initial)
+    }
+    var allergies by remember { mutableStateOf(baby?.allergies?.joinToString(", ").orEmpty()) }
+    var conditions by remember {
+        mutableStateOf(
+            baby?.medicalConditions?.joinToString(", ").orEmpty()
+        )
+    }
+    var pediatricianContact by remember { mutableStateOf(baby?.pediatricianContact.orEmpty()) }
+    var notes by remember { mutableStateOf(baby?.notes.orEmpty()) }
+
+    val context = LocalContext.current
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
+    val birthDateStr = dateFormat.format(birthDate.time)
+
+    val datePicker = DatePickerDialog(
+        context,
+        { _, year, month, day ->
+            birthDate.set(year, month, day)
+        },
+        birthDate.get(Calendar.YEAR),
+        birthDate.get(Calendar.MONTH),
+        birthDate.get(Calendar.DAY_OF_MONTH)
+    )
+    val contactLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickContact()
+    ) { uri ->
+        uri?.let { it ->
+            val cursor = context.contentResolver.query(
+                it,
+                arrayOf(ContactsContract.Contacts.DISPLAY_NAME),
+                null,
+                null,
+                null
+            )
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    pediatricianContact = it.getString(0)
+                }
+            }
+        }
+    }
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = {
+            Text(
+                text = if (isEditMode) "Edit Baby" else "Create Baby",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Box(
+                Modifier
+                    .heightIn(max = 400.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Column {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = {
+                            name = it
+                            if (nameError) nameError = false
+                        },
+                        label = { Text("Baby Name*") },
+                        isError = nameError,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (nameError) Text("Name is required", color = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.height(12.dp))
+
+                    PhotoPicker(
+                        photoUrl = newPhotoUrl ?: existingPhotoUrl?.toUri(),
+                        onPhotoSelected = {
+                            newPhotoUrl = it
+                            photoRemoved = false
+                        },
+                        onPhotoRemoved = {
+                            // Only remove from storage if this baby already exists:
+                            if (isEditMode) {
+                                babyViewModel.deleteBabyPhoto(babyToEdit.id)
+                            }
+                            newPhotoUrl = null
+                            photoRemoved = true
+                        })
+                    Spacer(Modifier.height(12.dp))
+
+                    Button(onClick = { datePicker.show() }) {
+                        Text("Birth Date: $birthDateStr")
+                    }
+                    Spacer(Modifier.height(12.dp))
+
+                    IconSelector(
+                        title = "Gender",
+                        options = Gender.entries,
+                        selected = gender,
+                        onSelect = { gender = it },
+                        getIcon = { it.icon },
+                        getLabel = { it.displayName }
+                    )
+                    Spacer(Modifier.height(12.dp))
+
+                    NumericField(
+                        "Weight (kg)",
+                        weight,
+                        { weight = it },
+                        weightError
+                    ) { weightError = it }
+                    Spacer(Modifier.height(8.dp))
+                    NumericField(
+                        "Length (cm)",
+                        lengthCm,
+                        { lengthCm = it },
+                        lengthError
+                    ) { lengthError = it }
+                    Spacer(Modifier.height(8.dp))
+                    NumericField(
+                        "Head Circumference (cm)",
+                        headCirc,
+                        { headCirc = it },
+                        headCircError
+                    ) { headCircError = it }
+                    Spacer(Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = birthTime,
+                        onValueChange = { input ->
+                            val filtered = input.filter { it.isDigit() || it == ':' }.take(5)
+                            birthTime = filtered
+                            timeError = when {
+                                filtered.isBlank() -> null
+                                !filtered.matches(Regex("^([01]?\\d|2[0-3]):[0-5]\\d$")) -> "Invalid time (HH:mm)"
+                                else -> null
+                            }
+                        },
+                        label = { Text("Birth Time (HH:mm)") },
+                        isError = timeError != null,
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    timeError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                    Spacer(Modifier.height(8.dp))
+
+                    IconSelector(
+                        title = "Blood Type",
+                        options = BloodType.entries.toList(),
+                        selected = bloodType,
+                        onSelect = { bloodType = it },
+                        getIcon = { it.icon },
+                        getLabel = { it.name }
+                    )
+                    Spacer(Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = allergies,
+                        onValueChange = { allergies = it },
+                        label = { Text("Allergies (comma separated)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = conditions,
+                        onValueChange = { conditions = it },
+                        label = { Text("Medical Conditions (comma separated)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = pediatricianContact,
+                        onValueChange = { },
+                        label = { Text("Pediatrician Contact") },
+                        readOnly = true,
+                        singleLine = true,
+                        trailingIcon = {
+                            IconButton(onClick = { contactLauncher.launch(null) }) {
+                                Icon(Icons.Default.Person, contentDescription = "Pick Contact")
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = notes,
+                        onValueChange = { notes = it },
+                        label = { Text("Notes") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                    )
+                }
+            }
+            babyError?.let {
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    it,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        },
+
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (name.isBlank()) {
+                        nameError = true
+                        return@TextButton
+                    }
+
+                    fun buildBabyData(): Triple<Baby, Uri?, Boolean> {
+                        val baby = Baby(
+                            id = if (isEditMode) babyToEdit.id else "",
+                            name = name.trim(),
+                            birthDate = birthDate.timeInMillis,
+                            gender = gender,
+                            birthWeightKg = weight.toDoubleOrNull(),
+                            birthLengthCm = lengthCm.toDoubleOrNull(),
+                            birthHeadCircumferenceCm = headCirc.toDoubleOrNull(),
+                            birthTime = birthTime.ifBlank { null },
+                            bloodType = bloodType,
+                            allergies = allergies.split(",").map { it.trim() }
+                                .filter { it.isNotEmpty() },
+                            medicalConditions = conditions.split(",").map { it.trim() }
+                                .filter { it.isNotEmpty() },
+                            pediatricianContact = pediatricianContact.ifBlank { null },
+                            notes = notes.ifBlank { null },
+                            createdAt = babyToEdit?.createdAt ?: System.currentTimeMillis(),
+                            updatedAt = System.currentTimeMillis(),
+                            photoUrl = babyToEdit?.photoUrl    // placeholder
+                        )
+                        // Return the new local Uri, not the baby's stored URL
+                        return Triple(baby, newPhotoUrl, photoRemoved)
+                    }
+
+                    val (babyData, newPhotoUri, photoRemoved) = buildBabyData()
+
+                    savedBabyLocal = babyData
+                    saveClicked = true
+
+                    babyViewModel.saveBaby(
+                        id = babyData.id,
+                        name = babyData.name,
+                        birthDate = babyData.birthDate,
+                        gender = babyData.gender,
+                        birthWeightKg = babyData.birthWeightKg,
+                        birthLengthCm = babyData.birthLengthCm,
+                        birthHeadCircumferenceCm = babyData.birthHeadCircumferenceCm,
+                        birthTime = babyData.birthTime,
+                        bloodType = babyData.bloodType,
+                        allergies = babyData.allergies,
+                        medicalConditions = babyData.medicalConditions,
+                        pediatricianContact = babyData.pediatricianContact,
+                        notes = babyData.notes,
+                        existingPhotoUrl = existingPhotoUrl,
+                        photoUrl = newPhotoUrl,// Pass the Uri directly
+                        photoRemoved     = photoRemoved
+                    )
+                },
+                enabled = !isLoading
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (isEditMode) "Saving..." else "Creating...")
+                } else {
+                    Text(if (isEditMode) "Save" else "Create")
+                }
+            }
+        },
+        dismissButton = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = onCancel) {
+                    Text("Cancel")
+                }
+                if (isEditMode) {
+                    Spacer(Modifier.width(8.dp))
+                    TextButton(
+                        onClick = { openDeleteDialog.value = true },
+                        enabled = !isLoading,
+                    ) {
+                        Text("Delete", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
+        }
+    )
+
+    // Delete confirmation dialog only in edit mode
+    if (isEditMode && openDeleteDialog.value) {
+        val eventCounts = remember { eventViewModel.getEventCounts() }
+        val totalEvents = eventCounts.values.sum()
+
+        AlertDialog(
+            onDismissRequest = { openDeleteDialog.value = false },
+            title = { Text("Delete ${baby?.name.orEmpty()}") },
+            text = {
+                Column {
+                    Text("This action is irreversible.")
+                    if (totalEvents > 0) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "⚠️ $totalEvents associated event(s) will also be deleted.",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    deleteClicked = true
+                    saveClicked = false
+                    openDeleteDialog.value = false
+                    babyViewModel.deleteBaby(babyToEdit!!.id)
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { openDeleteDialog.value = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+
+@Composable
+fun NumericField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    errorMsg: String?,
+    setError: (String?) -> Unit
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = { new ->
+            // Allow only digits and at most one dot
+            val filtered = new.filter { it.isDigit() || it == '.' }
+            val cleaned = if (filtered.count { it == '.' } > 1) value else filtered
+            onValueChange(cleaned)
+            setError(
+                if (cleaned.isNotBlank() && cleaned.toDoubleOrNull() == null)
+                    "Nombre invalide" else null
+            )
+        },
+        label = { Text(label) },
+        isError = errorMsg != null,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = Modifier.fillMaxWidth()
+    )
+    errorMsg?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+}
+
+@Composable
+fun PhotoPicker(
+    photoUrl: Uri?,
+    onPhotoSelected: (Uri?) -> Unit,
+    onPhotoRemoved: () -> Unit
+) {
+    val chooserLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val uri = result.data?.data
+            ?: result.data?.clipData?.let { it.getItemAt(0).uri }
+        onPhotoSelected(uri)
+    }
+
+    val context = LocalContext.current
+    val pickImageIntent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "image/*" }
+    val openDocIntent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+        addCategory(Intent.CATEGORY_OPENABLE)
+        type = "image/*"
+    }
+    val chooserIntent = Intent.createChooser(pickImageIntent, "Select Photo").apply {
+        putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(openDocIntent))
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(150.dp)
+            .clip(MaterialTheme.shapes.medium)
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+    ) {
+        if (photoUrl != null) {
+            // Display the image
+            AsyncImage(
+                model = photoUrl,
+                contentDescription = "Selected Photo",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable { chooserLauncher.launch(chooserIntent) },
+                contentScale = ContentScale.Crop
+            )
+            // Overlay delete icon
+            IconButton(
+                onClick = onPhotoRemoved,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                        shape = CircleShape
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Remove Photo",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        } else {
+            // Placeholder: tap anywhere to pick
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable { chooserLauncher.launch(chooserIntent) },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CameraAlt,
+                    contentDescription = "Add Photo",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                    modifier = Modifier.size(48.dp)
+                )
+            }
+        }
+    }
+}

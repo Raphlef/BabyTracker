@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">BabyTracker</string> <!-- Likely already there -->
+    <string name="app_name">TwinsTracker</string> <!-- Likely already there -->
 
     <!-- For TopAppBar -->
     <string name="back_button_description">Back</string>
