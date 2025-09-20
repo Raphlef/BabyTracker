@@ -10,6 +10,7 @@ plugins {
     id("dagger.hilt.android.plugin")
     kotlin("kapt")
     id("kotlin-kapt")
+    id("com.google.firebase.crashlytics")
 }
 
 android {
@@ -27,7 +28,7 @@ android {
     }
 
     buildTypes {
-        release {
+        named("release") {
             isMinifyEnabled = true
             isShrinkResources = true
             isDebuggable = false
@@ -38,10 +39,18 @@ android {
             ndk {
                 debugSymbolLevel = "FULL"
             }
+            firebaseCrashlytics {
+                nativeSymbolUploadEnabled = true
+                mappingFileUploadEnabled = true
+            }
         }
-        debug {
+        named("debug") {
             isDebuggable = true
             versionNameSuffix = "-debug"
+            // You can disable collection in debug if desired
+            firebaseCrashlytics {
+                mappingFileUploadEnabled = false
+            }
         }
     }
     compileOptions {
@@ -100,9 +109,10 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.storage.ktx)
-    implementation( libs.firebase.appcheck)// App Check dependency
+    implementation(libs.firebase.appcheck)// App Check dependency
     implementation(libs.firebase.appcheck.playintegrity)   // Play Integrity provider (recommended for production)
     implementation(libs.firebase.appcheck.debug)// Debug provider (for development/testing)
+    implementation(libs.firebase.crashlytics.ktx)   // Firebase Crashlytics
 
     // Graphics
     implementation(libs.mpandroidchart)
@@ -113,6 +123,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.runtime.saveable)
+    implementation(libs.google.firebase.crashlytics.ktx)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -132,8 +143,6 @@ dependencies {
     implementation(libs.haze)
 
     implementation(libs.coil.compose)
-
-
 
 
 }
