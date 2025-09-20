@@ -158,7 +158,9 @@ dependencies {
     implementation(libs.haze)
 
     implementation(libs.coil.compose)
-
+    // auth
+    implementation(libs.play.services.auth)
+    implementation(libs.kotlinx.coroutines.play.services)
 
 }
 

@@ -3,12 +3,15 @@ package com.kouloundissa.twinstracker.presentation.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.kouloundissa.twinstracker.data.FirebaseRepository
 import com.kouloundissa.twinstracker.data.User
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -23,6 +26,9 @@ class AuthViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(AuthState())
     val state: StateFlow<AuthState> = _state.asStateFlow()
+
+    private val _oneTimeEvent = Channel<AuthEvent>(Channel.BUFFERED)
+    val oneTimeEventFlow = _oneTimeEvent.receiveAsFlow()
 
     init {
         viewModelScope.launch {
@@ -42,6 +48,40 @@ class AuthViewModel @Inject constructor(
             _state.value = _state.value.copy(isLoading = false)
         }
     }
+    // Set an error message in state
+    fun onError(message: String) {
+        _state.update { it.copy(error = message, isLoading = false) }
+    }
+
+    // Clear the error (after UI displays it)
+    fun clearError() {
+        _state.update { it.copy(error = null) }
+    }
+
+
+
+    fun loginWithGoogle() {
+        viewModelScope.launch {
+            _oneTimeEvent.send(AuthEvent.StartGoogleSignIn)
+        }
+    }
+
+    // Call this from your Activity once Google returns an ID token
+    fun handleGoogleSignInResult(idToken: String) {
+        _state.value = _state.value.copy(isLoading = true, error = null)
+        viewModelScope.launch {
+            try {
+                repository.signInWithGoogle(idToken)
+                if (_state.value.rememberMe) repository.saveUserSession()
+                performPostAuthSetup()
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(isLoading = false, error = "Google sign-in failed: ${e.message}")
+                }
+            }
+        }
+    }
+
 
     fun onEmailChange(email: String) {
         _state.value = _state.value.copy(email = email)
@@ -196,3 +236,6 @@ data class AuthState(
     val userProfile: User? = null,
     val error: String? = null
 )
+sealed class AuthEvent {
+    object StartGoogleSignIn : AuthEvent()
+}

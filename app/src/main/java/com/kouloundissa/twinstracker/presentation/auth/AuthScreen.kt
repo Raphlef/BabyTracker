@@ -1,30 +1,83 @@
 package com.kouloundissa.twinstracker.presentation.auth
 
 import android.util.Patterns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.kouloundissa.twinstracker.R
+import com.kouloundissa.twinstracker.presentation.viewmodel.AuthEvent
 import com.kouloundissa.twinstracker.presentation.viewmodel.AuthViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun AuthScreen(
     onLoginSuccess: (firstBabyId: String?) -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val state by viewModel.state.collectAsState()
+    val scope = rememberCoroutineScope()
     var emailError by remember { mutableStateOf<String?>(null) }
+
+
+    // Preconfigure GoogleSignInClient
+    val googleSignInClient = remember {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(context.getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+        GoogleSignIn.getClient(context, gso)
+    }
+
+
+    // Launcher for Google Sign-In Intent
+    val googleLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val data = result.data
+        val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            account?.idToken?.let { viewModel.handleGoogleSignInResult(it) }
+                ?: viewModel.onError("No ID token from Google")
+        } catch (e: ApiException) {
+            viewModel.onError("Google sign-in error: ${e.statusCode}")
+        }
+    }
+    // Collect one-time events
+    LaunchedEffect(Unit) {
+        viewModel.oneTimeEventFlow.collect { event ->
+            when (event) {
+                AuthEvent.StartGoogleSignIn -> {
+                    googleLauncher.launch(googleSignInClient.signInIntent)
+                }
+            }
+        }
+    }
 
     // Trigger navigation on successful auth
     LaunchedEffect(state.isAuthenticated, state.firstBabyId) {
@@ -132,6 +185,15 @@ fun AuthScreen(
                         Text("Créer un compte")
                     }
 
+                    Spacer(Modifier.height(12.dp))
+
+                    SocialButton(
+                        text = "Continuer avec Google",
+                        icon = Icons.Filled.AccountCircle,
+                        onClick = viewModel::loginWithGoogle,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
                     state.error?.let {
                         Spacer(Modifier.height(16.dp))
                         Text(
@@ -229,5 +291,33 @@ fun LoadingOverlay(isVisible: Boolean) {
         ) {
             CircularProgressIndicator()
         }
+    }
+}
+
+@Composable
+fun SocialButton(
+    text: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier.fillMaxWidth()
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier
+            .height(50.dp),
+        shape = MaterialTheme.shapes.medium,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = Color.Unspecified,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(text = text, style = MaterialTheme.typography.bodyLarge)
     }
 }
