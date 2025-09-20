@@ -4,9 +4,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.google.firebase.firestore.IgnoreExtraProperties
 import java.util.UUID // For generating unique IDs
 
 // Enum for Gender, if not already defined elsewhere
+@IgnoreExtraProperties
 enum class Gender(val icon: ImageVector, val displayName: String) {
     MALE(Icons.Filled.Male, "Male"),
     FEMALE(Icons.Filled.Female, "Female"),
@@ -21,7 +23,7 @@ enum class BloodType(val icon: ImageVector) {
     O(Icons.Filled.Bloodtype),
     UNKNOWN(Icons.AutoMirrored.Filled.HelpOutline)
 }
-
+@IgnoreExtraProperties
 data class Baby(
     val id: String = UUID.randomUUID().toString(), // Auto-generated unique ID [1]
     val name: String = "",                         // [1]

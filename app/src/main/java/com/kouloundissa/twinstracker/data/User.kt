@@ -1,7 +1,9 @@
 package com.kouloundissa.twinstracker.data
 
+import com.google.firebase.firestore.IgnoreExtraProperties
 import java.util.UUID
 
+@IgnoreExtraProperties
 data class User(
     val id: String = UUID.randomUUID().toString(),   // UID Firebase Auth
     val email: String = "",                          // Email principal (identifiant)

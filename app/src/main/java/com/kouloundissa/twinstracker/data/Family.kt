@@ -1,11 +1,13 @@
 package com.kouloundissa.twinstracker.data
 
+import com.google.firebase.firestore.IgnoreExtraProperties
 import java.util.UUID
 
 /**
  * Represents a family unit that can contain multiple users and babies.
  * This allows for shared tracking and management of babies across family members.
  */
+@IgnoreExtraProperties
 data class Family(
     val id: String = UUID.randomUUID().toString(),   // Unique family identifier
     val name: String = "",                           // Family name or label (e.g., "Smith Family")
@@ -41,6 +43,7 @@ data class Family(
 /**
  * Settings specific to a family that can be configured by family admins
  */
+@IgnoreExtraProperties
 data class FamilySettings(
     val allowMemberInvites: Boolean = true,          // Allow non-admin members to send invites
     val requireApprovalForNewMembers: Boolean = false, // Require admin approval for new members
