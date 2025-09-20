@@ -1,7 +1,6 @@
 [versions]
 agp = "8.13.0"
 coilCompose = "2.7.0"
-firebaseCrashlyticsGradle = "3.0.6"
 foundation = "1.9.1"
 foundationVersion = "1.4.3"
 gradle = "8.13.0"
@@ -19,7 +18,7 @@ activityCompose = "1.11.0"
 composeBom = "2025.09.00"
 
 navigationCompose = "2.9.4"
-firebaseBom = "34.2.0"
+firebaseBom = "34.3.0"
 mpandroidchart = "3.1.0"
 jodaTime = "2.14.0"
 lifecycleVersion = "2.9.4"
@@ -29,8 +28,8 @@ foundationLayout = "1.9.1"
 roomKtx = "2.8.0"
 uiGraphics = "1.9.1"
 runtimeSaveable = "1.9.1"
-firebaseStorageKtx = "20.0.1"
-firebaseCrashlyticsKtx = "20.0.2"
+firebaseStorageKtx = "21.0.2"
+firebaseCrashlyticsKtx = "19.4.4"
 
 [libraries]
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
@@ -41,7 +40,8 @@ coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose"
 firebase-appcheck = { module = "com.google.firebase:firebase-appcheck" }
 firebase-appcheck-debug = { module = "com.google.firebase:firebase-appcheck-debug" }
 firebase-appcheck-playintegrity = { module = "com.google.firebase:firebase-appcheck-playintegrity" }
-firebase-crashlytics-gradle = { module = "com.google.firebase:firebase-crashlytics-gradle", version.ref = "firebaseCrashlyticsGradle" }
+firebase-crashlytics-gradle = { module = "com.google.firebase:firebase-crashlytics-gradle" }
+google-firebase-crashlytics-ktx = { group = "com.google.firebase", name = "firebase-crashlytics-ktx",  version.ref = "firebaseCrashlyticsKtx"}
 firebase-crashlytics-ktx = { module = "com.google.firebase:firebase-crashlytics-ktx" }
 gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
@@ -94,7 +94,6 @@ androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = 
 androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "uiGraphics" }
 androidx-compose-runtime-saveable = { group = "androidx.compose.runtime", name = "runtime-saveable", version.ref = "runtimeSaveable" }
 firebase-storage-ktx = { group = "com.google.firebase", name = "firebase-storage-ktx", version.ref = "firebaseStorageKtx" }
-google-firebase-crashlytics-ktx = { group = "com.google.firebase", name = "firebase-crashlytics-ktx", version.ref = "firebaseCrashlyticsKtx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
