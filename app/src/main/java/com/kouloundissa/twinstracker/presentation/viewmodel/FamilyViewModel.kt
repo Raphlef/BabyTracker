@@ -81,31 +81,58 @@ class FamilyViewModel @Inject constructor(
     }
 
     fun createOrUpdateFamily(family: Family) {
-        _state.value = _state.value.copy(isLoading = true, error = null)
         viewModelScope.launch {
-            // For new families, ensure current user is added as admin
-            val familyToSave = if (family.id.isBlank()) {
+            _state.update { it.copy(isLoading = true, error = null) }
+
+            try {
                 val currentUserId = repository.getCurrentUserId()
-                    ?: return@launch _state.update {
+
+                if (currentUserId.isNullOrBlank()) {
+                    _state.update {
                         it.copy(
                             isLoading = false,
-                            error = "User not authenticated"
+                            error = "User not authenticated. Please sign in again."
                         )
                     }
-                family.copy(adminIds = listOf(currentUserId))
-            } else {
-                family
-            }
+                    return@launch
+                }
+                val existingFamily = _families.value.find { it.id == family.id }
+                val isNewFamily = existingFamily == null
+                // For new families, ensure current user is added as admin AND member
+                val familyToSave = if (isNewFamily) {
+                    family.copy(
+                        adminIds = listOf(currentUserId),
+                        memberIds = listOf(currentUserId) // Also add to members
+                    )
+                } else {
+                    family
+                }
 
-            repository.addOrUpdateFamily(familyToSave)
-                .onSuccess {
-                    _state.value = _state.value.copy(isLoading = false)
+                repository.addOrUpdateFamily(familyToSave)
+                    .onSuccess { updatedFamily ->
+                        // Update the selected family if it was the one being updated
+                        _selectedFamily.value = (updatedFamily ?: familyToSave) as Family?
+                        _state.update { it.copy(isLoading = false) }
+                    }
+                    .onFailure { err ->
+                        _state.update {
+                            it.copy(
+                                isLoading = false,
+                                error = err.message ?: "Failed to create family"
+                            )
+                        }
+                    }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Error creating family: ${e.message}"
+                    )
                 }
-                .onFailure { err ->
-                    _state.value = _state.value.copy(isLoading = false, error = err.message)
-                }
+            }
         }
     }
+
 
     fun deleteFamily(familyId: String) {
         viewModelScope.launch {
