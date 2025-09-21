@@ -25,6 +25,8 @@ import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.kouloundissa.twinstracker.presentation.Family.FamilyCheckScreen
+import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.HiltAndroidApp
 
@@ -49,7 +51,9 @@ class MainActivity : ComponentActivity() {
 fun BabyTrackerApp() {
     val navController = rememberNavController()
     val viewModel: AuthViewModel = hiltViewModel()
+    val familyViewModel: FamilyViewModel = hiltViewModel()
 
+    val families by familyViewModel.families.collectAsState()
     // Collect state from StateFlow
     val state by viewModel.state.collectAsState()
 
@@ -60,12 +64,23 @@ fun BabyTrackerApp() {
         composable("auth") {
             AuthScreen(
                 onLoginSuccess = { firstBabyId ->
-                    navController.navigate("dashboard/${firstBabyId.orEmpty()}") {
+                    navController.navigate("family_check") {
                         popUpTo("auth") { inclusive = true }
                     }
                 }
             )
         }
+        composable("family_check") {
+            FamilyCheckScreen(
+                familyViewModel = familyViewModel,
+                onNavigateToDashboard = { babyId ->
+                    navController.navigate("dashboard/${babyId.orEmpty()}") {
+                        popUpTo("family_check") { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable("dashboard/{babyId}") { backStackEntry ->
             val babyId = backStackEntry.arguments?.getString("babyId") ?: ""
             // Passer babyId au DashboardScreen pour afficher données du bébé sélectionné
