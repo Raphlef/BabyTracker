@@ -229,8 +229,7 @@ class BabyViewModel @Inject constructor(
         repository.addOrUpdateBaby(baby).getOrThrow()
 
         // Get the created baby with its ID
-        val createdBaby = repository.getBabies().getOrNull()
-            ?.find { it.name == name && it.birthDate == birthDate }
+        val createdBaby = repository.getBabyById(baby.id).getOrNull()
             ?: throw IllegalStateException("Created baby not found")
 
         // Handle photo upload if provided

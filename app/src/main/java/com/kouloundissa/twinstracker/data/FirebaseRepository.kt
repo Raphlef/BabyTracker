@@ -43,7 +43,7 @@ class FirebaseRepository @Inject constructor(
 ) {
     private val TAG = "FirebaseRepository"
 
-   companion object {
+    companion object {
         private const val USERS_COLLECTION = "users"
         private const val BABIES_COLLECTION = "babies"
         private const val EVENTS_COLLECTION = "events"
@@ -80,6 +80,7 @@ class FirebaseRepository @Inject constructor(
         val credential = GoogleAuthProvider.getCredential(idToken, null)
         auth.signInWithCredential(credential).await()
     }
+
     suspend fun getCurrentUserProfile(): User {
         val userId = auth.currentUser?.uid
             ?: throw IllegalStateException("Utilisateur non authentifié")
@@ -97,6 +98,7 @@ class FirebaseRepository @Inject constructor(
             .update(merged)
             .await()
     }
+
     fun isUserLoggedIn(): Boolean {
         return auth.currentUser != null
     }
@@ -151,7 +153,10 @@ class FirebaseRepository @Inject constructor(
         val userId = auth.currentUser?.uid
             ?: throw IllegalStateException("User not authenticated")
 
-        Log.d(TAG, "Starting photo upload for entityType=$entityType, entityId=$entityId, userId=$userId")
+        Log.d(
+            TAG,
+            "Starting photo upload for entityType=$entityType, entityId=$entityId, userId=$userId"
+        )
 
         // 1. Persistable URI permission if needed (for ACTION_OPEN_DOCUMENT)
         try {
@@ -237,6 +242,7 @@ class FirebaseRepository @Inject constructor(
             )
             .await()
     }
+
     // --- Baby Methods ---
     suspend fun addOrUpdateBaby(baby: Baby): Result<Unit> = runCatching {
         val userId = auth.currentUser?.uid
@@ -303,23 +309,6 @@ class FirebaseRepository @Inject constructor(
             }
     }
 
-    suspend fun getBabies(): Result<List<Baby>> {
-        return try {
-            val userId =
-                auth.currentUser?.uid ?: return Result.failure(Exception("User not authenticated"))
-            val babiesList = db.collection(BABIES_COLLECTION)
-                .whereArrayContains("parentIds", userId)
-                .orderBy("createdAt", Query.Direction.DESCENDING) // Optional: order by creation
-                .get()
-                .await()
-                .toObjects<Baby>() // Use reified type for cleaner conversion
-            Result.success(babiesList)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching babies", e)
-            Result.failure(e)
-        }
-    }
-
     suspend fun getFirstBabyId(): String? {
         val userId = auth.currentUser?.uid
             ?: throw IllegalStateException("User not authenticated")
@@ -373,6 +362,7 @@ class FirebaseRepository @Inject constructor(
         // Commit batch single write
         batch.commit().await()
     }
+
     suspend fun findUserIdByEmail(email: String): String? {
         val normalizedEmail = email.trim().lowercase(Locale.getDefault())
         val snapshot = db.collection(USERS_COLLECTION)
@@ -407,6 +397,7 @@ class FirebaseRepository @Inject constructor(
             }
         }.await()
     }
+
     /**
      * Récupère la liste des utilisateurs correspondant aux IDs fournis.
      * Retourne une liste vide si ids est vide.
@@ -502,7 +493,6 @@ class FirebaseRepository @Inject constructor(
         Log.e(TAG, "Error fetching events for baby $babyId", e)
         Result.failure(e)
     }
-
 
 
     suspend fun getLastGrowthEvent(babyId: String): Result<GrowthEvent?> = runCatching {
