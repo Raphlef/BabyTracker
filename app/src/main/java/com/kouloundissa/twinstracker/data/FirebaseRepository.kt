@@ -183,7 +183,6 @@ class FirebaseRepository @Inject constructor(
         val storageRef = FirebaseStorage.getInstance().reference
             .child("photos")
             .child(entityType)
-            .child(userId)
             .child("$entityId.jpg")
 
         Log.d(TAG, "Uploading photo to Storage at path: ${storageRef.path}")
@@ -277,15 +276,16 @@ class FirebaseRepository @Inject constructor(
                     .toObjects<Baby>()
             }
 
-            val isNew = baby.id.isBlank()
+
             val conflict = existing.any { it.id != baby.id }
             if (conflict) {
                 throw IllegalStateException("Un bébé portant ce nom existe déjà.")
             }
         }
-
+        val existingBaby = allBabyIds.find { it == baby.id }
+        val isNew =  existingBaby == null
         // 2. Determine document ref
-        val docRef = if (baby.id.isBlank()) {
+        val docRef = if (isNew) {
             db.collection(BABIES_COLLECTION).document()
         } else {
             db.collection(BABIES_COLLECTION).document(baby.id)
@@ -297,7 +297,7 @@ class FirebaseRepository @Inject constructor(
         docRef.set(finalBaby).await()
 
         // 4. For new baby, add its ID to every family of the user
-        if (baby.id.isBlank()) {
+        if (isNew) {
             families.forEach { family ->
                 if (finalBaby.id !in family.babyIds) {
                     val updated = family.copy(
