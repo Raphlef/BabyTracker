@@ -97,7 +97,7 @@ fun DashboardScreen(
     var showBabyDialog by remember { mutableStateOf(false) }
     var showEventForm by remember { mutableStateOf(false) }
     var selectedEventFormState by remember { mutableStateOf<EventFormState?>(null) }
-
+    val babyError by babyViewModel.errorMessage.collectAsState()
     var showBabyInfoBar by remember { mutableStateOf(false) }
 
     // Initialize selectedBaby on first composition
@@ -221,6 +221,14 @@ fun DashboardScreen(
                         },
                         onCancel = { showBabyDialog = false },
                         babyViewModel = babyViewModel
+                    )
+                }
+                babyError?.let {
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
             }
