@@ -13,18 +13,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FamilyRestroom
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,7 +50,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.data.Family
+import com.kouloundissa.twinstracker.data.FamilySettings
 import com.kouloundissa.twinstracker.data.PrivacyLevel
+import com.kouloundissa.twinstracker.presentation.Family.CreateFamilyDialog
 import com.kouloundissa.twinstracker.presentation.dashboard.BabySelectorRow
 import com.kouloundissa.twinstracker.presentation.event.IconSelector
 import com.kouloundissa.twinstracker.presentation.settings.GlassCard
@@ -80,7 +86,7 @@ fun FamilyManagementCard(
     var sharedNotifications by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.sharedNotifications == true) }
     var privacyLevel by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.defaultPrivacy?.name.orEmpty()) }
     var showJoinDialog by remember { mutableStateOf(false) }
-
+    var showCreateDialog by remember { mutableStateOf(false) }
 
     // **Automatically select the first family when the list loads (or changes)**
     LaunchedEffect(families) {
@@ -108,27 +114,40 @@ fun FamilyManagementCard(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("Vos familles", style = MaterialTheme.typography.titleSmall)
-            if (families.isEmpty()) {
-                Text("Aucune famille enregistrée", color = Color.Gray)
-            } else {
-                FamilyList(
-                    families = families,
-                    selectedFamily = selectedFamily,
-                    onSelect = { familyViewModel.selectFamily(it) }
-                )
-                Divider()
-                // Baby selector row
-                if (selectedFamily != null) {
-                    Text("Bébés", style = MaterialTheme.typography.titleSmall)
-                    BabySelectorRow(
-                        babies = babies,
-                        selectedBaby = selectedBaby,
-                        onSelectBaby = { babyViewModel.selectBaby(it) },
-                        onAddBaby = { /* navigate to baby creation screen */ }
-                    )
+
+            FamilyList(
+                families = families,
+                selectedFamily = selectedFamily,
+                onSelect = { familyViewModel.selectFamily(it) }
+            )
+            Button(
+                onClick = { showCreateDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                enabled = !isLoading,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Text("Créer une nouvelle famille")
                 }
-                Divider()
             }
+            HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+            // Baby selector row
+            if (selectedFamily != null) {
+                Text("Bébés", style = MaterialTheme.typography.titleSmall)
+                BabySelectorRow(
+                    babies = babies,
+                    selectedBaby = selectedBaby,
+                    onSelectBaby = { babyViewModel.selectBaby(it) },
+                    onAddBaby = { /* navigate to baby creation screen */ }
+                )
+            }
+            HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+
 
             // Editable Form
             Text(
@@ -242,7 +261,8 @@ fun FamilyManagementCard(
                     modifier = Modifier.weight(1f),
                     enabled = !isLoading
                 ) {
-                    Text("Rejoindre une famille avec un code")
+                    Icon(Icons.Default.QrCode, contentDescription = null)
+                    Text("Rejoindre")
                 }
 
                 val createLabel = if (selectedFamily == null) "Créer" else "Enregistrer"
@@ -275,7 +295,22 @@ fun FamilyManagementCard(
             }
         }
     }
-
+    if (showCreateDialog) {
+        CreateFamilyDialog(
+            show = showCreateDialog,
+            onDismiss = { showCreateDialog = false },
+            onCreateFamily = { name, description ->
+                val newFamily = Family(
+                    name = name,
+                    description = description.ifBlank { null },
+                    settings = FamilySettings()
+                )
+                familyViewModel.createOrUpdateFamily(newFamily)
+                showCreateDialog = false
+            },
+            isLoading = isLoading
+        )
+    }
     if (showJoinDialog) {
         JoinFamilyDialog(
             show = showJoinDialog,
@@ -287,6 +322,7 @@ fun FamilyManagementCard(
             isLoading = isLoading
         )
     }
+
 
 }
 
@@ -427,7 +463,7 @@ fun FamilyLeaveButton(
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    if (isOnlyAdmin) "Impossible de quitter" else "Quitter la famille",
+                    if (isOnlyAdmin) "Impossible de quitter" else "Quitter",
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
