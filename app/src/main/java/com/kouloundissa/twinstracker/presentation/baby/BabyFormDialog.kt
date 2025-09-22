@@ -22,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.BloodType
 import com.kouloundissa.twinstracker.data.Gender
@@ -476,6 +478,10 @@ fun PhotoPicker(
     onPhotoSelected: (Uri?) -> Unit,
     onPhotoRemoved: () -> Unit
 ) {
+    // Track loading state; reset whenever photoUrl changes
+    var isLoading by remember(photoUrl) { mutableStateOf(false) }
+
+
     val chooserLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -502,18 +508,44 @@ fun PhotoPicker(
             .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
     ) {
         if (photoUrl != null) {
+            // Load image with progress callbacks
+            val imageRequest = ImageRequest.Builder(context)
+                .data(photoUrl)
+                .crossfade(true)
+                .listener(
+                    onStart = { isLoading = true },
+                    onSuccess = { _, _ -> isLoading = false },
+                    onError = { _, _ -> isLoading = false }
+                )
+                .build()
             // Display the image
             AsyncImage(
-                model = photoUrl,
+                model = imageRequest,
                 contentDescription = "Selected Photo",
                 modifier = Modifier
                     .fillMaxSize()
                     .clickable { chooserLauncher.launch(chooserIntent) },
                 contentScale = ContentScale.Crop
             )
+            // Overlay: show progress while loading
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.4f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
             // Overlay delete icon
             IconButton(
-                onClick = onPhotoRemoved,
+                onClick = {
+                    onPhotoRemoved()
+                    isLoading = false
+                },
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(8.dp)
