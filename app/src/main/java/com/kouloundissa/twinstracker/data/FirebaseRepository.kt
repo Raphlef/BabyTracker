@@ -11,7 +11,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.snapshots
@@ -20,8 +22,13 @@ import com.google.firebase.firestore.toObjects
 import com.google.firebase.storage.FirebaseStorage
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -248,80 +255,131 @@ class FirebaseRepository @Inject constructor(
         val userId = auth.currentUser?.uid
             ?: throw IllegalStateException("User not authenticated")
 
-        // 1. Pre-check for duplicate name under this user
-        val existing = db.collection(BABIES_COLLECTION)
-            .whereEqualTo("name", baby.name.trim())
-            .whereArrayContains("parentIds", userId)
-            .get()
-            .await()
-            .toObjects<Baby>()
+        // 1. Pre-check for duplicate name across user's families
+        val families = getCurrentUserFamilies().getOrThrow()
+        val allBabyIds = families.flatMap { it.babyIds }.distinct()
 
-        // If adding new (blank id) or renaming to an existing other baby, error out
-        val isNew = baby.id.isBlank()
-        val conflict = existing.any { it.id != baby.id }
-        if (conflict) {
-            throw IllegalStateException("Un bébé portant ce nom existe déjà.")
+        if (allBabyIds.isNotEmpty()) {
+            val existing = allBabyIds.chunked(10).flatMap { chunk ->
+                db.collection(BABIES_COLLECTION)
+                    .whereIn(FieldPath.documentId(), chunk)
+                    .whereEqualTo("name", baby.name.trim())
+                    .get()
+                    .await()
+                    .toObjects<Baby>()
+            }
+
+            val isNew = baby.id.isBlank()
+            val conflict = existing.any { it.id != baby.id }
+            if (conflict) {
+                throw IllegalStateException("Un bébé portant ce nom existe déjà.")
+            }
         }
 
-        // 2. Prepare baby object with ensured parentIds
-        val babyWithUser = baby.copy(
-            id = baby.id,
-            parentIds = (baby.parentIds + userId).distinct()
-        )
-
-        // 3. Determine document ref
-        val docRef = if (isNew) {
+        // 2. Determine document ref
+        val docRef = if (baby.id.isBlank()) {
             db.collection(BABIES_COLLECTION).document()
         } else {
-            db.collection(BABIES_COLLECTION).document(babyWithUser.id)
+            db.collection(BABIES_COLLECTION).document(baby.id)
         }
 
-        val finalBaby = babyWithUser.copy(id = docRef.id)
-        // 4. Write with the generated or provided ID
+        val finalBaby = baby.copy(id = docRef.id)
+
+        // 3. Write baby document (no parentIds needed)
         docRef.set(finalBaby).await()
 
-        // 5. For new baby, add its ID to every family of the user
-        if (isNew) {
-            getCurrentUserFamilies().onSuccess { families ->
-                families.forEach { family ->
-                    // Append baby ID if not already present
-                    if (finalBaby.id !in family.babyIds) {
-                        val updated = family.copy(
-                            babyIds = (family.babyIds + finalBaby.id).distinct(),
-                            updatedAt = System.currentTimeMillis()
-                        )
-                        addOrUpdateFamily(updated)
-                    }
+        // 4. For new baby, add its ID to every family of the user
+        if (baby.id.isBlank()) {
+            families.forEach { family ->
+                if (finalBaby.id !in family.babyIds) {
+                    val updated = family.copy(
+                        babyIds = (family.babyIds + finalBaby.id).distinct(),
+                        updatedAt = System.currentTimeMillis()
+                    )
+                    addOrUpdateFamily(updated)
                 }
             }
         }
     }
 
     fun streamBabies(): Flow<List<Baby>> {
-        val userId = auth.currentUser?.uid
+        val currentUserId = auth.currentUser?.uid
             ?: throw IllegalStateException("User not authenticated")
-        return db.collection(BABIES_COLLECTION)
-            .whereArrayContains("parentIds", userId)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .snapshots()                              // écoute en temps réel
-            .map { snapshot ->
-                snapshot.toObjects(Baby::class.java)
+
+        return streamFamilies() // Reuse your existing streamFamilies method
+            .flatMapLatest { families ->
+                val allBabyIds = families.flatMap { it.babyIds }.distinct()
+
+                if (allBabyIds.isEmpty()) {
+                    flowOf(emptyList())
+                } else {
+                    // Stream babies based on the family baby IDs
+                    streamBabiesByIds(allBabyIds)
+                }
             }
+            .distinctUntilChanged()
     }
+    private fun streamBabiesByIds(babyIds: List<String>): Flow<List<Baby>> {
+        if (babyIds.isEmpty()) {
+            return flowOf(emptyList())
+        }
 
+        return callbackFlow {
+            val listeners = mutableListOf<ListenerRegistration>()
+            val babiesMap = mutableMapOf<String, Baby>()
+
+            // Chunk baby IDs to respect Firestore's whereIn limit of 10
+            babyIds.chunked(10).forEach { chunk ->
+                val listener = db.collection(BABIES_COLLECTION)
+                    .whereIn(FieldPath.documentId(), chunk)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            close(error)
+                            return@addSnapshotListener
+                        }
+
+                        // Update babies map
+                        snapshot?.documents?.forEach { doc ->
+                            doc.toObject(Baby::class.java)?.let { baby ->
+                                babiesMap[baby.id] = baby
+                            }
+                        }
+
+                        // Remove babies that are no longer in the chunk
+                        val chunkIds = chunk.toSet()
+                        babiesMap.keys.retainAll { it in chunkIds || it in babyIds }
+
+                        // Emit current list sorted by creation date
+                        val sortedBabies = babiesMap.values
+                            .filter { it.id in babyIds }
+                            .sortedByDescending { it.createdAt }
+
+                        trySend(sortedBabies)
+                    }
+                listeners.add(listener)
+            }
+
+            awaitClose {
+                listeners.forEach { it.remove() }
+            }
+        }
+    }
     suspend fun getFirstBabyId(): String? {
-        val userId = auth.currentUser?.uid
-            ?: throw IllegalStateException("User not authenticated")
+        val families = getCurrentUserFamilies().getOrNull() ?: return null
+        val allBabyIds = families.flatMap { it.babyIds }.distinct()
 
+        if (allBabyIds.isEmpty()) return null
+
+        // Get the first baby by creation date
+        val firstChunk = allBabyIds.take(10) // Take first chunk
         val snapshot = db.collection(BABIES_COLLECTION)
-            .whereArrayContains("parentIds", userId)
+            .whereIn(FieldPath.documentId(), firstChunk)
             .orderBy("createdAt", Query.Direction.DESCENDING)
             .limit(1)
             .get()
             .await()
 
-        val babies = snapshot.toObjects<Baby>()
-        return babies.firstOrNull()?.id
+        return snapshot.toObjects<Baby>().firstOrNull()?.id
     }
 
     suspend fun getBabyById(babyId: String): Result<Baby?> {
