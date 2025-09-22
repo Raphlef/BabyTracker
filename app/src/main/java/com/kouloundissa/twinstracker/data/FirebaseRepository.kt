@@ -13,6 +13,7 @@ import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
@@ -20,6 +21,7 @@ import com.google.firebase.firestore.snapshots
 import com.google.firebase.firestore.toObject
 import com.google.firebase.firestore.toObjects
 import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageException
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
@@ -223,31 +225,37 @@ class FirebaseRepository @Inject constructor(
         val photoRef = FirebaseStorage.getInstance().reference
             .child("photos")
             .child(entityType)
-            .child(userId)
             .child("$entityId.jpg")
 
         // Delete photo from Storage
         try {
             photoRef.delete().await()
-        } catch (e: Exception) {
-            // Optionally log error but don’t fail if photo missing
-            if (e is com.google.firebase.storage.StorageException && e.errorCode == 404) {
-                // Not found is OK, photo already deleted or never uploaded
-            } else {
+        } catch (e: StorageException) {
+            // ERROR_OBJECT_NOT_FOUND = 404
+            if (e.errorCode != StorageException.ERROR_OBJECT_NOT_FOUND) {
                 throw e
             }
+            // else: object missing—ignore
         }
 
         // Remove photoUrl from Firestore document
-        db.collection(entityType)
-            .document(entityId)
-            .update(
-                mapOf(
-                    "photoUrl" to FieldValue.delete(),
-                    "updatedAt" to System.currentTimeMillis()
+        try {
+            db.collection(entityType)
+                .document(entityId)
+                .update(
+                    mapOf(
+                        "photoUrl" to FieldValue.delete(),
+                        "updatedAt" to System.currentTimeMillis()
+                    )
                 )
-            )
-            .await()
+                .await()
+        } catch (e: FirebaseFirestoreException) {
+            // If the document doesn’t exist, error code is NOT_FOUND (code = 5)
+            if (e.code != FirebaseFirestoreException.Code.NOT_FOUND) {
+                throw e
+            }
+            // else: missing document—ignore
+        }
     }
 
     // --- Baby Methods ---
