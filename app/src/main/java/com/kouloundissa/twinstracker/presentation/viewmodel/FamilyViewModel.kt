@@ -49,32 +49,29 @@ class FamilyViewModel @Inject constructor(
 
 
     init {
-        loadFamilies()
         observeFamilyUpdates()
         _currentUserId.value = repository.getCurrentUserId()
     }
 
-    private fun loadFamilies() {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-            repository.getFamilies()
-                .onSuccess { list ->
-                    _families.value = list
-                    _state.update { it.copy(isLoading = false) }
-                }
-                .onFailure { err ->
-                    _state.update { it.copy(isLoading = false, error = err.message) }
-                }
-        }
-    }
-
     private fun observeFamilyUpdates() {
         viewModelScope.launch {
-            repository.streamFamilies().collect { list ->
-                _families.value = list
+            _state.update { it.copy(isLoading = true, error = null) }
+            try {
+                repository.streamFamilies().collect { list ->
+                    _families.value = list
+                    _state.update { it.copy(isLoading = false, error = null) }
+                }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        error = e.message ?: "Failed to load families"
+                    )
+                }
             }
         }
     }
+
 
     fun selectFamily(family: Family?) {
         _selectedFamily.value = family

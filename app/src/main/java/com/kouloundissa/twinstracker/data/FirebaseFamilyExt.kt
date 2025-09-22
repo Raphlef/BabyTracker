@@ -1,11 +1,17 @@
 package com.kouloundissa.twinstracker.data
 
+import android.system.Os.close
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.Filter
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.map
 import com.google.firebase.firestore.snapshots
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import java.util.UUID
 
 // --- Family Methods ---
@@ -31,11 +37,79 @@ fun FirebaseRepository.streamFamilies(): Flow<List<Family>> {
     val currentUserId = auth.currentUser?.uid
         ?: throw IllegalStateException("User not authenticated")
 
-    return db.collection("families")
-        .whereArrayContains("memberIds", currentUserId)
-        .orderBy("createdAt", Query.Direction.DESCENDING)
-        .snapshots()
-        .map { it.toObjects(Family::class.java) }
+    return callbackFlow {
+        // Query families where user is either member OR admin
+        val memberQuery = db.collection("families")
+            .whereArrayContains("memberIds", currentUserId)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+
+        val adminQuery = db.collection("families")
+            .whereArrayContains("adminIds", currentUserId)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+
+        val listeners = mutableListOf<ListenerRegistration>()
+        val familiesMap = mutableMapOf<String, Family>()
+
+        // Listen to member families
+        val memberListener = memberQuery.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
+            }
+
+            snapshot?.documents?.forEach { doc ->
+                doc.toObject(Family::class.java)?.let { family ->
+                    familiesMap[family.id] = family
+                }
+            }
+
+            // Emit the combined list, sorted by creation date
+            val sortedFamilies = familiesMap.values.sortedByDescending { it.createdAt }
+            trySend(sortedFamilies)
+        }
+
+        // Listen to admin families
+        val adminListener = adminQuery.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
+            }
+
+            snapshot?.documents?.forEach { doc ->
+                doc.toObject(Family::class.java)?.let { family ->
+                    familiesMap[family.id] = family
+                }
+            }
+
+            // Emit the combined list, sorted by creation date
+            val sortedFamilies = familiesMap.values.sortedByDescending { it.createdAt }
+            trySend(sortedFamilies)
+        }
+
+        listeners.add(memberListener)
+        listeners.add(adminListener)
+
+        awaitClose {
+            listeners.forEach { it.remove() }
+        }
+    }.distinctUntilChanged() // Prevent duplicate emissions
+}
+
+// Add this helper method for one-time fetches (used in write operations)
+suspend fun FirebaseRepository.getCurrentUserFamilies(): Result<List<Family>> = runCatching {
+    val currentUserId = auth.currentUser?.uid
+        ?: throw IllegalStateException("User not authenticated")
+
+    db.collection("families")
+        .where(
+            Filter.or(
+                Filter.arrayContains("memberIds", currentUserId),
+                Filter.arrayContains("adminIds", currentUserId)
+            )
+        )
+        .get()
+        .await()
+        .toObjects(Family::class.java)
 }
 
 suspend fun FirebaseRepository.getFamilies(): Result<List<Family>> = runCatching {
@@ -68,7 +142,13 @@ suspend fun FirebaseRepository.addMemberToFamily(
         val snap = tx.get(familyRef)
         val current = snap.get("memberIds") as? List<String> ?: emptyList()
         if (!current.contains(userIdToAdd)) {
-            tx.update(familyRef, "memberIds", current + userIdToAdd, "updatedAt", System.currentTimeMillis())
+            tx.update(
+                familyRef,
+                "memberIds",
+                current + userIdToAdd,
+                "updatedAt",
+                System.currentTimeMillis()
+            )
         }
     }.await()
 
@@ -112,6 +192,7 @@ suspend fun FirebaseRepository.removeMemberFromFamily(
 suspend fun FirebaseRepository.deleteFamily(familyId: String): Result<Unit> = runCatching {
     db.collection("families").document(familyId).delete().await()
 }
+
 /** Regenerates and persists a new invite code */
 suspend fun FirebaseRepository.regenerateInviteCode(family: Family): Result<String> = runCatching {
     val newFamily = Family.withNewInviteCode(family)
@@ -125,26 +206,27 @@ suspend fun FirebaseRepository.regenerateInviteCode(family: Family): Result<Stri
 }
 
 /** Adds the current user to the family identified by inviteCode */
-suspend fun FirebaseRepository.joinFamilyByCode(code: String, userId: String): Result<Unit> = runCatching {
-    val query = db.collection("families")
-        .whereEqualTo("inviteCode", code)
-        .get()
-        .await()
+suspend fun FirebaseRepository.joinFamilyByCode(code: String, userId: String): Result<Unit> =
+    runCatching {
+        val query = db.collection("families")
+            .whereEqualTo("inviteCode", code)
+            .get()
+            .await()
 
-    if (query.isEmpty) throw Exception("Code invalide")
+        if (query.isEmpty) throw Exception("Code invalide")
 
-    val doc = query.documents.first()
-    val famId = doc.id
+        val doc = query.documents.first()
+        val famId = doc.id
 
-    val settings = doc.get("settings") as? Map<*, *>
-        ?: throw Exception("Paramètres manquants")
+        val settings = doc.get("settings") as? Map<*, *>
+            ?: throw Exception("Paramètres manquants")
 
-    val allowInvites = settings["allowMemberInvites"] as? Boolean ?: true
-    if (!allowInvites) throw Exception("Invitations désactivées")
+        val allowInvites = settings["allowMemberInvites"] as? Boolean ?: true
+        if (!allowInvites) throw Exception("Invitations désactivées")
 
-    db.collection("families")
-        .document(famId)
-        .update("memberIds", FieldValue.arrayUnion(userId))
-        .await()
-}
+        db.collection("families")
+            .document(famId)
+            .update("memberIds", FieldValue.arrayUnion(userId))
+            .await()
+    }
 

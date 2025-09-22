@@ -18,6 +18,7 @@ import com.google.firebase.firestore.snapshots
 import com.google.firebase.firestore.toObject
 import com.google.firebase.firestore.toObjects
 import com.google.firebase.storage.FirebaseStorage
+import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -29,6 +30,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
+import kotlin.runCatching
 
 
 private val Context.dataStore by preferencesDataStore(name = "user_prefs")
@@ -273,9 +275,8 @@ class FirebaseRepository @Inject constructor(
         docRef.set(finalBaby).await()
 
         // 5. For new baby, add its ID to every family of the user
-        // 4. If new, add baby to all user families
         if (isNew) {
-            getFamilies().onSuccess { families ->
+            getCurrentUserFamilies().onSuccess { families ->
                 families.forEach { family ->
                     // Append baby ID if not already present
                     if (finalBaby.id !in family.babyIds) {
