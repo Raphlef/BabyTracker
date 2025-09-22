@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun AuthScreen(
-    onLoginSuccess: (firstBabyId: String?) -> Unit,
+    onLoginSuccess: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -80,8 +80,8 @@ fun AuthScreen(
     }
 
     // Trigger navigation on successful auth
-    LaunchedEffect(state.isAuthenticated, state.firstBabyId) {
-        if (state.isAuthenticated) onLoginSuccess(state.firstBabyId)
+    LaunchedEffect(state.isAuthenticated) {
+        if (state.isAuthenticated) onLoginSuccess()
     }
 
     Surface(

@@ -190,18 +190,13 @@ class AuthViewModel @Inject constructor(
     private suspend fun performPostAuthSetup() {
         try {
             // Charger le profil Firestore
-
             val profile = repository.getCurrentUserProfile()
-
-            // Charger le premier bébé si existant
-            val firstBabyId = repository.getFirstBabyId()
 
             // Mettre à jour l’état
             _state.update {
                 it.copy(
                     isLoading = false,
                     isAuthenticated = true,
-                    firstBabyId = firstBabyId,
                     userProfile = profile,
                     error = null
                 )
@@ -232,7 +227,6 @@ data class AuthState(
     val rememberMe: Boolean = false,
     val isLoading: Boolean = false,
     val isAuthenticated: Boolean = false,
-    val firstBabyId: String? = null,
     val userProfile: User? = null,
     val error: String? = null
 )

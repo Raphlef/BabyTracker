@@ -63,7 +63,7 @@ fun BabyTrackerApp() {
     ) {
         composable("auth") {
             AuthScreen(
-                onLoginSuccess = { firstBabyId ->
+                onLoginSuccess = {
                     navController.navigate("family_check") {
                         popUpTo("auth") { inclusive = true }
                     }

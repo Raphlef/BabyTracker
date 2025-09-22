@@ -364,23 +364,6 @@ class FirebaseRepository @Inject constructor(
             }
         }
     }
-    suspend fun getFirstBabyId(): String? {
-        val families = getCurrentUserFamilies().getOrNull() ?: return null
-        val allBabyIds = families.flatMap { it.babyIds }.distinct()
-
-        if (allBabyIds.isEmpty()) return null
-
-        // Get the first baby by creation date
-        val firstChunk = allBabyIds.take(10) // Take first chunk
-        val snapshot = db.collection(BABIES_COLLECTION)
-            .whereIn(FieldPath.documentId(), firstChunk)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .limit(1)
-            .get()
-            .await()
-
-        return snapshot.toObjects<Baby>().firstOrNull()?.id
-    }
 
     suspend fun getBabyById(babyId: String): Result<Baby?> {
         return try {
@@ -388,18 +371,6 @@ class FirebaseRepository @Inject constructor(
             Result.success(documentSnapshot.toObject<Baby>())
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching baby by ID: $babyId", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun deleteBaby(babyId: String): Result<Unit> {
-        return try {
-            withTimeout(10000L) { // timeout à 10 secondes
-                db.collection(BABIES_COLLECTION).document(babyId).delete().await()
-            }
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error deleting baby: $babyId", e)
             Result.failure(e)
         }
     }
