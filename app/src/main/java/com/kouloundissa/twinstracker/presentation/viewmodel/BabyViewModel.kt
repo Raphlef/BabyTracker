@@ -271,7 +271,10 @@ class BabyViewModel @Inject constructor(
                 // 2. Delete Firestore baby document and related events
                 repository.deleteBabyAndEvents(babyId).getOrThrow()
 
-                // 3. Clear selected baby if it was deleted
+                // 3. Remove babyId from all families
+                repository.removeBabyFromAllFamilies(babyId)
+
+                // 4. Clear selected baby if it was deleted
                 if (_selectedBaby.value?.id == babyId) {
                     _selectedBaby.value = null
                 }

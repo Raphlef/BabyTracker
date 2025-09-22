@@ -400,6 +400,25 @@ class FirebaseRepository @Inject constructor(
         batch.commit().await()
     }
 
+    suspend fun removeBabyFromAllFamilies(babyId: String) = withContext(Dispatchers.IO) {
+        val familiesSnapshot = db.collection(FAMILIES_COLLECTION)
+            .whereArrayContains("babyIds", babyId)
+            .get()
+            .await()
+
+        val batch = db.batch()
+        familiesSnapshot.documents.forEach { doc ->
+            batch.update(
+                doc.reference,
+                "babyIds",
+                FieldValue.arrayRemove(babyId),
+                "updatedAt",
+                System.currentTimeMillis()
+            )
+        }
+        batch.commit().await()
+    }
+
     suspend fun findUserIdByEmail(email: String): String? {
         val normalizedEmail = email.trim().lowercase(Locale.getDefault())
         val snapshot = db.collection(USERS_COLLECTION)
