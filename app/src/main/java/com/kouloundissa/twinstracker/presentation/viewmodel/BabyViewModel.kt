@@ -175,8 +175,8 @@ class BabyViewModel @Inject constructor(
 
         val finalPhotoUrl: String? = when {
             newPhotoUrl != null -> uploadBabyPhoto(id, newPhotoUrl)
-            photoRemoved        -> null
-            else                -> existingPhotoUrl
+            photoRemoved -> null
+            else -> existingPhotoUrl
         }
 
         // Create updated baby with new data
@@ -226,11 +226,7 @@ class BabyViewModel @Inject constructor(
             updatedAt = System.currentTimeMillis()
         )
 
-        repository.addOrUpdateBaby(baby).getOrThrow()
-
-        // Get the created baby with its ID
-        val createdBaby = repository.getBabyById(baby.id).getOrNull()
-            ?: throw IllegalStateException("Created baby not found")
+        val createdBaby = repository.addOrUpdateBaby(baby).getOrThrow()
 
         // Handle photo upload if provided
         val finalBaby = handlePhotoUpload(createdBaby, photoUrl)
@@ -244,8 +240,8 @@ class BabyViewModel @Inject constructor(
                 photoUrl = newPhotoUrl,
                 updatedAt = System.currentTimeMillis()
             )
-            repository.addOrUpdateBaby(updatedBaby).getOrThrow()
-            updatedBaby
+            val finalBaby = repository.addOrUpdateBaby(updatedBaby).getOrThrow()
+            finalBaby
         } else {
             baby
         }
@@ -314,10 +310,10 @@ class BabyViewModel @Inject constructor(
                 )
 
                 // 4. Persist the change
-                repository.addOrUpdateBaby(updated).getOrThrow()
+                var finalBaby = repository.addOrUpdateBaby(updated).getOrThrow()
 
                 // 5. Update selected baby
-                _selectedBaby.value = updated
+                _selectedBaby.value = finalBaby
 
             } catch (e: Exception) {
                 _errorMessage.value = "Échec de la suppression de la photo : ${e.localizedMessage}"

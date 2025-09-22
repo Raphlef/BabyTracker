@@ -258,7 +258,7 @@ class FirebaseRepository @Inject constructor(
     }
 
     // --- Baby Methods ---
-    suspend fun addOrUpdateBaby(baby: Baby): Result<Unit> = runCatching {
+    suspend fun addOrUpdateBaby(baby: Baby): Result<Baby> = runCatching {
         val userId = auth.currentUser?.uid
             ?: throw IllegalStateException("User not authenticated")
 
@@ -308,6 +308,7 @@ class FirebaseRepository @Inject constructor(
                 }
             }
         }
+        finalBaby
     }
 
     fun streamBabies(): Flow<List<Baby>> {
