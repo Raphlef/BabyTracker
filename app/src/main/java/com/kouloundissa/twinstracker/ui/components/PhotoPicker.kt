@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.ui.components
 
+import android.app.DownloadManager
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -21,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,8 +34,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.File
 
 @Composable
 fun PhotoPicker(
@@ -41,25 +47,62 @@ fun PhotoPicker(
     onPhotoSelected: (Uri?) -> Unit,
     onPhotoRemoved: () -> Unit
 ) {
-    // Track loading state; reset whenever photoUrl changes
+    val context = LocalContext.current
+
+    // State to hold the URI actually displayed (remote or local)
+    var displayUri by remember(photoUrl) { mutableStateOf<Uri?>(photoUrl) }
     var isLoading by remember(photoUrl) { mutableStateOf(false) }
 
+    // Whenever photoUrl changes, ensure it's cached locally
+    LaunchedEffect(photoUrl) {
+        displayUri = photoUrl?.let { remoteUri ->
+            val localFile = context.getExternalFilesDir("images")?.let { dir ->
+                // Use URL hash as filename
+                val fileName = remoteUri.toString().hashCode().toString() + ".jpg"
+                File(dir, fileName)
+            }
+            if (localFile != null) {
+                if (localFile.exists()) {
+                    // Already cached: use local copy
+                    localFile.toUri()
+                } else {
+                    // Download & save
+                    isLoading = true
+                    try {
+                        val request = Request.Builder().url(remoteUri.toString()).build()
+                        OkHttpClient().newCall(request).execute().use { resp ->
+                            if (resp.isSuccessful) {
+                                localFile.parentFile?.mkdirs()
+                                localFile.outputStream().use { out ->
+                                    resp.body?.byteStream()?.copyTo(out)
+                                }
+                                localFile.toUri()
+                            } else remoteUri
+                        }
+                    } catch (e: Exception) {
+                        remoteUri
+                    } finally {
+                        isLoading = false
+                    }
+                }
+            } else remoteUri
+        }
+    }
 
+    // Image picker launcher
     val chooserLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         val uri = result.data?.data
-            ?: result.data?.clipData?.let { it.getItemAt(0).uri }
+            ?: result.data?.clipData?.getItemAt(0)?.uri
         onPhotoSelected(uri)
     }
-
-    val context = LocalContext.current
-    val pickImageIntent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "image/*" }
+    val pickIntent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "image/*" }
     val openDocIntent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
         addCategory(Intent.CATEGORY_OPENABLE)
         type = "image/*"
     }
-    val chooserIntent = Intent.createChooser(pickImageIntent, "Select Photo").apply {
+    val chooserIntent = Intent.createChooser(pickIntent, "Select Photo").apply {
         putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(openDocIntent))
     }
 
@@ -70,10 +113,10 @@ fun PhotoPicker(
             .clip(MaterialTheme.shapes.medium)
             .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
     ) {
-        if (photoUrl != null) {
-            // Load image with progress callbacks
-            val imageRequest = ImageRequest.Builder(context)
-                .data(photoUrl)
+        if (displayUri != null) {
+            // Build Coil request
+            val request = ImageRequest.Builder(context)
+                .data(displayUri)
                 .crossfade(true)
                 .listener(
                     onStart = { isLoading = true },
@@ -81,16 +124,16 @@ fun PhotoPicker(
                     onError = { _, _ -> isLoading = false }
                 )
                 .build()
-            // Display the image
+
             AsyncImage(
-                model = imageRequest,
+                model = request,
                 contentDescription = "Selected Photo",
                 modifier = Modifier
                     .fillMaxSize()
                     .clickable { chooserLauncher.launch(chooserIntent) },
                 contentScale = ContentScale.Crop
             )
-            // Overlay: show progress while loading
+
             if (isLoading) {
                 Box(
                     modifier = Modifier
@@ -98,22 +141,21 @@ fun PhotoPicker(
                         .background(Color.Black.copy(alpha = 0.4f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
-            // Overlay delete icon
+
             IconButton(
                 onClick = {
                     onPhotoRemoved()
+                    displayUri = null
                     isLoading = false
                 },
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(8.dp)
                     .background(
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
                         shape = CircleShape
                     )
             ) {
@@ -124,7 +166,7 @@ fun PhotoPicker(
                 )
             }
         } else {
-            // Placeholder: tap anywhere to pick
+            // Placeholder to pick an image
             Box(
                 modifier = Modifier
                     .fillMaxSize()
