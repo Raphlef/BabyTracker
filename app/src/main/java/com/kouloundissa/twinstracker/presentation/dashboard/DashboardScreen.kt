@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -47,8 +48,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.EventFormState
 import com.kouloundissa.twinstracker.data.EventType
@@ -64,6 +69,7 @@ import com.kouloundissa.twinstracker.ui.components.BottomNavBar
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.launch
 import java.util.Locale
+import kotlin.math.roundToInt
 
 
 enum class DashboardTab(val label: String, val icon: @Composable () -> Unit) {
@@ -86,6 +92,7 @@ fun DashboardScreen(
     val hazeState = remember { HazeState() }
 
     val density = LocalDensity.current
+    var selectorBottomPx by remember { mutableStateOf(0) }
 
     // State for measured height in Dp
     var bottomBarHeightDp by remember { mutableStateOf(0.dp) }
@@ -140,31 +147,28 @@ fun DashboardScreen(
             Column(Modifier.padding(paddingValues)) {
                 Spacer(modifier = Modifier.height(4.dp))
                 // --- BABY SELECTOR + INFO ---
-                BabySelectorRow(
-                    babies = babies,
-                    selectedBaby = selectedBaby,
-                    onSelectBaby = {
-                        babyViewModel.selectBaby(it)
-                        showBabyInfoBar = true
-                    },
-                    onAddBaby = {
-                        // Open create baby dialog
-                        editingBaby = null
-                        showBabyDialog = true
-                        showBabyInfoBar = false
+                Box(
+                    Modifier.onGloballyPositioned { coords ->
+                        val windowPos = coords.positionInWindow().y
+                        selectorBottomPx = (windowPos + coords.size.height).roundToInt()
                     }
-                )
-                AnimatedVisibility(
-                    visible = showBabyInfoBar && selectedBaby != null,
-                    enter = fadeIn(),
-                    exit = fadeOut()
                 ) {
-                    selectedBaby?.let { baby ->
-                        BabyInfoBar(baby) { editingBaby = baby }
-                    }
+                    BabySelectorRow(
+                        babies = babies,
+                        selectedBaby = selectedBaby,
+                        onSelectBaby = {
+                            babyViewModel.selectBaby(it)
+                            showBabyInfoBar = true
+                        },
+                        onAddBaby = {
+                            // Open create baby dialog
+                            editingBaby = null
+                            showBabyDialog = true
+                            showBabyInfoBar = false
+                        }
+                    )
                 }
                 Spacer(Modifier.height(8.dp))
-
                 // --- MAIN CONTENT for selected tab ---
                 Box(Modifier.weight(1f)) {
                     HorizontalPager(
@@ -232,7 +236,28 @@ fun DashboardScreen(
                     )
                 }
             }
+            if (showBabyInfoBar && selectedBaby != null) {
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    modifier = Modifier
+                        // Convert px to dp and offset
+                        .offset {
+                            IntOffset(
+                                x = 0,
+                                y = with(density) { selectorBottomPx.toDp().roundToPx() }
+                            )
+                        }
+                        .fillMaxWidth()
+                        .zIndex(1f)
 
+                ) {
+                    selectedBaby?.let { baby ->
+                        BabyInfoBar(baby) { editingBaby = baby }
+                    }
+                }
+            }
             // Floating nav sits on top, aligned bottom center
             Box(
                 modifier = Modifier
