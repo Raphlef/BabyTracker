@@ -37,6 +37,7 @@ import com.kouloundissa.twinstracker.data.Gender
 import com.kouloundissa.twinstracker.presentation.event.IconSelector
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
+import com.kouloundissa.twinstracker.ui.components.PhotoPicker
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -472,109 +473,4 @@ fun NumericField(
     errorMsg?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 }
 
-@Composable
-fun PhotoPicker(
-    photoUrl: Uri?,
-    onPhotoSelected: (Uri?) -> Unit,
-    onPhotoRemoved: () -> Unit
-) {
-    // Track loading state; reset whenever photoUrl changes
-    var isLoading by remember(photoUrl) { mutableStateOf(false) }
 
-
-    val chooserLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val uri = result.data?.data
-            ?: result.data?.clipData?.let { it.getItemAt(0).uri }
-        onPhotoSelected(uri)
-    }
-
-    val context = LocalContext.current
-    val pickImageIntent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "image/*" }
-    val openDocIntent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-        addCategory(Intent.CATEGORY_OPENABLE)
-        type = "image/*"
-    }
-    val chooserIntent = Intent.createChooser(pickImageIntent, "Select Photo").apply {
-        putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(openDocIntent))
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(150.dp)
-            .clip(MaterialTheme.shapes.medium)
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-    ) {
-        if (photoUrl != null) {
-            // Load image with progress callbacks
-            val imageRequest = ImageRequest.Builder(context)
-                .data(photoUrl)
-                .crossfade(true)
-                .listener(
-                    onStart = { isLoading = true },
-                    onSuccess = { _, _ -> isLoading = false },
-                    onError = { _, _ -> isLoading = false }
-                )
-                .build()
-            // Display the image
-            AsyncImage(
-                model = imageRequest,
-                contentDescription = "Selected Photo",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable { chooserLauncher.launch(chooserIntent) },
-                contentScale = ContentScale.Crop
-            )
-            // Overlay: show progress while loading
-            if (isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.4f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-            // Overlay delete icon
-            IconButton(
-                onClick = {
-                    onPhotoRemoved()
-                    isLoading = false
-                },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-                        shape = CircleShape
-                    )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Remove Photo",
-                    tint = MaterialTheme.colorScheme.error
-                )
-            }
-        } else {
-            // Placeholder: tap anywhere to pick
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable { chooserLauncher.launch(chooserIntent) },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CameraAlt,
-                    contentDescription = "Add Photo",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                    modifier = Modifier.size(48.dp)
-                )
-            }
-        }
-    }
-}
