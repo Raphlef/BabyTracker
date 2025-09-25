@@ -17,10 +17,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -52,6 +56,8 @@ fun PhotoPicker(
     // State to hold the URI actually displayed (remote or local)
     var displayUri by remember(photoUrl) { mutableStateOf<Uri?>(photoUrl) }
     var isLoading by remember(photoUrl) { mutableStateOf(false) }
+    var cameraUri by remember { mutableStateOf<Uri?>(null) }
+    var showDialog by remember { mutableStateOf(false) }
 
     // Whenever photoUrl changes, ensure it's cached locally
     LaunchedEffect(photoUrl) {
@@ -89,21 +95,29 @@ fun PhotoPicker(
         }
     }
 
-    // Image picker launcher
-    val chooserLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val uri = result.data?.data
-            ?: result.data?.clipData?.getItemAt(0)?.uri
+    // Launchers for camera and gallery
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) onPhotoSelected(cameraUri)
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
         onPhotoSelected(uri)
     }
-    val pickIntent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "image/*" }
-    val openDocIntent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-        addCategory(Intent.CATEGORY_OPENABLE)
-        type = "image/*"
-    }
-    val chooserIntent = Intent.createChooser(pickIntent, "Select Photo").apply {
-        putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(openDocIntent))
+
+    // Prepare a file for camera capture
+    fun prepareCameraFile(): Uri? {
+        val imagesDir = context.getExternalFilesDir("captured_images")
+        imagesDir?.mkdirs()
+        val photoFile = File(imagesDir, "IMG_${System.currentTimeMillis()}.jpg")
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            photoFile
+        ).also { cameraUri = it }
     }
 
     Box(
@@ -130,7 +144,7 @@ fun PhotoPicker(
                 contentDescription = "Selected Photo",
                 modifier = Modifier
                     .fillMaxSize()
-                    .clickable { chooserLauncher.launch(chooserIntent) },
+                    .clickable { showDialog = true},
                 contentScale = ContentScale.Crop
             )
 
@@ -170,7 +184,7 @@ fun PhotoPicker(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clickable { chooserLauncher.launch(chooserIntent) },
+                    .clickable { showDialog = true},
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -180,6 +194,31 @@ fun PhotoPicker(
                     modifier = Modifier.size(48.dp)
                 )
             }
+        }
+        if (showDialog) {
+            AlertDialog(
+                onDismissRequest = { showDialog = false },
+                title = { Text("Select Photo") },
+                text = { Text("Choose an option") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showDialog = false
+                        prepareCameraFile()?.let { cameraUri ->
+                            cameraLauncher.launch(cameraUri)
+                        }
+                    }) {
+                        Text("Take Photo")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showDialog = false
+                        galleryLauncher.launch("image/*")
+                    }) {
+                        Text("Choose from Library")
+                    }
+                }
+            )
         }
     }
 }
