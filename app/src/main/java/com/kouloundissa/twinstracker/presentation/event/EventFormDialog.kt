@@ -218,7 +218,7 @@ fun EventFormDialog(
                         is EventFormState.Sleep -> SleepForm(s, viewModel)
                         is EventFormState.Feeding -> FeedingForm(s, viewModel)
                         is EventFormState.Growth -> GrowthForm(s, viewModel)
-                        is EventFormState.Pumping -> PumpingForm()
+                        is EventFormState.Pumping -> PumpingForm(s, viewModel)
                         is EventFormState.Drugs -> DrugsForm(s, viewModel)
                     }
                     PhotoPicker(
@@ -826,25 +826,77 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
 }
 
 @Composable
-private fun PumpingForm() {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+private fun PumpingForm(
+    state: EventFormState.Pumping,
+    viewModel: EventViewModel
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp)
-        ) {
-            CircularProgressIndicator()
-            Spacer(Modifier.height(16.dp))
-            Text(
-                "Pumping form coming soon…",
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
-            )
-        }
+        // Amount Pumped (ml)
+        OutlinedTextField(
+            value = state.amountMl,
+            onValueChange = {
+                viewModel.updateForm {
+                    (this as EventFormState.Pumping).copy(amountMl = it)
+                }
+            },
+            label = { Text("Amount (ml)") },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        // Duration of Pumping (minutes)
+        OutlinedTextField(
+            value = state.durationMin,
+            onValueChange = {
+                viewModel.updateForm {
+                    (this as EventFormState.Pumping).copy(durationMin = it)
+                }
+            },
+            label = { Text("Duration (minutes)") },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        // Breast Side
+        IconSelector(
+            title = "Breast Side",
+            options = BreastSide.entries,
+            selected = state.breastSide,
+            onSelect = {
+                viewModel.updateForm {
+                    (this as EventFormState.Pumping).copy(breastSide = it)
+                }
+            },
+            getIcon = { side -> side.icon },
+            getLabel = { side ->
+                side.name.lowercase().replaceFirstChar { it.uppercase() }
+            }
+        )
+
+        // Notes (optional)
+        OutlinedTextField(
+            value = state.notes,
+            onValueChange = {
+                viewModel.updateForm {
+                    (this as EventFormState.Pumping).copy(notes = it)
+                }
+            },
+            label = { Text("Notes (optional)") },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+        )
     }
 }
+
 
 @Composable
 private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
