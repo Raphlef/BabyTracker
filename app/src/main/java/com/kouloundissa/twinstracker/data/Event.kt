@@ -83,7 +83,7 @@ fun Event.setPhotoUrl(photoUrl: String?): Event = when (this) {
     is SleepEvent -> this.copy(photoUrl = photoUrl)
     is GrowthEvent -> this.copy(photoUrl = photoUrl)
     is PumpingEvent -> this.copy(photoUrl = photoUrl)
-    else -> this // fallback (shouldn't occur)
+    is DrugsEvent -> this.copy(photoUrl = photoUrl)
 }
 
 fun DocumentSnapshot.toEvent(): Event? {
