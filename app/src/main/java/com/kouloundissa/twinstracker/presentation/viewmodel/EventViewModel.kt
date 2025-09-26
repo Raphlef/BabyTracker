@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.presentation.viewmodel
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kouloundissa.twinstracker.data.FirebaseRepository
@@ -17,6 +18,7 @@ import com.kouloundissa.twinstracker.data.EventFormState
 import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
+import com.kouloundissa.twinstracker.data.setPhotoUrl
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
@@ -27,6 +29,9 @@ import kotlinx.coroutines.flow.update
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.reflect.KClass
+import androidx.core.net.toUri
+import com.google.firebase.storage.StorageException
+import com.kouloundissa.twinstracker.data.PumpingEvent
 
 @HiltViewModel
 class EventViewModel @Inject constructor(
@@ -153,7 +158,8 @@ class EventViewModel @Inject constructor(
                 diaperType = event.diaperType,
                 poopColor = event.poopColor,
                 poopConsistency = event.poopConsistency,
-                notes = event.notes.orEmpty()
+                notes = event.notes.orEmpty(),
+                photoUrl = event.photoUrl
             )
 
             is SleepEvent -> EventFormState.Sleep(
@@ -162,7 +168,8 @@ class EventViewModel @Inject constructor(
                 beginTime = event.beginTime,
                 endTime = event.endTime,
                 durationMinutes = event.durationMinutes,
-                notes = event.notes.orEmpty()
+                notes = event.notes.orEmpty(),
+                photoUrl = event.photoUrl
             )
 
             is FeedingEvent -> EventFormState.Feeding(
@@ -172,7 +179,8 @@ class EventViewModel @Inject constructor(
                 amountMl = event.amountMl?.toString().orEmpty(),
                 durationMin = event.durationMinutes?.toString().orEmpty(),
                 breastSide = event.breastSide,
-                notes = event.notes.orEmpty()
+                notes = event.notes.orEmpty(),
+                photoUrl = event.photoUrl
             )
 
             is GrowthEvent -> EventFormState.Growth(
@@ -181,7 +189,8 @@ class EventViewModel @Inject constructor(
                 weightKg = event.weightKg?.toString().orEmpty(),
                 heightCm = event.heightCm?.toString().orEmpty(),
                 headCircumferenceCm = event.headCircumferenceCm?.toString().orEmpty(),
-                notes = event.notes.orEmpty()
+                notes = event.notes.orEmpty(),
+                photoUrl = event.photoUrl
             )
 
             else -> EventFormState.Diaper()
@@ -191,7 +200,7 @@ class EventViewModel @Inject constructor(
     }
 
     // Entry-point to validate & save whichever event type is active
-    fun validateAndSave(babyId: String) {
+    fun SaveEvent(babyId: String) {
         if (babyId.isBlank()) {
             _errorMessage.value = "Baby ID is missing."
             return
@@ -201,21 +210,64 @@ class EventViewModel @Inject constructor(
 
         viewModelScope.launch {
             val state = _formState.value
-            // Reuse create/update logic from previous refactor:
-            state.validateAndToEvent(babyId)
-                .fold(
-                    onFailure = { _errorMessage.value = it.message; _isSaving.value = false },
-                    onSuccess = { event ->
-                        val result = event.id
-                            ?.let { repository.updateEvent(it, event) }
-                            ?: repository.addEvent(event)
-                        result.fold(
-                            onSuccess = { _saveSuccess.value = true },
-                            onFailure = { _errorMessage.value = it.message }
-                        )
-                        _isSaving.value = false
+            state.validateAndToEvent(babyId).fold(
+                onFailure = { err ->
+                    _errorMessage.value = err.message
+                    _isSaving.value = false
+                },
+                onSuccess = { event ->
+                    if (state.eventId == null) {
+                        // Creation branch
+                        createEventWithPhoto(event, state)
+                    } else {
+                        // Update branch
+                        updateEventWithPhoto(event, state)
                     }
-                )
+                }
+            )
+        }
+    }
+
+    private suspend fun createEventWithPhoto(event: Event, state: EventFormState) {
+        try {
+            // 1. Handle photo upload (before event creation)
+            val photoUrl = state.photoUrl?.let { uploadEventPhoto(event.id, it.toUri()) }
+
+            // 2. Create the event with photoUrl (if available)
+            val eventWithPhoto = event.setPhotoUrl(photoUrl)
+            repository.addEvent(eventWithPhoto).fold(
+                onSuccess = { _saveSuccess.value = true },
+                onFailure = { _errorMessage.value = it.message }
+            )
+        } catch (e: Exception) {
+            _errorMessage.value = e.localizedMessage
+        } finally {
+            _isSaving.value = false
+        }
+    }
+
+    private suspend fun updateEventWithPhoto(event: Event, state: EventFormState) {
+        try {
+            // 1. Handle photo upload or deletion (before event update)
+            val photoUrl = when {
+                state.photoUrl != null -> uploadEventPhoto(event.id, state.photoUrl!!.toUri())
+                state.photoRemoved -> {
+                    deleteEventPhoto(event.id); null
+                }
+
+                else -> event.photoUrl
+            }
+
+            // 2. Update the event with new photoUrl
+            val eventWithPhoto = event.setPhotoUrl(photoUrl)
+            repository.updateEvent(event.id, eventWithPhoto).fold(
+                onSuccess = { _saveSuccess.value = true },
+                onFailure = { _errorMessage.value = it.message }
+            )
+        } catch (e: Exception) {
+            _errorMessage.value = e.localizedMessage
+        } finally {
+            _isSaving.value = false
         }
     }
 
@@ -289,6 +341,62 @@ class EventViewModel @Inject constructor(
                 throw exception
             }
         )
+    }
+
+    private suspend fun uploadEventPhoto(eventId: String, photoUri: Uri): String? {
+        return try {
+            repository.addPhotoToEntity("events", eventId, photoUri)
+        } catch (e: Exception) {
+            _errorMessage.value = "Photo upload failed: ${e.localizedMessage}"
+            null
+        }
+    }
+
+    fun deleteEventPhoto(eventId: String) {
+        _isLoading.value = true
+        viewModelScope.launch {
+            try {
+                // 1. Remove photo from storage & clear Firestore field
+                try {
+                    repository.deletePhotoFromEntity("events", eventId)
+                } catch (e: Exception) {
+                    // If it's a Firebase Storage 404, ignore it
+                    if (e is StorageException && e.errorCode == StorageException.ERROR_OBJECT_NOT_FOUND) {
+                        // no-op
+                    } else {
+                        throw e
+                    }
+                }
+
+                // 2. Fetch current event from repository to get latest data
+                val currentEvent = repository.getEventById(eventId).getOrThrow()
+
+                // 3. Create updated Event without photo
+                val updatedEvent = currentEvent!!.setPhotoUrl(photoUrl = null)
+
+
+                // 4. Persist the change
+                repository.updateEvent(eventId, updatedEvent).getOrThrow()
+
+                // 5. Update local form state if editing this event
+                if (_formState.value.eventId == eventId) {
+                    updateForm {
+                        when (this) {
+                            is EventFormState.Diaper -> copy(photoRemoved = true, photoUrl = null)
+                            is EventFormState.Feeding -> copy(photoRemoved = true, photoUrl = null)
+                            is EventFormState.Sleep -> copy(photoRemoved = true, photoUrl = null)
+                            is EventFormState.Growth -> copy(photoRemoved = true, photoUrl = null)
+                            is EventFormState.Pumping -> copy(photoRemoved = true, photoUrl = null)
+                        }
+                    }
+                }
+
+            } catch (e: Exception) {
+                _errorMessage.value = "Échec de la suppression de la photo : ${e.localizedMessage}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
 
     /**
