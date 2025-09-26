@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.presentation.event
 
+import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,7 +28,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.data.*
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import android.text.format.DateFormat
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.core.net.toUri
+import com.kouloundissa.twinstracker.ui.components.PhotoPicker
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -50,6 +54,7 @@ fun EventFormDialog(
     val screenHeight = configuration.screenHeightDp.dp
     val verticalPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() +
             WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
+
 
 
     val footerHeight = 72.dp
@@ -207,6 +212,24 @@ fun EventFormDialog(
                         is EventFormState.Growth -> GrowthForm(s, viewModel)
                         is EventFormState.Pumping -> PumpingForm()
                     }
+                    var newPhotoUrl by remember { mutableStateOf<Uri?>(null) }
+                    val existingPhotoUrl = if (isEditMode) formState.photoUrl  else null
+                    var photoRemoved by remember { mutableStateOf(false) }
+                    PhotoPicker(
+                        photoUrl = newPhotoUrl ?: existingPhotoUrl?.toUri(),
+                        onPhotoSelected = {
+                            newPhotoUrl = it
+                            photoRemoved = false
+                        },
+                        onPhotoRemoved = {
+                            // Only remove from storage if this event already exists:
+                            if (isEditMode) {
+                                viewModel.deleteEventPhoto(formState.eventId!!)
+                            }
+                            newPhotoUrl = null
+                            photoRemoved = true
+                        })
+                    Spacer(Modifier.height(12.dp))
                 }
                 // Save button
                 Row(
@@ -222,7 +245,7 @@ fun EventFormDialog(
                     }
                     Spacer(Modifier.weight(1f))
                     Button(
-                        onClick = { viewModel.validateAndSave(babyId) },
+                        onClick = { viewModel.SaveEvent(babyId) },
                         enabled = !isSaving,
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier
