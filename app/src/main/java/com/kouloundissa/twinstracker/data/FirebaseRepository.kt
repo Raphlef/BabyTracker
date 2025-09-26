@@ -508,7 +508,15 @@ class FirebaseRepository @Inject constructor(
             Result.failure(e)
         }
     }
-
+    suspend fun getEventById(eventId: String): Result<Event?> {
+        return try {
+            val documentSnapshot = db.collection(EVENTS_COLLECTION).document(eventId).get().await()
+            Result.success(documentSnapshot.toObject<Event>())
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching event by ID: $eventId", e)
+            Result.failure(e)
+        }
+    }
     fun streamEventsForBaby(babyId: String): Flow<List<Event>> {
         val userId = auth.currentUser?.uid
             ?: throw IllegalStateException("User not authenticated")
