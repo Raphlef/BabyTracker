@@ -511,7 +511,8 @@ class FirebaseRepository @Inject constructor(
     suspend fun getEventById(eventId: String): Result<Event?> {
         return try {
             val documentSnapshot = db.collection(EVENTS_COLLECTION).document(eventId).get().await()
-            Result.success(documentSnapshot.toObject<Event>())
+            val event = documentSnapshot.toEvent()
+            Result.success(event)
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching event by ID: $eventId", e)
             Result.failure(e)
