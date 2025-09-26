@@ -181,8 +181,9 @@ sealed class EventFormState {
     abstract val eventId: String?
     abstract val eventType: EventType
     abstract val eventTimestamp: Date
-    abstract val photoUrl: String?
-    abstract val photoRemoved: Boolean
+    abstract var photoUrl: String?
+    abstract var newPhotoUrl: Uri?
+    abstract var photoRemoved: Boolean
     fun validateAndToEvent(babyId: String): Result<Event> {
         return when (this) {
             is Diaper -> {
@@ -324,8 +325,9 @@ sealed class EventFormState {
         override val eventId: String? = null,
         override val eventType: EventType = EventType.DIAPER,
         override val eventTimestamp: Date = Date(),
-        override val photoUrl: String? = null,
-        override val photoRemoved: Boolean = false,
+        override var photoUrl: String? = null,
+        override var newPhotoUrl: Uri? = null,
+        override var photoRemoved: Boolean = false,
         val diaperType: DiaperType = DiaperType.DRY,
         val poopColor: PoopColor? = null,
         val poopConsistency: PoopConsistency? = null,
@@ -336,8 +338,9 @@ sealed class EventFormState {
         override val eventId: String? = null,
         override val eventType: EventType = EventType.SLEEP,
         override val eventTimestamp: Date = Date(),
-        override val photoUrl: String? = null,
-        override val photoRemoved: Boolean = false,
+        override var photoUrl: String? = null,
+        override var newPhotoUrl: Uri? = null,
+        override var photoRemoved: Boolean = false,
         val isSleeping: Boolean = false,
         val beginTime: Date? = null,
         val endTime: Date? = null,
@@ -349,8 +352,9 @@ sealed class EventFormState {
         override val eventId: String? = null,
         override val eventType: EventType = EventType.FEEDING,
         override val eventTimestamp: Date = Date(),
-        override val photoUrl: String? = null,
-        override val photoRemoved: Boolean = false,
+        override var photoUrl: String? = null,
+        override var newPhotoUrl: Uri? = null,
+        override var photoRemoved: Boolean = false,
         val feedType: FeedType = FeedType.BREAST_MILK,
         val amountMl: String = "",
         val durationMin: String = "",
@@ -362,8 +366,9 @@ sealed class EventFormState {
         override val eventId: String? = null,
         override val eventType: EventType = EventType.GROWTH,
         override val eventTimestamp: Date = Date(),
-        override val photoUrl: String? = null,
-        override val photoRemoved: Boolean = false,
+        override var photoUrl: String? = null,
+        override var newPhotoUrl: Uri? = null,
+        override var photoRemoved: Boolean = false,
         val weightKg: String = "",
         val heightCm: String = "",
         val headCircumferenceCm: String = "",
@@ -374,8 +379,9 @@ sealed class EventFormState {
         override val eventId: String? = null,
         override val eventType: EventType = EventType.PUMPING,
         override val eventTimestamp: Date = Date(),
-        override val photoUrl: String? = null,
-        override val photoRemoved: Boolean = false,
+        override var photoUrl: String? = null,
+        override var newPhotoUrl: Uri? = null,
+        override var photoRemoved: Boolean = false,
         val amountMl: String = "",
         val durationMin: String = "",
         val breastSide: BreastSide? = null,
