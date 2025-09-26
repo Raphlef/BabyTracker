@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.FeedType
@@ -171,6 +172,19 @@ fun HomeScreen(
                         val h = mins / 60
                         val m = mins % 60
                         "${h}h ${m}m ago"
+                    }
+                }
+
+                EventType.DRUGS -> {
+                    if (todayList.isEmpty()) {
+                        "No drugs"
+                    } else {
+                        val doses = todayList.size
+                        val last = todayList
+                            .filterIsInstance<DrugsEvent>()
+                            .maxByOrNull { it.timestamp }!!
+                        val doseValue = last.dosageMg?.toInt() ?: "-"
+                        "${doses} today • ${last.drugType.displayName} ${doseValue}${last.unit}"
                     }
                 }
             }

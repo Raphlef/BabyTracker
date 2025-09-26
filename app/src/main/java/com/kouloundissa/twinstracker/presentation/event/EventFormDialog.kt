@@ -28,10 +28,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.data.*
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import android.text.format.DateFormat
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.core.net.toUri
+import com.kouloundissa.twinstracker.data.EventFormState.*
 import com.kouloundissa.twinstracker.ui.components.PhotoPicker
 import java.text.SimpleDateFormat
 import java.util.*
@@ -70,11 +73,12 @@ fun EventFormDialog(
     LaunchedEffect(initialEventType) {
         initialEventType?.let {
             val newState = when (it) {
-                EventType.DIAPER -> EventFormState.Diaper()
-                EventType.FEEDING -> EventFormState.Feeding()
-                EventType.SLEEP -> EventFormState.Sleep()
-                EventType.GROWTH -> EventFormState.Growth()
-                EventType.PUMPING -> EventFormState.Pumping()
+                EventType.DIAPER -> Diaper()
+                EventType.FEEDING -> Feeding()
+                EventType.SLEEP -> Sleep()
+                EventType.GROWTH -> Growth()
+                EventType.PUMPING -> Pumping()
+                EventType.DRUGS -> Drugs()
             }
             viewModel.updateForm { newState }
         }
@@ -184,11 +188,12 @@ fun EventFormDialog(
                             selected = currentType,
                             onSelect = { type ->
                                 val newState = when (type) {
-                                    EventType.DIAPER -> EventFormState.Diaper()
-                                    EventType.FEEDING -> EventFormState.Feeding()
-                                    EventType.SLEEP -> EventFormState.Sleep()
-                                    EventType.GROWTH -> EventFormState.Growth()
-                                    EventType.PUMPING -> EventFormState.Pumping()
+                                    EventType.DIAPER -> Diaper()
+                                    EventType.FEEDING -> Feeding()
+                                    EventType.SLEEP -> Sleep()
+                                    EventType.GROWTH -> Growth()
+                                    EventType.PUMPING -> Pumping()
+                                    EventType.DRUGS -> Drugs()
                                 }
                                 viewModel.updateForm { newState }
                             },
@@ -214,6 +219,7 @@ fun EventFormDialog(
                         is EventFormState.Feeding -> FeedingForm(s, viewModel)
                         is EventFormState.Growth -> GrowthForm(s, viewModel)
                         is EventFormState.Pumping -> PumpingForm()
+                        is EventFormState.Drugs -> DrugsForm(s, viewModel)
                     }
                     PhotoPicker(
                         photoUrl = selectedUri,
@@ -707,11 +713,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
             }
         },
         getIcon = { type ->
-            when (type) {
-                FeedType.BREAST_MILK -> Icons.Default.Favorite
-                FeedType.FORMULA -> Icons.Default.LocalDrink
-                FeedType.SOLID -> Icons.Default.Restaurant
-            }
+            type.icon
         },
         getLabel = {
             it.name.replace("_", " ").lowercase()
@@ -756,11 +758,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
                 }
             },
             getIcon = { side ->
-                when (side) {
-                    BreastSide.LEFT -> Icons.Default.ChevronLeft
-                    BreastSide.RIGHT -> Icons.Default.ChevronRight
-                    BreastSide.BOTH -> Icons.Default.SwapHoriz
-                }
+                side.icon
             },
             getLabel = {
                 it.name.lowercase().replaceFirstChar { c -> c.uppercase() }
@@ -845,5 +843,89 @@ private fun PumpingForm() {
                 textAlign = TextAlign.Center
             )
         }
+    }
+}
+
+@Composable
+private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // Drug Type Picker
+        IconSelector(
+            title = "Drug Type",
+            options = DrugType.entries,
+            selected = state.drugType,
+            onSelect = { selected ->
+                viewModel.updateForm {
+                    (this as EventFormState.Drugs).copy(drugType = selected)
+                }
+            },
+            getIcon = { it.icon },
+            getLabel = { it.displayName }
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Dosage Input
+        OutlinedTextField(
+            value = state.dosage,
+            onValueChange = { newValue ->
+                viewModel.updateForm {
+                    (this as EventFormState.Drugs).copy(dosage = newValue)
+                }
+            },
+            label = { Text("Dosage") },
+            placeholder = { Text("e.g., 250") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Unit Input
+        OutlinedTextField(
+            value = state.unit,
+            onValueChange = { newValue ->
+                viewModel.updateForm {
+                    (this as EventFormState.Drugs).copy(unit = newValue)
+                }
+            },
+            label = { Text("Unit") },
+            placeholder = { Text("mg, IU, etc.") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Other drug name (conditional)
+        if (state.drugType == DrugType.OTHER) {
+            OutlinedTextField(
+                value = state.otherDrugName,
+                onValueChange = { newName ->
+                    viewModel.updateForm {
+                        (this as EventFormState.Drugs).copy(otherDrugName = newName)
+                    }
+                },
+                label = { Text("Specify Drug Name") },
+                placeholder = { Text("e.g., Ibuprofen") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        // Notes
+        OutlinedTextField(
+            value = state.notes,
+            onValueChange = { newNotes ->
+                viewModel.updateForm {
+                    (this as EventFormState.Drugs).copy(notes = newNotes)
+                }
+            },
+            label = { Text("Notes (optional)") },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+        )
     }
 }

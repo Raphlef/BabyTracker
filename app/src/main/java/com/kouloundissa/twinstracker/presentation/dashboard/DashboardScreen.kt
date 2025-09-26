@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.EventFormState
+import com.kouloundissa.twinstracker.data.EventFormState.*
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.presentation.calendar.CalendarScreen
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
@@ -303,11 +304,12 @@ fun DashboardScreen(
 
                         eventType?.let {
                             selectedEventFormState = when (it) {
-                                EventType.DIAPER -> EventFormState.Diaper()
-                                EventType.FEEDING -> EventFormState.Feeding()
-                                EventType.SLEEP -> EventFormState.Sleep()
-                                EventType.GROWTH -> EventFormState.Growth()
-                                EventType.PUMPING -> EventFormState.Pumping()
+                                EventType.DIAPER -> Diaper()
+                                EventType.FEEDING -> Feeding()
+                                EventType.SLEEP -> Sleep()
+                                EventType.GROWTH -> Growth()
+                                EventType.PUMPING -> Pumping()
+                                EventType.DRUGS -> Drugs()
                             }
                             showEventForm = true
                         }

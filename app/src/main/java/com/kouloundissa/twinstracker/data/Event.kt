@@ -25,7 +25,8 @@ enum class EventType(
     FEEDING("Feeding", Color(0xFF4CAF50), Icons.Filled.Fastfood, FeedingEvent::class),
     SLEEP("Sleep", Color(0xFF2196F3), Icons.Filled.Hotel, SleepEvent::class),
     GROWTH("Growth", Color(0xFF9C27B0), Icons.AutoMirrored.Filled.ShowChart, GrowthEvent::class),
-    PUMPING("Pumping", Color(0xFFFF5722), Icons.Filled.Add, PumpingEvent::class);
+    PUMPING("Pumping", Color(0xFFFF5722), Icons.Filled.Add, PumpingEvent::class),
+    DRUGS("Drugs", Color(0xFF3F51B5), Icons.Filled.MedicalServices, DrugsEvent::class);
 
     companion object {
         fun forClass(clazz: KClass<out Event>): EventType =
@@ -75,14 +76,16 @@ sealed class Event {
         return result
     }
 }
+
 fun Event.setPhotoUrl(photoUrl: String?): Event = when (this) {
-    is DiaperEvent  -> this.copy(photoUrl = photoUrl)
+    is DiaperEvent -> this.copy(photoUrl = photoUrl)
     is FeedingEvent -> this.copy(photoUrl = photoUrl)
-    is SleepEvent   -> this.copy(photoUrl = photoUrl)
-    is GrowthEvent  -> this.copy(photoUrl = photoUrl)
+    is SleepEvent -> this.copy(photoUrl = photoUrl)
+    is GrowthEvent -> this.copy(photoUrl = photoUrl)
     is PumpingEvent -> this.copy(photoUrl = photoUrl)
-    else            -> this // fallback (shouldn't occur)
+    else -> this // fallback (shouldn't occur)
 }
+
 fun DocumentSnapshot.toEvent(): Event? {
     val typeName = getString("eventTypeString") ?: return null
     val et = try {
@@ -174,6 +177,24 @@ data class PumpingEvent(
     constructor() : this("", "", Date(), null, null, null, null, null)
 }
 
+@IgnoreExtraProperties
+data class DrugsEvent(
+    override val id: String = UUID.randomUUID().toString(),
+    override val babyId: String,
+    override val timestamp: Date = Date(),
+    override val notes: String? = null,
+    override val photoUrl: String? = null,
+
+    // New fields
+    val drugType: DrugType = DrugType.PARACETAMOL,
+    val dosageMg: Double? = null,            // dosage in mg
+    val unit: String = "mg",                 // generic unit string
+    val otherDrugName: String? = null        // only if drugType == OTHER
+) : Event() {
+    // no-arg constructor for Firestore
+    constructor() : this("", "", Date(), null, null, DrugType.PARACETAMOL, null, "mg", null)
+}
+
 /**
  * UI form state representing the in-memory values while editing or creating an event.
  */
@@ -225,7 +246,7 @@ sealed class EventFormState {
                             endTime = endTime,
                             durationMinutes = durationMinutes,
                             notes = notes.takeIf(String::isNotBlank),
-                            photoUrl = photoUrl as String?
+                            photoUrl = photoUrl
                         )
                     )
                 }
@@ -318,6 +339,29 @@ sealed class EventFormState {
                     )
                 }
             }
+
+            is EventFormState.Drugs -> {
+                val dose = dosage.toDoubleOrNull()
+                if (dose == null || dose <= 0) {
+                    Result.failure(IllegalArgumentException("Enter a positive numeric dosage."))
+                } else if (drugType == DrugType.OTHER && otherDrugName.isBlank()) {
+                    Result.failure(IllegalArgumentException("Specify the drug name for “Other”."))
+                } else {
+                    Result.success(
+                        DrugsEvent(
+                            id = eventId ?: UUID.randomUUID().toString(),
+                            babyId = babyId,
+                            timestamp = eventTimestamp,
+                            notes = notes.takeIf(String::isNotBlank),
+                            photoUrl = photoUrl,
+                            drugType = drugType,
+                            dosageMg = dose,
+                            unit = unit,
+                            otherDrugName = otherDrugName.takeIf(String::isNotBlank)
+                        )
+                    )
+                }
+            }
         }
     }
 
@@ -387,6 +431,22 @@ sealed class EventFormState {
         val breastSide: BreastSide? = null,
         val notes: String = "",
     ) : EventFormState()
+
+    data class Drugs(
+        override val eventId: String? = null,
+        override val eventType: EventType = EventType.DRUGS,
+        override val eventTimestamp: Date = Date(),
+        override var photoUrl: String? = null,
+        override var newPhotoUrl: Uri? = null,
+        override var photoRemoved: Boolean = false,
+
+        val drugType: DrugType = DrugType.PARACETAMOL,
+        val dosage: String = "",          // user input as string
+        val unit: String = "mg",          // default unit
+        val otherDrugName: String = "",   // when drugType == OTHER
+        val notes: String = ""
+    ) : EventFormState()
+
 }
 
 private fun EventFormState.toEvent(babyId: String): Event = when (this) {
@@ -445,6 +505,18 @@ private fun EventFormState.toEvent(babyId: String): Event = when (this) {
         amountMl = amountMl.toDoubleOrNull(),
         durationMinutes = durationMin.toIntOrNull(),
         breastSide = breastSide
+    )
+
+    is EventFormState.Drugs -> DrugsEvent(
+        id = eventId ?: UUID.randomUUID().toString(),
+        babyId = babyId,
+        timestamp = eventTimestamp,
+        notes = notes.takeIf(String::isNotBlank),
+        photoUrl = photoUrl,
+        drugType = drugType,
+        dosageMg = dosage.toDoubleOrNull(),
+        unit = unit,
+        otherDrugName = otherDrugName.takeIf(String::isNotBlank)
     )
 }
 

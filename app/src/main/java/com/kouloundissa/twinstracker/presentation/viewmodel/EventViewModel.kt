@@ -109,6 +109,7 @@ class EventViewModel @Inject constructor(
                 is EventFormState.Feeding -> state.copy(eventTimestamp = date)
                 is EventFormState.Growth -> state.copy(eventTimestamp = date)
                 is EventFormState.Pumping -> state.copy(eventTimestamp = date)
+                is EventFormState.Drugs -> state.copy(eventTimestamp = date)
             }
         }
     }
@@ -387,6 +388,7 @@ class EventViewModel @Inject constructor(
                             is EventFormState.Sleep -> copy(photoRemoved = true, photoUrl = null)
                             is EventFormState.Growth -> copy(photoRemoved = true, photoUrl = null)
                             is EventFormState.Pumping -> copy(photoRemoved = true, photoUrl = null)
+                            is EventFormState.Drugs -> copy(photoRemoved = true, photoUrl = null)
                         }
                     }
                 }

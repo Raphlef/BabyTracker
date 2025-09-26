@@ -27,15 +27,24 @@ enum class PoopColor(val displayName: String, val colorValue: Color) {
 }
 
 // Enum for Feeding types
-enum class FeedType {
-    BREAST_MILK,
-    FORMULA,
-    SOLID
+enum class FeedType(val icon: ImageVector) {
+    BREAST_MILK(Icons.Default.Favorite),
+    FORMULA(Icons.Default.LocalDrink),
+    SOLID(Icons.Default.Restaurant)
 }
 
 // Enum for Breast side during feeding or pumping
-enum class BreastSide {
-    LEFT,
-    RIGHT,
-    BOTH
+enum class BreastSide(val icon: ImageVector){
+    LEFT(Icons.Default.ChevronLeft),
+    RIGHT(Icons.Default.ChevronRight),
+    BOTH(Icons.Default.SwapHoriz)
+}
+enum class DrugType(val displayName: String, val icon: ImageVector) {
+    PARACETAMOL("Paracetamol", Icons.Default.MedicalInformation),
+    VITAMIN_D("Vitamin D", Icons.Default.WbSunny),
+    OTHER("Other", Icons.Default.MoreHoriz);
+
+    companion object {
+        val entries = DrugType.entries
+    }
 }
