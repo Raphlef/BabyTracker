@@ -187,7 +187,7 @@ data class DrugsEvent(
 
     // New fields
     val drugType: DrugType = DrugType.PARACETAMOL,
-    val dosageMg: Double? = null,            // dosage in mg
+    val dosage: Double? = null,            // dosage in mg
     val unit: String = "mg",                 // generic unit string
     val otherDrugName: String? = null        // only if drugType == OTHER
 ) : Event() {
@@ -355,7 +355,7 @@ sealed class EventFormState {
                             notes = notes.takeIf(String::isNotBlank),
                             photoUrl = photoUrl,
                             drugType = drugType,
-                            dosageMg = dose,
+                            dosage = dose,
                             unit = unit,
                             otherDrugName = otherDrugName.takeIf(String::isNotBlank)
                         )
@@ -514,7 +514,7 @@ private fun EventFormState.toEvent(babyId: String): Event = when (this) {
         notes = notes.takeIf(String::isNotBlank),
         photoUrl = photoUrl,
         drugType = drugType,
-        dosageMg = dosage.toDoubleOrNull(),
+        dosage = dosage.toDoubleOrNull(),
         unit = unit,
         otherDrugName = otherDrugName.takeIf(String::isNotBlank)
     )
