@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -19,9 +20,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -58,6 +61,7 @@ import com.kouloundissa.twinstracker.presentation.baby.BabyFormDialog
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
+import com.kouloundissa.twinstracker.ui.components.TimelineEventItem
 import com.kouloundissa.twinstracker.ui.components.TimelineList
 import java.time.Duration
 import java.time.Instant
@@ -90,6 +94,9 @@ fun HomeScreen(
     val isLoading by eventViewModel.isLoading.collectAsState()
     val errorMessage by eventViewModel.errorMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    var selectedType by remember { mutableStateOf<EventType?>(null) }
+    var showTypeDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(selectedBaby?.id) {
         selectedBaby?.id?.let { babyId ->
@@ -232,7 +239,7 @@ fun HomeScreen(
                         .sortedByDescending { it.timestamp }
                 }
                 val lastByType = remember(babyEvents) {
-                    EventType.values().associateWith { type ->
+                    EventType.entries.associateWith { type ->
                         babyEvents.filter { EventType.forClass(it::class) == type }
                             .maxByOrNull { it.timestamp }
                     }
@@ -261,7 +268,10 @@ fun HomeScreen(
                                     type = type,
                                     summary = summaries[type]!!,
                                     lastEvent = lastByType[type],
-                                    onClick = { /* navigate */ },
+                                    onClick = {
+                                        selectedType = type
+                                        showTypeDialog = true
+                                    },
                                     size = cardSize
                                 )
                             }
@@ -354,6 +364,22 @@ fun HomeScreen(
                     babyViewModel = babyViewModel
                 )
             }
+            if (showTypeDialog && selectedType != null) {
+                // Filter events for this type and selected baby
+                val filtered = babyEvents
+                    .filter { EventType.forClass(it::class) == selectedType }
+                EventTypeDialog(
+                    type = selectedType!!,
+                    events = filtered,
+                    onDismiss = {
+                        showTypeDialog = false
+                        selectedType = null
+                    },
+                    onEdit = { event ->
+                        editingEvent = event
+                    }
+                )
+            }
         }
     }
 }
@@ -407,3 +433,38 @@ fun EventTypeCard(
     }
 }
 
+@Composable
+private fun EventTypeDialog(
+    type: EventType,
+    events: List<Event>,
+    onDismiss: () -> Unit,
+    onEdit: (Event) -> Unit
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(type.displayName) },
+        text = {
+            if (events.isEmpty()) {
+                Text("No ${type.displayName.lowercase()} events yet")
+            } else {
+                LazyColumn(
+                    Modifier.heightIn(max = 400.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    items(events) { event ->
+                        TimelineEventItem(
+                            event = event,
+                            onEdit = onEdit
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+}
