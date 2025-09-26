@@ -31,6 +31,8 @@ import java.time.ZoneId
 import kotlin.reflect.KClass
 import androidx.core.net.toUri
 import com.google.firebase.storage.StorageException
+import com.kouloundissa.twinstracker.data.DrugsEvent
+import com.kouloundissa.twinstracker.data.EventFormState.*
 import com.kouloundissa.twinstracker.data.PumpingEvent
 
 @HiltViewModel
@@ -153,7 +155,7 @@ class EventViewModel @Inject constructor(
         val timestamp = event.timestamp
 
         val state: EventFormState = when (event) {
-            is DiaperEvent -> EventFormState.Diaper(
+            is DiaperEvent -> Diaper(
                 eventId = id,
                 eventTimestamp = timestamp,
                 diaperType = event.diaperType,
@@ -163,7 +165,7 @@ class EventViewModel @Inject constructor(
                 photoUrl = event.photoUrl
             )
 
-            is SleepEvent -> EventFormState.Sleep(
+            is SleepEvent -> Sleep(
                 eventId = id,
                 eventTimestamp = timestamp,
                 beginTime = event.beginTime,
@@ -173,7 +175,7 @@ class EventViewModel @Inject constructor(
                 photoUrl = event.photoUrl
             )
 
-            is FeedingEvent -> EventFormState.Feeding(
+            is FeedingEvent -> Feeding(
                 eventId = id,
                 eventTimestamp = timestamp,
                 feedType = event.feedType,
@@ -184,7 +186,7 @@ class EventViewModel @Inject constructor(
                 photoUrl = event.photoUrl
             )
 
-            is GrowthEvent -> EventFormState.Growth(
+            is GrowthEvent -> Growth(
                 eventId = id,
                 eventTimestamp = timestamp,
                 weightKg = event.weightKg?.toString().orEmpty(),
@@ -194,7 +196,24 @@ class EventViewModel @Inject constructor(
                 photoUrl = event.photoUrl
             )
 
-            else -> EventFormState.Diaper()
+            is DrugsEvent -> Drugs(
+                eventId = id,
+                eventTimestamp = timestamp,
+                drugType = event.drugType,
+                dosage = event.dosage?.toString().orEmpty(),
+                unit = event.unit,
+                notes = event.notes.orEmpty(),
+                photoUrl = event.photoUrl
+            )
+
+            is PumpingEvent -> Pumping(
+                eventId = id,
+                eventTimestamp = timestamp,
+                amountMl = event.amountMl?.toString().orEmpty(),
+                durationMin = event.durationMinutes?.toString().orEmpty(),
+                notes = event.notes.orEmpty(),
+                photoUrl = event.photoUrl
+            )
         }
 
         _formState.value = state
