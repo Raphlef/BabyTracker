@@ -43,6 +43,7 @@ android {
                 nativeSymbolUploadEnabled = true
                 mappingFileUploadEnabled = true
             }
+            signingConfig = signingConfigs.getByName("debug")
         }
         create("stage") {
             initWith(getByName("debug"))
