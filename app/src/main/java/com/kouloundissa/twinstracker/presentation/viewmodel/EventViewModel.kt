@@ -250,7 +250,7 @@ class EventViewModel @Inject constructor(
         try {
             // 1. Handle photo upload or deletion (before event update)
             val photoUrl = when {
-                state.photoUrl != null -> uploadEventPhoto(event.id, state.photoUrl!!.toUri())
+                state.newPhotoUrl != null -> uploadEventPhoto(event.id, state.newPhotoUrl!!)
                 state.photoRemoved -> {
                     deleteEventPhoto(event.id); null
                 }
