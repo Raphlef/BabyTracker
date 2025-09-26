@@ -24,6 +24,8 @@
 -keep class com.kouloundissa.twinstracker.data.** {
     public <init>();
     <fields>;
+    <methods>;
+    *;
 }
 
 # 2. Preserve all Kotlin metadata & annotations needed by serialization
