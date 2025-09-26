@@ -28,12 +28,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.data.*
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import android.text.format.DateFormat
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.core.net.toUri
 import com.kouloundissa.twinstracker.ui.components.PhotoPicker
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.Collections.copy
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,7 +57,8 @@ fun EventFormDialog(
     val verticalPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() +
             WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
 
-
+    val initialPhotoUri = formState.photoUrl?.let { Uri.parse(it) }
+    var selectedUri by rememberSaveable { mutableStateOf<Uri?>(initialPhotoUri) }
 
     val footerHeight = 72.dp
     val maxDialogHeight = screenHeight - verticalPadding - footerHeight // extra buffer
@@ -212,22 +215,21 @@ fun EventFormDialog(
                         is EventFormState.Growth -> GrowthForm(s, viewModel)
                         is EventFormState.Pumping -> PumpingForm()
                     }
-                    var newPhotoUrl by remember { mutableStateOf<Uri?>(null) }
-                    val existingPhotoUrl = if (isEditMode) formState.photoUrl  else null
-                    var photoRemoved by remember { mutableStateOf(false) }
                     PhotoPicker(
-                        photoUrl = newPhotoUrl ?: existingPhotoUrl?.toUri(),
-                        onPhotoSelected = {
-                            newPhotoUrl = it
-                            photoRemoved = false
+                        photoUrl = selectedUri,
+                        onPhotoSelected = { uri ->
+                            // update both our local preview state AND the ViewModel form state
+                            selectedUri = uri
+                            formState.newPhotoUrl = uri
+                            formState.photoRemoved = false
                         },
                         onPhotoRemoved = {
                             // Only remove from storage if this event already exists:
                             if (isEditMode) {
                                 viewModel.deleteEventPhoto(formState.eventId!!)
                             }
-                            newPhotoUrl = null
-                            photoRemoved = true
+                            formState.photoUrl = null
+                            formState.photoRemoved = true
                         })
                     Spacer(Modifier.height(12.dp))
                 }
@@ -241,7 +243,7 @@ fun EventFormDialog(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel", color  = MaterialTheme.colorScheme.primary)
+                        Text("Cancel", color = MaterialTheme.colorScheme.primary)
                     }
                     Spacer(Modifier.weight(1f))
                     Button(
