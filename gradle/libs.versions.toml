@@ -32,6 +32,7 @@ uiGraphics = "1.9.1"
 runtimeSaveable = "1.9.1"
 firebaseStorageKtx = "21.0.2"
 firebaseCrashlyticsKtx = "19.4.4"
+roomKtxVersion = "2.8.1"
 
 [libraries]
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
@@ -98,6 +99,7 @@ androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graph
 androidx-compose-runtime-saveable = { group = "androidx.compose.runtime", name = "runtime-saveable", version.ref = "runtimeSaveable" }
 firebase-storage-ktx = { group = "com.google.firebase", name = "firebase-storage-ktx", version.ref = "firebaseStorageKtx" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "roomKtxVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
