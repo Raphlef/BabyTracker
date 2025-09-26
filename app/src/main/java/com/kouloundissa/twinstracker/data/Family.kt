@@ -21,6 +21,19 @@ data class Family(
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 ) {
+    constructor() : this(
+        id = "",
+        name = "",
+        description = null,
+        inviteCode = "",
+        adminIds = emptyList(),
+        memberIds = emptyList(),
+        babyIds = emptyList(),
+        active = true,
+        settings = FamilySettings(),
+        createdAt = 0L,
+        updatedAt = 0L
+    )
     companion object {
         /**
          * Generates a random 6-character invite code for the family
