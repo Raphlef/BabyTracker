@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import java.util.UUID
 
 // --- Family Methods ---
-suspend fun FirebaseRepository.addOrUpdateFamily(family: Family): Result<Unit> = runCatching {
+suspend fun FirebaseRepository.addOrUpdateFamily(family: Family): Result<Family> = runCatching {
     val currentUserId = auth.currentUser?.uid
         ?: throw IllegalStateException("User not authenticated")
 
@@ -31,6 +31,7 @@ suspend fun FirebaseRepository.addOrUpdateFamily(family: Family): Result<Unit> =
         .document(familyWithIds.id)
         .set(familyWithIds)
         .await()
+    familyWithIds
 }
 
 fun FirebaseRepository.streamFamilies(): Flow<List<Family>> {
