@@ -24,7 +24,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Event
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -190,7 +189,7 @@ fun HomeScreen(
                         val last = todayList
                             .filterIsInstance<DrugsEvent>()
                             .maxByOrNull { it.timestamp }!!
-                        val doseValue = last.dosageMg?.toInt() ?: "-"
+                        val doseValue = last.dosage?.toInt() ?: "-"
                         "${doses} today • ${last.drugType.displayName} ${doseValue}${last.unit}"
                     }
                 }
