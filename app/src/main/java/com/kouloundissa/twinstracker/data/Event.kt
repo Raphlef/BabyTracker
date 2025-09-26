@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.data
 
+import android.net.Uri
 import android.util.Log
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
@@ -43,6 +44,7 @@ sealed class Event {
     abstract val babyId: String
     abstract val timestamp: Date
     abstract val notes: String?
+    abstract val photoUrl: String?
 
     /**
      * Automatically serialize all properties to a Map using Kotlin reflection.
@@ -73,7 +75,14 @@ sealed class Event {
         return result
     }
 }
-
+fun Event.setPhotoUrl(photoUrl: String?): Event = when (this) {
+    is DiaperEvent  -> this.copy(photoUrl = photoUrl)
+    is FeedingEvent -> this.copy(photoUrl = photoUrl)
+    is SleepEvent   -> this.copy(photoUrl = photoUrl)
+    is GrowthEvent  -> this.copy(photoUrl = photoUrl)
+    is PumpingEvent -> this.copy(photoUrl = photoUrl)
+    else            -> this // fallback (shouldn't occur)
+}
 fun DocumentSnapshot.toEvent(): Event? {
     val typeName = getString("eventTypeString") ?: return null
     val et = try {
@@ -99,11 +108,12 @@ data class DiaperEvent(
     override val babyId: String,
     override val timestamp: Date = Date(),
     override val notes: String? = null,
+    override val photoUrl: String? = null,
     val diaperType: DiaperType = DiaperType.DRY,
     val poopColor: PoopColor? = null,
     val poopConsistency: PoopConsistency? = null
 ) : Event() {
-    constructor() : this("", "", Date(), null, DiaperType.DRY, null, null)
+    constructor() : this("", "", Date(), null, null, DiaperType.DRY, null, null)
 }
 
 @IgnoreExtraProperties
@@ -112,12 +122,13 @@ data class FeedingEvent(
     override val babyId: String,
     override val timestamp: Date = Date(),
     override val notes: String? = null,
+    override val photoUrl: String? = null,
     val feedType: FeedType = FeedType.BREAST_MILK,
     val amountMl: Double? = null,
     val durationMinutes: Int? = null,
     val breastSide: BreastSide? = null
 ) : Event() {
-    constructor() : this("", "", Date(), null, FeedType.BREAST_MILK, null, null, null)
+    constructor() : this("", "", Date(), null, null, FeedType.BREAST_MILK, null, null, null)
 }
 
 @IgnoreExtraProperties
@@ -126,12 +137,13 @@ data class SleepEvent(
     override val babyId: String,
     override val timestamp: Date = Date(),
     override val notes: String? = null,
+    override val photoUrl: String? = null,
     val isSleeping: Boolean = false,
     val beginTime: Date? = null,
     val endTime: Date? = null,
     val durationMinutes: Long? = null
 ) : Event() {
-    constructor() : this("", "", Date(), null, false, null, null, null)
+    constructor() : this("", "", Date(), null, null, false, null, null, null)
 }
 
 @IgnoreExtraProperties
@@ -140,11 +152,12 @@ data class GrowthEvent(
     override val babyId: String,
     override val timestamp: Date = Date(),
     override val notes: String? = null,
+    override val photoUrl: String? = null,
     val weightKg: Double? = null,
     val heightCm: Double? = null,
     val headCircumferenceCm: Double? = null
 ) : Event() {
-    constructor() : this("", "", Date(), null, null, null, null)
+    constructor() : this("", "", Date(), null, null, null, null, null)
 }
 
 @IgnoreExtraProperties
@@ -153,11 +166,12 @@ data class PumpingEvent(
     override val babyId: String,
     override val timestamp: Date = Date(),
     override val notes: String? = null,
+    override val photoUrl: String? = null,
     val amountMl: Double? = null,
     val durationMinutes: Int? = null,
     val breastSide: BreastSide? = null
 ) : Event() {
-    constructor() : this("", "", Date(), null, null, null, null)
+    constructor() : this("", "", Date(), null, null, null, null, null)
 }
 
 /**
@@ -167,6 +181,8 @@ sealed class EventFormState {
     abstract val eventId: String?
     abstract val eventType: EventType
     abstract val eventTimestamp: Date
+    abstract val photoUrl: String?
+    abstract val photoRemoved: Boolean
     fun validateAndToEvent(babyId: String): Result<Event> {
         return when (this) {
             is Diaper -> {
@@ -185,7 +201,8 @@ sealed class EventFormState {
                             diaperType = diaperType,
                             poopColor = poopColor,
                             poopConsistency = poopConsistency,
-                            notes = notes.takeIf(String::isNotBlank)
+                            notes = notes.takeIf(String::isNotBlank),
+                            photoUrl = photoUrl
                         )
                     )
                 }
@@ -206,7 +223,8 @@ sealed class EventFormState {
                             beginTime = beginTime,
                             endTime = endTime,
                             durationMinutes = durationMinutes,
-                            notes = notes.takeIf(String::isNotBlank)
+                            notes = notes.takeIf(String::isNotBlank),
+                            photoUrl = photoUrl as String?
                         )
                     )
                 }
@@ -249,7 +267,8 @@ sealed class EventFormState {
                         amountMl = amount,
                         durationMinutes = duration,
                         breastSide = breastSide,
-                        notes = notes.takeIf(String::isNotBlank)
+                        notes = notes.takeIf(String::isNotBlank),
+                        photoUrl = photoUrl
                     )
                 )
             }
@@ -269,7 +288,8 @@ sealed class EventFormState {
                             weightKg = weight,
                             heightCm = height,
                             headCircumferenceCm = head,
-                            notes = notes.takeIf(String::isNotBlank)
+                            notes = notes.takeIf(String::isNotBlank),
+                            photoUrl = photoUrl
                         )
                     )
                 }
@@ -291,7 +311,8 @@ sealed class EventFormState {
                             amountMl = amount,
                             durationMinutes = duration,
                             breastSide = breastSide,
-                            notes = notes.takeIf(String::isNotBlank)
+                            notes = notes.takeIf(String::isNotBlank),
+                            photoUrl = photoUrl
                         )
                     )
                 }
@@ -303,52 +324,62 @@ sealed class EventFormState {
         override val eventId: String? = null,
         override val eventType: EventType = EventType.DIAPER,
         override val eventTimestamp: Date = Date(),
+        override val photoUrl: String? = null,
+        override val photoRemoved: Boolean = false,
         val diaperType: DiaperType = DiaperType.DRY,
         val poopColor: PoopColor? = null,
         val poopConsistency: PoopConsistency? = null,
-        val notes: String = ""
+        val notes: String = "",
     ) : EventFormState()
 
     data class Sleep(
         override val eventId: String? = null,
         override val eventType: EventType = EventType.SLEEP,
         override val eventTimestamp: Date = Date(),
+        override val photoUrl: String? = null,
+        override val photoRemoved: Boolean = false,
         val isSleeping: Boolean = false,
         val beginTime: Date? = null,
         val endTime: Date? = null,
         val durationMinutes: Long? = null,
-        val notes: String = ""
+        val notes: String = "",
     ) : EventFormState()
 
     data class Feeding(
         override val eventId: String? = null,
         override val eventType: EventType = EventType.FEEDING,
         override val eventTimestamp: Date = Date(),
+        override val photoUrl: String? = null,
+        override val photoRemoved: Boolean = false,
         val feedType: FeedType = FeedType.BREAST_MILK,
         val amountMl: String = "",
         val durationMin: String = "",
         val breastSide: BreastSide? = null,
-        val notes: String = ""
+        val notes: String = "",
     ) : EventFormState()
 
     data class Growth(
         override val eventId: String? = null,
         override val eventType: EventType = EventType.GROWTH,
         override val eventTimestamp: Date = Date(),
+        override val photoUrl: String? = null,
+        override val photoRemoved: Boolean = false,
         val weightKg: String = "",
         val heightCm: String = "",
         val headCircumferenceCm: String = "",
-        val notes: String = ""
+        val notes: String = "",
     ) : EventFormState()
 
     data class Pumping(
         override val eventId: String? = null,
         override val eventType: EventType = EventType.PUMPING,
         override val eventTimestamp: Date = Date(),
+        override val photoUrl: String? = null,
+        override val photoRemoved: Boolean = false,
         val amountMl: String = "",
         val durationMin: String = "",
         val breastSide: BreastSide? = null,
-        val notes: String = ""
+        val notes: String = "",
     ) : EventFormState()
 }
 
@@ -358,6 +389,7 @@ private fun EventFormState.toEvent(babyId: String): Event = when (this) {
         babyId = babyId,
         timestamp = eventTimestamp,
         notes = notes.takeIf(String::isNotBlank),
+        photoUrl = photoUrl,
         diaperType = diaperType,
         poopColor = poopColor,
         poopConsistency = poopConsistency
@@ -368,6 +400,7 @@ private fun EventFormState.toEvent(babyId: String): Event = when (this) {
         babyId = babyId,
         timestamp = eventTimestamp,
         notes = notes.takeIf(String::isNotBlank),
+        photoUrl = photoUrl,
         isSleeping = isSleeping,
         beginTime = beginTime,
         endTime = endTime,
@@ -379,6 +412,7 @@ private fun EventFormState.toEvent(babyId: String): Event = when (this) {
         babyId = babyId,
         timestamp = eventTimestamp,
         notes = notes.takeIf(String::isNotBlank),
+        photoUrl = photoUrl,
         feedType = feedType,
         amountMl = amountMl.toDoubleOrNull(),
         durationMinutes = durationMin.toIntOrNull(),
@@ -390,6 +424,7 @@ private fun EventFormState.toEvent(babyId: String): Event = when (this) {
         babyId = babyId,
         timestamp = eventTimestamp,
         notes = notes.takeIf(String::isNotBlank),
+        photoUrl = photoUrl,
         weightKg = weightKg.toDoubleOrNull(),
         heightCm = heightCm.toDoubleOrNull(),
         headCircumferenceCm = headCircumferenceCm.toDoubleOrNull()
@@ -400,6 +435,7 @@ private fun EventFormState.toEvent(babyId: String): Event = when (this) {
         babyId = babyId,
         timestamp = eventTimestamp,
         notes = notes.takeIf(String::isNotBlank),
+        photoUrl = photoUrl,
         amountMl = amountMl.toDoubleOrNull(),
         durationMinutes = durationMin.toIntOrNull(),
         breastSide = breastSide
