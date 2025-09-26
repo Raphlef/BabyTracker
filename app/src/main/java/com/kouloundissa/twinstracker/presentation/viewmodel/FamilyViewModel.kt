@@ -2,6 +2,8 @@ package com.kouloundissa.twinstracker.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import com.kouloundissa.twinstracker.data.Family
 import com.kouloundissa.twinstracker.data.FirebaseRepository
 import com.kouloundissa.twinstracker.data.addMemberToFamily
@@ -13,18 +15,27 @@ import com.kouloundissa.twinstracker.data.regenerateInviteCode
 import com.kouloundissa.twinstracker.data.removeMemberFromFamily
 import com.kouloundissa.twinstracker.data.streamFamilies
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class FamilyViewModel @Inject constructor(
-    private val repository: FirebaseRepository
+    private val repository: FirebaseRepository,
+    private val  firebaseAuth: FirebaseAuth
 ) : ViewModel() {
 
     private val _families = MutableStateFlow<List<Family>>(emptyList())
@@ -47,20 +58,46 @@ class FamilyViewModel @Inject constructor(
     private val _currentUserId = MutableStateFlow<String?>(null)
     val currentUserId: StateFlow<String?> = _currentUserId.asStateFlow()
 
+    private var familiesJob: Job? = null
 
-    init {
-        observeFamilyUpdates()
-        _currentUserId.value = repository.getCurrentUserId()
+    private val authStateFlow: Flow<FirebaseUser?> = callbackFlow {
+        val listener = FirebaseAuth.AuthStateListener { auth ->
+            trySend(auth.currentUser)
+        }
+        firebaseAuth.addAuthStateListener(listener)
+        awaitClose { firebaseAuth.removeAuthStateListener(listener) }
     }
 
-    private fun observeFamilyUpdates() {
-        viewModelScope.launch {
+
+    init {
+        authStateFlow
+            .map { it != null }
+            .distinctUntilChanged()
+            .onEach { isAuth ->
+                if (isAuth) {
+                    _currentUserId.value = repository.getCurrentUserId()
+                    startObservingFamilyUpdates()
+                } else {
+                    stopObservingFamilyUpdates()
+                    _currentUserId.value = null
+                    _families.value = emptyList()
+                    _state.value = FamilyState()  // reset loading/error
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
+
+    private fun startObservingFamilyUpdates() {
+        familiesJob?.cancel()
+        familiesJob = viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
-                repository.streamFamilies().collect { list ->
-                    _families.value = list
-                    _state.update { it.copy(isLoading = false, error = null) }
-                }
+                repository.streamFamilies()
+                    .collect { list ->
+                        _families.value = list
+                        _state.update { it.copy(isLoading = false, error = null) }
+                    }
             } catch (e: Exception) {
                 _state.update {
                     it.copy(
@@ -70,6 +107,11 @@ class FamilyViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun stopObservingFamilyUpdates() {
+        familiesJob?.cancel()
+        familiesJob = null
     }
 
 
