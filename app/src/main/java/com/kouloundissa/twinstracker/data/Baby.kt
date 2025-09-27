@@ -9,12 +9,12 @@ import java.util.UUID // For generating unique IDs
 
 // Enum for Gender, if not already defined elsewhere
 @IgnoreExtraProperties
-enum class Gender(val icon: ImageVector, val displayName: String) {
-    MALE(Icons.Filled.Male, "Male"),
-    FEMALE(Icons.Filled.Female, "Female"),
-    OTHER(Icons.Filled.Transgender, "Other"),
-    PREFER_NOT_TO_SAY(Icons.Filled.VisibilityOff, "Prefer Not to Say"),
-    UNKNOWN(Icons.Filled.HelpOutline, "Unknown")
+enum class Gender(val icon: ImageVector, val displayName: String, val emoji: String) {
+    MALE(Icons.Filled.Male, "Garçon","👶🏻"),
+    FEMALE(Icons.Filled.Female, "Fille","👧🏻"),
+    OTHER(Icons.Filled.Transgender, "Autre","🧒🏻"),
+    PREFER_NOT_TO_SAY(Icons.Filled.VisibilityOff, "❔","👶"),
+    UNKNOWN(Icons.AutoMirrored.Filled.HelpOutline, "❔","👶")
 }
 enum class BloodType(val icon: ImageVector) {
     A(Icons.Filled.Bloodtype),
