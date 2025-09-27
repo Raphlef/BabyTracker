@@ -2,6 +2,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -64,6 +65,7 @@ fun DayTimeline(
     hourRowHeight: Dp = 60.dp
 ) {
     val eventTypes = EventType.entries
+
     // Precompute events grouped by hour index (0–23)
     data class Span(val evt: Event, val startH: Int, val endH: Int)
 
@@ -110,19 +112,21 @@ fun DayTimeline(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 // Event container
-                Box(
+                BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(hourRowHeight - 4.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    covering.forEach  {  span ->
+                    val parentWidth = maxWidth
+                    covering.forEach { span ->
                         EventChip(
                             evt = span.evt,
                             onEdit = onEdit,
                             hourRowHeight = hourRowHeight - 4.dp,
-                            eventTypes=eventTypes
+                            eventTypes = eventTypes,
+                            parentWidth = parentWidth
                         )
                     }
                 }
@@ -136,7 +140,8 @@ fun EventChip(
     evt: Event,
     onEdit: (Event) -> Unit,
     hourRowHeight: Dp = 56.dp,
-    eventTypes: List<EventType>
+    eventTypes: List<EventType>,
+    parentWidth: Dp
 ) {
     val type = EventType.forClass(evt::class)
 
@@ -163,13 +168,13 @@ fun EventChip(
                 (startZ.hour * 60 + startZ.minute)) / 60f
     }
 
-
-    val parentWidth = LocalConfiguration.current.screenWidthDp.dp - 48.dp - 8.dp
     val (slotWidth, xOffset) = if (evt is SleepEvent) {
         parentWidth to 0.dp
     } else {
-        val idx = eventTypes.indexOf(type).coerceAtLeast(0)
-        val total = eventTypes.size
+        val nonSleepTypes = eventTypes.filterNot { it.eventClass == SleepEvent::class }
+        val total = nonSleepTypes.size.coerceAtLeast(1)
+        val rawIndex = eventTypes.indexOf(type).coerceAtLeast(0)
+        val idx = rawIndex.coerceIn(0, total - 1)
         val w = parentWidth / total
         w to (w * idx)
     }
@@ -177,7 +182,10 @@ fun EventChip(
 
     Box(
         modifier = Modifier
-            .offset(x = xOffset, y = if (evt is SleepEvent) 0.dp else hourRowHeight*offsetFrac)
+            .offset(
+                x = xOffset,
+                y = if (evt is SleepEvent) 0.dp else hourRowHeight * offsetFrac
+            )
             .width(slotWidth)
             .height(hourRowHeight * durationFrac.coerceAtLeast(1f.coerceAtLeast(durationFrac)))
             .clip(RoundedCornerShape(6.dp))
