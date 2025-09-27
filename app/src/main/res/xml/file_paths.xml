@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- External files directory for captured images -->
+    <external-path
+        name="captured_images"
+        path="Android/data/${applicationId}/files/captured_images" />
+    <!-- Optional: cache or other dirs -->
+</paths>
