@@ -288,7 +288,7 @@ private fun buildEventTitle(event: Event, eventType: EventType): String {
                 val drugName = if (event.drugType == DrugType.OTHER) {
                     event.otherDrugName ?: "Unknown"
                 } else {
-                    event.drugType.name.lowercase().replaceFirstChar { it.uppercase() }
+                    event.drugType.displayName
                 }
                 append(" - $drugName")
                 event.dosage?.let { append(" ${it.toInt()}${event.unit}") }

@@ -41,7 +41,7 @@ enum class BreastSide(val icon: ImageVector){
 }
 enum class DrugType(val displayName: String, val icon: ImageVector) {
     PARACETAMOL("Paracetamol", Icons.Default.MedicalInformation),
-    VITAMIN_D("Vitamin D", Icons.Default.WbSunny),
+    VITAMIN_D("Vitamine D", Icons.Default.WbSunny),
     OTHER("Other", Icons.Default.MoreHoriz);
 
     companion object {
