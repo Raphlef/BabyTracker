@@ -159,12 +159,7 @@ fun EventChip(
     val endZ = Instant.ofEpochMilli(endDate.time).atZone(zone)
 
     val offsetFrac = startZ.minute / 60f
-    val durationFrac = if (evt is SleepEvent) {
-        1f
-    } else {
-        ((endZ.hour * 60 + endZ.minute) -
-                (startZ.hour * 60 + startZ.minute)) / 60f
-    }
+
 
     // Compute vertical offset: only apply offsetFrac in first hour of SleepEvent
     val yOffsetFrac = if (evt is SleepEvent) {
@@ -172,6 +167,23 @@ fun EventChip(
     } else {
         offsetFrac
     }
+
+    // Compute height fraction
+    val durationFrac = if (evt is SleepEvent) {
+        when {
+            // Sleep ends in this hour: height = end minute fraction
+            endZ.hour == currentHour -> endZ.minute / 60f
+            // First hour: remaining fraction of the hour
+            currentHour == startHour -> 1f - offsetFrac
+            // Any full intermediate hour
+            currentHour in (startHour + 1) until endZ.hour -> 1f
+            else -> 0f
+        }
+    } else {
+        // non-sleep default 30min
+        ((endZ.hour * 60 + endZ.minute) -
+                (startZ.hour * 60 + startZ.minute)) / 60f
+    }.coerceAtLeast(0f)
 
     // Horizontal layout for non-sleep events (unchanged)
     val (slotWidth, xOffset) = if (evt is SleepEvent) {
@@ -192,7 +204,7 @@ fun EventChip(
                 y = hourRowHeight * yOffsetFrac
             )
             .width(slotWidth)
-            .height(hourRowHeight * durationFrac.coerceAtLeast(1f.coerceAtLeast(durationFrac)))
+            .height(hourRowHeight * durationFrac)
             .clip(RoundedCornerShape(6.dp))
             .background(type.color.copy(alpha = 0.85f))
             .clickable { onEdit(evt) }
