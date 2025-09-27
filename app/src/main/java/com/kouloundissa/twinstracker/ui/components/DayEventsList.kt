@@ -63,6 +63,7 @@ fun DayTimeline(
     modifier: Modifier = Modifier,
     hourRowHeight: Dp = 60.dp
 ) {
+    val eventTypes = EventType.entries
     // Precompute events grouped by hour index (0–23)
     data class Span(val evt: Event, val startH: Int, val endH: Int)
 
@@ -85,8 +86,13 @@ fun DayTimeline(
             .fillMaxSize()
     ) {
         repeat(24) { hour ->
-            val current = spans.filter { it.startH <= hour && it.endH > hour }
-            val slotCount = current.size
+            // All spans covering this hour
+            val covering = spans.filter { it.startH <= hour && it.endH > hour }
+
+            // Count only *instant* events for splitting
+            val instants = covering.filter { it.evt !is SleepEvent }
+            val splitCount = if (instants.size > 1) instants.size else 1
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -111,14 +117,12 @@ fun DayTimeline(
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    // Place EventChips that span this hour
-                    current.forEachIndexed { index, span ->
+                    covering.forEach  {  span ->
                         EventChip(
                             evt = span.evt,
                             onEdit = onEdit,
                             hourRowHeight = hourRowHeight - 4.dp,
-                            slotIndex = index,
-                            totalSlots = slotCount
+                            eventTypes=eventTypes
                         )
                     }
                 }
@@ -132,8 +136,7 @@ fun EventChip(
     evt: Event,
     onEdit: (Event) -> Unit,
     hourRowHeight: Dp = 56.dp,
-    slotIndex: Int = 0,
-    totalSlots: Int = 1
+    eventTypes: List<EventType>
 ) {
     val type = EventType.forClass(evt::class)
 
@@ -144,27 +147,39 @@ fun EventChip(
         else -> Date(startDate.time + 30 * 60 * 1000)
     }
 
-    val startInstant = Instant.ofEpochMilli(startDate.time)
-    val endInstant = Instant.ofEpochMilli(endDate.time)
-
-    // 3. Compute offset and span
     val zone = ZoneId.systemDefault()
-    val startZ = startInstant.atZone(zone)
-    val endZ = endInstant.atZone(zone)
+    val startZ = Instant.ofEpochMilli(startDate.time).atZone(zone)
+    val endZ = Instant.ofEpochMilli(endDate.time).atZone(zone)
+
+    val startFrac = startZ.minute / 60f
+    val endFrac = endZ.minute / 60f
 
     val offsetFrac = startZ.minute / 60f
-    val durationFrac = ((endZ.toLocalDateTime().hour * 60 + endZ.minute) -
-            (startZ.toLocalDateTime().hour * 60 + startZ.minute)) / 60f
+    // If SleepEvent spans multiple hours, make height = full card height
+    val durationFrac = if (evt is SleepEvent) {
+        1f
+    } else {
+        ((endZ.hour * 60 + endZ.minute) -
+                (startZ.hour * 60 + startZ.minute)) / 60f
+    }
+
 
     val parentWidth = LocalConfiguration.current.screenWidthDp.dp - 48.dp - 8.dp
-    val slotWidth = parentWidth / totalSlots
-    val xOffset = slotWidth * slotIndex
-    val yOffset = hourRowHeight * offsetFrac
+    val (slotWidth, xOffset) = if (evt is SleepEvent) {
+        parentWidth to 0.dp
+    } else {
+        val idx = eventTypes.indexOf(type).coerceAtLeast(0)
+        val total = eventTypes.size
+        val w = parentWidth / total
+        w to (w * idx)
+    }
+
 
     Box(
         modifier = Modifier
-            .offset(x = xOffset, y = yOffset)
-            .height(hourRowHeight * durationFrac.coerceAtLeast(0.1667f))
+            .offset(x = xOffset, y = if (evt is SleepEvent) 0.dp else hourRowHeight*offsetFrac)
+            .width(slotWidth)
+            .height(hourRowHeight * durationFrac.coerceAtLeast(1f.coerceAtLeast(durationFrac)))
             .clip(RoundedCornerShape(6.dp))
             .background(type.color.copy(alpha = 0.85f))
             .clickable { onEdit(evt) }
