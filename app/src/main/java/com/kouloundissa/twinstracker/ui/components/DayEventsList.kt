@@ -147,9 +147,9 @@ fun EventChip(
 
     // 1. Convert Date → Instant
     val startDate = (evt as? SleepEvent)?.beginTime ?: evt.timestamp
-    val endDate = when (evt) {
+    val endDate   = when (evt) {
         is SleepEvent -> evt.endTime ?: startDate
-        else -> Date(startDate.time + 30 * 60 * 1000)
+        else          -> Date(startDate.time + 30 * 60 * 1000)
     }
 
     val zone = ZoneId.systemDefault()
@@ -181,7 +181,7 @@ fun EventChip(
         modifier = Modifier
             .offset(
                 x = xOffset,
-                y = if (evt is SleepEvent) 0.dp else hourRowHeight * offsetFrac
+                y =  hourRowHeight * offsetFrac
             )
             .width(slotWidth)
             .height(hourRowHeight * durationFrac.coerceAtLeast(1f.coerceAtLeast(durationFrac)))
