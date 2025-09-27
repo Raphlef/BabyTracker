@@ -251,6 +251,15 @@ fun HomeScreen(
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    item {
+                        Spacer(Modifier.height(24.dp))
+                        Text(
+                            "Aujourd'hui",
+                            style = MaterialTheme.typography.headlineSmall,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+
                     // 2 x N Cards for each EventType
                     item {
                         LazyVerticalGrid(
