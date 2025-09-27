@@ -353,8 +353,9 @@ fun ModernDateSelector(
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
-    // Hold interim date before time selection
     var interimDateMillis by remember { mutableStateOf(selectedDate.time) }
+    // Hold interim date before time selection
+    val interimCalendar = remember { Calendar.getInstance().apply { time = selectedDate } }
 
     // Date picker state
     val datePickerState = rememberDatePickerState(
@@ -429,7 +430,7 @@ fun ModernDateSelector(
     if (showTimePicker) {
         ShowTimePickerDialog(
             label = "Event Time",
-            initialDate = Date(interimDateMillis),
+            initialDate = interimCalendar.time,
             onTimeSelected = { timeDate ->
                 // Merge date + time
                 val cal = Calendar.getInstance().apply {
