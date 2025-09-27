@@ -1,8 +1,10 @@
 package com.kouloundissa.twinstracker.ui.components
 
 import android.app.DownloadManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -37,10 +39,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.google.firebase.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -107,19 +111,6 @@ fun PhotoPicker(
     ) { uri ->
         onPhotoSelected(uri)
     }
-
-    // Prepare a file for camera capture
-    fun prepareCameraFile(): Uri? {
-        val imagesDir = context.getExternalFilesDir("captured_images")
-        imagesDir?.mkdirs()
-        val photoFile = File(imagesDir, "IMG_${System.currentTimeMillis()}.jpg")
-        return FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            photoFile
-        ).also { cameraUri = it }
-    }
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -203,8 +194,9 @@ fun PhotoPicker(
                 confirmButton = {
                     TextButton(onClick = {
                         showDialog = false
-                        prepareCameraFile()?.let { cameraUri ->
-                            cameraLauncher.launch(cameraUri)
+                        PhotoFileProvider.createImageUri(context)?.also { uri ->
+                            cameraUri = uri
+                            cameraLauncher.launch(uri)
                         }
                     }) {
                         Text("Take Photo")
@@ -219,6 +211,21 @@ fun PhotoPicker(
                     }
                 }
             )
+        }
+    }
+}
+
+object PhotoFileProvider {
+    private fun authority(context: Context) = "${context.packageName}.fileprovider"
+
+    fun createImageUri(context: Context, subfolder: String = "captured_images"): Uri? {
+        val imagesDir = context.getExternalFilesDir(subfolder)?.apply { mkdirs() }
+        val file = File(imagesDir, "IMG_${System.currentTimeMillis()}.jpg")
+        return try {
+            FileProvider.getUriForFile(context, authority(context), file)
+        } catch (e: IllegalArgumentException) {
+            Log.e("PhotoFileProvider", "Invalid FileProvider authority", e)
+            null
         }
     }
 }
