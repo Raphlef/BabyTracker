@@ -918,6 +918,22 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Other drug name (conditional)
+        if (state.drugType == DrugType.OTHER) {
+            OutlinedTextField(
+                value = state.otherDrugName,
+                onValueChange = { newName ->
+                    viewModel.updateForm {
+                        (this as EventFormState.Drugs).copy(otherDrugName = newName)
+                    }
+                },
+                label = { Text("Specify Drug Name") },
+                placeholder = { Text("e.g., Ibuprofen") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+        }
         // Dosage Input
         OutlinedTextField(
             value = state.dosage,
@@ -949,22 +965,6 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Other drug name (conditional)
-        if (state.drugType == DrugType.OTHER) {
-            OutlinedTextField(
-                value = state.otherDrugName,
-                onValueChange = { newName ->
-                    viewModel.updateForm {
-                        (this as EventFormState.Drugs).copy(otherDrugName = newName)
-                    }
-                },
-                label = { Text("Specify Drug Name") },
-                placeholder = { Text("e.g., Ibuprofen") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-        }
 
         // Notes
         OutlinedTextField(

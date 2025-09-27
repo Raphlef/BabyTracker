@@ -39,11 +39,29 @@ enum class BreastSide(val icon: ImageVector){
     RIGHT(Icons.Default.ChevronRight),
     BOTH(Icons.Default.SwapHoriz)
 }
-enum class DrugType(val displayName: String, val icon: ImageVector) {
-    PARACETAMOL("Paracetamol", Icons.Default.MedicalInformation),
-    VITAMIN_D("Vitamine D", Icons.Default.WbSunny),
-    OTHER("Other", Icons.Default.MoreHoriz);
+enum class DrugType(val displayName: String, val icon: ImageVector,
+                    val category: Category) {
+    // Analgesics & Antipyretics
+    PARACETAMOL("Paracetamol", Icons.Default.LocalHospital, Category.MEDICINE),
 
+    // Vitamins
+    VITAMIN_A("Vitamin A", Icons.Default.BabyChangingStation, Category.VITAMIN),
+    VITAMIN_B("Vitamin B Complex", Icons.Default.Coffee, Category.VITAMIN),
+    VITAMIN_C("Vitamin C", Icons.Default.WbTwilight, Category.VITAMIN),
+    VITAMIN_D("Vitamin D", Icons.Default.WbSunny, Category.VITAMIN),
+    VITAMIN_K("Vitamin K", Icons.Default.MoreHoriz, Category.VITAMIN),
+
+    // Minerals & Others
+    IRON("Iron Supplement", Icons.Default.MoreHoriz, Category.SUPPLEMENT),
+    CALCIUM("Calcium Supplement", Icons.Default.MoreHoriz, Category.SUPPLEMENT),
+    OTHER("Other", Icons.Default.MoreHoriz, Category.OTHER);
+
+    enum class Category {
+        MEDICINE,
+        VITAMIN,
+        SUPPLEMENT,
+        OTHER
+    }
     companion object {
         val entries = DrugType.entries
     }
