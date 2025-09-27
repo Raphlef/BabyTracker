@@ -79,8 +79,12 @@ fun SettingsScreen(
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             ReadOnlyField("Email", profile?.email.orEmpty())
-                            EditableField("Nom affiché", displayName, !isAuthLoading) {
-                                displayName = it
+                            EditableField(
+                                "Nom affiché",
+                                displayName,
+                                !isAuthLoading
+                            ) { confirmedValue ->
+                                displayName = confirmedValue
                             }
 
                             // Save button for profile edits
@@ -310,6 +314,7 @@ fun GlassCard(
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReadOnlyField(label: String, value: String) {
@@ -323,31 +328,22 @@ private fun EditableField(
     label: String,
     text: String,
     enabled: Boolean,
-    onValueConfirmed: (String) -> Unit
+    onValueChange: (String) -> Unit
 ) {
     val focusManager = LocalFocusManager.current
-    var localText by remember(text) { mutableStateOf(text) }
-    var hasFocus by remember { mutableStateOf(false) }
-
-    Text(label, style = MaterialTheme.typography.labelLarge)
     OutlinedTextField(
-        value = localText,
-        onValueChange = { localText = it },
+        value = text,
+        onValueChange = { newValue ->
+            onValueChange(newValue)
+        },
+        label = { Text(label) },
         singleLine = true,
         enabled = enabled,
-        modifier = Modifier
-            .fillMaxWidth()
-            .onFocusChanged { state ->
-                if (hasFocus && !state.isFocused && localText != text) {
-                    onValueConfirmed(localText)
-                }
-                hasFocus = state.isFocused
-            },
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-        keyboardActions = KeyboardActions(onDone = {
-            if (localText != text) onValueConfirmed(localText)
-            focusManager.clearFocus()
-        })
+        modifier = Modifier.fillMaxWidth(),
+        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(
+            onDone = { focusManager.clearFocus() }
+        )
     )
 }
 
