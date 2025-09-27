@@ -1,6 +1,6 @@
 package com.kouloundissa.twinstracker.presentation.calendar
 
-import TimelineBar
+import DayTimeline
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -131,9 +131,10 @@ fun CalendarScreen(
                     if (dailyEvents.isEmpty()) {
                         Text("No events", style = MaterialTheme.typography.bodyMedium)
                     } else {
-                        TimelineBar(
+                        DayTimeline(
                             events = dailyEvents,
-                            onEdit = { editingEvent = it }
+                            onEdit = { editingEvent = it },
+                            modifier = Modifier
                         )
                     }
                 }
