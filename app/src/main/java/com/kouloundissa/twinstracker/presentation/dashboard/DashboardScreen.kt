@@ -106,7 +106,6 @@ fun DashboardScreen(
     var showEventForm by remember { mutableStateOf(false) }
     var selectedEventFormState by remember { mutableStateOf<EventFormState?>(null) }
     val babyError by babyViewModel.errorMessage.collectAsState()
-    var showBabyInfoBar by remember { mutableStateOf(false) }
 
     // Initialize selectedBaby on first composition
     LaunchedEffect(babies, initialBabyId) {
@@ -115,13 +114,6 @@ fun DashboardScreen(
                 babies.find { it.id == id }
             } ?: babies.first()
             babyViewModel.selectBaby(toSelect)
-        }
-    }
-    // Auto-hide BabyInfoBar after 3 seconds when shown
-    LaunchedEffect(showBabyInfoBar) {
-        if (showBabyInfoBar) {
-            kotlinx.coroutines.delay(3000) // 3 seconds
-            showBabyInfoBar = false
         }
     }
 
@@ -148,27 +140,22 @@ fun DashboardScreen(
             Column(Modifier.padding(paddingValues)) {
                 Spacer(modifier = Modifier.height(4.dp))
                 // --- BABY SELECTOR + INFO ---
-                Box(
-                    Modifier.onGloballyPositioned { coords ->
-                        val windowPos = coords.positionInWindow().y
-                        selectorBottomPx = (windowPos + coords.size.height).roundToInt()
+
+                BabySelectorRow(
+                    babies = babies,
+                    selectedBaby = selectedBaby,
+                    onSelectBaby = {
+                        babyViewModel.selectBaby(it)
+                    },
+                    onAddBaby = {
+                        // Open create baby dialog
+                        editingBaby = null
+                        showBabyDialog = true
                     }
-                ) {
-                    BabySelectorRow(
-                        babies = babies,
-                        selectedBaby = selectedBaby,
-                        onSelectBaby = {
-                            babyViewModel.selectBaby(it)
-                            showBabyInfoBar = true
-                        },
-                        onAddBaby = {
-                            // Open create baby dialog
-                            editingBaby = null
-                            showBabyDialog = true
-                            showBabyInfoBar = false
-                        }
-                    )
-                }
+                )
+                Spacer(Modifier.height(4.dp))
+                selectedBaby?.let { BabyInfoBar(it) { editingBaby = it } }
+
                 Spacer(Modifier.height(8.dp))
                 // --- MAIN CONTENT for selected tab ---
                 Box(Modifier.weight(1f)) {
@@ -237,29 +224,8 @@ fun DashboardScreen(
                     )
                 }
             }
-            if (showBabyInfoBar && selectedBaby != null) {
-                AnimatedVisibility(
-                    visible = true,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                    modifier = Modifier
-                        // Convert px to dp and offset
-                        .offset {
-                            IntOffset(
-                                x = 0,
-                                y = with(density) { selectorBottomPx.toDp().roundToPx() }
-                            )
-                        }
-                        .fillMaxWidth()
-                        .zIndex(1f)
 
-                ) {
-                    selectedBaby?.let { baby ->
-                        BabyInfoBar(baby) { editingBaby = baby }
-                    }
-                }
-            }
-            // Floating nav sits on top, aligned bottom center
+            // Floating nav sits on bot, aligned bottom center
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
