@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.times
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.SleepEvent
@@ -47,7 +48,6 @@ fun DayTimeline(
     Column(modifier.fillMaxSize()) {
         repeat(24) { hour ->
             val covering = spans.filter { it.coversHour(hour) }
-            val instantCount = covering.count { !it.evt.isSleep() }
 
             Row(
                 modifier = Modifier
@@ -69,17 +69,19 @@ fun DayTimeline(
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    covering.forEach { span ->
-                        EventSegment(
-                            evt = span.evt,
-                            onEdit = onEdit,
-                            eventTypes = eventTypes,
-                            parentWidth = maxWidth,
-                            currentHour = hour,
-                            startHour = span.startHour,
-                            hourRowHeight = hourRowHeight - 4.dp
-                        )
-                    }
+                    covering
+                        .sortedByDescending  { it.evt is SleepEvent }
+                        .forEach { span ->
+                            EventSegment(
+                                evt = span.evt,
+                                onEdit = onEdit,
+                                eventTypes = eventTypes,
+                                parentWidth = maxWidth,
+                                currentHour = hour,
+                                startHour = span.startHour,
+                                hourRowHeight = hourRowHeight - 4.dp
+                            )
+                        }
                 }
             }
         }
@@ -99,8 +101,10 @@ fun EventSegment(
     val type = EventType.forClass(evt::class)
     val startZ = ((evt as? SleepEvent)?.beginTime ?: evt.timestamp).toZoned()
     val endZ = when (evt) {
-        is SleepEvent -> (evt.endTime ?: startZ.toInstant().let { Date(it.toEpochMilli()) }).toZoned()
-        else          -> ZonedDateTime.ofInstant(
+        is SleepEvent -> (evt.endTime ?: startZ.toInstant()
+            .let { Date(it.toEpochMilli()) }).toZoned()
+
+        else -> ZonedDateTime.ofInstant(
             Instant.ofEpochMilli(startZ.toInstant().toEpochMilli() + 30 * 60_000),
             systemZone
         )
@@ -113,7 +117,9 @@ fun EventSegment(
     }
 
     val durationFrac = when {
-        !evt.isSleep() -> ((endZ.toLocalTime().toSecondOfDay() - startZ.toLocalTime().toSecondOfDay()) / 3600f)
+        !evt.isSleep() -> ((endZ.toLocalTime().toSecondOfDay() - startZ.toLocalTime()
+            .toSecondOfDay()) / 3600f)
+
         endZ.hour == currentHour -> endZ.minuteFraction
         currentHour == startHour -> 1f - startZ.minuteFraction
         currentHour in (startHour + 1) until endZ.hour -> 1f
@@ -122,11 +128,15 @@ fun EventSegment(
 
     val (slotWidth, xOffset) = computeLayoutParams(evt, eventTypes, parentWidth)
 
+    val rawHeight = hourRowHeight * durationFrac
+    val heightDp = rawHeight.coerceAtLeast(MinEventHeight)
+    val yOffset = hourRowHeight * yOffsetFrac
+
     Box(
         modifier = Modifier
-            .offset(x = xOffset, y = hourRowHeight * yOffsetFrac)
+            .offset(x = xOffset, y = yOffset)
             .width(slotWidth)
-            .height(hourRowHeight * durationFrac)
+            .height(heightDp)
             .clip(RoundedCornerShape(6.dp))
             .background(type.color.copy(alpha = 0.85f))
             .clickable { onEdit(evt) }
@@ -162,7 +172,7 @@ fun Event.toSpan(): Span? {
     val startDate = (this as? SleepEvent)?.beginTime ?: timestamp
     val endDate = when (this) {
         is SleepEvent -> endTime ?: startDate
-        else          -> Date(startDate.time + 30 * 60_000)
+        else -> Date(startDate.time + 30 * 60_000)
     }
     val zs = startDate.toZoned()
     val ze = endDate.toZoned()
@@ -180,6 +190,8 @@ fun Span.coversHour(hour: Int): Boolean =
     } else {
         hour == startHour
     }
+
+private val MinEventHeight = 8.dp
 
 fun Event.isSleep() = this is SleepEvent
 
