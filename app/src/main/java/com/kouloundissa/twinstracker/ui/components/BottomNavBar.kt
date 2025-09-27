@@ -63,10 +63,11 @@ fun BottomNavBar(
         modifier = modifier
             .fillMaxWidth()
             .padding(bottom = 24.dp)
+            .padding(start = 12.dp, end = 12.dp)
             .background(
                 // 80% of the surface color for a subtle glass effect
                 baseColor.copy(alpha = 0.90f),
-                shape = RoundedCornerShape(24.dp)
+                shape = RoundedCornerShape(32.dp)
             ),
         contentAlignment = Alignment.BottomCenter
     ) {
@@ -77,7 +78,7 @@ fun BottomNavBar(
             hazeState = hazeState,
             modifier = Modifier
                 .wrapContentWidth()          // only wrap content
-                .padding(horizontal = 16.dp)  // small margin from screen edges
+               // .padding(horizontal = 16.dp)  // small margin from screen edges
         )
         IslandFAB(
             onAddClicked = onAddClicked,
@@ -111,8 +112,7 @@ fun GlassIslandNavBar(
         color = Color.White.copy(alpha = 0.10f)
     ) {
         Row(
-            modifier = Modifier
-                .padding(start = 12.dp, end = 12.dp),
+
             verticalAlignment = Alignment.CenterVertically
         ) {
             navItems.forEachIndexed { index, tab ->
