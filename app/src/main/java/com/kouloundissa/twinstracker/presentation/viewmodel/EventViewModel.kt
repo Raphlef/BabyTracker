@@ -251,7 +251,7 @@ class EventViewModel @Inject constructor(
     private suspend fun createEventWithPhoto(event: Event, state: EventFormState) {
         try {
             // 1. Handle photo upload (before event creation)
-            val photoUrl = state.photoUrl?.let { uploadEventPhoto(event.id, it.toUri()) }
+            val photoUrl = state.newPhotoUrl?.let { uploadEventPhoto(event.id, state.newPhotoUrl!!) }
 
             // 2. Create the event with photoUrl (if available)
             val eventWithPhoto = event.setPhotoUrl(photoUrl)
@@ -367,7 +367,8 @@ class EventViewModel @Inject constructor(
         return try {
             repository.addPhotoToEntity("events", eventId, photoUri)
         } catch (e: Exception) {
-            _errorMessage.value = "Photo upload failed: ${e.localizedMessage}"
+            Log.e("EventViewModel", "Event Photo upload failed: ${e.message}", e)
+            _errorMessage.value = "Event Photo upload failed: ${e.localizedMessage}"
             null
         }
     }
