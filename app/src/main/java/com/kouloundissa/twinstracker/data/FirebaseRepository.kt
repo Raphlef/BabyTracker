@@ -179,7 +179,6 @@ class FirebaseRepository @Inject constructor(
             // May already have permission; ignoring
         }
 
-        // 2. Upload to Storage under photos/{entityType}/{userId}/{entityId}.jpg
         val storageRef = FirebaseStorage.getInstance().reference
             .child("photos")
             .child(entityType)
@@ -197,16 +196,16 @@ class FirebaseRepository @Inject constructor(
         val downloadUrl = storageRef.downloadUrl.await().toString()
         Log.d(TAG, "Download URL fetched: $downloadUrl")
 
-        // 4. Update Firestore document with the field "photoUrl"
-        db.collection(entityType)
-            .document(entityId)
-            .update(
-                mapOf(
-                    "photoUrl" to downloadUrl,
-                    "updatedAt" to System.currentTimeMillis()
-                )
-            )
-            .await()
+//        // 4. Update Firestore document with the field "photoUrl"
+//        db.collection(entityType)
+//            .document(entityId)
+//            .update(
+//                mapOf(
+//                    "photoUrl" to downloadUrl,
+//                    "updatedAt" to System.currentTimeMillis()
+//                )
+//            )
+//            .await()
 
         Log.d(TAG, "Firestore document updated with photoUrl for $entityType/$entityId")
 
