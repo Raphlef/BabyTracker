@@ -156,8 +156,7 @@ fun EventChip(
     val startZ = Instant.ofEpochMilli(startDate.time).atZone(zone)
     val endZ = Instant.ofEpochMilli(endDate.time).atZone(zone)
 
-    val startFrac = startZ.minute / 60f
-    val endFrac = endZ.minute / 60f
+  
 
     val offsetFrac = startZ.minute / 60f
     // If SleepEvent spans multiple hours, make height = full card height
