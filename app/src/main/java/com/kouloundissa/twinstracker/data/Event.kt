@@ -4,7 +4,10 @@ import android.net.Uri
 import android.util.Log
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.BabyChangingStation
+import androidx.compose.material.icons.outlined.PregnantWoman
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.google.firebase.firestore.DocumentSnapshot
@@ -21,11 +24,11 @@ enum class EventType(
     val displayName: String, val color: Color, val icon: ImageVector,
     val eventClass: KClass<out Event>
 ) {
-    DIAPER("Diaper", Color(0xFFFFC107), Icons.Filled.ChildCare, DiaperEvent::class),
-    FEEDING("Feeding", Color(0xFF4CAF50), Icons.Filled.Fastfood, FeedingEvent::class),
-    SLEEP("Sleep", Color(0xFF2196F3), Icons.Filled.Hotel, SleepEvent::class),
-    GROWTH("Growth", Color(0xFF9C27B0), Icons.AutoMirrored.Filled.ShowChart, GrowthEvent::class),
-    PUMPING("Pumping", Color(0xFFFF5722), Icons.Filled.Add, PumpingEvent::class),
+    DIAPER("Diaper", Color(0xFFFFC107), Icons.Outlined.BabyChangingStation, DiaperEvent::class),
+    FEEDING("Feeding", Color(0xFF4CAF50), Icons.Filled.Restaurant, FeedingEvent::class),
+    SLEEP("Sleep", Color(0xFF2196F3), Icons.Filled.Bedtime, SleepEvent::class),
+    GROWTH("Growth", Color(0xFF9C27B0), Icons.Filled.BarChart, GrowthEvent::class),
+    PUMPING("Pumping", Color(0xFFFF5722), Icons.Filled.WaterDrop, PumpingEvent::class),
     DRUGS("Drugs", Color(0xFF3F51B5), Icons.Filled.MedicalServices, DrugsEvent::class);
 
     companion object {
