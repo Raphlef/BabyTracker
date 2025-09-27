@@ -60,7 +60,7 @@ import com.kouloundissa.twinstracker.presentation.baby.BabyFormDialog
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
-import com.kouloundissa.twinstracker.ui.components.TimelineEventItem
+import com.kouloundissa.twinstracker.ui.components.EventCard
 import com.kouloundissa.twinstracker.ui.components.TimelineList
 import java.time.Duration
 import java.time.Instant
@@ -289,6 +289,7 @@ fun HomeScreen(
                     // Timeline of recent events
                     item {
                         if (babyEvents.isNotEmpty()) {
+
                             TimelineList(
                                 events = babyEvents.take(20),
                                 modifier = Modifier.fillMaxWidth(),
@@ -452,9 +453,9 @@ private fun EventTypeDialog(
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
                     items(events) { event ->
-                        TimelineEventItem(
+                        EventCard(
                             event = event,
-                            onEdit = onEdit
+                            onEdit = { onEdit(event) }
                         )
                     }
                 }
