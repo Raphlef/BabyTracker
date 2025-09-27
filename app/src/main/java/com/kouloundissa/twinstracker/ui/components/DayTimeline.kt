@@ -42,7 +42,8 @@ fun DayTimeline(
 ) {
     val eventTypes = EventType.entries
     val spans = remember(events) {
-        events.mapNotNull(Event::toSpan)
+        events.mapNotNull(Event::
+        toSpan)
     }
 
     Column(modifier.fillMaxSize()) {
@@ -110,13 +111,13 @@ fun EventSegment(
         )
     }
 
-    val yOffsetFrac = when {
+    val startMinFrac = when {
         !evt.isSleep() -> startZ.minuteFraction
         currentHour == startHour -> startZ.minuteFraction
         else -> 0f
     }
 
-    val durationFrac = when {
+    val rawDurFrac = when {
         !evt.isSleep() -> ((endZ.toLocalTime().toSecondOfDay() - startZ.toLocalTime()
             .toSecondOfDay()) / 3600f)
 
@@ -128,13 +129,19 @@ fun EventSegment(
 
     val (slotWidth, xOffset) = computeLayoutParams(evt, eventTypes, parentWidth)
 
-    val rawHeight = hourRowHeight * durationFrac
-    val heightDp = rawHeight.coerceAtLeast(MinEventHeight)
-    val yOffset = hourRowHeight * yOffsetFrac
+
+    // Clamp height so it’s never smaller than MIN_INSTANT_FRAC
+    val durationFrac = rawDurFrac.coerceAtLeast(MIN_INSTANT_FRAC)
+    val heightDp = hourRowHeight * durationFrac
+
+    // Ensure the chip never renders partly off‐screen at the bottom:
+    // offset + duration ≤ 1.0
+    val yOffsetFrac = (startMinFrac)
+        .coerceAtMost(1f - durationFrac)
 
     Box(
         modifier = Modifier
-            .offset(x = xOffset, y = yOffset)
+            .offset(x = xOffset, y = hourRowHeight * yOffsetFrac)
             .width(slotWidth)
             .height(heightDp)
             .clip(RoundedCornerShape(6.dp))
@@ -191,7 +198,8 @@ fun Span.coversHour(hour: Int): Boolean =
         hour == startHour
     }
 
-private val MinEventHeight = 8.dp
+// Minimum visible fraction (e.g. 10% of an hour row)
+private val MIN_INSTANT_FRAC = 0.1f
 
 fun Event.isSleep() = this is SleepEvent
 
