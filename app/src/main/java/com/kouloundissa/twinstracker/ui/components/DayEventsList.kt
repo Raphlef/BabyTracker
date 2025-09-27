@@ -126,7 +126,9 @@ fun DayTimeline(
                             onEdit = onEdit,
                             hourRowHeight = hourRowHeight - 4.dp,
                             eventTypes = eventTypes,
-                            parentWidth = parentWidth
+                            parentWidth = parentWidth,
+                            currentHour = hour,
+                            startHour = span.startH
                         )
                     }
                 }
@@ -141,11 +143,11 @@ fun EventChip(
     onEdit: (Event) -> Unit,
     hourRowHeight: Dp = 56.dp,
     eventTypes: List<EventType>,
-    parentWidth: Dp
+    parentWidth: Dp,
+    currentHour: Int,
+    startHour: Int
 ) {
     val type = EventType.forClass(evt::class)
-
-    // 1. Convert Date → Instant
     val startDate = (evt as? SleepEvent)?.beginTime ?: evt.timestamp
     val endDate   = when (evt) {
         is SleepEvent -> evt.endTime ?: startDate
@@ -157,7 +159,6 @@ fun EventChip(
     val endZ = Instant.ofEpochMilli(endDate.time).atZone(zone)
 
     val offsetFrac = startZ.minute / 60f
-    // If SleepEvent spans multiple hours, make height = full card height
     val durationFrac = if (evt is SleepEvent) {
         1f
     } else {
@@ -165,6 +166,14 @@ fun EventChip(
                 (startZ.hour * 60 + startZ.minute)) / 60f
     }
 
+    // Compute vertical offset: only apply offsetFrac in first hour of SleepEvent
+    val yOffsetFrac = if (evt is SleepEvent) {
+        if (currentHour == startHour) offsetFrac else 0f
+    } else {
+        offsetFrac
+    }
+
+    // Horizontal layout for non-sleep events (unchanged)
     val (slotWidth, xOffset) = if (evt is SleepEvent) {
         parentWidth to 0.dp
     } else {
@@ -176,12 +185,11 @@ fun EventChip(
         w to (w * idx)
     }
 
-
     Box(
         modifier = Modifier
             .offset(
                 x = xOffset,
-                y =  hourRowHeight * offsetFrac
+                y = hourRowHeight * yOffsetFrac
             )
             .width(slotWidth)
             .height(hourRowHeight * durationFrac.coerceAtLeast(1f.coerceAtLeast(durationFrac)))
