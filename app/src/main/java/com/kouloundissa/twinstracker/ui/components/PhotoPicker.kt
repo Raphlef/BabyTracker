@@ -3,6 +3,8 @@ package com.kouloundissa.twinstracker.ui.components
 import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -31,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,9 +48,13 @@ import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.google.firebase.BuildConfig
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
+import java.io.FileOutputStream
 
 @Composable
 fun PhotoPicker(
@@ -62,6 +69,7 @@ fun PhotoPicker(
     var isLoading by remember(photoUrl) { mutableStateOf(false) }
     var cameraUri by remember { mutableStateOf<Uri?>(null) }
     var showDialog by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     // Whenever photoUrl changes, ensure it's cached locally
     LaunchedEffect(photoUrl) {
@@ -103,13 +111,28 @@ fun PhotoPicker(
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
-        if (success) onPhotoSelected(cameraUri)
+        if (success && cameraUri != null) {
+            // Compress & select
+            isLoading = true
+            scope.launch {
+                val compressed = prepareImageForUpload(context, cameraUri!!)
+                isLoading = false
+                onPhotoSelected(compressed ?: cameraUri)
+            }
+        }
     }
 
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
-        onPhotoSelected(uri)
+        if (uri != null) {
+            isLoading = true
+            scope.launch {
+                val compressed = prepareImageForUpload(context, uri)
+                isLoading = false
+                onPhotoSelected(compressed ?: uri)
+            }
+        }
     }
     Box(
         modifier = Modifier
@@ -228,4 +251,60 @@ object PhotoFileProvider {
             null
         }
     }
+}
+
+private fun calculateInSampleSize(options: BitmapFactory.Options, maxSide: Int): Int {
+    val (height, width) = options.outHeight to options.outWidth
+    var inSampleSize = 1
+    if (height > maxSide || width > maxSide) {
+        val halfHeight = height / 2
+        val halfWidth  = width / 2
+        while (halfHeight / inSampleSize >= maxSide && halfWidth / inSampleSize >= maxSide) {
+            inSampleSize *= 2
+        }
+    }
+    return inSampleSize
+}
+
+suspend fun decodeScaledBitmap(context: Context, uri: Uri, maxSide: Int): Bitmap? {
+    return withContext(Dispatchers.IO) {
+        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
+        val sampleSize = calculateInSampleSize(options, maxSide)
+        val decodeOpts = BitmapFactory.Options().apply {
+            inSampleSize = sampleSize
+            inPreferredConfig = Bitmap.Config.ARGB_8888
+        }
+        context.contentResolver.openInputStream(uri)?.use {
+            BitmapFactory.decodeStream(it, null, decodeOpts)
+        }
+    }
+}
+
+suspend fun compressBitmapToFile(
+    context: Context,
+    bitmap: Bitmap,
+    quality: Int = 80,
+    subfolder: String = "uploads"
+): Uri? = withContext(Dispatchers.IO) {
+    val uploadDir = context.cacheDir.resolve(subfolder).apply { mkdirs() }
+    val file = File(uploadDir, "IMG_${System.currentTimeMillis()}.jpg")
+    return@withContext try {
+        FileOutputStream(file).use { out ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, quality, out)
+        }
+        file.toUri()
+    } catch (e: Exception) {
+        null
+    }
+}
+
+suspend fun prepareImageForUpload(
+    context: Context,
+    sourceUri: Uri,
+    maxSide: Int = 1080,
+    jpegQuality: Int = 80
+): Uri? {
+    val bitmap = decodeScaledBitmap(context, sourceUri, maxSide) ?: return null
+    return compressBitmapToFile(context, bitmap, jpegQuality)
 }

@@ -1,8 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- External files directory for captured images -->
-    <external-path
+    <!-- Internal cacheDir -->
+    <cache-path
+        name="cache"
+        path="." />
+
+    <!-- App-specific external files: files/ and its subdirectories -->
+    <external-files-path
+        name="external_files"
+        path="." />
+
+    <!-- If you only want to expose captured_images subfolder -->
+    <!--
+    <external-files-path
         name="captured_images"
-        path="Android/data/${applicationId}/files/captured_images" />
-    <!-- Optional: cache or other dirs -->
+        path="captured_images/" />
+    -->
 </paths>
