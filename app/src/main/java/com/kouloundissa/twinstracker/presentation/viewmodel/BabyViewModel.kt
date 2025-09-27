@@ -251,8 +251,8 @@ class BabyViewModel @Inject constructor(
         return try {
             repository.addPhotoToEntity("babies", babyId, photoUrl)
         } catch (e: Exception) {
-            Log.e("BabyViewModel", "Photo upload failed: ${e.message}", e)
-            _errorMessage.value = "Photo upload failed: ${e.localizedMessage}"
+            Log.e("BabyViewModel", "Baby Photo upload failed: ${e.message}", e)
+            _errorMessage.value = "Baby Photo upload failed: ${e.localizedMessage}"
             null
         }
     }
