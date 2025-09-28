@@ -107,8 +107,8 @@ fun GlassIslandNavBar(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        baseColor.copy(alpha = 0.98f),
-                        baseColor.copy(alpha = 0.85f)
+                        baseColor.copy(alpha = 0.99f),
+                        baseColor.copy(alpha = 0.90f)
                     )
                 ),
                 shape = cornerShape
