@@ -98,8 +98,8 @@ fun GlassIslandNavBar(
     hazeState: HazeState,
     modifier: Modifier = Modifier
 ) {
-    val baseColor    = MaterialTheme.colorScheme.primary
-    val contentColor = MaterialTheme.colorScheme.onPrimary
+    val baseColor = MaterialTheme.colorScheme.surfaceVariant
+    val contentColor = MaterialTheme.colorScheme.primary
     val cornerShape = MaterialTheme.shapes.extraLarge
     Surface(
         modifier = modifier
@@ -126,20 +126,22 @@ fun GlassIslandNavBar(
                 }
                 NavigationBarItem(
                     icon = { tab.icon() },
-                    label ={
+                    label = {
                         Text(
                             tab.label,
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (selectedTab == tab) contentColor else contentColor.copy(alpha = 0.5f)
+                            color = if (selectedTab == tab) contentColor else contentColor.copy(
+                                alpha = 0.5f
+                            )
                         )
                     },
                     selected = selectedTab == tab,
                     onClick = { onTabSelected(tab) },
                     alwaysShowLabel = true,
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor   = contentColor,
+                        selectedIconColor = contentColor,
                         unselectedIconColor = contentColor.copy(alpha = 0.5f),
-                        indicatorColor      = Color.Transparent
+                        indicatorColor = Color.Transparent
                     )
                 )
             }
@@ -157,8 +159,8 @@ fun IslandFAB(
     label: String
 ) {
     val fabSizeDp = 64.dp
-    val baseColor    = MaterialTheme.colorScheme.primary
-    val contentColor = MaterialTheme.colorScheme.onPrimary
+    val baseColor = MaterialTheme.colorScheme.onPrimary
+    val contentColor = MaterialTheme.colorScheme.primary
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     val iconSizeDp = 48.dp
@@ -222,17 +224,28 @@ fun IslandFAB(
     ) {
         // Main FAB icon
         Surface(
+            color = Color.Transparent,
             shape = cornerShape,
-            color = baseColor.copy(alpha = 0.95f),
-            shadowElevation = 20.dp,
-            modifier = Modifier.size(fabSizeDp)
+            shadowElevation = 10.dp,
+            modifier = Modifier
+                .size(fabSizeDp) .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            baseColor.copy(alpha = 0.99f),
+                            baseColor.copy(alpha = 0.90f)
+                        )
+                    ),
+                    shape = cornerShape,
+                ),
         ) {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize(),
+
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text  = label,
+                    text = label,
                     style = MaterialTheme.typography.labelMedium,
                     color = contentColor
                 )
@@ -264,7 +277,7 @@ fun IslandFAB(
                 color = if (isSelected)
                     MaterialTheme.colorScheme.primary
                 else
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
                 modifier = Modifier
                     .size(iconSizeDp)
                     .graphicsLayer {

@@ -271,7 +271,8 @@ fun DashboardScreen(
                             et.displayName to @Composable {
                                 Icon(
                                     et.icon,
-                                    et.displayName
+                                    et.displayName,
+                                    tint = et.color
                                 )
                             }
                         },
@@ -309,7 +310,7 @@ fun BabySelectorRow(
     onSelectBaby: (Baby) -> Unit,
     onAddBaby: () -> Unit
 ) {
-    val baseColor    = MaterialTheme.colorScheme.primary
+    val baseColor = MaterialTheme.colorScheme.primary
     val contentColor = MaterialTheme.colorScheme.onPrimary
 
     val cornerShape = MaterialTheme.shapes.extraLarge
