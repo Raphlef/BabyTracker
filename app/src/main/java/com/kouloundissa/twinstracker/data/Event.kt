@@ -2,6 +2,7 @@ package com.kouloundissa.twinstracker.data
 
 import android.net.Uri
 import android.util.Log
+import androidx.annotation.DrawableRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -12,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.IgnoreExtraProperties
+import com.kouloundissa.twinstracker.R
 import java.util.Date
 import java.util.UUID
 import kotlin.reflect.KClass
@@ -21,15 +23,48 @@ import kotlin.reflect.full.memberProperties
  * EventType enum associates a display name and a color for each event kind.
  */
 enum class EventType(
-    val displayName: String, val color: Color, val icon: ImageVector,
+    val displayName: String,
+    val color: Color,
+    val icon: ImageVector,
+    @DrawableRes val drawableRes: Int,
     val eventClass: KClass<out Event>
 ) {
-    DIAPER("Diaper", Color(0xFFFFC107), Icons.Outlined.BabyChangingStation, DiaperEvent::class),
-    FEEDING("Feeding", Color(0xFF4CAF50), Icons.Filled.Restaurant, FeedingEvent::class),
-    SLEEP("Sleep", Color(0xFF2196F3), Icons.Filled.Bedtime, SleepEvent::class),
-    GROWTH("Growth", Color(0xFF9C27B0), Icons.Filled.BarChart, GrowthEvent::class),
-    PUMPING("Pumping", Color(0xFFFF5722), Icons.Filled.WaterDrop, PumpingEvent::class),
-    DRUGS("Drugs", Color(0xFF3F51B5), Icons.Filled.MedicalServices, DrugsEvent::class);
+    DIAPER(
+        "Diaper",
+        Color(0xFFFFC107),
+        Icons.Outlined.BabyChangingStation,
+        R.drawable.diaper,
+        DiaperEvent::class
+    ),
+    FEEDING(
+        "Feeding",
+        Color(0xFF4CAF50),
+        Icons.Filled.Restaurant,
+        R.drawable.feed,
+        FeedingEvent::class
+    ),
+    SLEEP("Sleep", Color(0xFF2196F3), Icons.Filled.Bedtime, R.drawable.sleep, SleepEvent::class),
+    GROWTH(
+        "Growth",
+        Color(0xFF9C27B0),
+        Icons.Filled.BarChart,
+        R.drawable.growth,
+        GrowthEvent::class
+    ),
+    PUMPING(
+        "Pumping",
+        Color(0xFFFF5722),
+        Icons.Filled.WaterDrop,
+        R.drawable.pumping,
+        PumpingEvent::class
+    ),
+    DRUGS(
+        "Drugs",
+        Color(0xFF3F51B5),
+        Icons.Filled.MedicalServices,
+        R.drawable.drugs,
+        DrugsEvent::class
+    );
 
     companion object {
         fun forClass(clazz: KClass<out Event>): EventType =
