@@ -55,8 +55,8 @@ fun BabyInfoBar(
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(
-                            baseColor.copy(alpha = 0.65f),
-                            baseColor.copy(alpha = 0.35f)
+                            baseColor.copy(alpha = 0.85f),
+                            baseColor.copy(alpha = 0.55f)
                         )
                     ),
                     shape = cornerShape
