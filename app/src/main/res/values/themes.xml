@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.BabyTracker" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.BabyTracker" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Replace the window background with a full-screen image or color -->
+        <item name="android:windowSplashScreenBackground">@drawable/background</item>
+    </style>
+
 </resources>

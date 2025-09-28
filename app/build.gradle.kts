@@ -19,7 +19,7 @@ android {
 
     defaultConfig {
         applicationId = "com.kouloundissa.twinstracker"
-        minSdk = 26
+        minSdk = 31
         targetSdk = 36
         versionCode = getGitCommitCount()
         versionName = getGitVersionName()
