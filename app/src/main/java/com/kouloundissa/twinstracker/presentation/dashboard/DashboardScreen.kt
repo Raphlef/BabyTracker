@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -44,6 +45,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
@@ -54,6 +56,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.EventFormState
 import com.kouloundissa.twinstracker.data.EventFormState.*
@@ -66,6 +69,7 @@ import com.kouloundissa.twinstracker.presentation.baby.BabyFormDialog
 import com.kouloundissa.twinstracker.presentation.home.HomeScreen
 import com.kouloundissa.twinstracker.presentation.settings.SettingsScreen
 import com.kouloundissa.twinstracker.ui.components.BabyInfoBar
+import com.kouloundissa.twinstracker.ui.components.BackgroundContainer
 import com.kouloundissa.twinstracker.ui.components.BottomNavBar
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.launch
@@ -93,7 +97,6 @@ fun DashboardScreen(
     val hazeState = remember { HazeState() }
 
     val density = LocalDensity.current
-    var selectorBottomPx by remember { mutableStateOf(0) }
 
     // State for measured height in Dp
     var bottomBarHeightDp by remember { mutableStateOf(0.dp) }
@@ -134,153 +137,157 @@ fun DashboardScreen(
         derivedStateOf { tabs[pagerState.currentPage] }
     }
 
-    Scaffold(
-    ) { paddingValues ->
-        Box(Modifier.fillMaxSize()) {
-            Column(Modifier.padding(paddingValues)) {
-                Spacer(modifier = Modifier.height(4.dp))
-                // --- BABY SELECTOR + INFO ---
+    BackgroundContainer(backgroundRes = R.drawable.background) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets(0,0,0,0)
+        ) { paddingValues ->
+            Box(Modifier.fillMaxSize()) {
+                Column(Modifier.padding(paddingValues)) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    // --- BABY SELECTOR + INFO ---
 
-                BabySelectorRow(
-                    babies = babies,
-                    selectedBaby = selectedBaby,
-                    onSelectBaby = {
-                        babyViewModel.selectBaby(it)
-                    },
-                    onAddBaby = {
-                        // Open create baby dialog
-                        editingBaby = null
-                        showBabyDialog = true
-                    }
-                )
-                Spacer(Modifier.height(4.dp))
-                selectedBaby?.let { BabyInfoBar(it) { editingBaby = it } }
-
-                Spacer(Modifier.height(8.dp))
-                // --- MAIN CONTENT for selected tab ---
-                Box(Modifier.weight(1f)) {
-                    HorizontalPager(
-                        state = pagerState,
-                        modifier = Modifier.fillMaxSize()
-                    ) { page ->
-                        when (tabs[page]) {
-                            DashboardTab.Home -> HomeScreen(
-                                contentPadding = contentPadding
-                            )
-
-                            DashboardTab.Calendar -> CalendarScreen(
-                                contentPadding = contentPadding
-                            )
-
-                            DashboardTab.Analysis -> AnalysisScreen(
-                                contentPadding = contentPadding
-                            )
-
-                            DashboardTab.Settings -> SettingsScreen(
-                                navController,
-                                contentPadding = contentPadding
-                            )
-                        }
-                    }
-                }
-                // --- Dialogs ---
-                // Dialog display condition
-                selectedBaby?.takeIf { showEventForm }?.let { baby ->
-                    val formState =
-                        selectedEventFormState ?: EventFormState.Diaper() // fallback default
-                    EventFormDialog(
-                        babyId = baby.id,
-                        initialEventType = formState.eventType,
-                        onDismiss = {
-                            showEventForm = false
-                            selectedEventFormState = null
-                        }
-                    )
-                }
-                editingBaby?.let { baby ->
-                    BabyFormDialog(
-                        babyToEdit = baby,
-                        onBabyUpdated = { editingBaby = null },
-                        onCancel = { editingBaby = null }
-                    )
-                }
-                if (showBabyDialog && editingBaby == null) {
-                    BabyFormDialog(
-                        babyToEdit = null,
-                        onBabyUpdated = { savedOrDeletedBaby ->
-                            showBabyDialog = false
-                            savedOrDeletedBaby?.let { babyViewModel.selectBaby(it) }
+                    BabySelectorRow(
+                        babies = babies,
+                        selectedBaby = selectedBaby,
+                        onSelectBaby = {
+                            babyViewModel.selectBaby(it)
                         },
-                        onCancel = { showBabyDialog = false },
-                        babyViewModel = babyViewModel
+                        onAddBaby = {
+                            // Open create baby dialog
+                            editingBaby = null
+                            showBabyDialog = true
+                        }
                     )
-                }
-                babyError?.let {
-                    Spacer(Modifier.height(16.dp))
-                    Text(
-                        it,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
+                    Spacer(Modifier.height(4.dp))
+                    selectedBaby?.let { BabyInfoBar(it) { editingBaby = it } }
 
-            // Floating nav sits on bot, aligned bottom center
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .onGloballyPositioned { coords ->
-                        // Measure height of this Box (nav + offsets)
-                        bottomBarHeightDp = with(density) { coords.size.height.toDp() }
+                    Spacer(Modifier.height(8.dp))
+                    // --- MAIN CONTENT for selected tab ---
+                    Box(Modifier.weight(1f)) {
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier.fillMaxSize()
+                        ) { page ->
+                            when (tabs[page]) {
+                                DashboardTab.Home -> HomeScreen(
+                                    contentPadding = contentPadding
+                                )
+
+                                DashboardTab.Calendar -> CalendarScreen(
+                                    contentPadding = contentPadding
+                                )
+
+                                DashboardTab.Analysis -> AnalysisScreen(
+                                    contentPadding = contentPadding
+                                )
+
+                                DashboardTab.Settings -> SettingsScreen(
+                                    navController,
+                                    contentPadding = contentPadding
+                                )
+                            }
+                        }
                     }
-            ) {
-                val eventTypes = EventType.entries
-                BottomNavBar(
+                    // --- Dialogs ---
+                    // Dialog display condition
+                    selectedBaby?.takeIf { showEventForm }?.let { baby ->
+                        val formState =
+                            selectedEventFormState ?: EventFormState.Diaper() // fallback default
+                        EventFormDialog(
+                            babyId = baby.id,
+                            initialEventType = formState.eventType,
+                            onDismiss = {
+                                showEventForm = false
+                                selectedEventFormState = null
+                            }
+                        )
+                    }
+                    editingBaby?.let { baby ->
+                        BabyFormDialog(
+                            babyToEdit = baby,
+                            onBabyUpdated = { editingBaby = null },
+                            onCancel = { editingBaby = null }
+                        )
+                    }
+                    if (showBabyDialog && editingBaby == null) {
+                        BabyFormDialog(
+                            babyToEdit = null,
+                            onBabyUpdated = { savedOrDeletedBaby ->
+                                showBabyDialog = false
+                                savedOrDeletedBaby?.let { babyViewModel.selectBaby(it) }
+                            },
+                            onCancel = { showBabyDialog = false },
+                            babyViewModel = babyViewModel
+                        )
+                    }
+                    babyError?.let {
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            it,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+
+                // Floating nav sits on bot, aligned bottom center
+                Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .fillMaxWidth(),
-                    selectedTab = selectedTab,
-                    onTabSelected = { tab ->
-                        // Animation vers la page correspondante
-                        val index = tabs.indexOf(tab)
-                        if (index != -1) {
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(index)
+                        .onGloballyPositioned { coords ->
+                            // Measure height of this Box (nav + offsets)
+                            bottomBarHeightDp = with(density) { coords.size.height.toDp() }
+                        }
+                ) {
+                    val eventTypes = EventType.entries
+                    BottomNavBar(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth(),
+                        selectedTab = selectedTab,
+                        onTabSelected = { tab ->
+                            // Animation vers la page correspondante
+                            val index = tabs.indexOf(tab)
+                            if (index != -1) {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(index)
+                                }
                             }
-                        }
-                    },
-                    onAddClicked = { showEventForm = true },
-                    navItems = tabs,
-                    hazeState = hazeState,
-                    eventTypes = eventTypes.map { et ->
-                        et.displayName to @Composable {
-                            Icon(
-                                et.icon,
-                                et.displayName
-                            )
-                        }
-                    },
-                    onEventTypeSelected = { eventTypeName ->
-                        val eventType = try {
-                            EventType.valueOf(eventTypeName.uppercase(Locale.getDefault()))
-                        } catch (e: IllegalArgumentException) {
-                            Log.w("EventForm", "Unknown eventTypeString: $eventTypeName")
-                            null
-                        }
+                        },
+                        onAddClicked = { showEventForm = true },
+                        navItems = tabs,
+                        hazeState = hazeState,
+                        eventTypes = eventTypes.map { et ->
+                            et.displayName to @Composable {
+                                Icon(
+                                    et.icon,
+                                    et.displayName
+                                )
+                            }
+                        },
+                        onEventTypeSelected = { eventTypeName ->
+                            val eventType = try {
+                                EventType.valueOf(eventTypeName.uppercase(Locale.getDefault()))
+                            } catch (e: IllegalArgumentException) {
+                                Log.w("EventForm", "Unknown eventTypeString: $eventTypeName")
+                                null
+                            }
 
-                        eventType?.let {
-                            selectedEventFormState = when (it) {
-                                EventType.DIAPER -> Diaper()
-                                EventType.FEEDING -> Feeding()
-                                EventType.SLEEP -> Sleep()
-                                EventType.GROWTH -> Growth()
-                                EventType.PUMPING -> Pumping()
-                                EventType.DRUGS -> Drugs()
+                            eventType?.let {
+                                selectedEventFormState = when (it) {
+                                    EventType.DIAPER -> Diaper()
+                                    EventType.FEEDING -> Feeding()
+                                    EventType.SLEEP -> Sleep()
+                                    EventType.GROWTH -> Growth()
+                                    EventType.PUMPING -> Pumping()
+                                    EventType.DRUGS -> Drugs()
+                                }
+                                showEventForm = true
                             }
-                            showEventForm = true
                         }
-                    }
-                )
+                    )
+                }
             }
         }
     }

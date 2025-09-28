@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
@@ -50,7 +51,7 @@ fun SettingsScreen(
     val isBabyLoading by babyViewModel.isLoading.collectAsState(false)
     val isFamilyLoading by familyViewModel.state.map { it.isLoading }.collectAsState(false)
     // val isLoading = isAuthLoading || isBabyLoading || isFamilyLoading
-
+    val snackbarHostState = remember { SnackbarHostState() }
     // Local editable values
     var displayName by remember { mutableStateOf(profile?.displayName.orEmpty()) }
     var themeChoice by remember { mutableStateOf(profile?.theme?.name.orEmpty()) }
@@ -60,7 +61,12 @@ fun SettingsScreen(
     val themeOptions = Theme.entries.toList()
     val localeOptions = listOf("fr", "en", "es", "de")
 
-    Scaffold { padding ->
+    Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        containerColor = Color.Transparent,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        modifier = Modifier.fillMaxSize()
+    ) { padding ->
         LazyColumn(
             contentPadding = contentPadding,
             verticalArrangement = Arrangement.spacedBy(24.dp),

@@ -71,20 +71,12 @@ fun AnalysisScreen(
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
 
-        val bgTop = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-        val bgBottom = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-
-
         LazyColumn(
             contentPadding = contentPadding,
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(bgTop, bgBottom)
-                    )
-                ).padding(innerPadding)
+                .padding(innerPadding)
         ) {
             item {
                 val startDate = last7Days.first().format(DateTimeFormatter.ofPattern("dd/MM"))

@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
@@ -60,6 +61,7 @@ import com.kouloundissa.twinstracker.presentation.baby.BabyFormDialog
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
+import com.kouloundissa.twinstracker.ui.components.BackgroundContainer
 import com.kouloundissa.twinstracker.ui.components.EventCard
 import com.kouloundissa.twinstracker.ui.components.TimelineList
 import java.time.Duration
@@ -222,7 +224,7 @@ fun HomeScreen(
                         ) {
                             Text("Add a Baby")
                         }
-                    }else{
+                    } else {
                         Text(
                             "Select a baby to see data",
                             style = MaterialTheme.typography.bodyLarge,
@@ -392,6 +394,7 @@ fun HomeScreen(
         }
     }
 }
+
 
 @Composable
 fun EventTypeCard(
