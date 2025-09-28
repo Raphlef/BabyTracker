@@ -270,7 +270,8 @@ fun HomeScreen(
                         Text(
                             "Aujourd'hui",
                             style = MaterialTheme.typography.headlineSmall,
-                            modifier = Modifier.padding(vertical = 8.dp)
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
                         )
                     }
 
@@ -305,7 +306,8 @@ fun HomeScreen(
                         Text(
                             "Recent Events",
                             style = MaterialTheme.typography.headlineSmall,
-                            modifier = Modifier.padding(vertical = 8.dp)
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
                         )
                     }
 

@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -75,16 +76,30 @@ fun EventCard(
     modifier: Modifier = Modifier
 ) {
     val eventType = EventType.forClass(event::class)
-    Card(
+    val baseColor = MaterialTheme.colorScheme.primary
+    val contentColor = MaterialTheme.colorScheme.onPrimary
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
+    Surface(
+        color = Color.Transparent,
         modifier = modifier
             .fillMaxWidth()
             .clickable { onEdit() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(12.dp)
+        tonalElevation = 0.dp,
+        shape = cornerShape
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            baseColor.copy(alpha = 0.65f),
+                            baseColor.copy(alpha = 0.35f)
+                        )
+                    ),
+                    shape = cornerShape
+                )
                 .padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -101,22 +116,22 @@ fun EventCard(
                 Text(
                     text = buildEventTitle(event, eventType),
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = contentColor
                 )
 
                 // Time Display
                 TimeDisplay(event = event)
 
                 // Notes (if any)
-                // Notes (if any)
                 if (!event.notes.isNullOrBlank()) {
                     Text(
                         text = event.notes!!,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = contentColor.copy(alpha = 0.85f),
                         maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                        overflow = TextOverflow.Ellipsis,
+
+                        )
                 }
             }
 
@@ -125,11 +140,23 @@ fun EventCard(
                 DurationBadge(event = event)
             }
 
+            // ➊ Photo Badge
+            event.photoUrl?.takeIf { it.isNotBlank() }?.let {
+                Icon(
+                    imageVector     = Icons.Default.PhotoCamera,
+                    contentDescription = "Photo attached",
+                    tint            = contentColor,
+                    modifier        = Modifier
+                        .size(20.dp)
+                        .padding(end = 4.dp)
+                )
+            }
+
             // Edit Icon
             Icon(
                 imageVector = Icons.Default.Edit,
                 contentDescription = "Edit event",
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -184,7 +211,7 @@ private fun TimeDisplay(event: Event) {
     Text(
         text = timeText,
         style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.primary
+        color = MaterialTheme.colorScheme.onPrimary
     )
 }
 
