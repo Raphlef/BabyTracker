@@ -160,7 +160,6 @@ fun CalendarScreen(
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.3f))
                 ) {
                     CircularProgressIndicator(Modifier.align(Alignment.Center))
                 }
