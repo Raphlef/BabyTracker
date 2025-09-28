@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -67,6 +68,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.DrugsEvent
@@ -82,6 +84,7 @@ import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.BackgroundContainer
 import com.kouloundissa.twinstracker.ui.components.EventCard
+import com.kouloundissa.twinstracker.ui.components.SleepTimer
 import com.kouloundissa.twinstracker.ui.components.TimelineList
 import java.time.Duration
 import java.time.Instant
@@ -151,6 +154,11 @@ fun HomeScreen(
     val todaysByType = remember(todayEvents) {
         todayEvents.groupBy { EventType.forClass(it::class) }
     }
+// In HomeScreen, after calculating todayEvents and todaysByType
+    val activeSleepEvent: SleepEvent? = todayEvents
+        .filterIsInstance<SleepEvent>()
+        .firstOrNull { it.endTime == null && it.beginTime != null }
+
 
     val summaries = remember(todaysByType, babyEvents) {
         EventType.entries.associateWith { type ->
@@ -294,16 +302,38 @@ fun HomeScreen(
                             verticalArrangement = Arrangement.spacedBy(spacing)
                         ) {
                             items(EventType.entries) { type ->
-                                EventTypeCard(
-                                    type = type,
-                                    summary = summaries[type]!!,
-                                    lastEvent = lastByType[type],
-                                    onClick = {
-                                        selectedType = type
-                                        showTypeDialog = true
-                                    },
-                                    size = cardSize
-                                )
+                                if (type == EventType.SLEEP && activeSleepEvent != null) {
+                                    EventTypeCard(
+                                        type = type,
+                                        summary = summaries[type]!!,
+                                        lastEvent = lastByType[type],
+                                        onClick = {
+                                            selectedType = type
+                                            showTypeDialog = true
+                                        },
+                                        size = cardSize,
+                                        overlayContent = {
+                                            SleepTimer(
+                                                sleepEvent = activeSleepEvent,
+                                                onClick = { editingEvent = activeSleepEvent },
+                                                modifier = Modifier
+                                                    .align(Alignment.BottomStart)
+                                                    .padding(bottom = 12.dp)
+                                            )
+                                        }
+                                    )
+                                } else {
+                                    EventTypeCard(
+                                        type = type,
+                                        summary = summaries[type]!!,
+                                        lastEvent = lastByType[type],
+                                        onClick = {
+                                            selectedType = type
+                                            showTypeDialog = true
+                                        },
+                                        size = cardSize
+                                    )
+                                }
                             }
                         }
                     }
@@ -422,7 +452,8 @@ fun EventTypeCard(
     summary: String,
     lastEvent: Event?,
     onClick: () -> Unit,
-    size: Dp
+    size: Dp,
+    overlayContent: @Composable BoxScope.() -> Unit = {}
 ) {
     val baseColor = MaterialTheme.colorScheme.primary
     val contentColor = MaterialTheme.colorScheme.onSecondary
@@ -450,12 +481,14 @@ fun EventTypeCard(
                     shape = cornerShape,
                 )
         ) {
+
             // 1️⃣ Event name at top-left
             Text(
                 text = type.displayName,
                 style = MaterialTheme.typography.titleMedium,
                 color = contentColor,
                 modifier = Modifier
+                    .zIndex(3f)
                     .align(Alignment.TopStart)
                     .padding(start = 20.dp, top = 20.dp)
             )
@@ -466,6 +499,7 @@ fun EventTypeCard(
                 style = MaterialTheme.typography.bodyLarge,
                 color = contentColor.copy(alpha = 0.85f),
                 modifier = Modifier
+                    .zIndex(2f)
                     .align(Alignment.CenterStart)
                     .padding(start = 20.dp)
             )
@@ -476,10 +510,20 @@ fun EventTypeCard(
                 contentDescription = type.displayName,
                 tint = type.color,
                 modifier = Modifier
+                    .zIndex(2f)
                     .size(72.dp)
                     .align(Alignment.BottomEnd)
                     .padding(end = 20.dp, bottom = 20.dp)
             )
+            // 4️⃣ Overlay (sleep timer) at bottom-left, below title/summary/icon
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .zIndex(1f)
+                    .fillMaxSize()
+            ) {
+                overlayContent()
+            }
         }
     }
 }
