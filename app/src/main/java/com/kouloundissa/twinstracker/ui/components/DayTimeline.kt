@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -40,10 +41,16 @@ fun DayTimeline(
     modifier: Modifier = Modifier,
     hourRowHeight: Dp = 60.dp
 ) {
+    val baseColor = MaterialTheme.colorScheme.primary
+    val contentColor = MaterialTheme.colorScheme.onSecondary
+    val cornerShape = MaterialTheme.shapes.large
+
     val eventTypes = EventType.entries
     val spans = remember(events) {
-        events.mapNotNull(Event::
-        toSpan)
+        events.mapNotNull(
+            Event::
+            toSpan
+        )
     }
 
     Column(modifier.fillMaxSize()) {
@@ -67,11 +74,18 @@ fun DayTimeline(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(hourRowHeight - 4.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    baseColor.copy(alpha = 0.85f),
+                                    baseColor.copy(alpha = 0.55f)
+                                )
+                            ),
+                            shape = cornerShape,
+                        )
                 ) {
                     covering
-                        .sortedByDescending  { it.evt is SleepEvent }
+                        .sortedByDescending { it.evt is SleepEvent }
                         .forEach { span ->
                             EventSegment(
                                 evt = span.evt,
@@ -99,6 +113,7 @@ fun EventSegment(
     startHour: Int,
     hourRowHeight: Dp = 56.dp
 ) {
+    val cornerShape = MaterialTheme.shapes.large
     val type = EventType.forClass(evt::class)
     val startZ = ((evt as? SleepEvent)?.beginTime ?: evt.timestamp).toZoned()
     val endZ = when (evt) {
@@ -144,7 +159,7 @@ fun EventSegment(
             .offset(x = xOffset, y = hourRowHeight * yOffsetFrac)
             .width(slotWidth)
             .height(heightDp)
-            .clip(RoundedCornerShape(6.dp))
+            .clip(cornerShape)
             .background(type.color.copy(alpha = 0.85f))
             .clickable { onEdit(evt) }
             .padding(4.dp)
