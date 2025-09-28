@@ -124,7 +124,8 @@ fun CalendarScreen(
                     Text(
                         "Events on ${selectedDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy"))} " +
                                 "(${dailyEvents.size})",
-                        style = MaterialTheme.typography.titleSmall
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onPrimary,
                     )
                 }
                 item {
