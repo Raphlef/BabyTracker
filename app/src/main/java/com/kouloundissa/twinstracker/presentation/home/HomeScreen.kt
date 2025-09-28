@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -27,6 +28,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +39,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -46,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -60,6 +66,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.DrugsEvent
@@ -485,31 +492,75 @@ private fun EventTypeDialog(
     onDismiss: () -> Unit,
     onEdit: (Event) -> Unit
 ) {
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(type.displayName) },
-        text = {
-            if (events.isEmpty()) {
-                Text("No ${type.displayName.lowercase()} events yet")
-            } else {
-                LazyColumn(
-                    Modifier.heightIn(max = 400.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(vertical = 8.dp)
+    val baseColor = MaterialTheme.colorScheme.primary
+    val contentColor = MaterialTheme.colorScheme.onPrimary
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
+    val metrics = LocalConfiguration.current
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(
+                    min = 200.dp,
+                    max = (metrics.screenHeightDp * 0.7f).dp
+                ) // at least 200dp tall, up to 70% screen height
+                .clip(cornerShape)
+        ) {
+            // 1. Background image sized to the dialog
+            Image(
+                painter = painterResource(id = type.drawableRes),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+            )
+
+            // 2. Semi-transparent overlay tint
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(type.color.copy(alpha = 0.5f))
+            )
+
+            Column(
+                modifier = Modifier
+                    .matchParentSize()
+                    .padding(16.dp)               // uniform padding inside edges
+            ) {
+                Text(
+                    text = type.displayName,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = contentColor
+                )
+                Spacer(Modifier.height(8.dp))
+                if (events.isEmpty()) {
+                    Text("No ${type.displayName.lowercase()} events yet")
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) {
+                        items(events) { event ->
+                            EventCard(
+                                event = event,
+                                onEdit = { onEdit(event) },
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Box(
+                    Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.CenterEnd
                 ) {
-                    items(events) { event ->
-                        EventCard(
-                            event = event,
-                            onEdit = { onEdit(event) }
-                        )
+                    TextButton(onClick = onDismiss) {
+                        Text("Close", color = contentColor)
                     }
                 }
             }
-        },
-        confirmButton = {
-            Button(onClick = onDismiss) {
-                Text("Close")
-            }
         }
-    )
+    }
 }
