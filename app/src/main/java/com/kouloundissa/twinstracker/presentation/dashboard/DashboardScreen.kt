@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.Add
@@ -33,6 +35,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,6 +56,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -300,33 +304,62 @@ fun BabySelectorRow(
     onSelectBaby: (Baby) -> Unit,
     onAddBaby: () -> Unit
 ) {
+    val baseColor    = MaterialTheme.colorScheme.primary
+    val contentColor = MaterialTheme.colorScheme.onPrimary
+
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
             .height(40.dp)
-            .padding(horizontal = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(babies) { baby ->
-            OutlinedButton(
-                onClick = { onSelectBaby(baby) },
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = if (baby == selectedBaby)
-                        MaterialTheme.colorScheme.primaryContainer
-                    else
-                        MaterialTheme.colorScheme.surface,
-                ),
-                shape = CircleShape
+            val isSelected = baby == selectedBaby
+
+            Surface(
+                modifier = Modifier
+                    .height(40.dp)
+                    .clickable { onSelectBaby(baby) },
+                shape = cornerShape,
+                color = if (isSelected) baseColor.copy(alpha = 0.85f) else baseColor.copy(alpha = 0.15f),
+                tonalElevation = 0.dp
             ) {
-                Text(baby.name.ifEmpty { "Sans nom" }, maxLines = 1)
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text(
+                        text = baby.name.ifEmpty { "Sans nom" },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isSelected) contentColor else contentColor.copy(alpha = 0.85f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
+
         item {
-            IconButton(
-                onClick = onAddBaby,
-                modifier = Modifier.size(32.dp)
+            // Add button with matching glass effect
+            Surface(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clickable(onClick = onAddBaby),
+                shape = CircleShape,
+                color = baseColor.copy(alpha = 0.12f),
+                tonalElevation = 0.dp
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Baby")
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Baby",
+                        tint = contentColor.copy(alpha = 0.85f)
+                    )
+                }
             }
         }
     }
