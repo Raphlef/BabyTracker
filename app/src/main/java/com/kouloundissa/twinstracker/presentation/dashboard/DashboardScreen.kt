@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -144,11 +145,15 @@ fun DashboardScreen(
     BackgroundContainer(backgroundRes = R.drawable.background) {
         Scaffold(
             containerColor = Color.Transparent,
-            contentWindowInsets = WindowInsets(0,0,0,0)
+            contentWindowInsets = WindowInsets.systemBars
         ) { paddingValues ->
-            Box(Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    // Apply the Scaffold’s insets (status bar + nav bar):
+                    .padding(paddingValues)
+            ) {
                 Column(Modifier.padding(paddingValues)) {
-                    Spacer(modifier = Modifier.height(4.dp))
                     // --- BABY SELECTOR + INFO ---
 
                     BabySelectorRow(
