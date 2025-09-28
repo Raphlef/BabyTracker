@@ -84,7 +84,7 @@ fun BottomNavBar(
             eventTypes = eventTypes,
             onEventTypeSelected = onEventTypeSelected,
             modifier = Modifier.offset(y = (-36).dp),
-            label = "New Event"
+            label = "Add"
         )
     }
 }
