@@ -534,24 +534,29 @@ private fun EventTypeDialog(
                     color = contentColor
                 )
                 Spacer(Modifier.height(8.dp))
-                if (events.isEmpty()) {
-                    Text("No ${type.displayName.lowercase()} events yet")
-                } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    ) {
-                        items(events) { event ->
-                            EventCard(
-                                event = event,
-                                onEdit = { onEdit(event) },
-                            )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
+                    if (events.isEmpty()) {
+                        Text("No ${type.displayName.lowercase()} events yet")
+                    } else {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                        ) {
+                            items(events) { event ->
+                                EventCard(
+                                    event = event,
+                                    onEdit = { onEdit(event) },
+                                )
+                            }
                         }
                     }
+                    Spacer(Modifier.height(8.dp))
                 }
-                Spacer(Modifier.height(8.dp))
                 Box(
                     Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.CenterEnd
