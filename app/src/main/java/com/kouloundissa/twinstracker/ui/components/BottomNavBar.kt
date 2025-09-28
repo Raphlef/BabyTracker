@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -32,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
@@ -58,17 +60,15 @@ fun BottomNavBar(
     eventTypes: List<Pair<String, @Composable () -> Unit>>,
     onEventTypeSelected: (String) -> Unit
 ) {
-    val baseColor = MaterialTheme.colorScheme.surface
+    val baseColor = MaterialTheme.colorScheme.primary
+    val contentColor = MaterialTheme.colorScheme.onPrimary
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .padding(bottom = 24.dp)
-            .padding(start = 12.dp, end = 12.dp)
-            .background(
-                // 80% of the surface color for a subtle glass effect
-                baseColor.copy(alpha = 0.90f),
-                shape = RoundedCornerShape(32.dp)
-            ),
+            .padding(start = 12.dp, end = 12.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
         GlassIslandNavBar(
@@ -76,17 +76,15 @@ fun BottomNavBar(
             onTabSelected = onTabSelected,
             navItems = navItems,
             hazeState = hazeState,
-            modifier = Modifier
-                .wrapContentWidth()          // only wrap content
-               // .padding(horizontal = 16.dp)  // small margin from screen edges
+            modifier = Modifier.wrapContentWidth()
         )
         IslandFAB(
             onAddClicked = onAddClicked,
             hazeState = hazeState,
             eventTypes = eventTypes,
             onEventTypeSelected = onEventTypeSelected,
-            modifier = Modifier
-                .offset(y = (-36).dp)         // lift FAB slightly less
+            modifier = Modifier.offset(y = (-36).dp),
+            label = "New Event"
         )
     }
 }
@@ -100,16 +98,23 @@ fun GlassIslandNavBar(
     hazeState: HazeState,
     modifier: Modifier = Modifier
 ) {
+    val baseColor    = MaterialTheme.colorScheme.primary
+    val contentColor = MaterialTheme.colorScheme.onPrimary
+    val cornerShape = MaterialTheme.shapes.extraLarge
     Surface(
         modifier = modifier
             .height(64.dp)                    // reduce height for tighter island
-            .hazeEffect(
-                // updated API
-                state = hazeState,
-                style = HazeStyle.Unspecified,  // or HazeStyle.Light / Dark
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        baseColor.copy(alpha = 0.98f),
+                        baseColor.copy(alpha = 0.85f)
+                    )
+                ),
+                shape = cornerShape
             ),
-        shape = RoundedCornerShape(32.dp),
-        color = Color.White.copy(alpha = 0.10f)
+        color = baseColor.copy(alpha = 0.20f),
+        shape = cornerShape
     ) {
         Row(
 
@@ -121,14 +126,20 @@ fun GlassIslandNavBar(
                 }
                 NavigationBarItem(
                     icon = { tab.icon() },
-                    label = { Text(tab.label, style = MaterialTheme.typography.labelSmall) },
+                    label ={
+                        Text(
+                            tab.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (selectedTab == tab) contentColor else contentColor.copy(alpha = 0.5f)
+                        )
+                    },
                     selected = selectedTab == tab,
                     onClick = { onTabSelected(tab) },
                     alwaysShowLabel = true,
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        indicatorColor = Color.Transparent
+                        selectedIconColor   = contentColor,
+                        unselectedIconColor = contentColor.copy(alpha = 0.5f),
+                        indicatorColor      = Color.Transparent
                     )
                 )
             }
@@ -142,9 +153,14 @@ fun IslandFAB(
     hazeState: HazeState,
     modifier: Modifier = Modifier,
     eventTypes: List<Pair<String, @Composable () -> Unit>>,
-    onEventTypeSelected: (String) -> Unit
+    onEventTypeSelected: (String) -> Unit,
+    label: String
 ) {
     val fabSizeDp = 64.dp
+    val baseColor    = MaterialTheme.colorScheme.primary
+    val contentColor = MaterialTheme.colorScheme.onPrimary
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
     val iconSizeDp = 48.dp
     val density = LocalDensity.current
     val fabRadiusPx = with(density) { fabSizeDp.toPx() / 2f }
@@ -206,17 +222,21 @@ fun IslandFAB(
     ) {
         // Main FAB icon
         Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+            shape = cornerShape,
+            color = baseColor.copy(alpha = 0.95f),
             shadowElevation = 20.dp,
             modifier = Modifier.size(fabSizeDp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Add",
-                modifier = Modifier.size(32.dp),
-                tint = MaterialTheme.colorScheme.onPrimary
-            )
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text  = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = contentColor
+                )
+            }
         }
 
         // Always compose sub icons but toggle visibility by alpha
