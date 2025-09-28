@@ -420,7 +420,7 @@ fun EventTypeCard(
 ) {
     val baseColor = MaterialTheme.colorScheme.primary
     val contentColor = MaterialTheme.colorScheme.onSecondary
-    val cornerShape = RoundedCornerShape(35)
+    val cornerShape = MaterialTheme.shapes.extraLarge
 
     Surface(
         shape = cornerShape,
@@ -437,8 +437,8 @@ fun EventTypeCard(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            baseColor.copy(alpha = 0.60f),
-                            baseColor.copy(alpha = 0.35f)
+                            baseColor.copy(alpha = 0.85f),
+                            baseColor.copy(alpha = 0.55f)
                         )
                     ),
                     shape = cornerShape,
