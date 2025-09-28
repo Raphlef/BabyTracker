@@ -366,7 +366,6 @@ fun HomeScreen(
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
                         .clickable(enabled = false) { },
                     contentAlignment = Alignment.Center
                 ) {
