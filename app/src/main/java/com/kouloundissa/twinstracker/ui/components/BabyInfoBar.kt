@@ -39,7 +39,7 @@ fun BabyInfoBar(
 ) {
     val baseColor = MaterialTheme.colorScheme.primary
     val contentColor = MaterialTheme.colorScheme.onPrimary
-    val cornerShape = MaterialTheme.shapes.large
+    val cornerShape = MaterialTheme.shapes.extraLarge
 
     Surface(
         color = Color.Transparent,

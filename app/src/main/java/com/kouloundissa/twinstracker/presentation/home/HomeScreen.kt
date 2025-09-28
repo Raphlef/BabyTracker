@@ -418,7 +418,7 @@ fun EventTypeCard(
 ) {
     val baseColor = MaterialTheme.colorScheme.primary
     val contentColor = MaterialTheme.colorScheme.onSecondary
-    val cornerShape  = MaterialTheme.shapes.large
+    val cornerShape = RoundedCornerShape(35)
 
     Surface(
         shape = cornerShape,
