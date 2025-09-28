@@ -153,7 +153,7 @@ fun DashboardScreen(
                     // Apply the Scaffold’s insets (status bar + nav bar):
                     .padding(paddingValues)
             ) {
-                Column(Modifier.padding(paddingValues)) {
+                Column() {
                     // --- BABY SELECTOR + INFO ---
 
                     BabySelectorRow(
