@@ -77,7 +77,6 @@ fun EventFormDialog(
     var selectedUri by rememberSaveable { mutableStateOf<Uri?>(initialPhotoUri) }
 
     val footerHeight = 72.dp
-    val maxDialogHeight = screenHeight - verticalPadding - footerHeight // extra buffer
 
     var selectedDate by remember(formState.eventTimestamp) {
         mutableStateOf(formState.eventTimestamp)
@@ -133,7 +132,7 @@ fun EventFormDialog(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = maxDialogHeight)
+                    .fillMaxHeight()
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
