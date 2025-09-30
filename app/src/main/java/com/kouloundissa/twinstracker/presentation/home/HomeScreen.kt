@@ -1,7 +1,6 @@
 package com.kouloundissa.twinstracker.presentation.home
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,28 +19,26 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -54,24 +52,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RenderEffect
-import androidx.compose.ui.graphics.Shader
-import androidx.compose.ui.graphics.TileMode
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.kouloundissa.twinstracker.R
+import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
@@ -83,7 +74,6 @@ import com.kouloundissa.twinstracker.presentation.baby.BabyFormDialog
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
-import com.kouloundissa.twinstracker.ui.components.BackgroundContainer
 import com.kouloundissa.twinstracker.ui.components.EventCard
 import com.kouloundissa.twinstracker.ui.components.SleepTimer
 import com.kouloundissa.twinstracker.ui.components.TimelineList
@@ -430,6 +420,7 @@ fun HomeScreen(
                     .filter { EventType.forClass(it::class) == selectedType }
                 EventTypeDialog(
                     type = selectedType!!,
+                    selectedBaby = selectedBaby,
                     events = filtered,
                     onDismiss = {
                         showTypeDialog = false
@@ -473,7 +464,9 @@ fun EventTypeCard(
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .fillMaxSize().alpha(0.85f).blur(radiusX = 1.dp, radiusY = 1.dp)
+                .fillMaxSize()
+                .alpha(0.85f)
+                .blur(radiusX = 1.dp, radiusY = 1.dp)
         )
 
         // 2. Semi-transparent overlay tint
@@ -546,19 +539,30 @@ fun EventTypeCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EventTypeDialog(
     type: EventType,
     events: List<Event>,
     onDismiss: () -> Unit,
-    onEdit: (Event) -> Unit
+    onEdit: (Event) -> Unit,
+    selectedBaby: Baby?
 ) {
     val baseColor = MaterialTheme.colorScheme.primary
     val contentColor = MaterialTheme.colorScheme.onPrimary
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     val metrics = LocalConfiguration.current
-    Dialog(onDismissRequest = onDismiss) {
+
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,  // skips intermediate state to start fully expanded
+    )
+    var showEventForm by remember { mutableStateOf(false) }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = Color.Transparent,
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -616,16 +620,34 @@ private fun EventTypeDialog(
                             }
                         }
                     }
-                    Spacer(Modifier.height(8.dp))
                 }
-                Box(
-                    Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.CenterEnd
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    TextButton(
+                        onClick = { showEventForm = true }
+                    ) {
+                        Text("Add New Event", color = contentColor)
+                    }
+
                     TextButton(onClick = onDismiss) {
                         Text("Close", color = contentColor)
                     }
                 }
+            }
+        }
+        // Conditionally show the EventFormDialog overlay
+        if (showEventForm) {
+            selectedBaby?.id?.let {
+                EventFormDialog(
+                    babyId = it,  // Pass actual babyId or obtain from scope
+                    initialEventType = type,
+                    onDismiss = {
+                        showEventForm = false
+                    }
+                )
             }
         }
     }
