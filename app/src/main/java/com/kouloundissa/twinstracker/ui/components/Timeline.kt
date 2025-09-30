@@ -54,6 +54,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DiaperEvent
 import com.kouloundissa.twinstracker.data.DiaperType
 import com.kouloundissa.twinstracker.data.DrugType
@@ -64,6 +66,7 @@ import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
+import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import java.text.SimpleDateFormat
 import java.time.Duration
 import java.time.Instant
@@ -78,7 +81,9 @@ import kotlin.math.roundToInt
 fun TimelineList(
     events: List<Event>,
     modifier: Modifier = Modifier,
-    onEdit: (Event) -> Unit
+    onEdit: (Event) -> Unit,
+    eventViewModel: EventViewModel = hiltViewModel(),
+    baby: Baby,
 ) {
     Column(
         modifier = modifier,
@@ -87,7 +92,10 @@ fun TimelineList(
         events.forEach { event ->
             EventCard(
                 event = event,
-                onEdit = { onEdit(event) }
+                onEdit = { onEdit(event) },
+                onDelete = {
+                    eventViewModel.deleteEvent(event.id, baby.id)
+                }
             )
         }
     }

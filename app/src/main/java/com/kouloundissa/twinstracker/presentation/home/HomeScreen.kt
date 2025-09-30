@@ -111,6 +111,9 @@ fun HomeScreen(
 
     var selectedType by remember { mutableStateOf<EventType?>(null) }
     var showTypeDialog by remember { mutableStateOf(false) }
+    val deleteSuccess by eventViewModel.deleteSuccess.collectAsState()
+    val deleteError by eventViewModel.deleteError.collectAsState()
+    val isDeleting by eventViewModel.isDeleting.collectAsState()
 
     LaunchedEffect(selectedBaby?.id) {
         selectedBaby?.id?.let { babyId ->
@@ -132,6 +135,19 @@ fun HomeScreen(
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
             eventViewModel.clearErrorMessage()
+        }
+    }
+    LaunchedEffect(deleteSuccess, deleteError) {
+        when {
+            deleteSuccess -> {
+                snackbarHostState.showSnackbar("Event deleted")
+                eventViewModel.resetDeleteState()
+            }
+
+            deleteError != null -> {
+                snackbarHostState.showSnackbar("Delete failed: $deleteError")
+                eventViewModel.resetDeleteState()
+            }
         }
     }
     val today = LocalDate.now()
@@ -347,6 +363,8 @@ fun HomeScreen(
                                 onEdit = { event ->
                                     editingEvent = event
                                 },
+                                eventViewModel = eventViewModel,
+                                baby = selectedBaby!!
                             )
                         } else {
                             // Empty state

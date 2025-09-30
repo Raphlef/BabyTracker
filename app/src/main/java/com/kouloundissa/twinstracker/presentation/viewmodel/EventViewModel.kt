@@ -62,6 +62,18 @@ class EventViewModel @Inject constructor(
         }
         _eventsByDay.value = map
     }
+    //deleting state
+
+    private val _isDeleting = MutableStateFlow(false)
+    val isDeleting: StateFlow<Boolean> = _isDeleting.asStateFlow()
+
+    private val _deleteSuccess = MutableStateFlow(false)
+    val deleteSuccess: StateFlow<Boolean> = _deleteSuccess.asStateFlow()
+
+    private val _deleteError = MutableStateFlow<String?>(null)
+    val deleteError: StateFlow<String?> = _deleteError.asStateFlow()
+
+
     // --- Loading States ---
 
     private val _isLoading = MutableStateFlow(false)
@@ -419,6 +431,33 @@ class EventViewModel @Inject constructor(
                 _isLoading.value = false
             }
         }
+    }
+    /**
+     * Deletes the event with the given ID.
+     * Updates isDeleting, deleteSuccess, and deleteError accordingly.
+     * After successful deletion, refreshes the current event stream.
+     */
+    fun deleteEvent(eventId: String, babyId: String) {
+        _isDeleting.value = true
+        _deleteError.value = null
+        viewModelScope.launch {
+            repository.deleteEvent(eventId).fold(
+                onSuccess = {
+                    _deleteSuccess.value = true
+                    streamEventsInRangeForBaby(babyId)
+                },
+                onFailure = { throwable ->
+                    _deleteError.value = throwable.localizedMessage
+                }
+            )
+            _isDeleting.value = false
+        }
+    }
+
+    // Call this to clear any previous delete outcome
+    fun resetDeleteState() {
+        _deleteSuccess.value = false
+        _deleteError.value = null
     }
 
     /**
