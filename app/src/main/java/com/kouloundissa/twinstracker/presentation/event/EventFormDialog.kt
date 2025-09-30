@@ -68,11 +68,6 @@ fun EventFormDialog(
     val errorMessage by viewModel.errorMessage.collectAsState()
     val currentType = formState.eventType
 
-    val configuration = LocalConfiguration.current
-    val screenHeight = configuration.screenHeightDp.dp
-    val verticalPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() +
-            WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
-
     val initialPhotoUri = formState.photoUrl?.let { Uri.parse(it) }
     var selectedUri by rememberSaveable { mutableStateOf<Uri?>(initialPhotoUri) }
 
@@ -81,6 +76,7 @@ fun EventFormDialog(
     var selectedDate by remember(formState.eventTimestamp) {
         mutableStateOf(formState.eventTimestamp)
     }
+    val contentColor = MaterialTheme.colorScheme.onSecondary
     val cornerShape = MaterialTheme.shapes.extraLarge
     LaunchedEffect(initialEventType) {
         initialEventType?.let {
@@ -126,7 +122,7 @@ fun EventFormDialog(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .blur(radiusX = 2.dp, radiusY = 2.dp)
+                    .blur(radiusX = 4.dp, radiusY = 4.dp)
             )
 
             Box(
@@ -142,12 +138,12 @@ fun EventFormDialog(
                         ),
                         shape = cornerShape,
                     )
-                    .padding(horizontal = 24.dp, vertical = 12.dp)
+                    .padding(horizontal = 12.dp, vertical = 12.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 20.dp)
+                        .padding(horizontal = 12.dp, vertical = 20.dp)
                         .padding(bottom = footerHeight)
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -161,7 +157,8 @@ fun EventFormDialog(
                         Text(
                             text = if (formState.eventId == null) "Add Event" else "Edit Event",
                             style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = contentColor,
                         )
                         IconButton(
                             onClick = onDismiss,
@@ -198,7 +195,8 @@ fun EventFormDialog(
                                 text = "Event Type",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Medium,
-                                modifier = Modifier.padding(bottom = 12.dp)
+                                modifier = Modifier.padding(bottom = 12.dp),
+                                color = contentColor,
                             )
                             Row {
                                 currentType?.let { type ->
@@ -212,7 +210,7 @@ fun EventFormDialog(
                                     Text(
                                         text = type.displayName,
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = contentColor
                                     )
                                 }
                             }
@@ -330,13 +328,16 @@ fun <T> IconSelector(
     modifier: Modifier = Modifier
 
 ) {
+
+    val contentColor = MaterialTheme.colorScheme.onPrimary
     val defaultColor = MaterialTheme.colorScheme.primary
     Column(modifier = modifier) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(bottom = 12.dp)
+            modifier = Modifier.padding(bottom = 12.dp),
+            color = contentColor
         )
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -363,7 +364,7 @@ fun <T> IconSelector(
                         Icon(
                             imageVector = getIcon(option),
                             contentDescription = getLabel(option),
-                            tint = if (isSelected) itemColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = contentColor.copy(alpha = 0.8f),
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(Modifier.height(6.dp))
@@ -371,7 +372,7 @@ fun <T> IconSelector(
                             text = getLabel(option),
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center,
-                            color = if (isSelected) itemColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (isSelected) itemColor else contentColor,
                             maxLines = 2
                         )
                     }
@@ -394,6 +395,9 @@ fun ModernDateSelector(
     // Hold interim date before time selection
     val interimCalendar = remember { Calendar.getInstance().apply { time = selectedDate } }
 
+    val contentColor = MaterialTheme.colorScheme.onPrimary
+    val defaultColor = MaterialTheme.colorScheme.primary
+
     // Date picker state
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = selectedDate.time
@@ -403,7 +407,7 @@ fun ModernDateSelector(
     Surface(
         onClick = { showDatePicker = true },
         shape = RoundedCornerShape(16.dp),
-        color = Color.Transparent,// MaterialTheme.colorScheme.surfaceVariant,
+        color = Color.Transparent,
         modifier = modifier
     ) {
         Row(
@@ -413,7 +417,7 @@ fun ModernDateSelector(
             Icon(
                 Icons.Default.DateRange,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = contentColor,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(Modifier.width(16.dp))
@@ -421,19 +425,20 @@ fun ModernDateSelector(
                 Text(
                     "Event Date & Time",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = contentColor
                 )
                 Text(
                     SimpleDateFormat("EEE, MMM dd, yyyy • hh:mm a", Locale.getDefault())
                         .format(selectedDate),
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    color = contentColor
                 )
             }
             Icon(
                 Icons.Default.KeyboardArrowRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = contentColor,
             )
         }
     }
