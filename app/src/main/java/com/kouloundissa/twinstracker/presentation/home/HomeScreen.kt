@@ -317,8 +317,7 @@ fun HomeScreen(
                                                 sleepEvent = activeSleepEvent,
                                                 onClick = { editingEvent = activeSleepEvent },
                                                 modifier = Modifier
-                                                    .align(Alignment.BottomStart)
-                                                    .padding(bottom = 12.dp)
+                                                    .align(Alignment.CenterStart)
                                             )
                                         }
                                     )
@@ -453,7 +452,7 @@ fun EventTypeCard(
     lastEvent: Event?,
     onClick: () -> Unit,
     size: Dp,
-    overlayContent: @Composable BoxScope.() -> Unit = {}
+    overlayContent: (@Composable BoxScope.() -> Unit)? = null
 ) {
     val baseColor = MaterialTheme.colorScheme.primary
     val contentColor = MaterialTheme.colorScheme.onSecondary
@@ -481,7 +480,6 @@ fun EventTypeCard(
                     shape = cornerShape,
                 )
         ) {
-
             // 1️⃣ Event name at top-left
             Text(
                 text = type.displayName,
@@ -493,16 +491,30 @@ fun EventTypeCard(
                     .padding(start = 20.dp, top = 20.dp)
             )
 
-            // Summary in center
-            Text(
-                text = summary,
-                style = MaterialTheme.typography.bodyLarge,
-                color = contentColor.copy(alpha = 0.85f),
-                modifier = Modifier
-                    .zIndex(2f)
-                    .align(Alignment.CenterStart)
-                    .padding(start = 20.dp)
-            )
+            // 2️⃣ Center content - show overlay if available, otherwise show summary
+            if (overlayContent != null) {
+                // Overlay content replaces summary
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .zIndex(2f)
+                        .padding(start = 20.dp)
+                        .fillMaxSize()
+                ) {
+                    overlayContent()
+                }
+            } else {
+                // Default summary text
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = contentColor.copy(alpha = 0.85f),
+                    modifier = Modifier
+                        .zIndex(2f)
+                        .align(Alignment.CenterStart)
+                        .padding(start = 20.dp)
+                )
+            }
 
             // 3️⃣ Icon in bottom-right corner
             Icon(
@@ -515,15 +527,6 @@ fun EventTypeCard(
                     .align(Alignment.BottomEnd)
                     .padding(end = 20.dp, bottom = 20.dp)
             )
-            // 4️⃣ Overlay (sleep timer) at bottom-left, below title/summary/icon
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .zIndex(1f)
-                    .fillMaxSize()
-            ) {
-                overlayContent()
-            }
         }
     }
 }
