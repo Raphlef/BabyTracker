@@ -226,9 +226,10 @@ fun IslandFAB(
         Surface(
             color = Color.Transparent,
             shape = cornerShape,
-            shadowElevation = 10.dp,
+            // shadowElevation = 10.dp,
             modifier = Modifier
-                .size(fabSizeDp) .background(
+                .size(fabSizeDp)
+                .background(
                     Brush.verticalGradient(
                         colors = listOf(
                             baseColor.copy(alpha = 0.99f),
@@ -275,9 +276,9 @@ fun IslandFAB(
             Surface(
                 shape = CircleShape,
                 color = if (isSelected)
-                    MaterialTheme.colorScheme.primary
+                    baseColor
                 else
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                    baseColor.copy(alpha = 0.6f),
                 modifier = Modifier
                     .size(iconSizeDp)
                     .graphicsLayer {
@@ -285,7 +286,7 @@ fun IslandFAB(
                         translationY = offsetY
                         alpha = if (iconsVisible) 1f else 0f
                     },
-                shadowElevation = 8.dp
+                // shadowElevation = 8.dp
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     icon()
