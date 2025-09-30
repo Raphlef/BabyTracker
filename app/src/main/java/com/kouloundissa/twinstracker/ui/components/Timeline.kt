@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kouloundissa.twinstracker.data.DiaperEvent
@@ -46,6 +47,7 @@ import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
 import java.text.SimpleDateFormat
 import java.time.Duration
+import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -83,7 +85,7 @@ fun EventCard(
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     Surface(
-        color = Color.Transparent,
+        color = baseColor.copy(alpha = 0.5f),
         modifier = modifier
             .fillMaxWidth()
             .clickable { onEdit() },
@@ -96,8 +98,8 @@ fun EventCard(
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(
-                            baseColor.copy(alpha = 0.85f),
-                            baseColor.copy(alpha = 0.55f)
+                            eventType.color.copy(alpha = 0.15f),
+                            eventType.color.copy(alpha = 0.85f)
                         )
                     ),
                     shape = cornerShape
@@ -185,18 +187,18 @@ private fun EventTypeIndicator(eventType: EventType) {
 
 @Composable
 private fun TimeDisplay(event: Event) {
-    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    val formatter = DateTimeFormatter.ofPattern("MMM dd, HH:mm")  // e.g. "Sep 30, 14:45"
 
     val timeText = when (event) {
         is SleepEvent -> {
             val startTime = event.beginTime?.toInstant()
                 ?.atZone(ZoneId.systemDefault())
-                ?.format(timeFormatter) ?: "Unknown"
+                ?.format(formatter) ?: "Unknown"
 
             if (event.endTime != null) {
                 val endTime = event.endTime.toInstant()
                     .atZone(ZoneId.systemDefault())
-                    .format(timeFormatter)
+                    .format(DateTimeFormatter.ofPattern("HH:mm"))  // only show time for end
                 "$startTime - $endTime"
             } else {
                 "Started at $startTime"
@@ -206,16 +208,18 @@ private fun TimeDisplay(event: Event) {
         else -> {
             event.timestamp.toInstant()
                 .atZone(ZoneId.systemDefault())
-                .format(timeFormatter)
+                .format(formatter)
         }
     }
 
     Text(
         text = timeText,
-        style = MaterialTheme.typography.labelMedium,
+        style = MaterialTheme.typography.labelSmall,  // small font size
         color = MaterialTheme.colorScheme.onPrimary
     )
 }
+
+
 
 @Composable
 private fun DurationBadge(event: SleepEvent) {
