@@ -29,7 +29,10 @@ import com.kouloundissa.twinstracker.data.*
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import android.text.format.DateFormat
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.SheetValue.Hidden
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.alpha
@@ -43,6 +46,8 @@ import androidx.core.net.toUri
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.EventFormState.*
 import com.kouloundissa.twinstracker.ui.components.PhotoPicker
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.Collections.copy
@@ -56,6 +61,7 @@ fun EventFormDialog(
     initialEventType: EventType? = null,
     viewModel: EventViewModel = hiltViewModel()
 ) {
+
     val formState by viewModel.formState.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
     val saveSuccess by viewModel.saveSuccess.collectAsState()
@@ -91,23 +97,28 @@ fun EventFormDialog(
         }
     }
 
-
     LaunchedEffect(saveSuccess) {
         if (saveSuccess) {
             onDismiss()
             viewModel.resetSaveSuccess()
         }
     }
-
-    Dialog(onDismissRequest = onDismiss) {
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,  // skips intermediate state to start fully expanded
+    )
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = Color.Transparent,
+    ) {
         Surface(
             shape = cornerShape,
             tonalElevation = 8.dp,
-            color = MaterialTheme.colorScheme.surface,
+            color = Color.Transparent,// MaterialTheme.colorScheme.surface,
             modifier = Modifier
                 .fillMaxWidth()          // use full width
                 //.padding(horizontal = 16.dp)
-                .wrapContentHeight()
+                .fillMaxHeight()
         ) {
 
             Image(
@@ -116,7 +127,6 @@ fun EventFormDialog(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .alpha(0.85f)
                     .blur(radiusX = 2.dp, radiusY = 2.dp)
             )
 
@@ -133,6 +143,7 @@ fun EventFormDialog(
                         ),
                         shape = cornerShape,
                     )
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -318,6 +329,7 @@ fun <T> IconSelector(
     getLabel: (T) -> String,
     getColor: ((T) -> Color)? = null,
     modifier: Modifier = Modifier
+
 ) {
     val defaultColor = MaterialTheme.colorScheme.primary
     Column(modifier = modifier) {
@@ -392,7 +404,7 @@ fun ModernDateSelector(
     Surface(
         onClick = { showDatePicker = true },
         shape = RoundedCornerShape(16.dp),
-        color =Color.Transparent,// MaterialTheme.colorScheme.surfaceVariant,
+        color = Color.Transparent,// MaterialTheme.colorScheme.surfaceVariant,
         modifier = modifier
     ) {
         Row(
