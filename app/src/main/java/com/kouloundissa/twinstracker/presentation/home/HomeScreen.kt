@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -584,10 +585,8 @@ private fun EventTypeDialog(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(
-                    min = 200.dp,
-                    max = (metrics.screenHeightDp * 0.7f).dp
-                ) // at least 200dp tall, up to 70% screen height
+                .fillMaxHeight(0.75f)
+                 // at least 200dp tall, up to 70% screen height
                 .clip(cornerShape)
         ) {
             // 1. Background image sized to the dialog

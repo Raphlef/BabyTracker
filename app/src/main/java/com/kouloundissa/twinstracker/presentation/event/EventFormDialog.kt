@@ -112,8 +112,7 @@ fun EventFormDialog(
             color = Color.Transparent,// MaterialTheme.colorScheme.surface,
             modifier = Modifier
                 .fillMaxWidth()          // use full width
-                //.padding(horizontal = 16.dp)
-                .fillMaxHeight()
+                .fillMaxHeight(0.75f)
         ) {
 
             Image(
