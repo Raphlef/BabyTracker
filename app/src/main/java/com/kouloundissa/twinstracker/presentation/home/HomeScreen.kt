@@ -157,7 +157,7 @@ fun HomeScreen(
             when (type) {
                 EventType.DIAPER -> {
                     val count = todayList.size
-                    if (count > 0) "$count today" else "No diaper"
+                    if (count > 0) "$count today" else "No diaper today"
                 }
 
                 EventType.FEEDING -> {
@@ -177,7 +177,7 @@ fun HomeScreen(
                         val h = totalMin / 60
                         val m = totalMin % 60
                         "Today: ${h}h ${m}m"
-                    } else "No sleep"
+                    } else "No sleep today"
                 }
 
                 EventType.GROWTH -> {
@@ -186,11 +186,11 @@ fun HomeScreen(
                         .filterIsInstance<GrowthEvent>()
                         .maxByOrNull { it.timestamp }
                         ?.let { "${it.weightKg ?: "-"}kg • ${it.heightCm ?: "-"}cm" }
-                        ?: "No growth"
+                        ?: "No growth today"
                 }
 
                 EventType.PUMPING -> {
-                    if (todayList.isEmpty()) "No pumping"
+                    if (todayList.isEmpty()) "No pumping today"
                     else {
                         val last = todayList.maxByOrNull { it.timestamp }!!
                         val mins =
@@ -203,7 +203,7 @@ fun HomeScreen(
 
                 EventType.DRUGS -> {
                     if (todayList.isEmpty()) {
-                        "No drugs"
+                        "No drugs today"
                     } else {
                         val doses = todayList.size
                         val last = todayList
