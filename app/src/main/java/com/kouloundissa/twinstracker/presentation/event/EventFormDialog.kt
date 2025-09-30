@@ -66,6 +66,12 @@ fun EventFormDialog(
     val isSaving by viewModel.isSaving.collectAsState()
     val saveSuccess by viewModel.saveSuccess.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+
+    val isDeleting by viewModel.isDeleting.collectAsState()
+    val deleteSuccess by viewModel.deleteSuccess.collectAsState()
+    val deleteError by viewModel.deleteError.collectAsState()
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
     val currentType = formState.eventType
 
     val initialPhotoUri = formState.photoUrl?.let { Uri.parse(it) }
@@ -92,11 +98,33 @@ fun EventFormDialog(
         }
     }
 
-    LaunchedEffect(saveSuccess) {
-        if (saveSuccess) {
+    LaunchedEffect(saveSuccess, deleteSuccess) {
+        if (saveSuccess || deleteSuccess) {
             onDismiss()
             viewModel.resetSaveSuccess()
+            viewModel.resetDeleteState()
         }
+    }
+    // Confirmation dialog
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete Event") },
+            text = { Text("Are you sure you want to delete this event?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteEvent(formState.eventId!!, babyId)
+                    showDeleteConfirm = false
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,  // skips intermediate state to start fully expanded
@@ -272,17 +300,32 @@ fun EventFormDialog(
                         })
                     Spacer(Modifier.height(12.dp))
                 }
-                // Save button
+                // Footer: Cancel / Delete (if edit) / Save
                 Row(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        //.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.2f))
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     TextButton(onClick = onDismiss) {
                         Text("Cancel", color = MaterialTheme.colorScheme.primary)
+                    }
+                    // Show "Delete" only in edit mode
+                    if (formState.eventId != null) {
+                        TextButton(
+                            onClick = { showDeleteConfirm = true },
+                            enabled = !isDeleting
+                        ) {
+                            if (isDeleting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text("Delete", color = MaterialTheme.colorScheme.onError)
+                            }
+                        }
                     }
                     Spacer(Modifier.weight(1f))
                     Button(
