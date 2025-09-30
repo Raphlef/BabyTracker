@@ -39,7 +39,7 @@ fun SleepTimer(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var elapsedSeconds  by remember { mutableStateOf(0L) }
+    var elapsedSeconds by remember { mutableStateOf(0L) }
 
     // Launch a ticker that updates every minute
     LaunchedEffect(sleepEvent) {
@@ -58,9 +58,7 @@ fun SleepTimer(
     val timeText = String.format("%02d:%02d:%02d", h, m, s)
 
     Row(
-        verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .padding(12.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.75f))
             .clickable(onClick = onClick)
