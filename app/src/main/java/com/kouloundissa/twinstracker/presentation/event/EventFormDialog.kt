@@ -28,12 +28,19 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.data.*
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import android.text.format.DateFormat
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.core.net.toUri
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.EventFormState.*
 import com.kouloundissa.twinstracker.ui.components.PhotoPicker
 import java.text.SimpleDateFormat
@@ -69,7 +76,7 @@ fun EventFormDialog(
     var selectedDate by remember(formState.eventTimestamp) {
         mutableStateOf(formState.eventTimestamp)
     }
-
+    val cornerShape = MaterialTheme.shapes.extraLarge
     LaunchedEffect(initialEventType) {
         initialEventType?.let {
             val newState = when (it) {
@@ -94,19 +101,38 @@ fun EventFormDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(24.dp),
+            shape = cornerShape,
             tonalElevation = 8.dp,
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier
                 .fillMaxWidth()          // use full width
-                .padding(horizontal = 16.dp)
+                //.padding(horizontal = 16.dp)
                 .wrapContentHeight()
         ) {
+
+            Image(
+                painter = painterResource(id = R.drawable.background),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(0.85f)
+                    .blur(radiusX = 2.dp, radiusY = 2.dp)
+            )
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = maxDialogHeight)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                currentType.color.copy(alpha = 0.35f),
+                                currentType.color.copy(alpha = 0.15f)
+                            )
+                        ),
+                        shape = cornerShape,
+                    )
             ) {
                 Column(
                     modifier = Modifier
@@ -143,7 +169,7 @@ fun EventFormDialog(
                     if (errorMessage != null) {
                         Surface(
                             color = MaterialTheme.colorScheme.errorContainer,
-                            shape = RoundedCornerShape(12.dp)
+                            shape = cornerShape
                         ) {
                             Text(
                                 errorMessage!!,
@@ -244,7 +270,7 @@ fun EventFormDialog(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
+                        //.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.2f))
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -255,7 +281,7 @@ fun EventFormDialog(
                     Button(
                         onClick = { viewModel.SaveEvent(babyId) },
                         enabled = !isSaving,
-                        shape = RoundedCornerShape(16.dp),
+                        shape = cornerShape,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
@@ -366,7 +392,7 @@ fun ModernDateSelector(
     Surface(
         onClick = { showDatePicker = true },
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color =Color.Transparent,// MaterialTheme.colorScheme.surfaceVariant,
         modifier = modifier
     ) {
         Row(
