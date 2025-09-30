@@ -346,7 +346,7 @@ fun HomeScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 onEdit = { event ->
                                     editingEvent = event
-                                }
+                                },
                             )
                         } else {
                             // Empty state

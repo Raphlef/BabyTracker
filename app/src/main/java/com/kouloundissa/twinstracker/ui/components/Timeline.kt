@@ -1,21 +1,31 @@
 package com.kouloundissa.twinstracker.ui.components
 
+import android.widget.Toast
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Card
@@ -25,6 +35,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -32,8 +47,12 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.kouloundissa.twinstracker.data.DiaperEvent
 import com.kouloundissa.twinstracker.data.DiaperType
@@ -52,6 +71,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.collections.forEach
+import kotlin.math.roundToInt
 
 
 @Composable
@@ -77,95 +97,155 @@ fun TimelineList(
 fun EventCard(
     event: Event,
     onEdit: () -> Unit,
+    onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val eventType = EventType.forClass(event::class)
-    val baseColor = MaterialTheme.colorScheme.primary
+    val baseColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
     val contentColor = MaterialTheme.colorScheme.onPrimary
     val cornerShape = MaterialTheme.shapes.extraLarge
 
-    Surface(
-        color = baseColor.copy(alpha = 0.5f),
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onEdit() },
-        tonalElevation = 0.dp,
-        shape = cornerShape
-    ) {
-        Row(
+    val context = LocalContext.current
+    val deleteAction: () -> Unit = onDelete ?: {
+        Toast.makeText(context, "Deleted ${event.id}", Toast.LENGTH_SHORT).show()
+    }
+
+    // Swipe & confirmation states
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    var showConfirm by remember { mutableStateOf(false) }
+    val animatedOffset by animateFloatAsState(offsetX, tween(300))
+
+    val density = LocalDensity.current
+    val maxSwipePx = with(density) { 120.dp.toPx() }
+    val thresholdPx = with(density) { 80.dp.toPx() }
+
+    Box(modifier = modifier.fillMaxWidth()) {
+
+        // Foreground card
+        Surface(
+            color = baseColor,
+            shape = cornerShape,
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            eventType.color.copy(alpha = 0.15f),
-                            eventType.color.copy(alpha = 0.85f)
-                        )
-                    ),
-                    shape = cornerShape
-                )
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            if (offsetX <= -thresholdPx && deleteAction != null) {
+                                showConfirm = true
+                                offsetX = -maxSwipePx
+                            } else {
+                                showConfirm = false
+                                offsetX = 0f
+                            }
+                        }
+                    ) { _, delta ->
+                        if (!showConfirm && deleteAction != null) {
+                            offsetX = (offsetX + delta).coerceIn(-maxSwipePx, 0f)
+                        }
+                    }
+                }
+                .clickable {
+                    if (showConfirm) {
+                        // Tapped outside bin: cancel
+                        showConfirm = false
+                        offsetX = 0f
+                    } else {
+                        onEdit()
+                    }
+                }
         ) {
-            // Event Type Indicator
-            EventTypeIndicator(eventType = eventType)
-
-            // Event Content
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                eventType.color.copy(alpha = 0.15f),
+                                eventType.color.copy(alpha = 0.85f)
+                            )
+                        ),
+                        shape = cornerShape
+                    )
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Event Title
-                Text(
-                    text = buildEventTitle(event, eventType),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = contentColor
-                )
-
-                // Time Display
-                TimeDisplay(event = event)
-
-                // Notes (if any)
-                if (!event.notes.isNullOrBlank()) {
+                EventTypeIndicator(eventType)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = event.notes!!,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = contentColor.copy(alpha = 0.85f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-
+                        buildEventTitle(event, eventType),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = contentColor
+                    )
+                    TimeDisplay(event)
+                    event.notes?.takeIf(String::isNotBlank)?.let {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = contentColor.copy(alpha = 0.85f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
+                    }
+                }
+                if (event is SleepEvent && event.endTime != null) DurationBadge(event)
+                event.photoUrl?.takeIf(String::isNotBlank)?.let {
+                    Icon(
+                        Icons.Default.PhotoCamera,
+                        contentDescription = "Photo attached",
+                        tint = contentColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = "Edit",
+                    tint = contentColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        // Confirm-delete bin overlay
+        if (showConfirm) {
+            val confirmWidth = with(LocalDensity.current) { (-animatedOffset).toDp() }
+            Surface(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(confirmWidth)
+                    .align(Alignment.CenterEnd),
+                color = MaterialTheme.colorScheme.error,
+                shape = cornerShape
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .clickable {
+                            deleteAction()
+                            showConfirm = false
+                            offsetX = 0f
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Confirm delete",
+                        tint = MaterialTheme.colorScheme.onError,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clickable {
+                                deleteAction()
+                                showConfirm = false
+                                offsetX = 0f
+                            }
+                    )
                 }
             }
-
-            // Duration Badge (for timed events)
-            if (event is SleepEvent && event.endTime != null) {
-                DurationBadge(event = event)
-            }
-
-            // ➊ Photo Badge
-            event.photoUrl?.takeIf { it.isNotBlank() }?.let {
-                Icon(
-                    imageVector     = Icons.Default.PhotoCamera,
-                    contentDescription = "Photo attached",
-                    tint            = contentColor,
-                    modifier        = Modifier
-                        .size(20.dp)
-                        .padding(end = 4.dp)
-                )
-            }
-
-            // Edit Icon
-            Icon(
-                imageVector = Icons.Default.Edit,
-                contentDescription = "Edit event",
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(20.dp)
-            )
         }
     }
 }
+
 
 @Composable
 private fun EventTypeIndicator(eventType: EventType) {
@@ -218,7 +298,6 @@ private fun TimeDisplay(event: Event) {
         color = MaterialTheme.colorScheme.onPrimary
     )
 }
-
 
 
 @Composable
