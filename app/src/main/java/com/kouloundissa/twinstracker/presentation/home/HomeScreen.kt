@@ -51,6 +51,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -350,7 +351,6 @@ fun HomeScreen(
                     // Timeline of recent events
                     item {
                         if (babyEvents.isNotEmpty()) {
-
                             TimelineList(
                                 events = babyEvents.take(20),
                                 modifier = Modifier.fillMaxWidth(),
@@ -467,14 +467,29 @@ fun EventTypeCard(
             .size(size)
             .clickable(onClick = onClick)
     ) {
+        // 1. Background image sized to the dialog
+        Image(
+            painter = painterResource(id = type.drawableRes),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize().alpha(0.85f).blur(radiusX = 1.dp, radiusY = 1.dp)
+        )
+
+        // 2. Semi-transparent overlay tint
+//        Box(
+//            modifier = Modifier
+//                .fillMaxSize()
+//                .background(type.color.copy(alpha = 0.5f))
+//        )
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            baseColor.copy(alpha = 0.85f),
-                            baseColor.copy(alpha = 0.55f)
+                            type.color.copy(alpha = 0.5f),
+                            type.color.copy(alpha = 0.15f)
                         )
                     ),
                     shape = cornerShape,
@@ -516,17 +531,17 @@ fun EventTypeCard(
                 )
             }
 
-            // 3️⃣ Icon in bottom-right corner
-            Icon(
-                imageVector = type.icon,
-                contentDescription = type.displayName,
-                tint = type.color,
-                modifier = Modifier
-                    .zIndex(2f)
-                    .size(72.dp)
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 20.dp, bottom = 20.dp)
-            )
+//            // 3️⃣ Icon in bottom-right corner
+//            Icon(
+//                imageVector = type.icon,
+//                contentDescription = type.displayName,
+//                tint = type.color,
+//                modifier = Modifier
+//                    .zIndex(2f)
+//                    .size(72.dp)
+//                    .align(Alignment.BottomEnd)
+//                    .padding(end = 20.dp, bottom = 20.dp)
+//            )
         }
     }
 }
