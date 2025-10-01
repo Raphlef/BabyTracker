@@ -77,6 +77,7 @@ fun AnalysisScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .padding(16.dp),
         ) {
             item {
                 val startDate = last7Days.first().format(DateTimeFormatter.ofPattern("dd/MM"))
