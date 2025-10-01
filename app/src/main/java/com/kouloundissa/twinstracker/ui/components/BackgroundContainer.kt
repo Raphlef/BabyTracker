@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 
 @Composable
 fun BackgroundContainer(
@@ -21,13 +23,11 @@ fun BackgroundContainer(
             painter = painterResource(id = backgroundRes),
             contentDescription = contentDescription,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.matchParentSize()
+            modifier = Modifier.matchParentSize().blur(radius = 0.5.dp)
         )
         Box(
             modifier = Modifier
                 .matchParentSize()
-            // Optionally add a semi-transparent overlay:
-            //.background(Color.Black.copy(alpha = 0.2f))
             ,
             content = content
         )
