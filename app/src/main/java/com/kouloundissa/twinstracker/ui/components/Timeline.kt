@@ -133,6 +133,7 @@ fun EventCard(
 
         // Foreground card
         Surface(
+            color = Color.Transparent,
             shape = cornerShape,
             modifier = Modifier
                 .fillMaxWidth()
