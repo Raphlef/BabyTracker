@@ -109,8 +109,10 @@ fun EventCard(
     modifier: Modifier = Modifier
 ) {
     val eventType = EventType.forClass(event::class)
+
     val baseColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-    val contentColor = MaterialTheme.colorScheme.onPrimary
+    val contentColor = Color.White
+
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     val context = LocalContext.current
@@ -131,7 +133,6 @@ fun EventCard(
 
         // Foreground card
         Surface(
-            color = baseColor,
             shape = cornerShape,
             modifier = Modifier
                 .fillMaxWidth()
