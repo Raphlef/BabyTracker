@@ -82,8 +82,9 @@ fun EventFormDialog(
     var selectedDate by remember(formState.eventTimestamp) {
         mutableStateOf(formState.eventTimestamp)
     }
-    val contentColor = MaterialTheme.colorScheme.onSecondary
+    val contentColor = Color.White
     val cornerShape = MaterialTheme.shapes.extraLarge
+
     LaunchedEffect(initialEventType) {
         initialEventType?.let {
             val newState = when (it) {
@@ -373,6 +374,7 @@ fun <T> IconSelector(
     val titleColor = Color.White
     val backgroundcolor = Color.White.copy(alpha = 0.5f)
     val contentcolor = Color.DarkGray
+
     val tint = Color(0xFF003366)
 
     Column(modifier = modifier) {
@@ -388,7 +390,7 @@ fun <T> IconSelector(
             contentPadding = PaddingValues(horizontal = 4.dp)
         ) {
             items(options) { option ->
-                val itemColor = getColor?.invoke(option) ?: tint
+                val itemColor = getColor?.invoke(option) ?: tint.copy(alpha = 0.2f)
                 val isSelected = selected == option
                 Surface(
                     onClick = { onSelect(option) },
@@ -397,7 +399,7 @@ fun <T> IconSelector(
                     border = if (isSelected)
                         BorderStroke(2.dp, itemColor)
                     else
-                        BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                        BorderStroke(1.dp, contentcolor.copy(alpha = 0.3f)),
                     modifier = Modifier.size(80.dp, 88.dp)
                 ) {
                     Column(
@@ -408,7 +410,7 @@ fun <T> IconSelector(
                         Icon(
                             imageVector = getIcon(option),
                             contentDescription = getLabel(option),
-                            tint = contentcolor.copy(alpha = 0.8f),
+                            tint = if (isSelected) titleColor else contentcolor.copy(alpha = 0.8f),
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(Modifier.height(6.dp))
@@ -416,7 +418,7 @@ fun <T> IconSelector(
                             text = getLabel(option),
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center,
-                            color = if (isSelected) itemColor else contentcolor,
+                            color = if (isSelected) titleColor else contentcolor.copy(alpha = 0.8f),
                             maxLines = 2
                         )
                     }
@@ -817,9 +819,10 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
             onValueChange = {
                 viewModel.updateForm { (this as EventFormState.Feeding).copy(amountMl = it) }
             },
-            label = { Text("Amount (ml)") },
+            label = { Text("Amount (ml)", color = Color.White) },
             shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
         )
     }
 
@@ -829,9 +832,10 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
         onValueChange = {
             viewModel.updateForm { (this as EventFormState.Feeding).copy(durationMin = it) }
         },
-        label = { Text("Duration (minutes)") },
+        label = { Text("Duration (minutes)", color = Color.White) },
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
     )
 
     // Breast Side (for breast milk)
@@ -857,7 +861,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
     OutlinedTextField(
         value = state.notes,
         onValueChange = { viewModel.updateForm { (this as EventFormState.Feeding).copy(notes = it) } },
-        label = { Text("Notes (optional)") },
+        label = { Text("Notes (optional)", color = Color.White) },
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -876,7 +880,8 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
             onValueChange = { viewModel.updateForm { (this as EventFormState.Growth).copy(weightKg = it) } },
             label = { Text("Weight (kg)") },
             shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
         )
 
         OutlinedTextField(
@@ -884,7 +889,8 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
             onValueChange = { viewModel.updateForm { (this as EventFormState.Growth).copy(heightCm = it) } },
             label = { Text("Height (cm)") },
             shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
         )
     }
 
@@ -899,7 +905,8 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
         },
         label = { Text("Head Circumference (cm)") },
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
     )
 
     OutlinedTextField(
@@ -935,7 +942,8 @@ private fun PumpingForm(
             label = { Text("Amount (ml)") },
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
         )
 
         // Duration of Pumping (minutes)
@@ -949,7 +957,8 @@ private fun PumpingForm(
             label = { Text("Duration (minutes)") },
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
         )
 
         // Breast Side
@@ -1016,7 +1025,8 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
                 },
                 label = { Text("Specify Drug Name") },
                 placeholder = { Text("e.g., Ibuprofen") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -1031,8 +1041,8 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
             },
             label = { Text("Dosage") },
             placeholder = { Text("e.g., 250") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            modifier = Modifier.fillMaxWidth(),
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -1047,7 +1057,8 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
             },
             label = { Text("Unit") },
             placeholder = { Text("mg, IU, etc.") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
         )
 
         Spacer(modifier = Modifier.height(8.dp))
