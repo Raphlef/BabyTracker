@@ -51,12 +51,7 @@ fun AnalysisCard(
             .fillMaxWidth()
             .height(260.dp)
             .padding(vertical = 8.dp)
-            .clip(cornerShape)
-            .shadow(
-                elevation = 8.dp,
-                shape = RoundedCornerShape(16.dp),
-                clip = false
-            ),
+            .clip(cornerShape),
         tonalElevation = 4.dp,
         color = Color.Transparent
     ) {
