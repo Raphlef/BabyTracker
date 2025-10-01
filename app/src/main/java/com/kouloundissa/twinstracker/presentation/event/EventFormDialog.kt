@@ -370,27 +370,25 @@ fun <T> IconSelector(
     modifier: Modifier = Modifier
 
 ) {
+    val titleColor = Color.White
+    val backgroundcolor = Color.White.copy(alpha = 0.5f)
+    val contentcolor = Color.DarkGray
+    val tint = Color(0xFF003366)
 
-    val backgroundcolor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-    val contentcolor= MaterialTheme.colorScheme.onSurfaceVariant
-    val tint = MaterialTheme.colorScheme.primary
-
-    //val contentColor = MaterialTheme.colorScheme.onPrimary
-    val defaultColor = MaterialTheme.colorScheme.primary
     Column(modifier = modifier) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.padding(bottom = 12.dp),
-            color = tint
+            color = titleColor
         )
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(horizontal = 4.dp)
         ) {
             items(options) { option ->
-                val itemColor = getColor?.invoke(option) ?: defaultColor
+                val itemColor = getColor?.invoke(option) ?: tint
                 val isSelected = selected == option
                 Surface(
                     onClick = { onSelect(option) },
@@ -442,7 +440,7 @@ fun ModernDateSelector(
     val interimCalendar = remember { Calendar.getInstance().apply { time = selectedDate } }
 
     val backgroundcolor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-    val contentcolor= MaterialTheme.colorScheme.onSurfaceVariant
+    val contentcolor = MaterialTheme.colorScheme.onSurfaceVariant
     val tint = MaterialTheme.colorScheme.primary
 
     // Date picker state
