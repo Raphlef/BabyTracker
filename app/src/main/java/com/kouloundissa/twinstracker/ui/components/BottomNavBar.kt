@@ -60,15 +60,11 @@ fun BottomNavBar(
     eventTypes: List<Pair<String, @Composable () -> Unit>>,
     onEventTypeSelected: (String) -> Unit
 ) {
-    val baseColor = MaterialTheme.colorScheme.primary
-    val contentColor = MaterialTheme.colorScheme.onPrimary
-    val cornerShape = MaterialTheme.shapes.extraLarge
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(bottom = 24.dp)
-            .padding(start = 12.dp, end = 12.dp),
+            .padding(start = 12.dp, end = 12.dp, bottom = 24.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
         GlassIslandNavBar(
@@ -98,8 +94,8 @@ fun GlassIslandNavBar(
     hazeState: HazeState,
     modifier: Modifier = Modifier
 ) {
-    val baseColor = MaterialTheme.colorScheme.surfaceVariant
-    val contentColor = MaterialTheme.colorScheme.primary
+    val baseColor = Color.White
+    val contentColor = Color.DarkGray
     val cornerShape = MaterialTheme.shapes.extraLarge
     Surface(
         modifier = modifier
@@ -159,8 +155,8 @@ fun IslandFAB(
     label: String
 ) {
     val fabSizeDp = 64.dp
-    val baseColor = MaterialTheme.colorScheme.onPrimary
-    val contentColor = MaterialTheme.colorScheme.primary
+    val baseColor = Color(0xFFF9EBE2)
+    val contentColor = Color(0xFF003366)
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     val iconSizeDp = 48.dp
