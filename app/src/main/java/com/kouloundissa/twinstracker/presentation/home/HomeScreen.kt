@@ -1,6 +1,7 @@
 package com.kouloundissa.twinstracker.presentation.home
 
 import android.annotation.SuppressLint
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -152,6 +154,7 @@ fun HomeScreen(
             }
         }
     }
+
     val today = LocalDate.now()
     val eventsByDay by eventViewModel.eventsByDay.collectAsState()
     val eventsByType by eventViewModel.eventsByType.collectAsState()
@@ -236,9 +239,20 @@ fun HomeScreen(
     }
 
     Scaffold(
+        snackbarHost = {
+            // Place the Snackbar at the top center, or adjust bottom padding
+            Box(Modifier.fillMaxSize()) {
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 16.dp)          // push it down from the very top
+                        .width(IntrinsicSize.Min)      // shrink to content width
+                )
+            }
+        },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = Color.Transparent,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = Modifier.fillMaxSize()
     ) {
         Box(
@@ -431,7 +445,7 @@ fun HomeScreen(
                     }
                 )
             }
-            if (showEventDialog  && selectedBaby?.id != null && selectedType != null) {
+            if (showEventDialog && selectedBaby?.id != null && selectedType != null) {
                 EventFormDialog(
                     babyId = selectedBaby?.id ?: return@Box,
                     initialEventType = selectedType,
@@ -570,6 +584,7 @@ private fun EventTypeDialog(
     events: List<Event>,
     onDismiss: () -> Unit,
     onEdit: (Event) -> Unit,
+    eventViewModel: EventViewModel = hiltViewModel(),
     selectedBaby: Baby?
 ) {
     val baseColor = MaterialTheme.colorScheme.primary
@@ -638,6 +653,14 @@ private fun EventTypeDialog(
                                 EventCard(
                                     event = event,
                                     onEdit = { onEdit(event) },
+                                    onDelete = {
+                                        selectedBaby?.let {
+                                            eventViewModel.deleteEvent(
+                                                event.id,
+                                                it.id
+                                            )
+                                        }
+                                    }
                                 )
                             }
                         }
