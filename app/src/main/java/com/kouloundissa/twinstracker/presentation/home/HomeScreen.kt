@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -319,6 +320,10 @@ fun HomeScreen(
                                             selectedType = type
                                             showTypeDialog = true
                                         },
+                                        onLongClick = {
+                                            selectedType = type
+                                            showEventDialog = true
+                                        },
                                         size = cardSize,
                                         overlayContent = {
                                             SleepTimer(
@@ -337,6 +342,10 @@ fun HomeScreen(
                                         onClick = {
                                             selectedType = type
                                             showTypeDialog = true
+                                        },
+                                        onLongClick = {
+                                            selectedType = type
+                                            showEventDialog = true
                                         },
                                         size = cardSize
                                     )
@@ -422,6 +431,16 @@ fun HomeScreen(
                     }
                 )
             }
+            if (showEventDialog  && selectedBaby?.id != null && selectedType != null) {
+                EventFormDialog(
+                    babyId = selectedBaby?.id ?: return@Box,
+                    initialEventType = selectedType,
+                    onDismiss = {
+                        showEventDialog = false
+                        eventViewModel.resetFormState()
+                    }
+                )
+            }
             if (showBabyDialog) {
                 BabyFormDialog(
                     babyToEdit = null,
@@ -461,13 +480,13 @@ fun EventTypeCard(
     summary: String,
     lastEvent: Event?,
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
     size: Dp,
     overlayContent: (@Composable BoxScope.() -> Unit)? = null
 ) {
     val baseColor = MaterialTheme.colorScheme.primary
     val contentColor = MaterialTheme.colorScheme.onSecondary
     val cornerShape = MaterialTheme.shapes.extraLarge
-
     Surface(
         shape = cornerShape,
         tonalElevation = 0.dp,
@@ -475,7 +494,11 @@ fun EventTypeCard(
         contentColor = contentColor,
         modifier = Modifier
             .size(size)
-            .clickable(onClick = onClick)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick ?: {}
+            )
+
     ) {
         // 1. Background image sized to the dialog
         Image(
@@ -488,12 +511,6 @@ fun EventTypeCard(
                 .blur(radiusX = 1.dp, radiusY = 1.dp)
         )
 
-        // 2. Semi-transparent overlay tint
-//        Box(
-//            modifier = Modifier
-//                .fillMaxSize()
-//                .background(type.color.copy(alpha = 0.5f))
-//        )
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -542,18 +559,6 @@ fun EventTypeCard(
                         .padding(start = 20.dp)
                 )
             }
-
-//            // 3️⃣ Icon in bottom-right corner
-//            Icon(
-//                imageVector = type.icon,
-//                contentDescription = type.displayName,
-//                tint = type.color,
-//                modifier = Modifier
-//                    .zIndex(2f)
-//                    .size(72.dp)
-//                    .align(Alignment.BottomEnd)
-//                    .padding(end = 20.dp, bottom = 20.dp)
-//            )
         }
     }
 }
@@ -586,7 +591,7 @@ private fun EventTypeDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.75f)
-                 // at least 200dp tall, up to 70% screen height
+                // at least 200dp tall, up to 70% screen height
                 .clip(cornerShape)
         ) {
             // 1. Background image sized to the dialog
