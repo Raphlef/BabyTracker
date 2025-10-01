@@ -371,7 +371,11 @@ fun <T> IconSelector(
 
 ) {
 
-    val contentColor = MaterialTheme.colorScheme.onPrimary
+    val backgroundcolor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    val contentcolor= MaterialTheme.colorScheme.onSurfaceVariant
+    val tint = MaterialTheme.colorScheme.primary
+
+    //val contentColor = MaterialTheme.colorScheme.onPrimary
     val defaultColor = MaterialTheme.colorScheme.primary
     Column(modifier = modifier) {
         Text(
@@ -379,7 +383,7 @@ fun <T> IconSelector(
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.padding(bottom = 12.dp),
-            color = contentColor
+            color = tint
         )
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -391,7 +395,7 @@ fun <T> IconSelector(
                 Surface(
                     onClick = { onSelect(option) },
                     shape = RoundedCornerShape(16.dp),
-                    color = if (isSelected) itemColor.copy(alpha = 0.2f) else Color.Transparent,
+                    color = if (isSelected) itemColor.copy(alpha = 0.2f) else backgroundcolor,
                     border = if (isSelected)
                         BorderStroke(2.dp, itemColor)
                     else
@@ -406,7 +410,7 @@ fun <T> IconSelector(
                         Icon(
                             imageVector = getIcon(option),
                             contentDescription = getLabel(option),
-                            tint = contentColor.copy(alpha = 0.8f),
+                            tint = contentcolor.copy(alpha = 0.8f),
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(Modifier.height(6.dp))
@@ -414,7 +418,7 @@ fun <T> IconSelector(
                             text = getLabel(option),
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center,
-                            color = if (isSelected) itemColor else contentColor,
+                            color = if (isSelected) itemColor else contentcolor,
                             maxLines = 2
                         )
                     }
@@ -437,8 +441,9 @@ fun ModernDateSelector(
     // Hold interim date before time selection
     val interimCalendar = remember { Calendar.getInstance().apply { time = selectedDate } }
 
-    val contentColor = MaterialTheme.colorScheme.onPrimary
-    val defaultColor = MaterialTheme.colorScheme.primary
+    val backgroundcolor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    val contentcolor= MaterialTheme.colorScheme.onSurfaceVariant
+    val tint = MaterialTheme.colorScheme.primary
 
     // Date picker state
     val datePickerState = rememberDatePickerState(
@@ -449,8 +454,8 @@ fun ModernDateSelector(
     Surface(
         onClick = { showDatePicker = true },
         shape = RoundedCornerShape(16.dp),
-        color = Color.Transparent,
-        modifier = modifier
+        color = backgroundcolor,
+        modifier = modifier,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -459,7 +464,7 @@ fun ModernDateSelector(
             Icon(
                 Icons.Default.DateRange,
                 contentDescription = null,
-                tint = contentColor,
+                tint = tint,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(Modifier.width(16.dp))
@@ -467,20 +472,20 @@ fun ModernDateSelector(
                 Text(
                     "Event Date & Time",
                     style = MaterialTheme.typography.labelMedium,
-                    color = contentColor
+                    color = contentcolor
                 )
                 Text(
                     SimpleDateFormat("EEE, MMM dd, yyyy • hh:mm a", Locale.getDefault())
                         .format(selectedDate),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
-                    color = contentColor
+                    color = contentcolor
                 )
             }
             Icon(
                 Icons.Default.KeyboardArrowRight,
                 contentDescription = null,
-                tint = contentColor,
+                tint = contentcolor,
             )
         }
     }
