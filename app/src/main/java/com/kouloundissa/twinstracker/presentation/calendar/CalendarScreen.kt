@@ -137,7 +137,6 @@ fun CalendarScreen(
                         DayTimeline(
                             events = dailyEvents,
                             onEdit = { editingEvent = it },
-                            modifier = Modifier
                         )
                     }
                 }

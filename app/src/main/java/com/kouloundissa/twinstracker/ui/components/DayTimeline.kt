@@ -38,7 +38,6 @@ import java.util.Date
 fun DayTimeline(
     events: List<Event>,
     onEdit: (Event) -> Unit,
-    modifier: Modifier = Modifier,
     hourRowHeight: Dp = 60.dp
 ) {
     val baseColor = MaterialTheme.colorScheme.primary
@@ -53,23 +52,23 @@ fun DayTimeline(
         )
     }
 
-    Column(modifier.fillMaxSize()) {
+    Column() {
         repeat(24) { hour ->
             val covering = spans.filter { it.coversHour(hour) }
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(hourRowHeight)
-                    .padding(horizontal = 12.dp),
+                    .height(hourRowHeight),
                 verticalAlignment = Alignment.Top
             ) {
                 Text(
                     text = "%02d:00".format(hour),
                     style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.width(48.dp)
+                    modifier = Modifier.width(32.dp)
+                        .align(Alignment.CenterVertically)
                 )
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(4.dp))
                 BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -111,7 +110,7 @@ fun EventSegment(
     parentWidth: Dp,
     currentHour: Int,
     startHour: Int,
-    hourRowHeight: Dp = 56.dp
+    hourRowHeight: Dp
 ) {
     val cornerShape = MaterialTheme.shapes.large
     val type = EventType.forClass(evt::class)
