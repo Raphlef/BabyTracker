@@ -61,6 +61,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -93,6 +94,7 @@ fun HomeScreen(
     babyViewModel: BabyViewModel = hiltViewModel(),
     eventViewModel: EventViewModel = hiltViewModel()
 ) {
+    val contentColor = Color.White
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val spacing = 16.dp
@@ -278,7 +280,7 @@ fun HomeScreen(
                         Text(
                             "Select a baby to see data",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = contentColor
                         )
                     }
                 }
@@ -307,9 +309,10 @@ fun HomeScreen(
                         Spacer(Modifier.height(24.dp))
                         Text(
                             "Aujourd'hui",
-                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.headlineMedium,
                             modifier = Modifier.padding(vertical = 8.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            color = contentColor,
                         )
                     }
 
@@ -372,9 +375,10 @@ fun HomeScreen(
                         Spacer(Modifier.height(24.dp))
                         Text(
                             "Recent Events",
-                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.headlineMedium,
                             modifier = Modifier.padding(vertical = 8.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            color = contentColor,
                         )
                     }
 
@@ -498,14 +502,12 @@ fun EventTypeCard(
     size: Dp,
     overlayContent: (@Composable BoxScope.() -> Unit)? = null
 ) {
-    val baseColor = MaterialTheme.colorScheme.primary
-    val contentColor = MaterialTheme.colorScheme.onSecondary
+    val contentColor = Color.White
     val cornerShape = MaterialTheme.shapes.extraLarge
     Surface(
         shape = cornerShape,
         tonalElevation = 0.dp,
         color = Color.Transparent,
-        contentColor = contentColor,
         modifier = Modifier
             .size(size)
             .combinedClickable(
@@ -522,7 +524,7 @@ fun EventTypeCard(
             modifier = Modifier
                 .fillMaxSize()
                 .alpha(0.85f)
-                .blur(radiusX = 1.dp, radiusY = 1.dp)
+                .blur(5.dp)
         )
 
         Box(
@@ -531,8 +533,8 @@ fun EventTypeCard(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            type.color.copy(alpha = 0.5f),
-                            type.color.copy(alpha = 0.15f)
+                            type.color.copy(alpha = 0.7f),
+                            type.color.copy(alpha = 0.3f)
                         )
                     ),
                     shape = cornerShape,
