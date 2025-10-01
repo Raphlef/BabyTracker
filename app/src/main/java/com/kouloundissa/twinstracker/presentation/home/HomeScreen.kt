@@ -589,11 +589,9 @@ private fun EventTypeDialog(
     eventViewModel: EventViewModel = hiltViewModel(),
     selectedBaby: Baby?
 ) {
-    val baseColor = MaterialTheme.colorScheme.primary
-    val contentColor = MaterialTheme.colorScheme.onPrimary
+    val contentColor = Color.White
     val cornerShape = MaterialTheme.shapes.extraLarge
 
-    val metrics = LocalConfiguration.current
 
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,  // skips intermediate state to start fully expanded
@@ -617,14 +615,22 @@ private fun EventTypeDialog(
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxSize().blur(3.dp)
             )
 
             // 2. Semi-transparent overlay tint
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(type.color.copy(alpha = 0.5f))
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                type.color.copy(alpha = 0.35f),
+                                type.color.copy(alpha = 0.15f)
+                            )
+                        ),
+                        shape = cornerShape,
+                    )
             )
 
             Column(
