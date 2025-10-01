@@ -440,19 +440,47 @@ class EventViewModel @Inject constructor(
     fun deleteEvent(eventId: String, babyId: String) {
         _isDeleting.value = true
         _deleteError.value = null
+
         viewModelScope.launch {
-            repository.deleteEvent(eventId).fold(
-                onSuccess = {
-                    _deleteSuccess.value = true
-                    streamEventsInRangeForBaby(babyId)
-                },
-                onFailure = { throwable ->
-                    _deleteError.value = throwable.localizedMessage
+            try {
+                // 1. Delete photo from Storage & clear Firestore field
+                try {
+                    repository.deletePhotoFromEntity("events", eventId)
+                } catch (e: Exception) {
+                    if (e is StorageException && e.errorCode == StorageException.ERROR_OBJECT_NOT_FOUND) {
+                        // Photo didn’t exist—ignore
+                    } else {
+                        throw e
+                    }
                 }
-            )
-            _isDeleting.value = false
+
+                // 2. Fetch current event to clear its photoUrl
+                val currentEvent = repository.getEventById(eventId).getOrThrow()
+                    ?: throw IllegalStateException("Event not found")
+
+                val eventWithoutPhoto = currentEvent.setPhotoUrl(photoUrl = null)
+
+                // 3. Persist Firestore update (remove photoUrl)
+                repository.updateEvent(eventId, eventWithoutPhoto).getOrThrow()
+
+                // 4. Now delete the event document itself
+                repository.deleteEvent(eventId).fold(
+                    onSuccess = {
+                        _deleteSuccess.value = true
+                        streamEventsInRangeForBaby(babyId)
+                    },
+                    onFailure = { throwable ->
+                        throw throwable
+                    }
+                )
+            } catch (throwable: Throwable) {
+                _deleteError.value = throwable.localizedMessage
+            } finally {
+                _isDeleting.value = false
+            }
         }
     }
+
 
     // Call this to clear any previous delete outcome
     fun resetDeleteState() {
