@@ -52,54 +52,54 @@ fun DayTimeline(
         )
     }
 
-    Column() {
-        repeat(24) { hour ->
-            val covering = spans.filter { it.coversHour(hour) }
+   Column() {
+    repeat(24) { hour ->
+        val covering = spans.filter { it.coversHour(hour) }
 
-            Row(
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(hourRowHeight),
+            verticalAlignment = Alignment.Top
+        ) {
+            Text(
+                text = "%02d:00".format(hour),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.width(32.dp)
+                    .align(Alignment.CenterVertically)
+            )
+            Spacer(Modifier.width(4.dp))
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(hourRowHeight),
-                verticalAlignment = Alignment.Top
-            ) {
-                Text(
-                    text = "%02d:00".format(hour),
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.width(32.dp)
-                        .align(Alignment.CenterVertically)
-                )
-                Spacer(Modifier.width(4.dp))
-                BoxWithConstraints(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(hourRowHeight - 4.dp)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    baseColor.copy(alpha = 0.85f),
-                                    baseColor.copy(alpha = 0.55f)
-                                )
-                            ),
-                            shape = cornerShape,
-                        )
-                ) {
-                    covering
-                        .sortedByDescending { it.evt is SleepEvent }
-                        .forEach { span ->
-                            EventSegment(
-                                evt = span.evt,
-                                onEdit = onEdit,
-                                eventTypes = eventTypes,
-                                parentWidth = maxWidth,
-                                currentHour = hour,
-                                startHour = span.startHour,
-                                hourRowHeight = hourRowHeight - 4.dp
+                    .height(hourRowHeight - 4.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                baseColor.copy(alpha = 0.85f),
+                                baseColor.copy(alpha = 0.55f)
                             )
-                        }
-                }
+                        ),
+                        shape = cornerShape,
+                    )
+            ) {
+                covering
+                    .sortedByDescending { it.evt is SleepEvent }
+                    .forEach { span ->
+                        EventSegment(
+                            evt = span.evt,
+                            onEdit = onEdit,
+                            eventTypes = eventTypes,
+                            parentWidth = maxWidth,
+                            currentHour = hour,
+                            startHour = span.startHour,
+                            hourRowHeight = hourRowHeight - 4.dp
+                        )
+                    }
             }
         }
     }
+}
 }
 
 @Composable
