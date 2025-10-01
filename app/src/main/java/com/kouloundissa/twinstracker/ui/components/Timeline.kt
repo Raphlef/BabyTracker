@@ -110,9 +110,8 @@ fun EventCard(
 ) {
     val eventType = EventType.forClass(event::class)
 
-    val baseColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
     val contentColor = Color.White
-
+    val backColor = Color.DarkGray
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     val context = LocalContext.current
@@ -133,7 +132,7 @@ fun EventCard(
 
         // Foreground card
         Surface(
-            color = Color.Transparent,
+            color = backColor.copy(alpha = 0.3f),
             shape = cornerShape,
             modifier = Modifier
                 .fillMaxWidth()
@@ -263,7 +262,7 @@ private fun EventTypeIndicator(eventType: EventType) {
         modifier = Modifier
             .size(48.dp)
             .clip(CircleShape)
-            .background(eventType.color.copy(alpha = 0.15f)),
+            .background(Color.DarkGray.copy(alpha = 0.15f)),
         contentAlignment = Alignment.Center
     ) {
         Icon(
