@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,10 +23,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
+import androidx.compose.ui.zIndex
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.SleepEvent
@@ -52,54 +57,63 @@ fun DayTimeline(
         )
     }
 
-   Column() {
-    repeat(24) { hour ->
-        val covering = spans.filter { it.coversHour(hour) }
+    Column() {
+        repeat(24) { hour ->
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(hourRowHeight),
-            verticalAlignment = Alignment.Top
-        ) {
-            Text(
-                text = "%02d:00".format(hour),
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.width(32.dp)
-                    .align(Alignment.CenterVertically)
-            )
-            Spacer(Modifier.width(4.dp))
-            BoxWithConstraints(
+
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(hourRowHeight - 4.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                baseColor.copy(alpha = 0.85f),
-                                baseColor.copy(alpha = 0.55f)
-                            )
-                        ),
-                        shape = cornerShape,
-                    )
+                    .height(hourRowHeight),
+                verticalAlignment = Alignment.Top
             ) {
-                covering
-                    .sortedByDescending { it.evt is SleepEvent }
-                    .forEach { span ->
-                        EventSegment(
-                            evt = span.evt,
-                            onEdit = onEdit,
-                            eventTypes = eventTypes,
-                            parentWidth = maxWidth,
-                            currentHour = hour,
-                            startHour = span.startHour,
-                            hourRowHeight = hourRowHeight - 4.dp
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(hourRowHeight - 4.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    baseColor.copy(alpha = 0.85f),
+                                    baseColor.copy(alpha = 0.55f)
+                                )
+                            ),
+                            shape = cornerShape,
+                        )
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(84.dp)
+                            .fillMaxHeight()
+                            .align(Alignment.Center)
+                            .zIndex(1f),
+                    ) {
+                        Text(
+                            text = "%02d:00".format(hour),
+                            style =  MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = FontWeight.Bold        // Bold text
+                                ),
+                            color = Color.White.copy(alpha = 0.5f)
                         )
                     }
+                    val covering = spans.filter { it.coversHour(hour) }
+                    covering
+                        .sortedByDescending { it.evt is SleepEvent }
+                        .forEach { span ->
+                            EventSegment(
+                                evt = span.evt,
+                                onEdit = onEdit,
+                                eventTypes = eventTypes,
+                                parentWidth = maxWidth,
+                                currentHour = hour,
+                                startHour = span.startHour,
+                                hourRowHeight = hourRowHeight - 4.dp
+                            )
+                        }
+                }
             }
         }
     }
-}
 }
 
 @Composable
@@ -229,7 +243,7 @@ fun computeLayoutParams(
     }
     val nonSleep = eventTypes.filterNot { it.eventClass == SleepEvent::class }
     val columns = nonSleep.size.coerceAtLeast(1)
-    val index = eventTypes.indexOf(EventType.forClass(evt::class))
+    val index = nonSleep.indexOf(EventType.forClass(evt::class))
         .coerceIn(0, columns - 1)
     val w = parentWidth / columns
     return LayoutParams(w, w * index)
