@@ -126,7 +126,7 @@ fun EventCard(
 
     val density = LocalDensity.current
     val maxSwipePx = with(density) { 120.dp.toPx() }
-    val thresholdPx = with(density) { 80.dp.toPx() }
+    val thresholdPx = with(density) { 50.dp.toPx() }
 
     Box(modifier = modifier.fillMaxWidth()) {
 
@@ -140,7 +140,7 @@ fun EventCard(
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures(
                         onDragEnd = {
-                            if (offsetX <= -thresholdPx && deleteAction != null) {
+                            if (!showConfirm && offsetX <= -thresholdPx) {
                                 showConfirm = true
                                 offsetX = -maxSwipePx
                             } else {
@@ -148,9 +148,21 @@ fun EventCard(
                                 offsetX = 0f
                             }
                         }
-                    ) { _, delta ->
-                        if (!showConfirm && deleteAction != null) {
-                            offsetX = (offsetX + delta).coerceIn(-maxSwipePx, 0f)
+                    ) { change, delta ->
+                        change.consume()
+                        when {
+                            // If confirmation is showing and user drags right, cancel it
+                            showConfirm && delta > 0 -> {
+                                showConfirm = false
+                                offsetX = 0f
+                            }
+                            // Only allow leftward drag to reveal confirm
+                            !showConfirm && delta < 0 -> {
+                                offsetX = (offsetX + delta).coerceIn(-maxSwipePx, 0f)
+                            }
+                            // Ignore other drags
+                            else -> { /* no-op */
+                            }
                         }
                     }
                 }
@@ -224,7 +236,7 @@ fun EventCard(
                     .fillMaxHeight()
                     .width(confirmWidth)
                     .align(Alignment.CenterEnd),
-                color = MaterialTheme.colorScheme.error,
+                color = Color.White.copy(alpha = 0.2f),
                 shape = cornerShape
             ) {
                 Box(
@@ -240,7 +252,7 @@ fun EventCard(
                     Icon(
                         Icons.Default.Delete,
                         contentDescription = "Confirm delete",
-                        tint = MaterialTheme.colorScheme.onError,
+                        tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier
                             .size(48.dp)
                             .clickable {
