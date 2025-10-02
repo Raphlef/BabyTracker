@@ -7,9 +7,11 @@ import android.provider.ContactsContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,24 +19,30 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.BloodType
 import com.kouloundissa.twinstracker.data.Gender
@@ -96,19 +104,7 @@ fun BabyFormDialog(
     ModalBottomSheet(
         onDismissRequest = onCancel,
         sheetState = bottomSheetState,
-        dragHandle = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Title
-                Text(
-                    text = if (isEditMode) "Edit Baby" else "Create Baby",
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-            }
-        }
+        containerColor = Color.Transparent,
     ) {
         BabyFormBottomSheetContent(
             state = formState,
@@ -268,7 +264,8 @@ private fun BabyFormBottomSheetContent(
     onOpenDeleteDialog: () -> Unit,
     onSave: (Baby, Uri?, Boolean) -> Unit
 ) {
-
+    val baseColor = MaterialTheme.colorScheme.primary
+    val contentColor = Color.White
     val cornerShape = MaterialTheme.shapes.extraLarge
     Surface(
         shape = cornerShape,
@@ -278,23 +275,54 @@ private fun BabyFormBottomSheetContent(
             .fillMaxWidth()          // use full width
             .fillMaxHeight(0.75f)
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.background),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .blur(radiusX = 4.dp, radiusY = 4.dp)
+        )
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 20.dp)
                 .navigationBarsPadding()
-                .imePadding()
         ) {
+            // Header
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = if (isEditMode) "Edit Baby" else "Create Baby",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor,
+                )
+                IconButton(
+                    onClick = onCancel,
+                    modifier = Modifier
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            CircleShape
+                        )
+                        .size(40.dp)
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = "Close")
+                }
+            }
+            Spacer(Modifier.height(16.dp))
             // Form content with scroll
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
+                    .verticalScroll(rememberScrollState())
             ) {
-                Column(
-                    modifier = Modifier
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 24.dp)
-                ) {
+
+                Column {
                     BabyFormContent(
                         state = state,
                         isEditMode = isEditMode,
@@ -351,10 +379,13 @@ private fun BabyFormActionButtons(
     onDelete: () -> Unit,
     onSave: () -> Unit
 ) {
+
+    val cornerShape = MaterialTheme.shapes.extraLarge
+    val contentColor = Color.White
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 8.dp
+        color = contentColor.copy(alpha = 0.2f),
+        shape = cornerShape,
     ) {
         Column(
             modifier = Modifier.padding(24.dp)
@@ -385,7 +416,7 @@ private fun BabyFormActionButtons(
             // Secondary actions row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 // Cancel button
                 OutlinedButton(
@@ -511,7 +542,7 @@ private fun BabyFormContent(
         }
     }
 
-    Column {
+
         NameField(
             value = state.name,
             isError = state.nameError,
@@ -622,7 +653,6 @@ private fun BabyFormContent(
             value = state.notes,
             onChange = { state.notes = it }
         )
-    }
 }
 
 /* -----------------------
