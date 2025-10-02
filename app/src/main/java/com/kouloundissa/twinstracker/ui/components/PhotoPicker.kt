@@ -62,6 +62,7 @@ fun PhotoPicker(
     onPhotoSelected: (Uri?) -> Unit,
     onPhotoRemoved: () -> Unit
 ) {
+    val contentColor = Color.White
     val context = LocalContext.current
 
     // State to hold the URI actually displayed (remote or local)
@@ -139,7 +140,7 @@ fun PhotoPicker(
             .fillMaxWidth()
             .height(150.dp)
             .clip(MaterialTheme.shapes.medium)
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
+            .background(contentColor.copy(alpha = 0.20f))
     ) {
         if (displayUri != null) {
             // Build Coil request
@@ -204,7 +205,7 @@ fun PhotoPicker(
                 Icon(
                     imageVector = Icons.Default.CameraAlt,
                     contentDescription = "Add Photo",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                    tint = contentColor.copy(alpha = 0.7f),
                     modifier = Modifier.size(48.dp)
                 )
             }
