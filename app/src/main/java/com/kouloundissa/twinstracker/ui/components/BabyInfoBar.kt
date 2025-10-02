@@ -37,8 +37,8 @@ fun BabyInfoBar(
     baby: Baby,
     onEditClick: () -> Unit = {}
 ) {
-    val baseColor = MaterialTheme.colorScheme.primary
-    val contentColor =Color.White
+    val baseColor = Color.White
+    val contentColor = MaterialTheme.colorScheme.primary
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     Surface(
@@ -55,8 +55,8 @@ fun BabyInfoBar(
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(
-                            baseColor.copy(alpha = 0.85f),
-                            baseColor.copy(alpha = 0.55f)
+                            baseColor.copy(alpha = 0.45f),
+                            baseColor.copy(alpha = 0.15f)
                         )
                     ),
                     shape = cornerShape

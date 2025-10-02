@@ -310,8 +310,8 @@ fun BabySelectorRow(
     onSelectBaby: (Baby) -> Unit,
     onAddBaby: () -> Unit
 ) {
-    val baseColor = MaterialTheme.colorScheme.primary
-    val contentColor = Color.White
+    val baseColor = Color.White
+    val contentColor = MaterialTheme.colorScheme.primary
 
     val cornerShape = MaterialTheme.shapes.extraLarge
 
