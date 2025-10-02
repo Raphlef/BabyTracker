@@ -647,6 +647,7 @@ private fun ShowTimePickerDialog(
 
 @Composable
 private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
+    val contentColor = Color.White
     // Diaper Type
     IconSelector(
         title = "Diaper Type",
@@ -704,7 +705,7 @@ private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) 
         onValueChange = {
             viewModel.updateForm { (this as EventFormState.Diaper).copy(notes = it) }
         },
-        label = { Text("Notes (optional)") },
+        label = { Text("Notes (optional)", color = contentColor.copy(alpha = 0.8f)) },
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -718,7 +719,7 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
         if (begin != null && end != null)
             ((end.time - begin.time) / 60000).coerceAtLeast(0L)
         else null
-
+    val contentColor = Color.White
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxWidth()
@@ -782,7 +783,7 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
     OutlinedTextField(
         value = state.notes,
         onValueChange = { viewModel.updateForm { (this as EventFormState.Sleep).copy(notes = it) } },
-        label = { Text("Notes (optional)") },
+        label = { Text("Notes (optional)", color = contentColor.copy(alpha = 0.8f)) },
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -792,6 +793,7 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
 
 @Composable
 private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
+    val contentColor = Color.White
     // Feed Type
     IconSelector(
         title = "Feed Type",
@@ -861,7 +863,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
     OutlinedTextField(
         value = state.notes,
         onValueChange = { viewModel.updateForm { (this as EventFormState.Feeding).copy(notes = it) } },
-        label = { Text("Notes (optional)", color = Color.White) },
+        label = { Text("Notes (optional)", color = contentColor.copy(alpha = 0.8f)) },
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -871,6 +873,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
 
 @Composable
 private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) {
+    val contentColor = Color.White
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxWidth()
@@ -912,7 +915,7 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
     OutlinedTextField(
         value = state.notes,
         onValueChange = { viewModel.updateForm { (this as EventFormState.Growth).copy(notes = it) } },
-        label = { Text("Notes (optional)") },
+        label = { Text("Notes (optional)", color = contentColor.copy(alpha = 0.8f)) },
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -925,6 +928,7 @@ private fun PumpingForm(
     state: EventFormState.Pumping,
     viewModel: EventViewModel
 ) {
+    val contentColor = Color.White
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier
@@ -985,7 +989,7 @@ private fun PumpingForm(
                     (this as EventFormState.Pumping).copy(notes = it)
                 }
             },
-            label = { Text("Notes (optional)") },
+            label = { Text("Notes (optional)", color = contentColor.copy(alpha = 0.8f)) },
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
@@ -997,6 +1001,7 @@ private fun PumpingForm(
 
 @Composable
 private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
+    val contentColor = Color.White
     Column(modifier = Modifier.fillMaxWidth()) {
         // Drug Type Picker
         IconSelector(
@@ -1072,7 +1077,7 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
                     (this as EventFormState.Drugs).copy(notes = newNotes)
                 }
             },
-            label = { Text("Notes (optional)") },
+            label = { Text("Notes (optional)", color = contentColor.copy(alpha = 0.8f)) },
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
