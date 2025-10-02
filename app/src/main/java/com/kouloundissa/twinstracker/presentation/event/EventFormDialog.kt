@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.presentation.event
 
+import android.graphics.Color.alpha
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -306,8 +307,9 @@ fun EventFormDialog(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(horizontal = 16.dp)
+                        .background(color = contentColor.copy(alpha = 0.2f), shape = cornerShape)
+                        .padding(12.dp)
                 ) {
                     TextButton(onClick = onDismiss) {
                         Text("Cancel", color = MaterialTheme.colorScheme.primary)
@@ -509,7 +511,7 @@ fun ModernDateSelector(
                 TextButton(onClick = { showDatePicker = false }) {
                     Text("Cancel")
                 }
-            }
+            },
         ) {
             DatePicker(state = datePickerState)
         }
@@ -607,6 +609,8 @@ private fun ShowTimePickerDialog(
     onTimeSelected: (Date) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val contentColor = Color.White
+
     // Extract initial hour/minute
     val (initialHour, initialMinute) = remember(initialDate) {
         Calendar.getInstance().apply { time = initialDate }
@@ -719,6 +723,7 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
         if (begin != null && end != null)
             ((end.time - begin.time) / 60000).coerceAtLeast(0L)
         else null
+
     val contentColor = Color.White
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
