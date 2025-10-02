@@ -47,6 +47,7 @@ import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.BloodType
 import com.kouloundissa.twinstracker.data.Gender
 import com.kouloundissa.twinstracker.presentation.event.IconSelector
+import com.kouloundissa.twinstracker.presentation.event.ModernDateSelector
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.PhotoPicker
@@ -170,9 +171,7 @@ class BabyFormState(
 ) {
     // Core fields
     var name by mutableStateOf(initial?.name.orEmpty())
-    var birthDateCal by mutableStateOf(
-        Calendar.getInstance().apply { initial?.let { timeInMillis = it.birthDate } }
-    )
+    var birthDateTimeMillis by mutableStateOf(initial?.birthDate ?: System.currentTimeMillis())
 
     // Photo
     var newPhotoUrl by mutableStateOf<Uri?>(null)
@@ -190,8 +189,6 @@ class BabyFormState(
     var lengthCm by mutableStateOf(initial?.birthLengthCm?.toString().orEmpty())
     var headCirc by mutableStateOf(initial?.birthHeadCircumferenceCm?.toString().orEmpty())
 
-    // Time field
-    var birthTime by mutableStateOf(initial?.birthTime.orEmpty())
 
     // Free text fields
     var allergies by mutableStateOf(initial?.allergies?.joinToString(", ").orEmpty())
@@ -206,19 +203,9 @@ class BabyFormState(
     var headCircError: String? by mutableStateOf(null)
     var timeError: String? by mutableStateOf(null)
 
-    // Formatters
-    private val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-    val birthDateDisplay: String get() = dateFormat.format(birthDateCal.time)
-
-    fun onBirthTimeChanged(input: String) {
-        val filtered = input.filter { it.isDigit() || it == ':' }.take(5)
-        birthTime = filtered
-        timeError = when {
-            filtered.isBlank() -> null
-            !filtered.matches(Regex("^([01]?\\d|2[0-3]):[0-5]\\d$")) -> "Invalid time (HH:mm)"
-            else -> null
-        }
-    }
+    val birthDateDisplay: String
+        get() = SimpleDateFormat("EEE, MMM dd, yyyy • HH:mm", Locale.getDefault())
+            .format(Date(birthDateTimeMillis))
 
     fun validate(): Boolean {
         nameError = name.isBlank()
@@ -232,12 +219,12 @@ class BabyFormState(
         val baby = Baby(
             id = if (isEditMode) (original?.id ?: "") else "",
             name = name.trim(),
-            birthDate = birthDateCal.timeInMillis,
+            birthDate = birthDateTimeMillis,
+            birthTime = birthDateDisplay,
             gender = gender,
             birthWeightKg = weight.toDoubleOrNull(),
             birthLengthCm = lengthCm.toDoubleOrNull(),
             birthHeadCircumferenceCm = headCirc.toDoubleOrNull(),
-            birthTime = birthTime.ifBlank { null },
             bloodType = bloodType,
             allergies = allergies.split(",").map { it.trim() }.filter { it.isNotEmpty() },
             medicalConditions = conditions.split(",").map { it.trim() }
@@ -463,7 +450,7 @@ fun rememberBabyFormState(initial: Baby?): BabyFormState {
             save = { s ->
                 listOf(
                     s.name,
-                    s.birthDateCal.timeInMillis,
+                    s.birthDateTimeMillis,
                     s.newPhotoUrl?.toString(),
                     s.photoRemoved,
                     s.gender.name,
@@ -471,7 +458,6 @@ fun rememberBabyFormState(initial: Baby?): BabyFormState {
                     s.weight,
                     s.lengthCm,
                     s.headCirc,
-                    s.birthTime,
                     s.allergies,
                     s.conditions,
                     s.pediatricianContact,
@@ -481,9 +467,7 @@ fun rememberBabyFormState(initial: Baby?): BabyFormState {
             restore = { list ->
                 val dummy = BabyFormState(initial)
                 dummy.name = list[0] as String
-                dummy.birthDateCal = Calendar.getInstance().apply {
-                    timeInMillis = list[1] as Long
-                }
+                dummy.birthDateTimeMillis = list[1] as Long
                 dummy.newPhotoUrl = (list[2] as String?)?.let { Uri.parse(it) }
                 dummy.photoRemoved = list[3] as Boolean
                 dummy.gender = Gender.valueOf(list[4] as String)
@@ -491,11 +475,10 @@ fun rememberBabyFormState(initial: Baby?): BabyFormState {
                 dummy.weight = list[6] as String
                 dummy.lengthCm = list[7] as String
                 dummy.headCirc = list[8] as String
-                dummy.birthTime = list[9] as String
-                dummy.allergies = list[10] as String
-                dummy.conditions = list[11] as String
-                dummy.pediatricianContact = list[12] as String
-                dummy.notes = list[13] as String
+                dummy.allergies = list[9] as String
+                dummy.conditions = list[10] as String
+                dummy.pediatricianContact = list[11] as String
+                dummy.notes = list[12] as String
                 dummy
             }
         )
@@ -516,16 +499,6 @@ private fun BabyFormContent(
     onRequestDeletePhoto: () -> Unit,
 ) {
     val context = LocalContext.current
-
-    val datePicker = remember(state.birthDateCal.timeInMillis) {
-        DatePickerDialog(
-            context,
-            { _, year, month, day -> state.birthDateCal.set(year, month, day) },
-            state.birthDateCal.get(Calendar.YEAR),
-            state.birthDateCal.get(Calendar.MONTH),
-            state.birthDateCal.get(Calendar.DAY_OF_MONTH)
-        )
-    }
 
     val contactLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickContact()
@@ -569,9 +542,10 @@ private fun BabyFormContent(
 
     Spacer(Modifier.height(16.dp))
 
-    BirthDatePickerSection(
-        birthDate = state.birthDateDisplay,
-        onClick = { datePicker.show() }
+    ModernDateSelector(
+        selectedDate = Date(state.birthDateTimeMillis),
+        onDateSelected =  { dt -> state.birthDateTimeMillis = dt.time },
+        modifier = Modifier.fillMaxWidth()
     )
 
     Spacer(Modifier.height(16.dp))
@@ -609,14 +583,6 @@ private fun BabyFormContent(
         onChange = { state.headCirc = it },
         error = state.headCircError,
         onErrorChange = { state.headCircError = it }
-    )
-
-    Spacer(Modifier.height(12.dp))
-
-    BirthTimeField(
-        value = state.birthTime,
-        error = state.timeError,
-        onChange = state::onBirthTimeChanged
     )
 
     Spacer(Modifier.height(12.dp))
@@ -689,16 +655,6 @@ private fun PhotoPickerSection(
 }
 
 @Composable
-private fun BirthDatePickerSection(
-    birthDate: String,
-    onClick: () -> Unit
-) {
-    Button(onClick = onClick) {
-        Text("Birth Date: $birthDate")
-    }
-}
-
-@Composable
 private fun GenderSelector(
     selected: Gender,
     onSelect: (Gender) -> Unit
@@ -743,24 +699,6 @@ private fun NumericFieldSection(
         modifier = Modifier.fillMaxWidth(),
 
         )
-    error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-}
-
-@Composable
-private fun BirthTimeField(
-    value: String,
-    error: String?,
-    onChange: (String) -> Unit
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onChange,
-        label = { Text("Birth Time (HH:mm)") },
-        isError = error != null,
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        modifier = Modifier.fillMaxWidth()
-    )
     error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 }
 
