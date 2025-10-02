@@ -606,19 +606,19 @@ private fun EventTypeDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.75f)
-                // at least 200dp tall, up to 70% screen height
                 .clip(cornerShape)
         ) {
-            // 1. Background image sized to the dialog
+            val blurRadius = if (events.size > 5) 5.dp else 1.dp
+            //  Background image sized to the dialog
             Image(
                 painter = painterResource(id = type.drawableRes),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .fillMaxSize().blur(3.dp)
+                    .fillMaxSize().blur(blurRadius)
             )
 
-            // 2. Semi-transparent overlay tint
+            //  Semi-transparent overlay tint
             Box(
                 modifier = Modifier
                     .fillMaxSize()
