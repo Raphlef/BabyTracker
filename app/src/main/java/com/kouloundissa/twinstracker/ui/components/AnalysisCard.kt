@@ -44,7 +44,7 @@ fun AnalysisCard(
     title: String,
     content: @Composable BoxScope.() -> Unit
 ) {
-    val baseColor = MaterialTheme.colorScheme.primary
+    val baseColor = Color.White
     val cornerShape = MaterialTheme.shapes.large
     Surface(
         modifier = Modifier
@@ -61,8 +61,8 @@ fun AnalysisCard(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            baseColor.copy(alpha = 0.85f),
-                            baseColor.copy(alpha = 0.55f)
+                            baseColor.copy(alpha = 0.65f),
+                            baseColor.copy(alpha = 0.35f)
                         )
                     ),
                 )
