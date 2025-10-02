@@ -543,116 +543,116 @@ private fun BabyFormContent(
     }
 
 
-        NameField(
-            value = state.name,
-            isError = state.nameError,
-            onChange = {
-                state.name = it
-                if (state.nameError) state.nameError = false
-            }
-        )
+    NameField(
+        value = state.name,
+        isError = state.nameError,
+        onChange = {
+            state.name = it
+            if (state.nameError) state.nameError = false
+        }
+    )
 
-        Spacer(Modifier.height(16.dp))
+    Spacer(Modifier.height(16.dp))
 
-        PhotoPickerSection(
-            photoUrl = state.newPhotoUrl ?: existingPhotoUrl?.toUri(),
-            onPhotoSelected = {
-                state.newPhotoUrl = it
-                state.photoRemoved = false
-            },
-            onPhotoRemoved = {
-                if (isEditMode) onRequestDeletePhoto()
-                state.newPhotoUrl = null
-                state.photoRemoved = true
-            }
-        )
+    PhotoPickerSection(
+        photoUrl = state.newPhotoUrl ?: existingPhotoUrl?.toUri(),
+        onPhotoSelected = {
+            state.newPhotoUrl = it
+            state.photoRemoved = false
+        },
+        onPhotoRemoved = {
+            if (isEditMode) onRequestDeletePhoto()
+            state.newPhotoUrl = null
+            state.photoRemoved = true
+        }
+    )
 
-        Spacer(Modifier.height(16.dp))
+    Spacer(Modifier.height(16.dp))
 
-        BirthDatePickerSection(
-            birthDate = state.birthDateDisplay,
-            onClick = { datePicker.show() }
-        )
+    BirthDatePickerSection(
+        birthDate = state.birthDateDisplay,
+        onClick = { datePicker.show() }
+    )
 
-        Spacer(Modifier.height(16.dp))
+    Spacer(Modifier.height(16.dp))
 
-        GenderSelector(
-            selected = state.gender,
-            onSelect = { state.gender = it }
-        )
+    GenderSelector(
+        selected = state.gender,
+        onSelect = { state.gender = it }
+    )
 
-        Spacer(Modifier.height(16.dp))
+    Spacer(Modifier.height(16.dp))
 
-        NumericFieldSection(
-            label = "Weight (kg)",
-            value = state.weight,
-            onChange = { state.weight = it },
-            error = state.weightError,
-            onErrorChange = { state.weightError = it }
-        )
+    NumericFieldSection(
+        label = "Weight (kg)",
+        value = state.weight,
+        onChange = { state.weight = it },
+        error = state.weightError,
+        onErrorChange = { state.weightError = it }
+    )
 
-        Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(12.dp))
 
-        NumericFieldSection(
-            label = "Length (cm)",
-            value = state.lengthCm,
-            onChange = { state.lengthCm = it },
-            error = state.lengthError,
-            onErrorChange = { state.lengthError = it }
-        )
+    NumericFieldSection(
+        label = "Length (cm)",
+        value = state.lengthCm,
+        onChange = { state.lengthCm = it },
+        error = state.lengthError,
+        onErrorChange = { state.lengthError = it }
+    )
 
-        Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(12.dp))
 
-        NumericFieldSection(
-            label = "Head Circumference (cm)",
-            value = state.headCirc,
-            onChange = { state.headCirc = it },
-            error = state.headCircError,
-            onErrorChange = { state.headCircError = it }
-        )
+    NumericFieldSection(
+        label = "Head Circumference (cm)",
+        value = state.headCirc,
+        onChange = { state.headCirc = it },
+        error = state.headCircError,
+        onErrorChange = { state.headCircError = it }
+    )
 
-        Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(12.dp))
 
-        BirthTimeField(
-            value = state.birthTime,
-            error = state.timeError,
-            onChange = state::onBirthTimeChanged
-        )
+    BirthTimeField(
+        value = state.birthTime,
+        error = state.timeError,
+        onChange = state::onBirthTimeChanged
+    )
 
-        Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(12.dp))
 
-        BloodTypeSelector(
-            selected = state.bloodType,
-            onSelect = { state.bloodType = it }
-        )
+    BloodTypeSelector(
+        selected = state.bloodType,
+        onSelect = { state.bloodType = it }
+    )
 
-        Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(12.dp))
 
-        AllergiesField(
-            value = state.allergies,
-            onChange = { state.allergies = it }
-        )
+    AllergiesField(
+        value = state.allergies,
+        onChange = { state.allergies = it }
+    )
 
-        Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(12.dp))
 
-        ConditionsField(
-            value = state.conditions,
-            onChange = { state.conditions = it }
-        )
+    ConditionsField(
+        value = state.conditions,
+        onChange = { state.conditions = it }
+    )
 
-        Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(12.dp))
 
-        PediatricianContactField(
-            value = state.pediatricianContact,
-            onPick = { contactLauncher.launch(null) }
-        )
+    PediatricianContactField(
+        value = state.pediatricianContact,
+        onPick = { contactLauncher.launch(null) }
+    )
 
-        Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(12.dp))
 
-        NotesField(
-            value = state.notes,
-            onChange = { state.notes = it }
-        )
+    NotesField(
+        value = state.notes,
+        onChange = { state.notes = it }
+    )
 }
 
 /* -----------------------
@@ -721,12 +721,29 @@ private fun NumericFieldSection(
     error: String?,
     onErrorChange: (String?) -> Unit
 ) {
-    NumericField(
-        label,
-        value,
-        onChange,
-        error
-    ) { onErrorChange(it) }
+    val contentColor = Color.White
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
+    OutlinedTextField(
+        value = value,
+        onValueChange = { new ->
+            // Allow only digits and at most one dot
+            val filtered = new.filter { it.isDigit() || it == '.' }
+            val cleaned = if (filtered.count { it == '.' } > 1) value else filtered
+            onChange(cleaned)
+            onErrorChange(
+                if (cleaned.isNotBlank() && cleaned.toDoubleOrNull() == null)
+                    "Nombre invalide" else null
+            )
+        },
+        label = { Text(label, color = contentColor.copy(alpha = 0.8f)) },
+        isError = error != null,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = Modifier.fillMaxWidth(),
+
+        )
+    error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 }
 
 @Composable
@@ -862,35 +879,4 @@ private fun DeleteConfirmationDialog(
         }
     )
 }
-
-
-@Composable
-fun NumericField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    errorMsg: String?,
-    setError: (String?) -> Unit
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = { new ->
-            // Allow only digits and at most one dot
-            val filtered = new.filter { it.isDigit() || it == '.' }
-            val cleaned = if (filtered.count { it == '.' } > 1) value else filtered
-            onValueChange(cleaned)
-            setError(
-                if (cleaned.isNotBlank() && cleaned.toDoubleOrNull() == null)
-                    "Nombre invalide" else null
-            )
-        },
-        label = { Text(label) },
-        isError = errorMsg != null,
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        modifier = Modifier.fillMaxWidth()
-    )
-    errorMsg?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-}
-
 
