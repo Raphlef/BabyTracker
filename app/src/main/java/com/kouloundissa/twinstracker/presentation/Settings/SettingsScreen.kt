@@ -10,6 +10,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,9 +59,9 @@ fun SettingsScreen(
     var localeChoice by remember { mutableStateOf(profile?.locale.orEmpty()) }
     var notificationsEnabled by remember { mutableStateOf(profile?.notificationsEnabled == true) }
 
-    val themeOptions = Theme.entries.toList()
-    val localeOptions = listOf("fr", "en", "es", "de")
 
+    val baseColor = Color.White
+    val contentColor = MaterialTheme.colorScheme.primary
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = Color.Transparent,
@@ -74,6 +75,16 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // — Family Management Section —
+            item {
+                SectionCard(
+                    "Gestion de la famille",
+                    icon = Icons.Default.FamilyRestroom
+                )
+                {
+                    FamilyManagementCard(families, familyViewModel, isFamilyLoading)
+                }
+            }
             // — Profile Section —
             item {
                 SectionCard(
@@ -110,61 +121,6 @@ fun SettingsScreen(
                 }
             }
 
-            // — Appearance & Language Section —
-            item {
-                SectionCard(
-                    "Apparence & Langue",
-                    icon = Icons.Default.Palette
-                ) {
-                    GlassCard(
-                        loading = isAuthLoading
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            IconSelector(
-                                title = "Thème de l’application",
-                                options = themeOptions,
-                                selected = themeOptions.find { it.name == themeChoice },
-                                onSelect = { selected -> themeChoice = selected.name },
-                                getIcon = { theme ->
-                                    when (theme) {
-                                        Theme.LIGHT -> Icons.Default.LightMode
-                                        Theme.DARK -> Icons.Default.DarkMode
-                                        Theme.SYSTEM -> Icons.Default.Settings  // or any icon you prefer
-                                    }
-                                },
-                                getLabel = { it.name }
-                            )
-
-                            IconSelector(
-                                title = "Langue de l’interface",
-                                options = localeOptions,
-                                selected = localeOptions.find { it == localeChoice },
-                                onSelect = { selected -> localeChoice = selected },
-                                getIcon = {
-                                    // Example: use flags or generic language icons if available
-                                    Icons.Default.Language
-                                },
-                                getLabel = { it.uppercase() }
-                            )
-
-                            Button(
-                                onClick = {
-                                    authViewModel.updateUserProfile(
-                                        mapOf(
-                                            "theme" to themeChoice,
-                                            "locale" to localeChoice
-                                        )
-                                    )
-                                },
-                                enabled = !isAuthLoading,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Enregistrer les préférences")
-                            }
-                        }
-                    }
-                }
-            }
 
             // — Notifications & Default Baby Section —
             item {
@@ -201,16 +157,7 @@ fun SettingsScreen(
                 }
             }
 
-            // — Family Management Section —
-            item {
-                SectionCard(
-                    "Gestion de la famille",
-                    icon = Icons.Default.FamilyRestroom
-                )
-                {
-                    FamilyManagementCard(families, familyViewModel, isFamilyLoading)
-                }
-            }
+
         }
 
 
@@ -229,16 +176,19 @@ fun SectionCard(
     onClickHeader: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
+
+    val baseColor = Color.White
+    val tintColor = MaterialTheme.colorScheme.primary
+    val contentColor = Color.DarkGray
     Card(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = baseColor.copy(alpha = 0.4f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column {
+        Column(modifier = Modifier) {
             // Header row
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -246,14 +196,14 @@ fun SectionCard(
                     .fillMaxWidth()
                     .clickable(enabled = onClickHeader != null) {
                         onClickHeader?.invoke()
-                    }
+                    }.background(color = baseColor.copy(alpha = 0.6f))
                     .padding(16.dp)
             ) {
                 icon?.let {
                     Icon(
                         imageVector = it,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = tintColor,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -261,21 +211,24 @@ fun SectionCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium.copy(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = contentColor,
                         fontWeight = FontWeight.SemiBold
                     )
                 )
             }
 
             // Divider between header and content
-            Divider(color = MaterialTheme.colorScheme.outline)
+            HorizontalDivider(
+                Modifier,
+                DividerDefaults.Thickness,
+                color = MaterialTheme.colorScheme.outline
+            )
 
             // Subcard content area
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
                     .padding(16.dp)
             ) {
                 content()
@@ -289,17 +242,16 @@ fun GlassCard(
     modifier: Modifier = Modifier,
     loading: Boolean = false,
     shape: Shape = RoundedCornerShape(16.dp),
-    backgroundAlpha: Float = 0.6f,
     content: @Composable ColumnScope.() -> Unit
 ) {
+
+    val baseColor = Color.White
+    val contentColor = MaterialTheme.colorScheme.primary
+
     Box(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = backgroundAlpha),
-                    shape = shape
-                )
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             content = content
@@ -309,11 +261,11 @@ fun GlassCard(
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = backgroundAlpha)),
+                    .background(baseColor.copy(alpha = 0.4f)),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.primary,
+                    color = contentColor,
                     strokeWidth = 2.dp
                 )
             }
