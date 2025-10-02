@@ -38,7 +38,7 @@ fun BabyInfoBar(
     onEditClick: () -> Unit = {}
 ) {
     val baseColor = MaterialTheme.colorScheme.primary
-    val contentColor = MaterialTheme.colorScheme.onPrimary
+    val contentColor =Color.White
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     Surface(
