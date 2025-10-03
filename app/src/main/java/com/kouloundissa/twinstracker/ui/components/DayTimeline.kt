@@ -46,8 +46,8 @@ fun DayTimeline(
     onEdit: (Event) -> Unit,
     hourRowHeight: Dp = 60.dp
 ) {
-    val baseColor = DarkBlue
-    val contentColor = MaterialTheme.colorScheme.onSecondary
+    val contentColor = DarkGrey.copy(alpha = 0.5f)
+    val backgroundColor = BackgroundColor.copy(alpha = 0.2f)
     val cornerShape = MaterialTheme.shapes.large
 
     val eventTypes = EventType.entries
@@ -75,8 +75,8 @@ fun DayTimeline(
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    baseColor.copy(alpha = 0.85f),
-                                    baseColor.copy(alpha = 0.55f)
+                                    backgroundColor.copy(alpha = 0.85f),
+                                    backgroundColor.copy(alpha = 0.55f)
                                 )
                             ),
                             shape = cornerShape,
@@ -91,10 +91,10 @@ fun DayTimeline(
                     ) {
                         Text(
                             text = "%02d:00".format(hour),
-                            style =  MaterialTheme.typography.headlineMedium.copy(
+                            style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = FontWeight.Bold        // Bold text
-                                ),
-                            color = Color.White.copy(alpha = 0.5f)
+                            ),
+                            color = contentColor
                         )
                     }
                     val covering = spans.filter { it.coversHour(hour) }
