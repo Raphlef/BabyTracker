@@ -450,7 +450,7 @@ fun ModernDateSelector(
     val interimCalendar = remember { Calendar.getInstance().apply { time = selectedDate } }
 
     val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
-    val contentcolor = DarkGrey.copy(alpha=0.5f)
+    val contentcolor = DarkGrey
     val tint = DarkBlue
 
     // Date picker state
@@ -556,7 +556,7 @@ fun ModernTimeSelector(
     onDismiss: () -> Unit
 ) {
     val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
-    val contentColor = DarkGrey.copy(alpha=0.5f)
+    val contentColor = DarkGrey
     var showDialog by remember { mutableStateOf(false) }
     Surface(
         modifier = modifier
