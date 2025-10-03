@@ -23,6 +23,7 @@ import com.kouloundissa.twinstracker.ui.components.BackgroundContainer
 import com.kouloundissa.twinstracker.ui.components.CalendarGrid
 import com.kouloundissa.twinstracker.ui.components.FilterBar
 import com.kouloundissa.twinstracker.ui.components.MonthHeader
+import com.kouloundissa.twinstracker.ui.components.SwipeableCalendar
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
@@ -98,30 +99,16 @@ fun CalendarScreen(
                 contentPadding = contentPadding,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+
                 item {
-                    FilterBar(
-                        types = availableTypes,
-                        selected = filterTypes,
-                        onToggle = { type ->
-                            filterTypes =
-                                if (type in filterTypes) filterTypes - type else filterTypes + type
-                        }
-                    )
-                }
-                item {
-                    MonthHeader(currentMonth) { delta ->
-                        currentMonth = currentMonth.plusMonths(delta)
-                    }
-                }
-                item {
-                    CalendarGrid(
-                        year = currentMonth.year,
-                        month = currentMonth.monthValue,
+                    SwipeableCalendar(
+                        currentMonth = currentMonth,
+                        onMonthChange = { delta -> currentMonth = currentMonth.plusMonths(delta) },
                         eventsByDay = eventsByDay.mapValues { (_, evts) ->
                             evts.filter { filterTypes.contains(EventType.forClass(it::class)) }
                         },
-                        onDayClick = { selectedDate = it },
-                        selectedDate = selectedDate
+                        selectedDate = selectedDate,
+                        onDayClick = { selectedDate = it }
                     )
                 }
                 item {

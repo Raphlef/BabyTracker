@@ -55,7 +55,7 @@ fun CalendarGrid(
                 Text(
                     dow, Modifier.weight(1f), textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelMedium,
-                    color = contentColor
+                    color = BackgroundColor
                 )
             }
         }
