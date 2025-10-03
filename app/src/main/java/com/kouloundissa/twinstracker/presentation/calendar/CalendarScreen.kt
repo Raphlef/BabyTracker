@@ -22,6 +22,9 @@ import com.kouloundissa.twinstracker.ui.components.BackgroundContainer
 import com.kouloundissa.twinstracker.ui.components.CalendarGrid
 import com.kouloundissa.twinstracker.ui.components.FilterBar
 import com.kouloundissa.twinstracker.ui.components.MonthHeader
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
+import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -75,7 +78,9 @@ fun CalendarScreen(
             showDialog = true
         }
     }
-
+    val contentColor = DarkGrey.copy(alpha = 0.5f)
+    val backgroundColor = BackgroundColor.copy(alpha = 0.2f)
+    val tint = DarkBlue
     /** UI **/
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
