@@ -41,6 +41,7 @@ import com.kouloundissa.twinstracker.presentation.dashboard.DashboardTab
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import com.kouloundissa.twinstracker.ui.theme.*
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeEffect
@@ -155,8 +156,8 @@ fun IslandFAB(
     label: String
 ) {
     val fabSizeDp = 64.dp
-    val baseColor = Color(0xFFF9EBE2)
-    val contentColor = Color(0xFF003366)
+    val baseColor = SmallWhite
+    val contentColor = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     val iconSizeDp = 48.dp

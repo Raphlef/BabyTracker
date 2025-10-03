@@ -30,6 +30,7 @@ import com.kouloundissa.twinstracker.presentation.viewmodel.AuthViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.components.FamilyManagementCard
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import kotlinx.coroutines.flow.map
 
 
@@ -61,7 +62,7 @@ fun SettingsScreen(
 
 
     val baseColor = Color.White
-    val contentColor = MaterialTheme.colorScheme.primary
+    val contentColor = DarkBlue
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = Color.Transparent,
@@ -178,7 +179,7 @@ fun SectionCard(
 ) {
 
     val baseColor = Color.White
-    val tintColor = MaterialTheme.colorScheme.primary
+    val tintColor = DarkBlue
     val contentColor = Color.DarkGray
     Card(
         modifier = modifier
@@ -246,7 +247,7 @@ fun GlassCard(
 ) {
 
     val baseColor = Color.White
-    val contentColor = MaterialTheme.colorScheme.primary
+    val contentColor = DarkBlue
 
     Box(modifier = modifier.fillMaxWidth()) {
         Column(

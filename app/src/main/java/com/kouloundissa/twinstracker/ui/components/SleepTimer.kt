@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.kouloundissa.twinstracker.data.SleepEvent
+import com.kouloundissa.twinstracker.ui.theme.*
 import kotlinx.coroutines.delay
 
 import kotlin.time.ExperimentalTime
@@ -40,7 +41,7 @@ fun SleepTimer(
     modifier: Modifier = Modifier
 ) {
     var elapsedSeconds by remember { mutableStateOf(0L) }
-
+    val colorContent = DarkBlue
     // Launch a ticker that updates every minute
     LaunchedEffect(sleepEvent) {
         while (true) {
@@ -60,7 +61,7 @@ fun SleepTimer(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.75f))
+            .background(colorContent.copy(alpha = 0.75f))
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {

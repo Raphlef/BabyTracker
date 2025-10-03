@@ -48,6 +48,7 @@ import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.google.firebase.BuildConfig
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -170,7 +171,7 @@ fun PhotoPicker(
                         .background(Color.Black.copy(alpha = 0.4f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    CircularProgressIndicator(color = DarkBlue)
                 }
             }
 

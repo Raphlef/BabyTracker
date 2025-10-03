@@ -32,6 +32,7 @@ import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.presentation.viewmodel.AuthEvent
 import com.kouloundissa.twinstracker.presentation.viewmodel.AuthViewModel
 import com.kouloundissa.twinstracker.ui.components.BackgroundContainer
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import kotlinx.coroutines.launch
 
 @Composable
@@ -44,7 +45,7 @@ fun AuthScreen(
     val scope = rememberCoroutineScope()
     var emailError by remember { mutableStateOf<String?>(null) }
 
-    val baseColor = MaterialTheme.colorScheme.primary
+    val baseColor = DarkBlue
     val contentColor = MaterialTheme.colorScheme.onPrimary
 
 

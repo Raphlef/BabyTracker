@@ -47,6 +47,7 @@ import androidx.core.net.toUri
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.EventFormState.*
 import com.kouloundissa.twinstracker.ui.components.PhotoPicker
+import com.kouloundissa.twinstracker.ui.theme.*
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -312,7 +313,7 @@ fun EventFormDialog(
                         .padding(12.dp)
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = MaterialTheme.colorScheme.primary)
+                        Text("Cancel", color = DarkBlue)
                     }
                     // Show "Delete" only in edit mode
                     if (formState.eventId != null) {
@@ -445,7 +446,7 @@ fun ModernDateSelector(
 
     val backgroundcolor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
     val contentcolor = MaterialTheme.colorScheme.onSurfaceVariant
-    val tint = MaterialTheme.colorScheme.primary
+    val tint = DarkBlue
 
     // Date picker state
     val datePickerState = rememberDatePickerState(
@@ -564,7 +565,7 @@ fun ModernTimeSelector(
             Icon(
                 Icons.Default.Schedule,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = DarkBlue,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(Modifier.width(12.dp))
@@ -766,7 +767,7 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
     state.durationMinutes?.let { minutes ->
         Surface(
             shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            color = DarkGrey.copy(alpha = 0.3f)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,

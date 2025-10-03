@@ -76,6 +76,7 @@ import com.kouloundissa.twinstracker.presentation.settings.SettingsScreen
 import com.kouloundissa.twinstracker.ui.components.BabyInfoBar
 import com.kouloundissa.twinstracker.ui.components.BackgroundContainer
 import com.kouloundissa.twinstracker.ui.components.BottomNavBar
+import com.kouloundissa.twinstracker.ui.theme.*
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -310,8 +311,8 @@ fun BabySelectorRow(
     onSelectBaby: (Baby) -> Unit,
     onAddBaby: () -> Unit
 ) {
-    val baseColor = Color.White
-    val contentColor = MaterialTheme.colorScheme.primary
+    val baseColor = BackgroundColor
+    val contentColor = DarkBlue
 
     val cornerShape = MaterialTheme.shapes.extraLarge
 

@@ -24,6 +24,7 @@ import com.kouloundissa.twinstracker.ui.components.BarChartView
 import com.kouloundissa.twinstracker.ui.components.ComboChartView
 import com.kouloundissa.twinstracker.ui.components.LineChartView
 import com.kouloundissa.twinstracker.ui.components.MultiLineChartView
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
@@ -85,7 +86,7 @@ fun AnalysisScreen(
                 Text(
                     "Weekly Analysis \n($startDate - $endDate)",
                     style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    color = DarkBlue
                 )
             }
 

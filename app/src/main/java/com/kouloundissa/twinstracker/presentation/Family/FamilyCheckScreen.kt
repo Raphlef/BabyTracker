@@ -41,6 +41,7 @@ import com.kouloundissa.twinstracker.presentation.settings.GlassCard
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.components.JoinFamilyDialog
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import kotlinx.coroutines.flow.first
 import kotlin.collections.isNotEmpty
 
@@ -125,7 +126,7 @@ fun FamilyOnboardingContent(
                 imageVector = Icons.Default.FamilyRestroom,
                 contentDescription = null,
                 modifier = Modifier.size(80.dp),
-                tint = MaterialTheme.colorScheme.primary
+                tint = DarkBlue
             )
 
             Text(

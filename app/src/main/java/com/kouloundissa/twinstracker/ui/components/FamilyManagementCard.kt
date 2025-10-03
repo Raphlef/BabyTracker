@@ -58,6 +58,7 @@ import com.kouloundissa.twinstracker.presentation.event.IconSelector
 import com.kouloundissa.twinstracker.presentation.settings.GlassCard
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
+import com.kouloundissa.twinstracker.ui.theme.*
 import kotlinx.coroutines.flow.map
 import kotlin.collections.forEach
 
@@ -333,13 +334,14 @@ fun FamilyList(
     selectedFamily: Family?,
     onSelect: (Family) -> Unit
 ) {
+    val colorContent=DarkBlue
     Column {
         families.forEach { family ->
             val isSelected = family.id == selectedFamily?.id
             Surface(
                 tonalElevation = if (isSelected) 4.dp else 0.dp,
                 shape = MaterialTheme.shapes.medium,
-                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                color = if (isSelected) colorContent.copy(alpha = 0.1f)
                 else MaterialTheme.colorScheme.surface,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -355,7 +357,7 @@ fun FamilyList(
                     Icon(
                         imageVector = Icons.Default.FamilyRestroom,
                         contentDescription = null,
-                        tint = if (isSelected) MaterialTheme.colorScheme.primary
+                        tint = if (isSelected) colorContent
                         else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(24.dp)
                     )
@@ -363,7 +365,7 @@ fun FamilyList(
                     Text(
                         text = family.name,
                         style = MaterialTheme.typography.bodyLarge.copy(
-                            color = if (isSelected) MaterialTheme.colorScheme.primary
+                            color = if (isSelected) colorContent
                             else MaterialTheme.colorScheme.onSurface
                         ),
                         modifier = Modifier.weight(1f)
@@ -372,7 +374,7 @@ fun FamilyList(
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = "Selected",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = colorContent
                         )
                     }
                 }

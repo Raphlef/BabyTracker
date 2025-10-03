@@ -34,6 +34,7 @@ import androidx.compose.ui.zIndex
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.SleepEvent
+import com.kouloundissa.twinstracker.ui.theme.*
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -45,7 +46,7 @@ fun DayTimeline(
     onEdit: (Event) -> Unit,
     hourRowHeight: Dp = 60.dp
 ) {
-    val baseColor = MaterialTheme.colorScheme.primary
+    val baseColor = DarkBlue
     val contentColor = MaterialTheme.colorScheme.onSecondary
     val cornerShape = MaterialTheme.shapes.large
 

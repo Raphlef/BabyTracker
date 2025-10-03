@@ -51,6 +51,7 @@ import com.kouloundissa.twinstracker.presentation.event.ModernDateSelector
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.PhotoPicker
+import com.kouloundissa.twinstracker.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -251,8 +252,8 @@ private fun BabyFormBottomSheetContent(
     onOpenDeleteDialog: () -> Unit,
     onSave: (Baby, Uri?, Boolean) -> Unit
 ) {
-    val baseColor = MaterialTheme.colorScheme.primary
-    val contentColor = Color.White
+    val baseColor = DarkBlue
+    val contentColor = BackgroundColor
     val cornerShape = MaterialTheme.shapes.extraLarge
     Surface(
         shape = cornerShape,

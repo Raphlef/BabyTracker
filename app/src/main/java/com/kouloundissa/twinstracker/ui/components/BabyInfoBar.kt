@@ -25,8 +25,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.Gender
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -38,7 +40,7 @@ fun BabyInfoBar(
     onEditClick: () -> Unit = {}
 ) {
     val baseColor = Color.White
-    val contentColor = MaterialTheme.colorScheme.primary
+    val contentColor = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     Surface(
