@@ -9,9 +9,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.data.*
+import com.kouloundissa.twinstracker.data.WhoLms.WhoLmsRepository
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.WHOHeadCircumferenceCurve
@@ -28,6 +30,7 @@ import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.math.max
 
 @Composable
 fun AnalysisScreen(
@@ -48,17 +51,62 @@ fun AnalysisScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     val today = LocalDate.now()
+    val context = LocalContext.current
+    val nowMillis = System.currentTimeMillis()
+    val ageMillis = nowMillis - (selectedBaby?.birthDate ?: nowMillis)
+    val oneDayMillis = 24 * 60 * 60 * 1000L
+    val currentAgeDays = (ageMillis / oneDayMillis).toInt().coerceAtLeast(0)
+    val startAge = max(0, currentAgeDays - 6) // Last 7 days including today
+    val endAge = currentAgeDays
+    val omsGender = when (selectedBaby?.gender) {
+        Gender.MALE -> Gender.MALE
+        Gender.FEMALE -> Gender.FEMALE
+        else -> Gender.MALE
+    }
+
+    val weightpercentileCurves = remember(omsGender) {
+        listOf(3.0, 15.0, 50.0, 85.0, 97.0).associate { pct ->
+            "$pct th pct" to WhoLmsRepository.percentileCurveInRange(
+                context,
+                "weight",
+                omsGender,
+                pct,
+                startAge,
+                endAge
+            )
+        }
+    }
+    val lengthpercentileCurves = remember(omsGender) {
+        listOf(15.0, 50.0, 85.0).associate { pct ->
+            "$pct th pct" to WhoLmsRepository.percentileCurveInRange(
+                context,
+                "length",
+                omsGender,
+                pct,
+                startAge,
+                endAge
+            )
+        }
+    }
+    val headpercentileCurves = remember(omsGender) {
+        listOf(15.0, 50.0, 85.0).associate { pct ->
+            "$pct th pct" to WhoLmsRepository.percentileCurveInRange(
+                context,
+                "head_circumference",
+                omsGender,
+                pct,
+                startAge,
+                endAge
+            )
+        }
+    }
     val last7Days = (0L..6L).map { today.minusDays(6 - it) }
     val last7DaysLabels = last7Days.map { date ->
         val dayName = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
         "$dayName"
     }
 
-    val omsGender = when (selectedBaby?.gender) {
-        Gender.MALE -> Gender.MALE
-        Gender.FEMALE -> Gender.FEMALE
-        else -> Gender.MALE
-    }
+
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -121,46 +169,41 @@ fun AnalysisScreen(
             }
 
             item {
-                // 3. Weight growth + WHO curves
-                growthPoints.map {
-                    val d =
-                        it.timestamp.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-                    d.dayOfMonth.toFloat() to (it.weightKg ?: 0.0).toFloat()
-                }
-                val lengthData = allGrowth.sortedBy { it.timestamp }
-                    .map { it.heightCm?.toFloat() ?: 0f }
+
+                val babyWeight = allGrowth.sortedBy { it.timestamp }
+                    .map { it.weightKg?.toFloat() ?: 0f }
                 AnalysisCard(title = "Weight Growth (kg)") {
                     MultiLineChartView(
                         labels = last7DaysLabels,
-                        series = listOf(
-                            "Baby" to lengthData,
-                            "15th pct" to WHOWeightCurve(omsGender, 15).map { it.second },
-                            "50th pct" to WHOWeightCurve(omsGender, 50).map { it.second },
-                            "85th pct" to WHOWeightCurve(omsGender, 85).map { it.second }
-                        )
+                        series = listOf("Baby" to babyWeight) + weightpercentileCurves.map { (label, data) ->
+                            label to data.map { it.second }
+                        }
                     )
                 }
             }
 
             item {
+
                 // Similarly for length
                 AnalysisCard(title = "Length Growth (cm)") {
                     MultiLineChartView(
                         labels = last7DaysLabels,
                         series = listOf(
-                            "Baby" to growthPoints.map { (_, weight) ->
-                                // You'll need height data from GrowthEvent.heightCm
+                            "Baby" to growthPoints.map { (_, _) ->
+                                // Use baby's length data from your GrowthEvent model or list
                                 allGrowth.find { it.heightCm != null }?.heightCm?.toFloat() ?: 0f
-                            },
-                            "15th pct" to WHOLengthCurve(omsGender, 15).map { it.second },
-                            "50th pct" to WHOLengthCurve(omsGender, 50).map { it.second },
-                            "85th pct" to WHOLengthCurve(omsGender, 85).map { it.second }
-                        )
+                            }
+                        ) + lengthpercentileCurves.map { (label, data) ->
+                            label to data.map { it.second }
+                        }
                     )
                 }
             }
 
             item {
+
+
+
                 // And for head circumference
                 AnalysisCard(title = "Head Circumference (cm)") {
                     MultiLineChartView(
@@ -168,23 +211,15 @@ fun AnalysisScreen(
                         series = listOf(
                             "Baby" to allGrowth.sortedBy { it.timestamp }.map {
                                 (it.headCircumferenceCm ?: 0.0).toFloat()
-                            },
-                            "15th pct" to WHOHeadCircumferenceCurve(
-                                omsGender,
-                                15
-                            ).map { it.second },
-                            "50th pct" to WHOHeadCircumferenceCurve(
-                                omsGender,
-                                50
-                            ).map { it.second },
-                            "85th pct" to WHOHeadCircumferenceCurve(omsGender, 85).map { it.second }
-                        )
+                            }
+                        ) + headpercentileCurves.map { (label, data) ->
+                            label to data.map { it.second }
+                        }
                     )
                 }
             }
 
             item {
-
 
                 // 4. Meals & Volume
                 val mealCounts = last7Days.map { date ->
