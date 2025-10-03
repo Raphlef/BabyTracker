@@ -30,19 +30,24 @@ import com.kouloundissa.twinstracker.data.*
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import android.text.format.DateFormat
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.SheetValue.Hidden
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.core.net.toUri
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.EventFormState.*
@@ -444,8 +449,8 @@ fun ModernDateSelector(
     // Hold interim date before time selection
     val interimCalendar = remember { Calendar.getInstance().apply { time = selectedDate } }
 
-    val backgroundcolor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-    val contentcolor = MaterialTheme.colorScheme.onSurfaceVariant
+    val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
+    val contentcolor = DarkGrey.copy(alpha=0.5f)
     val tint = DarkBlue
 
     // Date picker state
@@ -550,13 +555,15 @@ fun ModernTimeSelector(
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit
 ) {
+    val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
+    val contentColor = DarkGrey.copy(alpha=0.5f)
     var showDialog by remember { mutableStateOf(false) }
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .clickable { showDialog = true },
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        color = backgroundcolor
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -573,14 +580,15 @@ fun ModernTimeSelector(
                 Text(
                     label,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = contentColor
                 )
                 Text(
                     text = time?.let {
                         SimpleDateFormat("HH:mm", Locale.getDefault()).format(it)
                     } ?: "Select time",
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    color = contentColor
                 )
             }
         }
@@ -653,6 +661,7 @@ private fun ShowTimePickerDialog(
 @Composable
 private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
     val contentColor = Color.White
+    val cornerShape = MaterialTheme.shapes.extraLarge
     // Diaper Type
     IconSelector(
         title = "Diaper Type",
@@ -710,13 +719,19 @@ private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) 
         onValueChange = {
             viewModel.updateForm { (this as EventFormState.Diaper).copy(notes = it) }
         },
-        label = { Text("Notes (optional)", color = contentColor.copy(alpha = 0.8f)) },
-        shape = RoundedCornerShape(12.dp),
+        label = {
+            Text(
+                "Notes (optional)",
+                color = contentColor,
+            )
+        },
+        shape = cornerShape,
         modifier = Modifier
             .fillMaxWidth()
             .height(80.dp)
     )
 }
+
 
 @Composable
 private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
@@ -725,6 +740,7 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
             ((end.time - begin.time) / 60000).coerceAtLeast(0L)
         else null
 
+    val cornerShape = MaterialTheme.shapes.extraLarge
     val contentColor = Color.White
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -766,7 +782,7 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
     // Duration display
     state.durationMinutes?.let { minutes ->
         Surface(
-            shape = RoundedCornerShape(12.dp),
+            shape = cornerShape,
             color = DarkGrey.copy(alpha = 0.3f)
         ) {
             Row(
@@ -800,6 +816,7 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
 @Composable
 private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
     val contentColor = Color.White
+    val cornerShape = MaterialTheme.shapes.extraLarge
     // Feed Type
     IconSelector(
         title = "Feed Type",
@@ -828,7 +845,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
                 viewModel.updateForm { (this as EventFormState.Feeding).copy(amountMl = it) }
             },
             label = { Text("Amount (ml)", color = Color.White) },
-            shape = RoundedCornerShape(12.dp),
+            shape = cornerShape,
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
         )
@@ -840,8 +857,9 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
         onValueChange = {
             viewModel.updateForm { (this as EventFormState.Feeding).copy(durationMin = it) }
         },
-        label = { Text("Duration (minutes)", color = Color.White) },
-        shape = RoundedCornerShape(12.dp),
+        label = { Text("Duration (minutes)", color = contentColor) },
+
+        shape = cornerShape,
         modifier = Modifier.fillMaxWidth(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
     )
@@ -869,8 +887,8 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
     OutlinedTextField(
         value = state.notes,
         onValueChange = { viewModel.updateForm { (this as EventFormState.Feeding).copy(notes = it) } },
-        label = { Text("Notes (optional)", color = contentColor.copy(alpha = 0.8f)) },
-        shape = RoundedCornerShape(12.dp),
+        label = { Text("Notes (optional)", color = contentColor) },
+        shape = cornerShape,
         modifier = Modifier
             .fillMaxWidth()
             .height(80.dp)
@@ -880,6 +898,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
 @Composable
 private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) {
     val contentColor = Color.White
+    val cornerShape = MaterialTheme.shapes.extraLarge
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxWidth()
@@ -887,8 +906,8 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
         OutlinedTextField(
             value = state.weightKg,
             onValueChange = { viewModel.updateForm { (this as EventFormState.Growth).copy(weightKg = it) } },
-            label = { Text("Weight (kg)") },
-            shape = RoundedCornerShape(12.dp),
+            label = { Text("Weight (kg)", color = contentColor) },
+            shape = cornerShape,
             modifier = Modifier.weight(1f),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
         )
@@ -896,8 +915,8 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
         OutlinedTextField(
             value = state.heightCm,
             onValueChange = { viewModel.updateForm { (this as EventFormState.Growth).copy(heightCm = it) } },
-            label = { Text("Height (cm)") },
-            shape = RoundedCornerShape(12.dp),
+            label = { Text("Height (cm)", color = contentColor) },
+            shape = cornerShape,
             modifier = Modifier.weight(1f),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
         )
@@ -912,8 +931,8 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
                 )
             }
         },
-        label = { Text("Head Circumference (cm)") },
-        shape = RoundedCornerShape(12.dp),
+        label = { Text("Head Circumference (cm)", color = contentColor) },
+        shape = cornerShape,
         modifier = Modifier.fillMaxWidth(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
     )
@@ -921,8 +940,8 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
     OutlinedTextField(
         value = state.notes,
         onValueChange = { viewModel.updateForm { (this as EventFormState.Growth).copy(notes = it) } },
-        label = { Text("Notes (optional)", color = contentColor.copy(alpha = 0.8f)) },
-        shape = RoundedCornerShape(12.dp),
+        label = { Text("Notes (optional)", color = contentColor) },
+        shape = cornerShape,
         modifier = Modifier
             .fillMaxWidth()
             .height(80.dp)
@@ -935,6 +954,7 @@ private fun PumpingForm(
     viewModel: EventViewModel
 ) {
     val contentColor = Color.White
+    val cornerShape = MaterialTheme.shapes.extraLarge
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier
@@ -949,8 +969,8 @@ private fun PumpingForm(
                     (this as EventFormState.Pumping).copy(amountMl = it)
                 }
             },
-            label = { Text("Amount (ml)") },
-            shape = RoundedCornerShape(12.dp),
+            label = { Text("Amount (ml)", color = contentColor) },
+            shape = cornerShape,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
@@ -964,8 +984,8 @@ private fun PumpingForm(
                     (this as EventFormState.Pumping).copy(durationMin = it)
                 }
             },
-            label = { Text("Duration (minutes)") },
-            shape = RoundedCornerShape(12.dp),
+            label = { Text("Duration (minutes)", color = contentColor) },
+            shape = cornerShape,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
@@ -995,8 +1015,8 @@ private fun PumpingForm(
                     (this as EventFormState.Pumping).copy(notes = it)
                 }
             },
-            label = { Text("Notes (optional)", color = contentColor.copy(alpha = 0.8f)) },
-            shape = RoundedCornerShape(12.dp),
+            label = { Text("Notes (optional)", color = contentColor) },
+            shape = cornerShape,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(80.dp)
@@ -1008,6 +1028,7 @@ private fun PumpingForm(
 @Composable
 private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
     val contentColor = Color.White
+    val cornerShape = MaterialTheme.shapes.extraLarge
     Column(modifier = Modifier.fillMaxWidth()) {
         // Drug Type Picker
         IconSelector(
@@ -1034,8 +1055,9 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
                         (this as EventFormState.Drugs).copy(otherDrugName = newName)
                     }
                 },
-                label = { Text("Specify Drug Name") },
+                label = { Text("Specify Drug Name", color = contentColor) },
                 placeholder = { Text("e.g., Ibuprofen") },
+                shape = cornerShape,
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
             )
@@ -1050,8 +1072,9 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
                     (this as EventFormState.Drugs).copy(dosage = newValue)
                 }
             },
-            label = { Text("Dosage") },
+            label = { Text("Dosage", color = contentColor) },
             placeholder = { Text("e.g., 250") },
+            shape = cornerShape,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -1066,7 +1089,8 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
                     (this as EventFormState.Drugs).copy(unit = newValue)
                 }
             },
-            label = { Text("Unit") },
+            label = { Text("Unit", color = contentColor) },
+            shape = cornerShape,
             placeholder = { Text("mg, IU, etc.") },
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
@@ -1083,8 +1107,8 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
                     (this as EventFormState.Drugs).copy(notes = newNotes)
                 }
             },
-            label = { Text("Notes (optional)", color = contentColor.copy(alpha = 0.8f)) },
-            shape = RoundedCornerShape(12.dp),
+            label = { Text("Notes (optional)", color = contentColor) },
+            shape = cornerShape,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(80.dp)
