@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -26,6 +27,7 @@ import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.kouloundissa.twinstracker.presentation.Family.FamilyCheckScreen
+import com.kouloundissa.twinstracker.presentation.viewmodel.AuthEvent
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.HiltAndroidApp
@@ -50,13 +52,24 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun BabyTrackerApp() {
     val navController = rememberNavController()
-    val viewModel: AuthViewModel = hiltViewModel()
+    val authViewModel: AuthViewModel = hiltViewModel()
     val familyViewModel: FamilyViewModel = hiltViewModel()
 
-    val families by familyViewModel.families.collectAsState()
-    // Collect state from StateFlow
-    val state by viewModel.state.collectAsState()
 
+    LaunchedEffect(Unit) {
+        authViewModel.oneTimeEventFlow.collect { event ->
+            when (event) {
+                AuthEvent.Logout -> {
+                    navController.navigate("auth") {
+                        popUpTo(navController.graph.startDestinationId) {
+                            inclusive = true
+                        }
+                    }
+                }
+                else -> { /* ignore other events */ }
+            }
+        }
+    }
     NavHost(
         navController = navController,
         startDestination = "auth"

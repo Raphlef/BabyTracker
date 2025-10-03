@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -80,6 +81,12 @@ fun AuthScreen(
                 AuthEvent.StartGoogleSignIn -> {
                     googleLauncher.launch(googleSignInClient.signInIntent)
                 }
+
+                AuthEvent.Logout -> {
+                    // No UI action needed here; NavHost handles navigation back to "auth"
+                    // Optionally clear local input fields:
+                    viewModel.clearError()
+                }
             }
         }
     }
@@ -133,7 +140,8 @@ fun AuthScreen(
                             isError = emailError != null,
                             errorMessage = emailError,
                             enabled = !state.isLoading,
-                            imeAction = ImeAction.Next
+                            imeAction = ImeAction.Next,
+                            keyboardType = KeyboardType.Email
                         )
 
                         Spacer(Modifier.height(16.dp))
@@ -145,7 +153,8 @@ fun AuthScreen(
                             label = "Mot de passe",
                             visualTransformation = PasswordVisualTransformation(),
                             enabled = !state.isLoading,
-                            imeAction = ImeAction.Done
+                            imeAction = ImeAction.Done,
+                            keyboardType = KeyboardType.Password
                         )
 
                         Spacer(Modifier.height(16.dp))
@@ -224,18 +233,19 @@ fun LabeledTextField(
     enabled: Boolean = true,
     singleLine: Boolean = true,
     imeAction: ImeAction = ImeAction.Next,
+    keyboardType: KeyboardType = KeyboardType.Unspecified,
     visualTransformation: VisualTransformation = VisualTransformation.None
 ) {
     Column {
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            label = { Text(label) },
+            label = { Text(label, color = Color.White) },
             isError = isError,
             singleLine = singleLine,
             enabled = enabled,
             visualTransformation = visualTransformation,
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = imeAction),
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType).copy(imeAction = imeAction),
             modifier = Modifier.fillMaxWidth()
         )
         if (errorMessage != null) {

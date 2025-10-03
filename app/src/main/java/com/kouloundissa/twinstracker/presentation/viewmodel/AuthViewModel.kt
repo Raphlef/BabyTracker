@@ -217,6 +217,7 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             repository.clearUserSession()
             _state.value = AuthState() // Reset complet de l’état, déconnecté
+            _oneTimeEvent.send(AuthEvent.Logout)
         }
     }
 }
@@ -232,4 +233,5 @@ data class AuthState(
 )
 sealed class AuthEvent {
     object StartGoogleSignIn : AuthEvent()
+    object Logout : AuthEvent()
 }

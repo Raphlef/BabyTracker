@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.presentation.settings
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -8,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.HorizontalDivider
@@ -30,7 +32,9 @@ import com.kouloundissa.twinstracker.presentation.viewmodel.AuthViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.components.FamilyManagementCard
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
+import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.flow.map
 
 
@@ -54,6 +58,7 @@ fun SettingsScreen(
     val isFamilyLoading by familyViewModel.state.map { it.isLoading }.collectAsState(false)
     // val isLoading = isAuthLoading || isBabyLoading || isFamilyLoading
     val snackbarHostState = remember { SnackbarHostState() }
+    var showLogoutDialog by remember { mutableStateOf(false) }
     // Local editable values
     var displayName by remember { mutableStateOf(profile?.displayName.orEmpty()) }
     var themeChoice by remember { mutableStateOf(profile?.theme?.name.orEmpty()) }
@@ -117,11 +122,67 @@ fun SettingsScreen(
                             ) {
                                 Text("Enregistrer le nom")
                             }
+
+                            // Logout button with confirmation
+                            OutlinedButton(
+                                onClick = {
+                                    showLogoutDialog = true
+                                },
+                                enabled = !isAuthLoading,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                ),
+                                border = BorderStroke(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Se déconnecter")
+                            }
                         }
                     }
                 }
-            }
 
+                // Logout confirmation dialog
+                if (showLogoutDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showLogoutDialog = false },
+                        title = {
+                            Text("Confirmation de déconnexion")
+                        },
+                        text = {
+                            Text("Êtes-vous sûr de vouloir vous déconnecter ?")
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    authViewModel.logout()
+                                    showLogoutDialog = false
+                                }
+                            ) {
+                                Text(
+                                    "Se déconnecter",
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = { showLogoutDialog = false }
+                            ) {
+                                Text("Annuler")
+                            }
+                        }
+                    )
+                }
+            }
 
             // — Notifications & Default Baby Section —
             item {
@@ -178,9 +239,9 @@ fun SectionCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
 
-    val baseColor = Color.White
+    val baseColor = BackgroundColor
     val tintColor = DarkBlue
-    val contentColor = Color.DarkGray
+    val contentColor = DarkGrey
     Card(
         modifier = modifier
             .fillMaxWidth()
