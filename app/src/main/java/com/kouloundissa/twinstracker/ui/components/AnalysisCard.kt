@@ -388,7 +388,7 @@ fun calculateAxisRange(
         val calculatedMin = if (forceIncludeZero || shouldIncludeZero(values)) {
             0f  // Include zero and don't go below it
         } else {
-            maxOf(0f, minVal - padding)  // NEVER go below 0 for positive data
+            minVal - padding
         }
 
         val calculatedMax = maxVal + padding
