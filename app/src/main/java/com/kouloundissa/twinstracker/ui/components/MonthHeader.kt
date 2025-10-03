@@ -16,6 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
+import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -24,6 +27,9 @@ fun MonthHeader(
     currentMonth: LocalDate,
     onMonthChange: (deltaMonths: Long) -> Unit
 ) {
+    val contentColor = DarkGrey.copy(alpha = 0.5f)
+    val backgroundColor = BackgroundColor.copy(alpha = 0.2f)
+    val tint = DarkBlue
     Row(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -31,17 +37,18 @@ fun MonthHeader(
     ) {
         IconButton(
             onClick = { onMonthChange(-1L) },
-            colors = IconButtonDefaults.iconButtonColors(containerColor = Color.LightGray.copy(alpha = 0.3f))
+            colors = IconButtonDefaults.iconButtonColors(containerColor = backgroundColor)
         ) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous Month")
         }
         Text(
             text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium,
+            color = BackgroundColor,
         )
         IconButton(
             onClick = { onMonthChange(1L) },
-            colors = IconButtonDefaults.iconButtonColors(containerColor = Color.LightGray.copy(alpha = 0.3f))
+            colors = IconButtonDefaults.iconButtonColors(containerColor = backgroundColor)
         ) {
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next Month")
         }
