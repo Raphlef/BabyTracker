@@ -16,6 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
+import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 
 @Composable
 fun FilterBar(
@@ -23,6 +26,9 @@ fun FilterBar(
     selected: Set<EventType>,
     onToggle: (EventType) -> Unit
 ) {
+    val contentColor = DarkGrey.copy(alpha = 0.5f)
+    val backgroundColor = BackgroundColor.copy(alpha = 0.2f)
+    val tint = DarkBlue
     Row(
         Modifier
             .fillMaxWidth()
