@@ -530,7 +530,7 @@ private fun BabyFormContent(
 
     Spacer(Modifier.height(16.dp))
 
-    PhotoPickerSection(
+    PhotoPicker(
         photoUrl = state.newPhotoUrl ?: existingPhotoUrl?.toUri(),
         onPhotoSelected = {
             state.newPhotoUrl = it
@@ -542,7 +542,6 @@ private fun BabyFormContent(
             state.photoRemoved = true
         }
     )
-
     Spacer(Modifier.height(16.dp))
 
     ModernDateSelector(
@@ -630,18 +629,7 @@ private fun BabyFormContent(
 
 
 
-@Composable
-private fun PhotoPickerSection(
-    photoUrl: Uri?,
-    onPhotoSelected: (Uri?) -> Unit,
-    onPhotoRemoved: () -> Unit
-) {
-    PhotoPicker(
-        photoUrl = photoUrl,
-        onPhotoSelected = onPhotoSelected,
-        onPhotoRemoved = onPhotoRemoved
-    )
-}
+
 
 @Composable
 private fun GenderSelector(
