@@ -327,7 +327,7 @@ private fun BabyFormBottomSheetContent(
                         Spacer(Modifier.height(16.dp))
                         Text(
                             it,
-                            color =Color.Red, // MaterialTheme.colorScheme.error,
+                            color = Color.Red, // MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -422,7 +422,7 @@ private fun BabyFormActionButtons(
                         onClick = onDelete,
                         enabled = !isLoading,
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor =Color.Red,// MaterialTheme.colorScheme.error
+                            contentColor = Color.Red,// MaterialTheme.colorScheme.error
                         ),
                         border = BorderStroke(
                             1.dp,
@@ -516,15 +516,17 @@ private fun BabyFormContent(
         }
     }
 
-
-    NameField(
+    OutlinedTextField(
         value = state.name,
-        isError = state.nameError,
-        onChange = {
+        onValueChange = {
             state.name = it
             if (state.nameError) state.nameError = false
-        }
+        },
+        label = { Text("Baby Name*", color = Color.White) },
+        isError = state.nameError,
+        modifier = Modifier.fillMaxWidth()
     )
+    if (state.nameError) Text("Name is required", color = Color.Red)
 
     Spacer(Modifier.height(16.dp))
 
@@ -545,7 +547,7 @@ private fun BabyFormContent(
 
     ModernDateSelector(
         selectedDate = Date(state.birthDateTimeMillis),
-        onDateSelected =  { dt -> state.birthDateTimeMillis = dt.time },
+        onDateSelected = { dt -> state.birthDateTimeMillis = dt.time },
         modifier = Modifier.fillMaxWidth()
     )
 
@@ -626,21 +628,7 @@ private fun BabyFormContent(
    Subcomponents
    ----------------------- */
 
-@Composable
-private fun NameField(
-    value: String,
-    isError: Boolean,
-    onChange: (String) -> Unit
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onChange,
-        label = { Text("Baby Name*") },
-        isError = isError,
-        modifier = Modifier.fillMaxWidth()
-    )
-    if (isError) Text("Name is required", color = MaterialTheme.colorScheme.error)
-}
+
 
 @Composable
 private fun PhotoPickerSection(
@@ -693,9 +681,10 @@ private fun NumericFieldSection(
                     "Nombre invalide" else null
             )
         },
-        label = { Text(label, color = contentColor.copy(alpha = 0.8f)) },
+        label = { Text(label, color = contentColor) },
         isError = error != null,
         singleLine = true,
+        shape = cornerShape,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         modifier = Modifier.fillMaxWidth(),
 
@@ -723,10 +712,13 @@ private fun AllergiesField(
     value: String,
     onChange: (String) -> Unit
 ) {
+    val contentColor = Color.White
+    val cornerShape = MaterialTheme.shapes.extraLarge
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
-        label = { Text("Allergies (comma separated)") },
+        label = { Text("Allergies (comma separated)", color = contentColor) },
+        shape = cornerShape,
         modifier = Modifier.fillMaxWidth()
     )
 }
@@ -736,11 +728,13 @@ private fun ConditionsField(
     value: String,
     onChange: (String) -> Unit
 ) {
+    val contentColor = Color.White
+    val cornerShape = MaterialTheme.shapes.extraLarge
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
-        label = { Text("Medical Conditions (comma separated)") },
-        modifier = Modifier.fillMaxWidth()
+        label = { Text("Medical Conditions (comma separated)", color = contentColor) },
+        modifier = Modifier.fillMaxWidth(), shape = cornerShape
     )
 }
 
