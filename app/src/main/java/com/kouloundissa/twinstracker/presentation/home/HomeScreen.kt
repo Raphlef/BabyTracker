@@ -131,7 +131,6 @@ fun HomeScreen(
     LaunchedEffect(editingEvent) {
         editingEvent?.let {
             eventViewModel.loadEventIntoForm(it)
-            showEventDialog = true
         }
     }
     DisposableEffect(Unit) {
@@ -345,7 +344,10 @@ fun HomeScreen(
                                         overlayContent = {
                                             SleepTimer(
                                                 sleepEvent = activeSleepEvent,
-                                                onClick = { editingEvent = activeSleepEvent },
+                                                onClick = {
+                                                    editingEvent = activeSleepEvent
+                                                    showEventDialog = true
+                                                },
                                                 modifier = Modifier
                                                     .align(Alignment.CenterStart)
                                             )
@@ -390,6 +392,7 @@ fun HomeScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 onEdit = { event ->
                                     editingEvent = event
+                                    showEventDialog = true
                                 },
                                 eventViewModel = eventViewModel,
                                 baby = selectedBaby!!
@@ -449,7 +452,7 @@ fun HomeScreen(
                     }
                 )
             }
-            if (showEventDialog && selectedBaby?.id != null && selectedType != null) {
+            if (showEventDialog && selectedType != null && editingEvent == null) {
                 EventFormDialog(
                     babyId = selectedBaby?.id ?: return@Box,
                     initialEventType = selectedType,
@@ -457,17 +460,6 @@ fun HomeScreen(
                         showEventDialog = false
                         eventViewModel.resetFormState()
                     }
-                )
-            }
-            if (showBabyDialog) {
-                BabyFormDialog(
-                    babyToEdit = null,
-                    onBabyUpdated = { savedOrDeletedBaby ->
-                        showBabyDialog = false
-                        savedOrDeletedBaby?.let { babyViewModel.selectBaby(it) }
-                    },
-                    onCancel = { showBabyDialog = false },
-                    babyViewModel = babyViewModel
                 )
             }
             if (showTypeDialog && selectedType != null) {
@@ -484,9 +476,27 @@ fun HomeScreen(
                     },
                     onEdit = { event ->
                         editingEvent = event
+                        eventViewModel.loadEventIntoForm(event)
+                        showEventDialog = true
+                    },
+                    onAdd = { type ->
+                        selectedType = type
+                        showEventDialog = true
                     }
                 )
             }
+            if (showBabyDialog) {
+                BabyFormDialog(
+                    babyToEdit = null,
+                    onBabyUpdated = { savedOrDeletedBaby ->
+                        showBabyDialog = false
+                        savedOrDeletedBaby?.let { babyViewModel.selectBaby(it) }
+                    },
+                    onCancel = { showBabyDialog = false },
+                    babyViewModel = babyViewModel
+                )
+            }
+
         }
     }
 }
@@ -586,6 +596,7 @@ private fun EventTypeDialog(
     events: List<Event>,
     onDismiss: () -> Unit,
     onEdit: (Event) -> Unit,
+    onAdd: (EventType) -> Unit,
     eventViewModel: EventViewModel = hiltViewModel(),
     selectedBaby: Baby?
 ) {
@@ -596,7 +607,6 @@ private fun EventTypeDialog(
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,  // skips intermediate state to start fully expanded
     )
-    var showEventForm by remember { mutableStateOf(false) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -615,7 +625,8 @@ private fun EventTypeDialog(
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .fillMaxSize().blur(blurRadius)
+                    .fillMaxSize()
+                    .blur(blurRadius)
             )
 
             //  Semi-transparent overlay tint
@@ -680,7 +691,7 @@ private fun EventTypeDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     TextButton(
-                        onClick = { showEventForm = true }
+                        onClick = { onAdd(type) }
                     ) {
                         Text("Add New Event", color = contentColor)
                     }
@@ -691,17 +702,6 @@ private fun EventTypeDialog(
                 }
             }
         }
-        // Conditionally show the EventFormDialog overlay
-        if (showEventForm) {
-            selectedBaby?.id?.let {
-                EventFormDialog(
-                    babyId = it,  // Pass actual babyId or obtain from scope
-                    initialEventType = type,
-                    onDismiss = {
-                        showEventForm = false
-                    }
-                )
-            }
-        }
+
     }
 }
