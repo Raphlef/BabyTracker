@@ -24,7 +24,11 @@ class AuthViewModel @Inject constructor(
     private val _userProfile = MutableStateFlow<User?>(null)
     val userProfile: StateFlow<User?> = _userProfile.asStateFlow()
 
-    private val _state = MutableStateFlow(AuthState())
+    private val _state = MutableStateFlow(
+        AuthState(
+            email = repository.getCurrentUserEmail().orEmpty()
+        )
+    )
     val state: StateFlow<AuthState> = _state.asStateFlow()
 
     private val _oneTimeEvent = Channel<AuthEvent>(Channel.BUFFERED)
