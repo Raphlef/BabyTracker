@@ -252,7 +252,7 @@ fun EventCard(
                     Icon(
                         Icons.Default.Delete,
                         contentDescription = "Confirm delete",
-                        tint = MaterialTheme.colorScheme.error,
+                        tint = Color.Red,// MaterialTheme.colorScheme.error,
                         modifier = Modifier
                             .size(48.dp)
                             .clickable {

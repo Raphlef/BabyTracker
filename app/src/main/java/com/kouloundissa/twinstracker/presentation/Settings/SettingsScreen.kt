@@ -131,11 +131,11 @@ fun SettingsScreen(
                                 enabled = !isAuthLoading,
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.error
+                                    contentColor =Color.Red
                                 ),
                                 border = BorderStroke(
                                     1.dp,
-                                    MaterialTheme.colorScheme.error
+                                    Color.Red
                                 )
                             ) {
                                 Icon(
@@ -169,7 +169,7 @@ fun SettingsScreen(
                             ) {
                                 Text(
                                     "Se déconnecter",
-                                    color = MaterialTheme.colorScheme.error
+                                    color = Color.Red// MaterialTheme.colorScheme.error
                                 )
                             }
                         },

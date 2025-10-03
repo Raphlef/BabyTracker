@@ -327,7 +327,7 @@ private fun BabyFormBottomSheetContent(
                         Spacer(Modifier.height(16.dp))
                         Text(
                             it,
-                            color = MaterialTheme.colorScheme.error,
+                            color =Color.Red, // MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -422,7 +422,7 @@ private fun BabyFormActionButtons(
                         onClick = onDelete,
                         enabled = !isLoading,
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
+                            contentColor =Color.Red,// MaterialTheme.colorScheme.error
                         ),
                         border = BorderStroke(
                             1.dp,

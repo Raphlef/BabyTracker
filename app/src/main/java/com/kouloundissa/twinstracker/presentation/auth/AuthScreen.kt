@@ -204,7 +204,7 @@ fun AuthScreen(
                             Spacer(Modifier.height(16.dp))
                             Text(
                                 it,
-                                color = MaterialTheme.colorScheme.error,
+                                color = Color.Red,// MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -251,7 +251,7 @@ fun LabeledTextField(
         if (errorMessage != null) {
             Text(
                 text = errorMessage,
-                color = MaterialTheme.colorScheme.error,
+                color = Color.Red,// MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier
                     .padding(start = 16.dp, top = 4.dp)
