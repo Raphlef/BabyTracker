@@ -109,12 +109,14 @@ fun FamilyManagementCard(
             // TODO: show Snackbar("Rejoint avec succès !")
         }
     }
-
+    val baseColor = BackgroundColor
+    val tintColor = DarkBlue
+    val contentColor = DarkGrey
     GlassCard(
         loading = isLoading
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text("Vos familles", style = MaterialTheme.typography.titleSmall)
+            Text("Vos familles", style = MaterialTheme.typography.titleSmall, color = contentColor)
 
             FamilyList(
                 families = families,
@@ -139,7 +141,7 @@ fun FamilyManagementCard(
             HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
             // Baby selector row
             if (selectedFamily != null) {
-                Text("Bébés", style = MaterialTheme.typography.titleSmall)
+                Text("Bébés", style = MaterialTheme.typography.titleSmall, color = contentColor)
                 BabySelectorRow(
                     babies = babies,
                     selectedBaby = selectedBaby,
@@ -148,7 +150,6 @@ fun FamilyManagementCard(
                 )
             }
             HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
-
 
             // Editable Form
             Text(
@@ -160,7 +161,7 @@ fun FamilyManagementCard(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Nom de la famille") },
+                label = { Text("Nom de la famille", color = contentColor) },
                 enabled = !isLoading,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
@@ -168,7 +169,7 @@ fun FamilyManagementCard(
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Description (optionnel)") },
+                label = { Text("Description (optionnel)", color = contentColor) },
                 enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -176,7 +177,7 @@ fun FamilyManagementCard(
                 OutlinedTextField(
                     value = inviteCode,
                     onValueChange = {},
-                    label = { Text("Code d'invitation") },
+                    label = { Text("Code d'invitation", color = contentColor) },
                     readOnly = true,
                     modifier = Modifier.weight(1f)
                 )
@@ -196,7 +197,7 @@ fun FamilyManagementCard(
                     enabled = !isLoading
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("Tous peuvent inviter")
+                Text("Tous peuvent inviter", color = contentColor)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(
@@ -205,7 +206,7 @@ fun FamilyManagementCard(
                     enabled = !isLoading
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("Validation admin nécessaire")
+                Text("Validation admin nécessaire", color = contentColor)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(
@@ -214,7 +215,7 @@ fun FamilyManagementCard(
                     enabled = !isLoading
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("Notifications partagées")
+                Text("Notifications partagées", color = contentColor)
             }
 
             // Privacy
@@ -334,7 +335,7 @@ fun FamilyList(
     selectedFamily: Family?,
     onSelect: (Family) -> Unit
 ) {
-    val colorContent=DarkBlue
+    val colorContent = DarkBlue
     Column {
         families.forEach { family ->
             val isSelected = family.id == selectedFamily?.id
