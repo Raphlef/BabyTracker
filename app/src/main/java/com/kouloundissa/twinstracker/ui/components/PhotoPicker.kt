@@ -192,7 +192,7 @@ fun PhotoPicker(
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Remove Photo",
-                    tint = MaterialTheme.colorScheme.error
+                    tint = Color.Red
                 )
             }
         } else {
