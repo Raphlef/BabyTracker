@@ -111,6 +111,7 @@ fun CalendarScreen(
                         onDayClick = { selectedDate = it }
                     )
                 }
+
                 item {
                     val dailyEvents = eventsByDay[selectedDate].orEmpty()
                         .filter { filterTypes.contains(EventType.forClass(it::class)) }

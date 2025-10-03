@@ -9,6 +9,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.with
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -50,9 +51,10 @@ fun SwipeableCalendar(
     Box(
         modifier
             .pointerInput(currentMonth) {
-                detectDragGestures(
+                // Only intercept horizontal drags
+                detectHorizontalDragGestures(
                     onDragStart = { dragOffset = 0f },
-                    onDrag = { _, delta -> dragOffset += delta.x },
+                    onHorizontalDrag = { _, deltaX -> dragOffset += deltaX },
                     onDragEnd = {
                         when {
                             dragOffset > swipeThreshold -> onMonthChange(-1L)
