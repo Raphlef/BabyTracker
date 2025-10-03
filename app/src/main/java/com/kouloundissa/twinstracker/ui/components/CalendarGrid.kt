@@ -26,6 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
+import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.time.LocalDate
 
 @Composable
@@ -36,6 +39,10 @@ fun CalendarGrid(
     selectedDate: LocalDate,
     onDayClick: (LocalDate) -> Unit
 ) {
+    val contentColor = DarkGrey.copy(alpha = 0.5f)
+    val backgroundColor = BackgroundColor.copy(alpha = 0.2f)
+    val tint = DarkBlue.copy(alpha = 0.2f)
+
     val firstOfMonth = LocalDate.of(year, month, 1)
     val daysInMonth = firstOfMonth.lengthOfMonth()
     val startDow = firstOfMonth.dayOfWeek.value % 7
@@ -48,7 +55,7 @@ fun CalendarGrid(
                 Text(
                     dow, Modifier.weight(1f), textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = contentColor
                 )
             }
         }
@@ -85,14 +92,16 @@ fun DayCell(
     isSelected: Boolean,
     onClick: (LocalDate) -> Unit
 ) {
+
+    val tint = DarkBlue
     val backgroundColor = when {
-        isSelected -> MaterialTheme.colorScheme.primaryContainer
-        events.isNotEmpty() -> MaterialTheme.colorScheme.surfaceContainerHighest
-        else -> MaterialTheme.colorScheme.surfaceContainer
+        isSelected -> tint.copy(alpha = 0.7f)
+        events.isNotEmpty() -> BackgroundColor.copy(alpha = 0.7f)
+        else -> BackgroundColor.copy(alpha = 0.4f)
     }
     val contentColor = when {
-        isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
-        else -> MaterialTheme.colorScheme.onSurface
+        isSelected -> BackgroundColor
+        else -> DarkGrey
     }
 
     Box(
