@@ -37,7 +37,7 @@ fun MonthHeader(
     ) {
         IconButton(
             onClick = { onMonthChange(-1L) },
-            colors = IconButtonDefaults.iconButtonColors(containerColor = backgroundColor)
+            colors = IconButtonDefaults.iconButtonColors(containerColor = contentColor)
         ) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous Month")
         }
@@ -48,7 +48,7 @@ fun MonthHeader(
         )
         IconButton(
             onClick = { onMonthChange(1L) },
-            colors = IconButtonDefaults.iconButtonColors(containerColor = backgroundColor)
+            colors = IconButtonDefaults.iconButtonColors(containerColor = contentColor)
         ) {
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next Month")
         }
