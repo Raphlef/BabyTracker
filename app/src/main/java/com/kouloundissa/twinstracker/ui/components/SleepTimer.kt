@@ -68,13 +68,12 @@ fun SleepTimer(
         Text(
             text = "\uD83D\uDCA4",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onPrimary
         )
         Spacer(Modifier.width(8.dp))
         Text(
             text = timeText,
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onPrimary
+            color = BackgroundColor
         )
     }
 }
