@@ -240,25 +240,13 @@ fun HomeScreen(
     }
 
     Scaffold(
-        snackbarHost = {
-            // Place the Snackbar at the top center, or adjust bottom padding
-            Box(Modifier.fillMaxSize()) {
-                SnackbarHost(
-                    hostState = snackbarHostState,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 16.dp)          // push it down from the very top
-                        .width(IntrinsicSize.Min)      // shrink to content width
-                )
-            }
-        },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = Color.Transparent,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = Modifier.fillMaxSize()
     ) {
         Box(
-            Modifier
-                .fillMaxSize()
+            Modifier.fillMaxSize()
         ) {
             if (selectedBaby == null) {
                 // Empty state when no baby selected

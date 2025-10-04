@@ -199,6 +199,7 @@ fun DashboardScreen(
                             }
                         }
                     }
+                    Spacer(Modifier.height(8.dp))
                     // --- Dialogs ---
                     // Dialog display condition
                     selectedBaby?.takeIf { showEventForm }?.let { baby ->
