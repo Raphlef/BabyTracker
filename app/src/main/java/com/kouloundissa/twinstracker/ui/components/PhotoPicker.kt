@@ -162,7 +162,7 @@ fun PhotoPicker(
                 contentDescription = "Selected Photo",
                 modifier = Modifier
                     .fillMaxSize()
-                    .clickable { showDialog = true},
+                    .clickable { showDialog = true },
                 contentScale = ContentScale.Crop
             )
 
@@ -202,7 +202,7 @@ fun PhotoPicker(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clickable { showDialog = true},
+                    .clickable { showDialog = true },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -262,7 +262,7 @@ private fun calculateInSampleSize(options: BitmapFactory.Options, maxSide: Int):
     var inSampleSize = 1
     if (height > maxSide || width > maxSide) {
         val halfHeight = height / 2
-        val halfWidth  = width / 2
+        val halfWidth = width / 2
         while (halfHeight / inSampleSize >= maxSide && halfWidth / inSampleSize >= maxSide) {
             inSampleSize *= 2
         }
@@ -273,7 +273,8 @@ private fun calculateInSampleSize(options: BitmapFactory.Options, maxSide: Int):
 suspend fun decodeScaledBitmap(context: Context, uri: Uri, maxSide: Int): Bitmap? {
     return withContext(Dispatchers.IO) {
         val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
+        context.contentResolver.openInputStream(uri)
+            ?.use { BitmapFactory.decodeStream(it, null, options) }
         val sampleSize = calculateInSampleSize(options, maxSide)
         val decodeOpts = BitmapFactory.Options().apply {
             inSampleSize = sampleSize
