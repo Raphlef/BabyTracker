@@ -424,13 +424,13 @@ private fun BabyFormActionButtons(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 // Cancel button
-                OutlinedButton(
+                TextButton(
                     onClick = onCancel,
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp)
                 ) {
-                    Text("Cancel")
+                    Text("Cancel", color = DarkBlue)
                 }
 
                 // Delete button (only in edit mode)
@@ -443,7 +443,7 @@ private fun BabyFormActionButtons(
                         ),
                         border = BorderStroke(
                             1.dp,
-                            MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                            Color.Red.copy(alpha = 0.8f)
                         ),
                         modifier = Modifier
                             .weight(1f)
@@ -516,6 +516,8 @@ private fun BabyFormContent(
     existingPhotoUrl: String?,
     onRequestDeletePhoto: () -> Unit,
 ) {
+    val contentColor = Color.White
+    val cornerShape = MaterialTheme.shapes.extraLarge
     val context = LocalContext.current
 
     val contactLauncher = rememberLauncherForActivityResult(
@@ -569,11 +571,14 @@ private fun BabyFormContent(
 
     Spacer(Modifier.height(16.dp))
 
-    GenderSelector(
+    IconSelector(
+        title = "Gender",
+        options = Gender.entries,
         selected = state.gender,
-        onSelect = { state.gender = it }
+        onSelect = { state.gender = it },
+        getIcon = { it.icon },
+        getLabel = { it.displayName }
     )
-
     Spacer(Modifier.height(16.dp))
 
     NumericFieldSection(
@@ -606,32 +611,51 @@ private fun BabyFormContent(
 
     Spacer(Modifier.height(12.dp))
 
-    BloodTypeSelector(
+
+    IconSelector(
+        title = "Blood Type",
+        options = BloodType.entries.toList(),
         selected = state.bloodType,
-        onSelect = { state.bloodType = it }
+        onSelect =  { state.bloodType = it },
+        getIcon = { it.icon },
+        getLabel = { it.name }
     )
-
     Spacer(Modifier.height(12.dp))
 
-    AllergiesField(
+    OutlinedTextField(
         value = state.allergies,
-        onChange = { state.allergies = it }
+        onValueChange = { state.allergies = it },
+        label = { Text("Allergies (comma separated)", color = contentColor) },
+        shape = cornerShape,
+        modifier = Modifier.fillMaxWidth()
     )
-
     Spacer(Modifier.height(12.dp))
 
-    ConditionsField(
+    OutlinedTextField(
         value = state.conditions,
-        onChange = { state.conditions = it }
+        onValueChange = { state.conditions = it },
+        label = { Text("Medical Conditions (comma separated)", color = contentColor) },
+        modifier = Modifier.fillMaxWidth(), shape = cornerShape
     )
-
     Spacer(Modifier.height(12.dp))
 
     PediatricianContactField(
         value = state.pediatricianContact,
         onPick = { contactLauncher.launch(null) }
     )
-
+    OutlinedTextField(
+        value = state.pediatricianContact,
+        onValueChange = { /* read-only */ },
+        label = { Text("Pediatrician Contact", color = contentColor) },
+        readOnly = true,
+        singleLine = true,
+        trailingIcon = {
+            IconButton(onClick = { contactLauncher.launch(null) }) {
+                Icon(Icons.Default.Person, contentDescription = "Pick Contact", tint = contentColor)
+            }
+        },
+        modifier = Modifier.fillMaxWidth()
+    )
     Spacer(Modifier.height(12.dp))
 
     NotesField(
@@ -644,24 +668,6 @@ private fun BabyFormContent(
    Subcomponents
    ----------------------- */
 
-
-
-
-
-@Composable
-private fun GenderSelector(
-    selected: Gender,
-    onSelect: (Gender) -> Unit
-) {
-    IconSelector(
-        title = "Gender",
-        options = Gender.entries,
-        selected = selected,
-        onSelect = onSelect,
-        getIcon = { it.icon },
-        getLabel = { it.displayName }
-    )
-}
 
 @Composable
 private fun NumericFieldSection(
@@ -697,51 +703,6 @@ private fun NumericFieldSection(
     error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 }
 
-@Composable
-private fun BloodTypeSelector(
-    selected: BloodType,
-    onSelect: (BloodType) -> Unit
-) {
-    IconSelector(
-        title = "Blood Type",
-        options = BloodType.entries.toList(),
-        selected = selected,
-        onSelect = onSelect,
-        getIcon = { it.icon },
-        getLabel = { it.name }
-    )
-}
-
-@Composable
-private fun AllergiesField(
-    value: String,
-    onChange: (String) -> Unit
-) {
-    val contentColor = Color.White
-    val cornerShape = MaterialTheme.shapes.extraLarge
-    OutlinedTextField(
-        value = value,
-        onValueChange = onChange,
-        label = { Text("Allergies (comma separated)", color = contentColor) },
-        shape = cornerShape,
-        modifier = Modifier.fillMaxWidth()
-    )
-}
-
-@Composable
-private fun ConditionsField(
-    value: String,
-    onChange: (String) -> Unit
-) {
-    val contentColor = Color.White
-    val cornerShape = MaterialTheme.shapes.extraLarge
-    OutlinedTextField(
-        value = value,
-        onValueChange = onChange,
-        label = { Text("Medical Conditions (comma separated)", color = contentColor) },
-        modifier = Modifier.fillMaxWidth(), shape = cornerShape
-    )
-}
 
 @Composable
 private fun PediatricianContactField(
