@@ -53,6 +53,8 @@ class EventViewModel @Inject constructor(
     private val _eventsByDay = MutableStateFlow<Map<java.time.LocalDate, List<Event>>>(emptyMap())
     val eventsByDay: StateFlow<Map<java.time.LocalDate, List<Event>>> = _eventsByDay
 
+    private val _events = MutableStateFlow<List<Event>>(emptyList())
+    val events: StateFlow<List<Event>> = _events
 
     // Track if we can load more (haven't reached the beginning of baby's data)
     private val _hasMoreHistory = MutableStateFlow(true)
@@ -187,6 +189,7 @@ class EventViewModel @Inject constructor(
             .onEach { filtered ->
                 _eventsByType.value = filtered.groupBy { it::class }
                 groupEventsByDay(filtered)
+                _events.value = filtered
                 _isLoading.value = false
                 _isLoadingMore.value = false
             }
@@ -533,6 +536,7 @@ class EventViewModel @Inject constructor(
         _deleteSuccess.value = false
         _deleteError.value = null
     }
+
     fun resetDateRangeAndHistory() {
         currentDaysWindow = 30L
         _hasMoreHistory.value = true

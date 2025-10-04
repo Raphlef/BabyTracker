@@ -16,6 +16,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
@@ -27,7 +28,9 @@ import com.kouloundissa.twinstracker.ui.components.SwipeableCalendar
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Composable
@@ -37,6 +40,7 @@ fun CalendarScreen(
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
     /** State **/
+    val allEvents by viewModel.events.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
@@ -63,7 +67,7 @@ fun CalendarScreen(
     fun refresh() {
         selectedBaby?.id?.let {
             viewModel.setDateRangeForMonth(currentMonth)
-            viewModel.loadEventsInRange(it)
+            viewModel.streamEventsInRangeForBaby(it)
         }
     }
 
@@ -112,27 +116,26 @@ fun CalendarScreen(
                     )
                 }
 
+                val dailyEvents = allEvents
+                    .filter { it.coversDay(selectedDate) }
+                    .filter { filterTypes.contains(EventType.forClass(it::class)) }
                 item {
-                    val dailyEvents = eventsByDay[selectedDate].orEmpty()
-                        .filter { filterTypes.contains(EventType.forClass(it::class)) }
                     Text(
                         "Events on ${selectedDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy"))} " +
                                 "(${dailyEvents.size})",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.headlineMedium,
-                        color = BackgroundColor,
+                        color = BackgroundColor
                     )
                 }
                 item {
-                    val dailyEvents = eventsByDay[selectedDate].orEmpty()
-                        .filter { filterTypes.contains(EventType.forClass(it::class)) }
                     if (dailyEvents.isEmpty()) {
                         Text("No events", style = MaterialTheme.typography.bodyMedium)
                     } else {
                         DayTimeline(
-                            date= selectedDate,
+                            date   = selectedDate,
                             events = dailyEvents,
-                            onEdit = { editingEvent = it },
+                            onEdit = { editingEvent = it }
                         )
                     }
                 }
@@ -162,4 +165,12 @@ fun CalendarScreen(
             }
         }
     }
+}
+
+fun Event.coversDay(day: LocalDate): Boolean {
+    val start = (this as? SleepEvent)?.beginTime ?: this.timestamp
+    val end = (this as? SleepEvent)?.endTime ?: start
+    val startDate = Instant.ofEpochMilli(start.time).atZone(ZoneId.systemDefault()).toLocalDate()
+    val endDate = Instant.ofEpochMilli(end.time).atZone(ZoneId.systemDefault()).toLocalDate()
+    return !day.isBefore(startDate) && !day.isAfter(endDate)
 }
