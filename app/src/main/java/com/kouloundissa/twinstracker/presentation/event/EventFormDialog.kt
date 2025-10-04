@@ -837,7 +837,8 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
         OutlinedTextField(
             value = state.notes,
             onValueChange = { viewModel.updateForm { (this as EventFormState.Sleep).copy(notes = it) } },
-            label = { Text("Notes (optional)", color = contentColor.copy(alpha = 0.8f)) },
+            label = { Text("Notes (optional)", color = contentColor) },
+            textStyle = LocalTextStyle.current.copy(color = contentColor),
             shape = cornerShape,
             modifier = Modifier
                 .fillMaxWidth()
@@ -878,6 +879,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
                 viewModel.updateForm { (this as EventFormState.Feeding).copy(amountMl = it) }
             },
             label = { Text("Amount (ml)", color = Color.White) },
+            textStyle = LocalTextStyle.current.copy(color = contentColor),
             shape = cornerShape,
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
@@ -891,7 +893,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
             viewModel.updateForm { (this as EventFormState.Feeding).copy(durationMin = it) }
         },
         label = { Text("Duration (minutes)", color = contentColor) },
-
+        textStyle = LocalTextStyle.current.copy(color = contentColor),
         shape = cornerShape,
         modifier = Modifier.fillMaxWidth(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -921,6 +923,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
         value = state.notes,
         onValueChange = { viewModel.updateForm { (this as EventFormState.Feeding).copy(notes = it) } },
         label = { Text("Notes (optional)", color = contentColor) },
+        textStyle = LocalTextStyle.current.copy(color = contentColor),
         shape = cornerShape,
         modifier = Modifier
             .fillMaxWidth()
@@ -940,6 +943,7 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
             value = state.weightKg,
             onValueChange = { viewModel.updateForm { (this as EventFormState.Growth).copy(weightKg = it) } },
             label = { Text("Weight (kg)", color = contentColor) },
+            textStyle = LocalTextStyle.current.copy(color = contentColor),
             shape = cornerShape,
             modifier = Modifier.weight(1f),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
@@ -949,6 +953,7 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
             value = state.heightCm,
             onValueChange = { viewModel.updateForm { (this as EventFormState.Growth).copy(heightCm = it) } },
             label = { Text("Height (cm)", color = contentColor) },
+            textStyle = LocalTextStyle.current.copy(color = contentColor),
             shape = cornerShape,
             modifier = Modifier.weight(1f),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
@@ -965,6 +970,7 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
             }
         },
         label = { Text("Head Circumference (cm)", color = contentColor) },
+        textStyle = LocalTextStyle.current.copy(color = contentColor),
         shape = cornerShape,
         modifier = Modifier.fillMaxWidth(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
@@ -974,6 +980,7 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
         value = state.notes,
         onValueChange = { viewModel.updateForm { (this as EventFormState.Growth).copy(notes = it) } },
         label = { Text("Notes (optional)", color = contentColor) },
+        textStyle = LocalTextStyle.current.copy(color = contentColor),
         shape = cornerShape,
         modifier = Modifier
             .fillMaxWidth()
@@ -1003,6 +1010,7 @@ private fun PumpingForm(
                 }
             },
             label = { Text("Amount (ml)", color = contentColor) },
+            textStyle = LocalTextStyle.current.copy(color = contentColor),
             shape = cornerShape,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
@@ -1018,6 +1026,7 @@ private fun PumpingForm(
                 }
             },
             label = { Text("Duration (minutes)", color = contentColor) },
+            textStyle = LocalTextStyle.current.copy(color = contentColor),
             shape = cornerShape,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
@@ -1049,6 +1058,7 @@ private fun PumpingForm(
                 }
             },
             label = { Text("Notes (optional)", color = contentColor) },
+            textStyle = LocalTextStyle.current.copy(color = contentColor),
             shape = cornerShape,
             modifier = Modifier
                 .fillMaxWidth()
@@ -1089,6 +1099,7 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
                     }
                 },
                 label = { Text("Specify Drug Name", color = contentColor) },
+                textStyle = LocalTextStyle.current.copy(color = contentColor),
                 placeholder = { Text("e.g., Ibuprofen") },
                 shape = cornerShape,
                 modifier = Modifier.fillMaxWidth(),
@@ -1106,6 +1117,7 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
                 }
             },
             label = { Text("Dosage", color = contentColor) },
+            textStyle = LocalTextStyle.current.copy(color = contentColor),
             placeholder = { Text("e.g., 250") },
             shape = cornerShape,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -1123,6 +1135,7 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
                 }
             },
             label = { Text("Unit", color = contentColor) },
+            textStyle = LocalTextStyle.current.copy(color = contentColor),
             shape = cornerShape,
             placeholder = { Text("mg, IU, etc.") },
             modifier = Modifier.fillMaxWidth(),
@@ -1141,6 +1154,7 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
                 }
             },
             label = { Text("Notes (optional)", color = contentColor) },
+            textStyle = LocalTextStyle.current.copy(color = contentColor),
             shape = cornerShape,
             modifier = Modifier
                 .fillMaxWidth()
