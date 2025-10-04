@@ -30,7 +30,10 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -112,6 +115,8 @@ fun HomeScreen(
     var showBabyDialog by remember { mutableStateOf(false) }
 
     val isLoading by eventViewModel.isLoading.collectAsState()
+    val isLoadingMore by eventViewModel.isLoadingMore.collectAsState()
+    val hasMoreHistory by eventViewModel.hasMoreHistory.collectAsState()
     val errorMessage by eventViewModel.errorMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -123,11 +128,20 @@ fun HomeScreen(
 
     LaunchedEffect(selectedBaby?.id) {
         selectedBaby?.id?.let { babyId ->
-            // week‐long window; use 30L for month
+            eventViewModel.resetDateRangeAndHistory()
             eventViewModel.setDateRangeForLastDays(30L)
             eventViewModel.streamEventsInRangeForBaby(babyId)
         }
+
     }
+    val loadMoreHistory = remember(selectedBaby) {
+        {
+            selectedBaby?.id?.let { _ ->
+                eventViewModel.loadMoreHistoricalEvents()
+            }
+        }
+    }
+
     LaunchedEffect(editingEvent) {
         editingEvent?.let {
             eventViewModel.loadEventIntoForm(it)
@@ -373,44 +387,74 @@ fun HomeScreen(
                     }
 
                     // Timeline of recent events
-                    item {
-                        if (babyEvents.isNotEmpty()) {
-                            TimelineList(
-                                events = babyEvents.take(20),
-                                modifier = Modifier.fillMaxWidth(),
-                                onEdit = { event ->
-                                    editingEvent = event
-                                    showEventDialog = true
-                                },
-                                eventViewModel = eventViewModel,
-                                baby = selectedBaby!!
-                            )
-                        } else {
-                            // Empty state
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
+                    items(babyEvents, key = { it.id }) { event ->
+                        EventCard(
+                            event = event,
+                            onEdit = { editingEvent = event; showEventDialog = true },
+                            onDelete = { eventViewModel.deleteEvent(event.id, selectedBaby!!.id) }
+                        )
+                    }
+                    // Discrete “load more” indicator at bottom
+                    if (isLoadingMore && hasMoreHistory) {
+                        item {
+                            Box(
+                                Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 32.dp)
+                                    .padding(vertical = 16.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Event,
-                                    contentDescription = "No events",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(48.dp)
-                                )
-                                Spacer(Modifier.height(16.dp))
-                                Text(
-                                    text = "No events yet",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "Start tracking by adding your first event",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center
-                                )
+                                Card(
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+                                    ),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                ) {
+                                    Row(
+                                        Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        CircularProgressIndicator(
+                                            Modifier.size(16.dp),
+                                            strokeWidth = 2.dp,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Text(
+                                            "Loading older events…",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // End-of-history footer
+                    if (!hasMoreHistory && babyEvents.isNotEmpty()) {
+                        item {
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.History,
+                                        contentDescription = "No more history",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Text(
+                                        "Beginning reached",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }
@@ -418,14 +462,35 @@ fun HomeScreen(
                 }
             }
             // Loading overlay
-            if (isLoading) {
+            if (isLoading && !isLoadingMore) {
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .clickable(enabled = false) { },
+                        .background(Color.Black.copy(alpha = 0.3f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(32.dp),
+                                strokeWidth = 3.dp
+                            )
+                            Text(
+                                text = "Loading baby events...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
                 }
             }
             // dialog handling:

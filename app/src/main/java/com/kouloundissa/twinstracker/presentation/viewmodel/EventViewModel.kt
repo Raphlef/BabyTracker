@@ -53,6 +53,10 @@ class EventViewModel @Inject constructor(
     private val _eventsByDay = MutableStateFlow<Map<java.time.LocalDate, List<Event>>>(emptyMap())
     val eventsByDay: StateFlow<Map<java.time.LocalDate, List<Event>>> = _eventsByDay
 
+
+    // Track if we can load more (haven't reached the beginning of baby's data)
+    private val _hasMoreHistory = MutableStateFlow(true)
+    val hasMoreHistory: StateFlow<Boolean> = _hasMoreHistory.asStateFlow()
     private fun groupEventsByDay(allEvents: List<Event>) {
         val map = allEvents.groupBy { event ->
             // conversion java.util.Date -> java.time.LocalDate
@@ -75,6 +79,8 @@ class EventViewModel @Inject constructor(
 
 
     // --- Loading States ---
+    private val _isLoadingMore = MutableStateFlow(false)
+    val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -89,6 +95,8 @@ class EventViewModel @Inject constructor(
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     // --- Date Range Filtering ---
+    private var currentDaysWindow = 30L
+    private val maxDaysWindow = 365L // Maximum 1 year of history
     private val _startDate = MutableStateFlow<Date>(Date().apply {
         time = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000 // Default: 30 days ago
     })
@@ -128,6 +136,34 @@ class EventViewModel @Inject constructor(
         }
     }
 
+    fun loadMoreHistoricalEvents() {
+        if (_isLoadingMore.value || !_hasMoreHistory.value) return
+
+        _isLoadingMore.value = true
+
+        // Extend the window by additional days (e.g., 30 more days)
+        val additionalDays = 30L
+        val newDaysWindow = (currentDaysWindow + additionalDays).coerceAtMost(maxDaysWindow)
+
+        // Check if we've reached the maximum
+        if (newDaysWindow >= maxDaysWindow) {
+            _hasMoreHistory.value = false
+        }
+
+        // Update the date range
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now()
+        val newStartDate = today.minusDays(newDaysWindow - 1).atStartOfDay(zone).toInstant()
+        val endDate = today.atTime(23, 59, 59).atZone(zone).toInstant()
+
+        currentDaysWindow = newDaysWindow
+        _startDate.value = Date.from(newStartDate)
+        _endDate.value = Date.from(endDate)
+
+        // The streaming will automatically pick up the new date range
+        // and update the events accordingly
+    }
+
     fun streamEventsInRangeForBaby(babyId: String) {
         streamJob?.cancel()
         streamJob = repository.streamEventsForBaby(babyId)
@@ -138,15 +174,21 @@ class EventViewModel @Inject constructor(
                     ts in _startDate.value.._endDate.value
                 }
             }
-            .onStart { _isLoading.value = true }
+            .onStart {
+                if (!_isLoadingMore.value) {
+                    _isLoading.value = true
+                }
+            }
             .catch { e ->
                 _errorMessage.value = "Stream error: ${e.localizedMessage}"
                 _isLoading.value = false
+                _isLoadingMore.value = false
             }
             .onEach { filtered ->
                 _eventsByType.value = filtered.groupBy { it::class }
                 groupEventsByDay(filtered)
                 _isLoading.value = false
+                _isLoadingMore.value = false
             }
             .launchIn(viewModelScope)
     }
@@ -155,6 +197,8 @@ class EventViewModel @Inject constructor(
     fun stopStreaming() {
         streamJob?.cancel()
         streamJob = null
+        _isLoading.value = false
+        _isLoadingMore.value = false
     }
 
     // Update form
@@ -263,7 +307,8 @@ class EventViewModel @Inject constructor(
     private suspend fun createEventWithPhoto(event: Event, state: EventFormState) {
         try {
             // 1. Handle photo upload (before event creation)
-            val photoUrl = state.newPhotoUrl?.let { uploadEventPhoto(event.id, state.newPhotoUrl!!) }
+            val photoUrl =
+                state.newPhotoUrl?.let { uploadEventPhoto(event.id, state.newPhotoUrl!!) }
 
             // 2. Create the event with photoUrl (if available)
             val eventWithPhoto = event.setPhotoUrl(photoUrl)
@@ -432,6 +477,7 @@ class EventViewModel @Inject constructor(
             }
         }
     }
+
     /**
      * Deletes the event with the given ID.
      * Updates isDeleting, deleteSuccess, and deleteError accordingly.
@@ -486,6 +532,12 @@ class EventViewModel @Inject constructor(
     fun resetDeleteState() {
         _deleteSuccess.value = false
         _deleteError.value = null
+    }
+    fun resetDateRangeAndHistory() {
+        currentDaysWindow = 30L
+        _hasMoreHistory.value = true
+        _isLoadingMore.value = false
+        setDateRangeForLastDays(30L)
     }
 
     /**
