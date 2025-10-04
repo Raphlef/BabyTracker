@@ -289,7 +289,7 @@ private fun EventTypeIndicator(eventType: EventType) {
 @Composable
 private fun TimeDisplay(event: Event) {
     val formatter = DateTimeFormatter.ofPattern("MMM dd, HH:mm")  // e.g. "Sep 30, 14:45"
-
+    val contentColor = Color.White
     val timeText = when (event) {
         is SleepEvent -> {
             val startTime = event.beginTime?.toInstant()
@@ -316,7 +316,7 @@ private fun TimeDisplay(event: Event) {
     Text(
         text = timeText,
         style = MaterialTheme.typography.labelSmall,  // small font size
-        color = MaterialTheme.colorScheme.onPrimary
+        color = contentColor
     )
 }
 
