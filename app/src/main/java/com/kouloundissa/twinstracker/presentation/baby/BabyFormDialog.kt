@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -271,90 +272,106 @@ private fun BabyFormBottomSheetContent(
                 .fillMaxSize()
                 .blur(radiusX = 4.dp, radiusY = 4.dp)
         )
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 20.dp)
-                .navigationBarsPadding()
-        ) {
-            // Header
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = if (isEditMode) "Edit Baby" else "Create Baby",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = contentColor,
-                )
-                IconButton(
-                    onClick = onCancel,
-                    modifier = Modifier
-                        .background(
-                            MaterialTheme.colorScheme.surfaceVariant,
-                            CircleShape
+                .fillMaxHeight()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            DarkGrey.copy(alpha = 0.35f),
+                            DarkGrey.copy(alpha = 0.15f)
                         )
-                        .size(40.dp)
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = "Close")
-                }
-            }
-            Spacer(Modifier.height(16.dp))
-            // Form content with scroll
-            Box(
+                    ),
+                    shape = cornerShape,
+                )
+                .padding(horizontal = 12.dp, vertical = 12.dp)
+        ) {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 12.dp, vertical = 20.dp)
+                    .navigationBarsPadding()
             ) {
-
-                Column {
-                    BabyFormContent(
-                        state = state,
-                        isEditMode = isEditMode,
-                        isLoading = isLoading,
-                        existingPhotoUrl = currentBaby?.photoUrl,
-                        onRequestDeletePhoto = {
-                            if (isEditMode && currentBaby != null) {
-                                babyViewModel.deleteBabyPhoto(currentBaby.id)
-                            }
-                        }
+                // Header
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = if (isEditMode) "Edit Baby" else "Create Baby",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = contentColor,
                     )
-
-                    babyError?.let {
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            it,
-                            color = Color.Red, // MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                    IconButton(
+                        onClick = onCancel,
+                        modifier = Modifier
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant,
+                                CircleShape
+                            )
+                            .size(40.dp)
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
                     }
-
-                    // Add bottom padding to ensure content is not hidden behind action buttons
-                    Spacer(Modifier.height(16.dp))
                 }
+                Spacer(Modifier.height(16.dp))
+                // Form content with scroll
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                ) {
+
+                    Column {
+                        BabyFormContent(
+                            state = state,
+                            isEditMode = isEditMode,
+                            isLoading = isLoading,
+                            existingPhotoUrl = currentBaby?.photoUrl,
+                            onRequestDeletePhoto = {
+                                if (isEditMode && currentBaby != null) {
+                                    babyViewModel.deleteBabyPhoto(currentBaby.id)
+                                }
+                            }
+                        )
+
+                        babyError?.let {
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                it,
+                                color = Color.Red, // MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+
+                        // Add bottom padding to ensure content is not hidden behind action buttons
+                        Spacer(Modifier.height(16.dp))
+                    }
+                }
+
+                // Action buttons - fixed at bottom
+                BabyFormActionButtons(
+                    isEditMode = isEditMode,
+                    isLoading = isLoading,
+                    onCancel = onCancel,
+                    onDelete = onOpenDeleteDialog,
+                    onSave = {
+                        // Validate required fields
+                        val valid = state.validate()
+                        if (!valid) return@BabyFormActionButtons
+
+                        val (babyData, newPhotoUri, photoRemoved) = state.toBabyTriple(
+                            isEditMode,
+                            currentBaby
+                        )
+                        onSave(babyData, newPhotoUri, photoRemoved)
+                    }
+                )
             }
-
-            // Action buttons - fixed at bottom
-            BabyFormActionButtons(
-                isEditMode = isEditMode,
-                isLoading = isLoading,
-                onCancel = onCancel,
-                onDelete = onOpenDeleteDialog,
-                onSave = {
-                    // Validate required fields
-                    val valid = state.validate()
-                    if (!valid) return@BabyFormActionButtons
-
-                    val (babyData, newPhotoUri, photoRemoved) = state.toBabyTriple(
-                        isEditMode,
-                        currentBaby
-                    )
-                    onSave(babyData, newPhotoUri, photoRemoved)
-                }
-            )
         }
     }
 }
