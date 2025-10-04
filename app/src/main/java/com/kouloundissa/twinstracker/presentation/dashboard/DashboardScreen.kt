@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -333,6 +334,10 @@ fun BabySelectorRow(
                     .clickable { onSelectBaby(baby) },
                 shape = cornerShape,
                 color = if (isSelected) baseColor.copy(alpha = 0.85f) else baseColor.copy(alpha = 0.15f),
+                border = BorderStroke(
+                    0.5.dp,
+                    contentColor.copy(alpha = 0.55f)
+                ),
                 tonalElevation = 0.dp
             ) {
                 Box(
@@ -359,6 +364,10 @@ fun BabySelectorRow(
                     .clickable(onClick = onAddBaby),
                 shape = CircleShape,
                 color = baseColor.copy(alpha = 0.12f),
+                border = BorderStroke(
+                    0.5.dp,
+                    contentColor.copy(alpha = 0.55f)
+                ),
                 tonalElevation = 0.dp
             ) {
                 Box(contentAlignment = Alignment.Center) {
