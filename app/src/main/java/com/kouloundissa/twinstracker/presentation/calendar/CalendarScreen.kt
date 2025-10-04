@@ -105,12 +105,22 @@ fun CalendarScreen(
             ) {
 
                 item {
+                    val eventsByDayCover: Map<LocalDate, List<Event>> = remember(allEvents, filterTypes, currentMonth) {
+                        val year = currentMonth.year
+                        val month = currentMonth.monthValue
+                        // Generate each date in the month
+                        (1..currentMonth.lengthOfMonth()).associateWith { day ->
+                            val date = LocalDate.of(year, month, day)
+                            allEvents.filter { it.coversDay(date) }
+                                .filter { filterTypes.contains(EventType.forClass(it::class)) }
+                        }.mapKeys { (day, evts) ->
+                            LocalDate.of(year, month, day)
+                        }
+                    }
                     SwipeableCalendar(
                         currentMonth = currentMonth,
                         onMonthChange = { delta -> currentMonth = currentMonth.plusMonths(delta) },
-                        eventsByDay = eventsByDay.mapValues { (_, evts) ->
-                            evts.filter { filterTypes.contains(EventType.forClass(it::class)) }
-                        },
+                        eventsByDay = eventsByDayCover,
                         selectedDate = selectedDate,
                         onDayClick = { selectedDate = it }
                     )
