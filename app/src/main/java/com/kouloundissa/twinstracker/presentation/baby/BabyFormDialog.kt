@@ -748,15 +748,16 @@ private fun PediatricianContactField(
     value: String,
     onPick: () -> Unit
 ) {
+    val contentColor = Color.White
     OutlinedTextField(
         value = value,
         onValueChange = { /* read-only */ },
-        label = { Text("Pediatrician Contact") },
+        label = { Text("Pediatrician Contact", color = contentColor) },
         readOnly = true,
         singleLine = true,
         trailingIcon = {
             IconButton(onClick = onPick) {
-                Icon(Icons.Default.Person, contentDescription = "Pick Contact")
+                Icon(Icons.Default.Person, contentDescription = "Pick Contact", tint = contentColor)
             }
         },
         modifier = Modifier.fillMaxWidth()
@@ -768,10 +769,11 @@ private fun NotesField(
     value: String,
     onChange: (String) -> Unit
 ) {
+    val contentColor = Color.White
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
-        label = { Text("Notes") },
+        label = { Text("Notes", color = contentColor) },
         modifier = Modifier
             .fillMaxWidth()
             .height(100.dp)
