@@ -130,6 +130,7 @@ fun CalendarScreen(
                         Text("No events", style = MaterialTheme.typography.bodyMedium)
                     } else {
                         DayTimeline(
+                            date= selectedDate,
                             events = dailyEvents,
                             onEdit = { editingEvent = it },
                         )
