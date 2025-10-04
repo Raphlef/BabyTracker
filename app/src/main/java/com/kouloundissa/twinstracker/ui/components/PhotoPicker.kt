@@ -11,6 +11,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -162,7 +163,17 @@ fun PhotoPicker(
                 contentDescription = "Selected Photo",
                 modifier = Modifier
                     .fillMaxSize()
-                    .clickable { showDialog = true },
+
+                    .combinedClickable(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                setDataAndType(displayUri, "image/*")
+                                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            }
+                            context.startActivity(intent)
+                        },
+                        onLongClick = { showDialog = true }
+                    ),
                 contentScale = ContentScale.Crop
             )
 
