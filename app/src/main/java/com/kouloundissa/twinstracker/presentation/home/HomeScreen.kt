@@ -70,6 +70,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import coil.compose.rememberAsyncImagePainter
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.Event
@@ -569,7 +570,6 @@ fun EventTypeCard(
     val cornerShape = MaterialTheme.shapes.extraLarge
     Surface(
         shape = cornerShape,
-        tonalElevation = 0.dp,
         color = Color.Transparent,
         modifier = Modifier
             .size(size)

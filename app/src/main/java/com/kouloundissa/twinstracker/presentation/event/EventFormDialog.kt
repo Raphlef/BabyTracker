@@ -274,22 +274,31 @@ fun EventFormDialog(
                     }
 
                     // Date Selector
-                    ModernDateSelector(
-                        selectedDate = selectedDate,
-                        onDateSelected = {
-                            selectedDate = it
-                            viewModel.updateEventTimestamp(it)
-                        }
-                    )
-
-                    // Event-specific form content
                     when (val s = formState) {
-                        is EventFormState.Diaper -> DiaperForm(s, viewModel)
-                        is EventFormState.Sleep -> SleepForm(s, viewModel)
-                        is EventFormState.Feeding -> FeedingForm(s, viewModel)
-                        is EventFormState.Growth -> GrowthForm(s, viewModel)
-                        is EventFormState.Pumping -> PumpingForm(s, viewModel)
-                        is EventFormState.Drugs -> DrugsForm(s, viewModel)
+                        is EventFormState.Sleep -> {
+                            // No top-level date selector for Sleep
+                            SleepForm(s, viewModel)
+                        }
+
+                        else -> {
+                            // For all other events, render the date selector
+                            ModernDateSelector(
+                                selectedDate = selectedDate,
+                                onDateSelected = {
+                                    selectedDate = it
+                                    viewModel.updateEventTimestamp(it)
+                                }
+                            )
+                            // Then render the specific form
+                            when (s) {
+                                is EventFormState.Diaper -> DiaperForm(s, viewModel)
+                                is EventFormState.Feeding -> FeedingForm(s, viewModel)
+                                is EventFormState.Growth -> GrowthForm(s, viewModel)
+                                is EventFormState.Pumping -> PumpingForm(s, viewModel)
+                                is EventFormState.Drugs -> DrugsForm(s, viewModel)
+                                else -> {}
+                            }
+                        }
                     }
                     PhotoPicker(
                         photoUrl = selectedUri,
@@ -440,15 +449,17 @@ fun <T> IconSelector(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModernDateSelector(
-    selectedDate: Date,
+    label: String = "Event Date & Time",
+    selectedDate: Date?,
     onDateSelected: (Date) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
-    var interimDateMillis by remember { mutableStateOf(selectedDate.time) }
+    val initialMillis = selectedDate?.time ?: System.currentTimeMillis()
+    var interimDateMillis by remember { mutableStateOf(initialMillis) }
     // Hold interim date before time selection
-    val interimCalendar = remember { Calendar.getInstance().apply { time = selectedDate } }
+    val interimCalendar = remember { Calendar.getInstance().apply { timeInMillis = initialMillis } }
 
     val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
     val contentcolor = DarkGrey
@@ -456,7 +467,7 @@ fun ModernDateSelector(
 
     // Date picker state
     val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = selectedDate.time
+        initialSelectedDateMillis = interimDateMillis
     )
 
     // Trigger surface
@@ -479,13 +490,19 @@ fun ModernDateSelector(
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Event Date & Time",
+                    label,
                     style = MaterialTheme.typography.labelMedium,
                     color = contentcolor
                 )
                 Text(
-                    SimpleDateFormat("EEE, MMM dd, yyyy • hh:mm a", Locale.getDefault())
-                        .format(selectedDate),
+                    text = selectedDate
+                        ?.let {
+                            SimpleDateFormat(
+                                "EEE, MMM dd, yyyy • hh:mm a",
+                                Locale.getDefault()
+                            ).format(it)
+                        }
+                        ?: "Select date & time",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
                     color = contentcolor
@@ -733,7 +750,6 @@ private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) 
     )
 }
 
-
 @Composable
 private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
     fun computeDuration(begin: Date?, end: Date?): Long? =
@@ -741,16 +757,31 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
             ((end.time - begin.time) / 60000).coerceAtLeast(0L)
         else null
 
+    LaunchedEffect(state.beginTime) {
+        if (state.beginTime == null) {
+            val now = Date()
+            viewModel.updateEventTimestamp(now)
+            viewModel.updateForm {
+                val s = this as EventFormState.Sleep
+                s.copy(
+                    beginTime = now,
+                    durationMinutes = computeDuration(now, s.endTime)
+                )
+            }
+        }
+    }
+
     val cornerShape = MaterialTheme.shapes.extraLarge
     val contentColor = Color.White
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        ModernTimeSelector(
-            label = "Start Time",
-            time = state.beginTime,
-            onTimeSelected = { newBegin ->
+        ModernDateSelector(
+            label = "Begin sleep",
+            selectedDate = state.beginTime ?: Date(),
+            onDateSelected = { newBegin ->
+                viewModel.updateEventTimestamp(newBegin)
                 viewModel.updateForm {
                     val s = this as EventFormState.Sleep
                     s.copy(
@@ -759,14 +790,14 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
                     )
                 }
             },
-            modifier = Modifier.weight(1f),
-            onDismiss = { }
+            modifier = Modifier.fillMaxWidth()
         )
 
-        ModernTimeSelector(
-            label = "End Time",
-            time = state.endTime,
-            onTimeSelected = { newEnd ->
+        // End Date & Time Picker
+        ModernDateSelector(
+            label = "End sleep",
+            selectedDate = state.endTime,
+            onDateSelected = { newEnd ->
                 viewModel.updateForm {
                     val s = this as EventFormState.Sleep
                     s.copy(
@@ -775,43 +806,43 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
                     )
                 }
             },
-            modifier = Modifier.weight(1f),
-            onDismiss = { }
+            modifier = Modifier.fillMaxWidth()
         )
-    }
 
-    // Duration display
-    state.durationMinutes?.let { minutes ->
-        Surface(
-            shape = cornerShape,
-            color = DarkGrey.copy(alpha = 0.3f)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth()
+
+        // Duration display
+        state.durationMinutes?.let { minutes ->
+            Surface(
+                shape = cornerShape,
+                color = DarkGrey.copy(alpha = 0.3f)
             ) {
-                Icon(Icons.Default.Timer, contentDescription = null)
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    "Duration: ${minutes / 60}h ${minutes % 60}min",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Timer, contentDescription = null)
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        "Duration: ${minutes / 60}h ${minutes % 60}min",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
-    }
 
-    OutlinedTextField(
-        value = state.notes,
-        onValueChange = { viewModel.updateForm { (this as EventFormState.Sleep).copy(notes = it) } },
-        label = { Text("Notes (optional)", color = contentColor.copy(alpha = 0.8f)) },
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(80.dp)
-    )
+        OutlinedTextField(
+            value = state.notes,
+            onValueChange = { viewModel.updateForm { (this as EventFormState.Sleep).copy(notes = it) } },
+            label = { Text("Notes (optional)", color = contentColor.copy(alpha = 0.8f)) },
+            shape = cornerShape,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+        )
+    }
 }
 
 @Composable
