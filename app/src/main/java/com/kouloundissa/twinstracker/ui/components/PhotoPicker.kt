@@ -48,7 +48,9 @@ import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.google.firebase.BuildConfig
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
+import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -63,7 +65,7 @@ fun PhotoPicker(
     onPhotoSelected: (Uri?) -> Unit,
     onPhotoRemoved: () -> Unit
 ) {
-    val contentColor = Color.White
+    val contentColor = BackgroundColor
     val context = LocalContext.current
 
     // State to hold the URI actually displayed (remote or local)
@@ -206,7 +208,7 @@ fun PhotoPicker(
                 Icon(
                     imageVector = Icons.Default.CameraAlt,
                     contentDescription = "Add Photo",
-                    tint = contentColor.copy(alpha = 0.7f),
+                    tint = DarkGrey.copy(alpha = 0.7f),
                     modifier = Modifier.size(48.dp)
                 )
             }
