@@ -737,6 +737,7 @@ private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) 
         onValueChange = {
             viewModel.updateForm { (this as EventFormState.Diaper).copy(notes = it) }
         },
+        textStyle = LocalTextStyle.current.copy(color = contentColor),
         label = {
             Text(
                 "Notes (optional)",
