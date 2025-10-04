@@ -143,7 +143,7 @@ fun PhotoPicker(
             .fillMaxWidth()
             .height(150.dp)
             .clip(MaterialTheme.shapes.medium)
-            .background(contentColor.copy(alpha = 0.20f))
+            .background(contentColor.copy(alpha = 0.30f))
     ) {
         if (displayUri != null) {
             // Build Coil request

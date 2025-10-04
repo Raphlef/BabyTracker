@@ -211,12 +211,12 @@ fun EventFormDialog(
 
                     if (errorMessage != null) {
                         Surface(
-                            color = MaterialTheme.colorScheme.errorContainer,
+                            color = Color.Transparent,
                             shape = cornerShape
                         ) {
                             Text(
                                 errorMessage!!,
-                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                color = Color.Red,
                                 modifier = Modifier.padding(12.dp)
                             )
                         }
@@ -342,7 +342,7 @@ fun EventFormDialog(
                                     strokeWidth = 2.dp
                                 )
                             } else {
-                                Text("Delete", color = MaterialTheme.colorScheme.onError)
+                                Text("Delete", color = Color.Red)
                             }
                         }
                     }
