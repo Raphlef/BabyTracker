@@ -395,6 +395,26 @@ class EventViewModel @Inject constructor(
         }
     }
 
+    fun loadLastGrowth(babyId: String) {
+        viewModelScope.launch {
+            repository.getLastGrowthEvent(babyId)
+                .onSuccess { event ->
+                    event?.let {
+                        _formState.value = EventFormState.Growth(
+                            weightKg = it.weightKg?.toString().orEmpty(),
+                            heightCm = it.heightCm?.toString().orEmpty(),
+                            headCircumferenceCm = it.headCircumferenceCm?.toString().orEmpty(),
+                        )
+                    }
+
+                }
+                .onFailure { throwable ->
+                    Log.e("EventVM", "Failed loading last growth", throwable)
+                    _errorMessage.value = throwable.message
+                }
+        }
+    }
+
     private suspend fun createEventWithPhoto(event: Event, state: EventFormState) {
         try {
             // 1. Handle photo upload (before event creation)

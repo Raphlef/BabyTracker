@@ -293,7 +293,13 @@ fun EventFormDialog(
                             when (s) {
                                 is EventFormState.Diaper -> DiaperForm(s, viewModel)
                                 is EventFormState.Feeding -> FeedingForm(s, viewModel)
-                                is EventFormState.Growth -> GrowthForm(s, viewModel)
+                                is EventFormState.Growth -> {
+                                   if(!isEditMode) {
+                                       viewModel.loadLastGrowth(babyId);
+                                   }
+                                    GrowthForm(s, viewModel)
+                                }
+
                                 is EventFormState.Pumping -> PumpingForm(s, viewModel)
                                 is EventFormState.Drugs -> DrugsForm(s, viewModel)
                                 else -> {}
@@ -932,9 +938,13 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
 }
 
 @Composable
-private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) {
+private fun GrowthForm(
+    state: EventFormState.Growth,
+    viewModel: EventViewModel
+) {
     val contentColor = Color.White
     val cornerShape = MaterialTheme.shapes.extraLarge
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxWidth()
