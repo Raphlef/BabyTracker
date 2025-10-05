@@ -498,7 +498,7 @@ fun ModernDateSelector(
                     text = selectedDate
                         ?.let {
                             SimpleDateFormat(
-                                "EEE, MMM dd, yyyy • hh:mm",
+                                "EEE, MMM dd, yyyy • HH:mm",
                                 Locale.getDefault()
                             ).format(it)
                         }
