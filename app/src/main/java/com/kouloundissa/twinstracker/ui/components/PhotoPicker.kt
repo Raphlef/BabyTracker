@@ -166,11 +166,23 @@ fun PhotoPicker(
 
                     .combinedClickable(
                         onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW).apply {
-                                setDataAndType(displayUri, "image/*")
-                                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            displayUri?.let { uri ->
+                                // Convert file:// URI to content:// URI if needed
+                                val shareUri = if (uri.scheme == "file") {
+                                    val file = File(uri.path!!)
+                                    FileProvider.getUriForFile(
+                                        context,
+                                        "${context.packageName}.fileprovider",
+                                        file
+                                    )
+                                } else uri
+
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    setDataAndType(shareUri, "image/*")
+                                    flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                }
+                                context.startActivity(intent)
                             }
-                            context.startActivity(intent)
                         },
                         onLongClick = { showDialog = true }
                     ),
