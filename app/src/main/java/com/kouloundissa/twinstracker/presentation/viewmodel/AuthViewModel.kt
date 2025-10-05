@@ -67,6 +67,7 @@ class AuthViewModel @Inject constructor(
 
     fun loginWithGoogle() {
         viewModelScope.launch {
+            _state.value = _state.value.copy(rememberMe = true)
             _oneTimeEvent.emit(AuthEvent.StartGoogleSignIn)
         }
     }
