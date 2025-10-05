@@ -35,6 +35,7 @@
 
 # 3. Keep Firebase & Gson classes
 -keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.auth.api.signin.** { *; }
 -keepattributes *Annotation*
 
 # 4. (Optional) Prevent obfuscation of your data-model package
