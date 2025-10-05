@@ -50,6 +50,7 @@ import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.HiltAndroidApp
 import jakarta.inject.Inject
+import kotlinx.coroutines.flow.collectLatest
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -136,21 +137,17 @@ fun BabyTrackerApp() {
             eventViewModel.loadEventIntoForm(notificationEvent!!)
         }
     }
-    LaunchedEffect(Unit) {
-        authViewModel.oneTimeEventFlow.collect { event ->
-            when (event) {
-                AuthEvent.Logout -> {
+    LaunchedEffect(authViewModel.oneTimeEventFlow) {
+        authViewModel.oneTimeEventFlow
+            .collectLatest { event ->
+                if (event == AuthEvent.Logout) {
                     navController.navigate("auth") {
                         popUpTo(navController.graph.startDestinationId) {
                             inclusive = true
                         }
                     }
                 }
-
-                else -> { /* ignore other events */
-                }
             }
-        }
     }
 
     NavHost(

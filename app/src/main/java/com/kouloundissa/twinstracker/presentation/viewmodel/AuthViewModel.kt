@@ -8,8 +8,11 @@ import com.kouloundissa.twinstracker.data.FirebaseRepository
 import com.kouloundissa.twinstracker.data.User
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
@@ -31,8 +34,8 @@ class AuthViewModel @Inject constructor(
     )
     val state: StateFlow<AuthState> = _state.asStateFlow()
 
-    private val _oneTimeEvent = Channel<AuthEvent>(Channel.BUFFERED)
-    val oneTimeEventFlow = _oneTimeEvent.receiveAsFlow()
+    private val _oneTimeEvent = MutableSharedFlow<AuthEvent>(replay = 1)
+    val oneTimeEventFlow: SharedFlow<AuthEvent> = _oneTimeEvent.asSharedFlow()
 
     init {
         viewModelScope.launch {
@@ -66,7 +69,7 @@ class AuthViewModel @Inject constructor(
 
     fun loginWithGoogle() {
         viewModelScope.launch {
-            _oneTimeEvent.send(AuthEvent.StartGoogleSignIn)
+            _oneTimeEvent.emit(AuthEvent.StartGoogleSignIn)
         }
     }
 
@@ -221,7 +224,7 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             repository.clearUserSession()
             _state.value = AuthState() // Reset complet de l’état, déconnecté
-            _oneTimeEvent.send(AuthEvent.Logout)
+            _oneTimeEvent.emit(AuthEvent.Logout)
         }
     }
 }
