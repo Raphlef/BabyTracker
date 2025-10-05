@@ -11,6 +11,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -18,6 +19,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -38,6 +42,7 @@ import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderF
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.kouloundissa.twinstracker.presentation.Family.FamilyCheckScreen
 import com.kouloundissa.twinstracker.presentation.event.NotificationEventScreen
+import com.kouloundissa.twinstracker.presentation.settings.SettingsScreen
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -116,24 +121,15 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun TwinsTrackerApp() {
     val navController = rememberNavController()
-    val authViewModel: AuthViewModel = hiltViewModel()
     val familyViewModel: FamilyViewModel = hiltViewModel()
     val eventViewModel: EventViewModel = hiltViewModel()
 
-    val authState by authViewModel.state.collectAsState()
     val notificationEvent by eventViewModel.notificationEvent.collectAsState()
 
 
     LaunchedEffect(notificationEvent) {
         notificationEvent?.let { event ->
             eventViewModel.loadEventIntoForm(notificationEvent!!)
-        }
-    }
-    LaunchedEffect(authState) {
-        if (!authState.isAuthenticated) {
-            navController.navigate("auth") {
-                popUpTo(0) { inclusive = true }
-            }
         }
     }
 

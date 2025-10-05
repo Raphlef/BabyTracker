@@ -175,6 +175,11 @@ fun SettingsScreen(
                                 onClick = {
                                     authViewModel.logout()
                                     showLogoutDialog = false
+                                    navController.navigate("auth") {
+                                        popUpTo(navController.graph.startDestinationId) {
+                                            inclusive = true
+                                        }
+                                    }
                                 }
                             ) {
                                 Text(
@@ -350,7 +355,7 @@ fun GlassCard(
 @Composable
 private fun ReadOnlyField(label: String, value: String, color: Color) {
     Text(label, style = MaterialTheme.typography.labelLarge, color = color)
-    Text(value, style = MaterialTheme.typography.bodyLarge, color = color.copy(alpha = 0.6f))
+    Text(value, style = MaterialTheme.typography.bodyLarge, color = color.copy(alpha = 0.8f))
 }
 
 
