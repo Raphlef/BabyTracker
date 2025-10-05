@@ -541,6 +541,7 @@ private fun BabyFormContent(
             state.name = it
             if (state.nameError) state.nameError = false
         },
+        textStyle = LocalTextStyle.current.copy(color = contentColor),
         label = { Text("Baby Name*", color = Color.White) },
         isError = state.nameError,
         modifier = Modifier.fillMaxWidth()
@@ -625,6 +626,7 @@ private fun BabyFormContent(
     OutlinedTextField(
         value = state.allergies,
         onValueChange = { state.allergies = it },
+        textStyle = LocalTextStyle.current.copy(color = contentColor),
         label = { Text("Allergies (comma separated)", color = contentColor) },
         shape = cornerShape,
         modifier = Modifier.fillMaxWidth()
@@ -634,18 +636,17 @@ private fun BabyFormContent(
     OutlinedTextField(
         value = state.conditions,
         onValueChange = { state.conditions = it },
+        textStyle = LocalTextStyle.current.copy(color = contentColor),
         label = { Text("Medical Conditions (comma separated)", color = contentColor) },
-        modifier = Modifier.fillMaxWidth(), shape = cornerShape
+        modifier = Modifier.fillMaxWidth(),
+        shape = cornerShape,
     )
     Spacer(Modifier.height(12.dp))
 
-    PediatricianContactField(
-        value = state.pediatricianContact,
-        onPick = { contactLauncher.launch(null) }
-    )
     OutlinedTextField(
         value = state.pediatricianContact,
         onValueChange = { /* read-only */ },
+        textStyle = LocalTextStyle.current.copy(color = contentColor),
         label = { Text("Pediatrician Contact", color = contentColor) },
         readOnly = true,
         singleLine = true,
@@ -654,13 +655,19 @@ private fun BabyFormContent(
                 Icon(Icons.Default.Person, contentDescription = "Pick Contact", tint = contentColor)
             }
         },
+        shape = cornerShape,
         modifier = Modifier.fillMaxWidth()
     )
     Spacer(Modifier.height(12.dp))
-
-    NotesField(
-        value = state.notes,
-        onChange = { state.notes = it }
+    OutlinedTextField(
+        value =  state.notes,
+        onValueChange =  { state.notes = it },
+        textStyle = LocalTextStyle.current.copy(color = contentColor),
+        label = { Text("Notes", color = contentColor) },
+        shape = cornerShape,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp)
     )
 }
 
@@ -692,6 +699,7 @@ private fun NumericFieldSection(
                     "Nombre invalide" else null
             )
         },
+        textStyle = LocalTextStyle.current.copy(color = contentColor),
         label = { Text(label, color = contentColor) },
         isError = error != null,
         singleLine = true,
@@ -702,45 +710,6 @@ private fun NumericFieldSection(
         )
     error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 }
-
-
-@Composable
-private fun PediatricianContactField(
-    value: String,
-    onPick: () -> Unit
-) {
-    val contentColor = Color.White
-    OutlinedTextField(
-        value = value,
-        onValueChange = { /* read-only */ },
-        label = { Text("Pediatrician Contact", color = contentColor) },
-        readOnly = true,
-        singleLine = true,
-        trailingIcon = {
-            IconButton(onClick = onPick) {
-                Icon(Icons.Default.Person, contentDescription = "Pick Contact", tint = contentColor)
-            }
-        },
-        modifier = Modifier.fillMaxWidth()
-    )
-}
-
-@Composable
-private fun NotesField(
-    value: String,
-    onChange: (String) -> Unit
-) {
-    val contentColor = Color.White
-    OutlinedTextField(
-        value = value,
-        onValueChange = onChange,
-        label = { Text("Notes", color = contentColor) },
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp)
-    )
-}
-
 /* -----------------------
    Delete dialog
    ----------------------- */
