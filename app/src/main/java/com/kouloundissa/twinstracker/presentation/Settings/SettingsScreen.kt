@@ -68,7 +68,7 @@ fun SettingsScreen(
 
     val cornerShape = MaterialTheme.shapes.extraLarge
     val baseColor = Color.White
-    val contentColor = DarkBlue
+    val contentColor = DarkGrey
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = Color.Transparent,

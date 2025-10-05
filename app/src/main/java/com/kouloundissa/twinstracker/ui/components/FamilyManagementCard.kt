@@ -277,7 +277,7 @@ fun FamilyManagementCard(
                     modifier = Modifier.weight(1f),
                     enabled = !isLoading
                 ) {
-                    Icon(Icons.Default.QrCode, contentDescription = null)
+                    Icon(Icons.Default.QrCode, contentDescription = null, tint = tintColor)
                     Text("Rejoindre", color = tintColor)
                 }
 
