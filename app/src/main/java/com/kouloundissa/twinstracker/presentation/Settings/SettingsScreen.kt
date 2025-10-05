@@ -66,6 +66,7 @@ fun SettingsScreen(
     var notificationsEnabled by remember { mutableStateOf(profile?.notificationsEnabled == true) }
 
 
+    val cornerShape = MaterialTheme.shapes.extraLarge
     val baseColor = Color.White
     val contentColor = DarkBlue
     Scaffold(
@@ -101,14 +102,23 @@ fun SettingsScreen(
                         loading = isAuthLoading
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            ReadOnlyField("Email", profile?.email.orEmpty())
-                            EditableField(
-                                "Nom affiché",
-                                displayName,
-                                !isAuthLoading
-                            ) { confirmedValue ->
-                                displayName = confirmedValue
-                            }
+                            ReadOnlyField("Email", profile?.email.orEmpty(), color = contentColor)
+                            OutlinedTextField(
+                                value = displayName ,
+                                onValueChange = { newValue ->
+                                    displayName = newValue
+                                },
+                                textStyle = LocalTextStyle.current.copy(color = contentColor),
+                                label = {  Text(
+                                    "Nom affiché",
+                                    color = contentColor,
+                                ) },
+                                singleLine = true,
+                                enabled = !isAuthLoading,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = cornerShape,
+                                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                            )
 
                             // Save button for profile edits
                             Button(
@@ -131,7 +141,7 @@ fun SettingsScreen(
                                 enabled = !isAuthLoading,
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor =Color.Red
+                                    contentColor = Color.Red
                                 ),
                                 border = BorderStroke(
                                     1.dp,
@@ -258,7 +268,8 @@ fun SectionCard(
                     .fillMaxWidth()
                     .clickable(enabled = onClickHeader != null) {
                         onClickHeader?.invoke()
-                    }.background(color = baseColor.copy(alpha = 0.6f))
+                    }
+                    .background(color = baseColor.copy(alpha = 0.6f))
                     .padding(16.dp)
             ) {
                 icon?.let {
@@ -337,75 +348,12 @@ fun GlassCard(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ReadOnlyField(label: String, value: String) {
-    Text(label, style = MaterialTheme.typography.labelLarge)
-    Text(value, style = MaterialTheme.typography.bodyLarge)
+private fun ReadOnlyField(label: String, value: String, color: Color) {
+    Text(label, style = MaterialTheme.typography.labelLarge, color = color)
+    Text(value, style = MaterialTheme.typography.bodyLarge, color = color.copy(alpha = 0.6f))
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun EditableField(
-    label: String,
-    text: String,
-    enabled: Boolean,
-    onValueChange: (String) -> Unit
-) {
-    val focusManager = LocalFocusManager.current
-    OutlinedTextField(
-        value = text,
-        onValueChange = { newValue ->
-            onValueChange(newValue)
-        },
-        label = { Text(label) },
-        singleLine = true,
-        enabled = enabled,
-        modifier = Modifier.fillMaxWidth(),
-        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-        keyboardActions = KeyboardActions(
-            onDone = { focusManager.clearFocus() }
-        )
-    )
-}
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DropdownSetting(
-    label: String,
-    options: List<String>,
-    selected: String,
-    enabled: Boolean,
-    onSelect: (String) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Text(label, style = MaterialTheme.typography.labelLarge)
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
-    ) {
-        TextField(
-            value = selected,
-            onValueChange = {},
-            readOnly = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = enabled
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option) },
-                    onClick = {
-                        onSelect(option)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
-}
 
 @Composable
 private fun ToggleSetting(
