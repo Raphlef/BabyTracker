@@ -64,7 +64,9 @@ class FirebaseRepository @Inject constructor(
     suspend fun login(email: String, password: String) {
         auth.signInWithEmailAndPassword(email, password).await()
     }
-
+    suspend fun sendPasswordReset(email: String) {
+        auth.sendPasswordResetEmail(email).await()
+    }
     suspend fun register(email: String, password: String) {
         val normalizedEmail = email.trim().lowercase(Locale.getDefault())
         auth.createUserWithEmailAndPassword(normalizedEmail, password).await()
