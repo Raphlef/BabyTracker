@@ -82,6 +82,7 @@ sealed class Event {
     abstract val id: String
     abstract val babyId: String
     abstract val timestamp: Date
+    abstract val userId: String
     abstract val notes: String?
     abstract val photoUrl: String?
 
@@ -147,6 +148,7 @@ fun DocumentSnapshot.toEvent(): Event? {
 data class DiaperEvent(
     override val id: String = UUID.randomUUID().toString(),
     override val babyId: String,
+    override val userId: String,
     override val timestamp: Date = Date(),
     override val notes: String? = null,
     override val photoUrl: String? = null,
@@ -154,13 +156,14 @@ data class DiaperEvent(
     val poopColor: PoopColor? = null,
     val poopConsistency: PoopConsistency? = null
 ) : Event() {
-    constructor() : this("", "", Date(), null, null, DiaperType.DRY, null, null)
+    constructor() : this("", "", "", Date(), null, null, DiaperType.DRY, null, null)
 }
 
 @IgnoreExtraProperties
 data class FeedingEvent(
     override val id: String = UUID.randomUUID().toString(),
     override val babyId: String,
+    override val userId: String,
     override val timestamp: Date = Date(),
     override val notes: String? = null,
     override val photoUrl: String? = null,
@@ -169,13 +172,14 @@ data class FeedingEvent(
     val durationMinutes: Int? = null,
     val breastSide: BreastSide? = null
 ) : Event() {
-    constructor() : this("", "", Date(), null, null, FeedType.BREAST_MILK, null, null, null)
+    constructor() : this("", "", "", Date(), null, null, FeedType.BREAST_MILK, null, null, null)
 }
 
 @IgnoreExtraProperties
 data class SleepEvent(
     override val id: String = UUID.randomUUID().toString(),
     override val babyId: String,
+    override val userId: String,
     override val timestamp: Date = Date(),
     override val notes: String? = null,
     override val photoUrl: String? = null,
@@ -184,13 +188,14 @@ data class SleepEvent(
     val endTime: Date? = null,
     val durationMinutes: Long? = null
 ) : Event() {
-    constructor() : this("", "", Date(), null, null, false, null, null, null)
+    constructor() : this("", "", "", Date(), null, null, false, null, null, null)
 }
 
 @IgnoreExtraProperties
 data class GrowthEvent(
     override val id: String = UUID.randomUUID().toString(),
     override val babyId: String,
+    override val userId: String,
     override val timestamp: Date = Date(),
     override val notes: String? = null,
     override val photoUrl: String? = null,
@@ -198,13 +203,14 @@ data class GrowthEvent(
     val heightCm: Double? = null,
     val headCircumferenceCm: Double? = null
 ) : Event() {
-    constructor() : this("", "", Date(), null, null, null, null, null)
+    constructor() : this("", "", "", Date(), null, null, null, null, null)
 }
 
 @IgnoreExtraProperties
 data class PumpingEvent(
     override val id: String = UUID.randomUUID().toString(),
     override val babyId: String,
+    override val userId: String,
     override val timestamp: Date = Date(),
     override val notes: String? = null,
     override val photoUrl: String? = null,
@@ -212,13 +218,14 @@ data class PumpingEvent(
     val durationMinutes: Int? = null,
     val breastSide: BreastSide? = null
 ) : Event() {
-    constructor() : this("", "", Date(), null, null, null, null, null)
+    constructor() : this("", "", "", Date(), null, null, null, null, null)
 }
 
 @IgnoreExtraProperties
 data class DrugsEvent(
     override val id: String = UUID.randomUUID().toString(),
     override val babyId: String,
+    override val userId: String,
     override val timestamp: Date = Date(),
     override val notes: String? = null,
     override val photoUrl: String? = null,
@@ -230,7 +237,7 @@ data class DrugsEvent(
     val otherDrugName: String? = null        // only if drugType == OTHER
 ) : Event() {
     // no-arg constructor for Firestore
-    constructor() : this("", "", Date(), null, null, DrugType.PARACETAMOL, null, "mg", null)
+    constructor() : this("", "", "", Date(), null, null, DrugType.PARACETAMOL, null, "mg", null)
 }
 
 /**
@@ -243,7 +250,7 @@ sealed class EventFormState {
     abstract var photoUrl: String?
     abstract var newPhotoUrl: Uri?
     abstract var photoRemoved: Boolean
-    fun validateAndToEvent(babyId: String): Result<Event> {
+    fun validateAndToEvent(babyId: String, userId: String): Result<Event> {
         return when (this) {
             is Diaper -> {
                 if ((diaperType == DiaperType.DIRTY || diaperType == DiaperType.MIXED)
@@ -257,6 +264,7 @@ sealed class EventFormState {
                         DiaperEvent(
                             id = eventId ?: UUID.randomUUID().toString(),
                             babyId = babyId,
+                            userId = userId,
                             timestamp = eventTimestamp,
                             diaperType = diaperType,
                             poopColor = poopColor,
@@ -278,6 +286,7 @@ sealed class EventFormState {
                         SleepEvent(
                             id = eventId ?: UUID.randomUUID().toString(),
                             babyId = babyId,
+                            userId = userId,
                             timestamp = eventTimestamp,
                             isSleeping = isSleeping,
                             beginTime = beginTime,
@@ -322,6 +331,7 @@ sealed class EventFormState {
                     FeedingEvent(
                         id = eventId ?: UUID.randomUUID().toString(),
                         babyId = babyId,
+                        userId = userId,
                         timestamp = eventTimestamp,
                         feedType = feedType,
                         amountMl = amount,
@@ -344,6 +354,7 @@ sealed class EventFormState {
                         GrowthEvent(
                             id = eventId ?: UUID.randomUUID().toString(),
                             babyId = babyId,
+                            userId = userId,
                             timestamp = eventTimestamp,
                             weightKg = weight,
                             heightCm = height,
@@ -367,6 +378,7 @@ sealed class EventFormState {
                         PumpingEvent(
                             id = eventId ?: UUID.randomUUID().toString(),
                             babyId = babyId,
+                            userId = userId,
                             timestamp = eventTimestamp,
                             amountMl = amount,
                             durationMinutes = duration,
@@ -389,6 +401,7 @@ sealed class EventFormState {
                         DrugsEvent(
                             id = eventId ?: UUID.randomUUID().toString(),
                             babyId = babyId,
+                            userId = userId,
                             timestamp = eventTimestamp,
                             notes = notes.takeIf(String::isNotBlank),
                             photoUrl = photoUrl,
@@ -486,75 +499,3 @@ sealed class EventFormState {
     ) : EventFormState()
 
 }
-
-private fun EventFormState.toEvent(babyId: String): Event = when (this) {
-    is EventFormState.Diaper -> DiaperEvent(
-        id = eventId ?: UUID.randomUUID().toString(),
-        babyId = babyId,
-        timestamp = eventTimestamp,
-        notes = notes.takeIf(String::isNotBlank),
-        photoUrl = photoUrl,
-        diaperType = diaperType,
-        poopColor = poopColor,
-        poopConsistency = poopConsistency
-    )
-
-    is EventFormState.Sleep -> SleepEvent(
-        id = eventId ?: UUID.randomUUID().toString(),
-        babyId = babyId,
-        timestamp = eventTimestamp,
-        notes = notes.takeIf(String::isNotBlank),
-        photoUrl = photoUrl,
-        isSleeping = isSleeping,
-        beginTime = beginTime,
-        endTime = endTime,
-        durationMinutes = durationMinutes
-    )
-
-    is EventFormState.Feeding -> FeedingEvent(
-        id = eventId ?: UUID.randomUUID().toString(),
-        babyId = babyId,
-        timestamp = eventTimestamp,
-        notes = notes.takeIf(String::isNotBlank),
-        photoUrl = photoUrl,
-        feedType = feedType,
-        amountMl = amountMl.toDoubleOrNull(),
-        durationMinutes = durationMin.toIntOrNull(),
-        breastSide = breastSide
-    )
-
-    is EventFormState.Growth -> GrowthEvent(
-        id = eventId ?: UUID.randomUUID().toString(),
-        babyId = babyId,
-        timestamp = eventTimestamp,
-        notes = notes.takeIf(String::isNotBlank),
-        photoUrl = photoUrl,
-        weightKg = weightKg.toDoubleOrNull(),
-        heightCm = heightCm.toDoubleOrNull(),
-        headCircumferenceCm = headCircumferenceCm.toDoubleOrNull()
-    )
-
-    is EventFormState.Pumping -> PumpingEvent(
-        id = eventId ?: UUID.randomUUID().toString(),
-        babyId = babyId,
-        timestamp = eventTimestamp,
-        notes = notes.takeIf(String::isNotBlank),
-        photoUrl = photoUrl,
-        amountMl = amountMl.toDoubleOrNull(),
-        durationMinutes = durationMin.toIntOrNull(),
-        breastSide = breastSide
-    )
-
-    is EventFormState.Drugs -> DrugsEvent(
-        id = eventId ?: UUID.randomUUID().toString(),
-        babyId = babyId,
-        timestamp = eventTimestamp,
-        notes = notes.takeIf(String::isNotBlank),
-        photoUrl = photoUrl,
-        drugType = drugType,
-        dosage = dosage.toDoubleOrNull(),
-        unit = unit,
-        otherDrugName = otherDrugName.takeIf(String::isNotBlank)
-    )
-}
-

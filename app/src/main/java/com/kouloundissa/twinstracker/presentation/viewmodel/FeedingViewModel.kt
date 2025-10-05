@@ -76,69 +76,6 @@ class FeedingViewModel @Inject constructor(
         _notes.value = newNotes
     }
 
-    fun saveFeedingEvent(babyId: String) {
-        if (babyId.isBlank()) {
-            _errorMessage.value = "Baby ID is missing."
-            return
-        }
-
-        _isSaving.value = true
-        _errorMessage.value = null
-        _saveSuccess.value = false
-
-        val currentFeedType = _feedType.value
-        val currentAmountMl = _amountMl.value.toDoubleOrNull()
-        val currentDurationMinutes = _durationMinutes.value.toIntOrNull()
-        val currentBreastSide = _breastSide.value
-        val currentNotes = _notes.value.takeIf { it.isNotBlank() }
-
-        // Perform validation based on feed type
-        when (currentFeedType) {
-            FeedType.BREAST_MILK -> {
-                if (currentDurationMinutes == null && currentBreastSide == null && currentAmountMl == null) {
-                    _errorMessage.value = "For breast milk, please provide duration/side or amount for pumped milk."
-                    _isSaving.value = false
-                    return
-                }
-            }
-            FeedType.FORMULA -> {
-                if (currentAmountMl == null) {
-                    _errorMessage.value = "Amount (ml) is required for formula."
-                    _isSaving.value = false
-                    return
-                }
-            }
-            FeedType.SOLID -> {
-                if (currentNotes == null && currentAmountMl == null) { // amountMl could be used for grams
-                    _errorMessage.value = "Please provide notes or amount for solid food."
-                    _isSaving.value = false
-                    return
-                }
-            }
-        }
-
-        viewModelScope.launch {
-            val event = FeedingEvent(
-                babyId = babyId,
-                feedType = currentFeedType,
-                notes = currentNotes,
-                amountMl = currentAmountMl,
-                durationMinutes = currentDurationMinutes,
-                breastSide = currentBreastSide
-            )
-            val result = repository.addEvent(event)
-            result.fold(
-                onSuccess = {
-                    Log.d("FeedingViewModel", "Feeding event saved successfully.")
-                    _saveSuccess.value = true
-                },
-                onFailure = {
-                    _errorMessage.value = "Failed to save feeding event: ${it.localizedMessage}"
-                }
-            )
-            _isSaving.value = false
-        }
-    }
 
     fun resetSaveSuccess() {
         _saveSuccess.value = false

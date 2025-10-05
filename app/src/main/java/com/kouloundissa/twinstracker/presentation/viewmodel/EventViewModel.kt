@@ -31,13 +31,16 @@ import java.time.ZoneId
 import kotlin.reflect.KClass
 import androidx.core.net.toUri
 import com.google.firebase.storage.StorageException
+import com.kouloundissa.twinstracker.Service.NotificationService
 import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.EventFormState.*
 import com.kouloundissa.twinstracker.data.PumpingEvent
+import com.kouloundissa.twinstracker.data.User
 
 @HiltViewModel
 class EventViewModel @Inject constructor(
-    private val repository: FirebaseRepository
+    private val repository: FirebaseRepository,
+    private val notificationService: NotificationService
 ) : ViewModel() {
 
     private var streamJob: Job? = null
@@ -96,6 +99,21 @@ class EventViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    private val _notificationEvent = MutableStateFlow<Event?>(null)
+    val notificationEvent: StateFlow<Event?> = _notificationEvent.asStateFlow()
+    private val _currentUserId = MutableStateFlow<String?>(null)
+    private val currentUserId: StateFlow<String?> = _currentUserId.asStateFlow()
+
+    // Cache for user profiles to avoid repeated fetches
+    private val userProfileCache = mutableMapOf<String, User>()
+
+    init {
+        // Get current user ID on initialization
+        viewModelScope.launch {
+            _currentUserId.value = repository.getCurrentUserId()
+        }
+    }
+
     // --- Date Range Filtering ---
     private var currentDaysWindow = 30L
     private val maxDaysWindow = 365L // Maximum 1 year of history
@@ -136,6 +154,20 @@ class EventViewModel @Inject constructor(
                 is EventFormState.Drugs -> state.copy(eventTimestamp = date)
             }
         }
+    }
+    // Called when notification is tapped
+    fun onNotificationClicked(eventId: String) {
+        viewModelScope.launch {
+            // Try to find in current events cache
+            val found = _events.value.firstOrNull { it.id == eventId }
+                ?: repository.getEventById(eventId) // implement this if needed
+
+                _notificationEvent.value = found as Event
+        }
+    }
+
+    fun clearEditingEvent() {
+        _notificationEvent.value = null
     }
 
     fun loadMoreHistoricalEvents() {
@@ -187,6 +219,7 @@ class EventViewModel @Inject constructor(
                 _isLoadingMore.value = false
             }
             .onEach { filtered ->
+                checkForNewEvents(filtered)
                 _eventsByType.value = filtered.groupBy { it::class }
                 groupEventsByDay(filtered)
                 _events.value = filtered
@@ -278,6 +311,60 @@ class EventViewModel @Inject constructor(
         _formState.value = state
     }
 
+    private var previousEvents: List<Event> = emptyList()
+
+    private suspend fun checkForNewEvents(newEvents: List<Event>) {
+        val currentUser = currentUserId.value
+        if (currentUser == null) return
+
+        // Find events that are new compared to previous state
+        val newlyAddedEvents = newEvents.filter { newEvent ->
+            // Event is new if it wasn't in previous events
+            previousEvents.none { it.id == newEvent.id } &&
+                    // Ensure userId exists
+                    newEvent.userId.isNotEmpty() &&
+                    // Event is not from current user
+                    newEvent.userId != currentUser &&
+                    // Event was created recently (within last 5 minutes to avoid old events)
+                    System.currentTimeMillis() - newEvent.timestamp.time < 5 * 60 * 1000
+        }
+
+        // Process notifications for new events
+        newlyAddedEvents.forEach { event ->
+            processEventNotification(event)
+        }
+
+        // Update previous events for next comparison
+        previousEvents = newEvents
+    }
+
+    private suspend fun processEventNotification(event: Event) {
+        if (!notificationService.hasNotificationPermission()) return
+
+        try {
+            // Get user profile for the event author
+            val userProfile = getUserProfile(event.userId)
+            val authorName = userProfile?.displayName ?: "Someone"
+
+            // Show notification
+            notificationService.showEventNotification(event, authorName)
+        } catch (e: Exception) {
+            Log.e("EventViewModel", "Error processing notification", e)
+        }
+    }
+
+    private suspend fun getUserProfile(userId: String): User? {
+        // Check cache first
+        userProfileCache[userId]?.let { return it }
+
+        // Fetch from repository
+        val profile = repository.getCurrentUserProfile()
+        profile.let {
+            userProfileCache[userId] = it
+        }
+        return profile
+    }
+
     // Entry-point to validate & save whichever event type is active
     fun SaveEvent(babyId: String) {
         if (babyId.isBlank()) {
@@ -288,8 +375,9 @@ class EventViewModel @Inject constructor(
         _errorMessage.value = null
 
         viewModelScope.launch {
+            val userId = repository.getCurrentUserProfile().id
             val state = _formState.value
-            state.validateAndToEvent(babyId).fold(
+            state.validateAndToEvent(babyId, userId).fold(
                 onFailure = { err ->
                     _errorMessage.value = err.message
                     _isSaving.value = false

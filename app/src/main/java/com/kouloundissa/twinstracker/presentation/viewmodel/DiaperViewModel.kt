@@ -75,42 +75,6 @@ class DiaperViewModel @Inject constructor(
         _timestamp.value = newTimestamp
     }
 
-    fun saveDiaperEvent(babyId: String) {
-        if (babyId.isBlank()) {
-            _errorMessage.value = "Baby ID is missing."
-            return
-        }
-
-        _isSaving.value = true
-        _errorMessage.value = null
-        _saveSuccess.value = false
-
-        val event = DiaperEvent(
-            babyId = babyId,
-            timestamp = _timestamp.value,
-            notes = _notes.value.takeIf { it.isNotBlank() },
-            diaperType = _diaperType.value,
-            poopColor = _poopColor.value,
-            poopConsistency = _poopConsistency.value
-        )
-
-        viewModelScope.launch {
-
-            val result = repository.addEvent(event)
-            result.fold(
-                onSuccess = {
-                    Log.d("DiaperViewModel", "Diaper event saved successfully.")
-                    _saveSuccess.value = true
-                    _errorMessage.value = null
-                },
-                onFailure = {
-                    _errorMessage.value = "Failed to save diaper event: ${it.localizedMessage}"
-                }
-            )
-            _isSaving.value = false
-        }
-
-    }
 
     fun resetSaveSuccess() {
         _saveSuccess.value = false

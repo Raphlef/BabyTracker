@@ -212,57 +212,6 @@ class GrowthViewModel @Inject constructor(
         }
         return weeks
     }
-
-    fun saveGrowthEvent(babyId: String) {
-        if (babyId.isBlank()) {
-            _errorMessage.value = "Baby ID is missing."
-            return
-        }
-
-        viewModelScope.launch {
-            _isSaving.value = true
-
-            val timestampDate = Date(_measurementTimestamp.value)
-
-            // 1. Calculer le début et la fin de la journée sélectionnée
-            val cal = Calendar.getInstance().apply { timeInMillis = _measurementTimestamp.value }
-            cal.set(Calendar.HOUR_OF_DAY, 0);  cal.set(Calendar.MINUTE, 0)
-            cal.set(Calendar.SECOND, 0);       cal.set(Calendar.MILLISECOND, 0)
-            val dayStart = cal.time
-            cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59)
-            cal.set(Calendar.SECOND, 59);      cal.set(Calendar.MILLISECOND, 999)
-            val dayEnd = cal.time
-
-            // 2. Rechercher un événement existant sur la même date
-            val existingResult = repository.getGrowthEventsInRange(babyId, dayStart, dayEnd)
-            val existingEvent = existingResult.getOrNull().orEmpty().firstOrNull()
-            val newId = existingEvent?.id ?: UUID.randomUUID().toString()
-            val event = GrowthEvent(
-                id = newId,
-                babyId = babyId,
-                timestamp = timestampDate,
-                weightKg = _weightKg.value,
-                heightCm = _heightCm.value,
-                headCircumferenceCm = _headCircumferenceCm.value,
-                notes = _notes.value
-            )
-
-            val result = repository.addEvent(event)
-            result.fold(
-                onSuccess = {
-                    Log.d("GrowthViewModel", "Growth event saved successfully.")
-                    _saveSuccess.value = true
-                    _errorMessage.value = null
-                    loadGrowthEventsInRange(babyId)
-                },
-                onFailure = {
-                    _errorMessage.value = "Failed to save growth event: ${it.localizedMessage}"
-                }
-            )
-            _isSaving.value = false
-        }
-    }
-
     fun resetSaveSuccess() {
         _saveSuccess.value = false
     }
