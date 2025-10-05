@@ -1,9 +1,17 @@
 package com.kouloundissa.twinstracker
 
+import android.Manifest
+import android.app.AlertDialog
 import android.app.Application
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -11,11 +19,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.dialog
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.kouloundissa.twinstracker.presentation.auth.AuthScreen
 import com.kouloundissa.twinstracker.presentation.dashboard.DashboardScreen
 import com.kouloundissa.twinstracker.presentation.viewmodel.AuthViewModel
@@ -27,15 +42,32 @@ import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.kouloundissa.twinstracker.presentation.Family.FamilyCheckScreen
+import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
+import com.kouloundissa.twinstracker.presentation.event.NotificationEventScreen
 import com.kouloundissa.twinstracker.presentation.viewmodel.AuthEvent
+import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.HiltAndroidApp
+import jakarta.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    private val eventViewModel: EventViewModel by viewModels()
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (!isGranted) {
+            // Handle case where user denied permission
+            showNotificationPermissionRationale()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestNotificationPermissionIfNeeded()
         setContent {
             BabyTrackerTheme {
                 Surface(
@@ -47,6 +79,46 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleNotificationIntent(intent)
+    }
+
+    private fun handleNotificationIntent(intent: Intent) {
+        val target = intent.getStringExtra("navigation_target") ?: return
+        if (target == "editEvent") {
+            intent.getStringExtra("event_id")?.let { eventId ->
+                eventViewModel.onNotificationClicked(eventId)
+            }
+        }
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
+    private fun showNotificationPermissionRationale() {
+        // Show explanation to user about why notifications are useful
+        AlertDialog.Builder(this)
+            .setTitle("Enable Notifications")
+            .setMessage("Get notified when other caregivers add events for your baby")
+            .setPositiveButton("Enable") { _, _ ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+            .setNegativeButton("Not Now", null)
+            .show()
+    }
 }
 
 @Composable
@@ -54,8 +126,16 @@ fun BabyTrackerApp() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = hiltViewModel()
     val familyViewModel: FamilyViewModel = hiltViewModel()
+    val eventViewModel: EventViewModel = hiltViewModel()
+
+    val notificationEvent by eventViewModel.notificationEvent.collectAsState()
 
 
+    LaunchedEffect(notificationEvent) {
+        notificationEvent?.let { event ->
+            eventViewModel.loadEventIntoForm(notificationEvent!!)
+        }
+    }
     LaunchedEffect(Unit) {
         authViewModel.oneTimeEventFlow.collect { event ->
             when (event) {
@@ -66,10 +146,13 @@ fun BabyTrackerApp() {
                         }
                     }
                 }
-                else -> { /* ignore other events */ }
+
+                else -> { /* ignore other events */
+                }
             }
         }
     }
+
     NavHost(
         navController = navController,
         startDestination = "auth"
@@ -100,6 +183,16 @@ fun BabyTrackerApp() {
             DashboardScreen(
                 navController = navController,
                 initialBabyId = babyId
+            )
+        }
+        composable(
+            route = "editEvent/{eventId}",
+            arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId")!!
+            NotificationEventScreen(
+                eventId = eventId,
+                onDone = { navController.popBackStack() }
             )
         }
     }
