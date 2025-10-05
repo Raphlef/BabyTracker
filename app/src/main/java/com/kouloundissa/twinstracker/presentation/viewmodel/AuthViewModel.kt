@@ -65,8 +65,6 @@ class AuthViewModel @Inject constructor(
         _state.update { it.copy(error = null) }
     }
 
-
-
     fun loginWithGoogle() {
         viewModelScope.launch {
             _oneTimeEvent.emit(AuthEvent.StartGoogleSignIn)
@@ -224,7 +222,6 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             repository.clearUserSession()
             _state.value = AuthState() // Reset complet de l’état, déconnecté
-            _oneTimeEvent.emit(AuthEvent.Logout)
         }
     }
 }

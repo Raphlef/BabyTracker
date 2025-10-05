@@ -11,7 +11,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -19,16 +18,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.dialog
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.kouloundissa.twinstracker.presentation.auth.AuthScreen
@@ -42,15 +37,11 @@ import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.kouloundissa.twinstracker.presentation.Family.FamilyCheckScreen
-import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.event.NotificationEventScreen
-import com.kouloundissa.twinstracker.presentation.viewmodel.AuthEvent
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.HiltAndroidApp
-import jakarta.inject.Inject
-import kotlinx.coroutines.flow.collectLatest
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -75,7 +66,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    BabyTrackerApp()
+                    TwinsTrackerApp()
                 }
             }
         }
@@ -123,12 +114,13 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun BabyTrackerApp() {
+fun TwinsTrackerApp() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = hiltViewModel()
     val familyViewModel: FamilyViewModel = hiltViewModel()
     val eventViewModel: EventViewModel = hiltViewModel()
 
+    val authState by authViewModel.state.collectAsState()
     val notificationEvent by eventViewModel.notificationEvent.collectAsState()
 
 
@@ -137,17 +129,12 @@ fun BabyTrackerApp() {
             eventViewModel.loadEventIntoForm(notificationEvent!!)
         }
     }
-    LaunchedEffect(authViewModel.oneTimeEventFlow) {
-        authViewModel.oneTimeEventFlow
-            .collectLatest { event ->
-                if (event == AuthEvent.Logout) {
-                    navController.navigate("auth") {
-                        popUpTo(navController.graph.startDestinationId) {
-                            inclusive = true
-                        }
-                    }
-                }
+    LaunchedEffect(authState) {
+        if (!authState.isAuthenticated) {
+            navController.navigate("auth") {
+                popUpTo(0) { inclusive = true }
             }
+        }
     }
 
     NavHost(

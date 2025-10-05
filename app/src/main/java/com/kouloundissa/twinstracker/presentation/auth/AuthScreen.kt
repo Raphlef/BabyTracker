@@ -121,9 +121,9 @@ fun AuthScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            "Baby Tracker",
+                            "Twins Tracker",
                             style = MaterialTheme.typography.headlineLarge,
-                            color = contentColor,
+                            color = BackgroundColor,
                             fontWeight = FontWeight.Bold,
                         )
                         Spacer(Modifier.height(40.dp))
@@ -170,7 +170,7 @@ fun AuthScreen(
                                 enabled = !state.isLoading
                             )
                             Spacer(Modifier.width(8.dp))
-                            Text("Se souvenir de moi", color = contentColor)
+                            Text("Se souvenir de moi", color = BackgroundColor)
                         }
 
                         Spacer(Modifier.height(24.dp))
@@ -191,7 +191,7 @@ fun AuthScreen(
                             enabled = !state.isLoading,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Créer un compte", color = contentColor)
+                            Text("Créer un compte", color = BackgroundColor)
                         }
 
                         Spacer(Modifier.height(12.dp))
