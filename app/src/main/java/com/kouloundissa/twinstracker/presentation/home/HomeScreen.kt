@@ -467,7 +467,7 @@ fun HomeScreen(
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.3f)),
+                        .background(Color.Transparent),
                     contentAlignment = Alignment.Center
                 ) {
                     Card(
