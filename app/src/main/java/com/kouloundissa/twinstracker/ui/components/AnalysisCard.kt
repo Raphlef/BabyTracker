@@ -36,6 +36,8 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import kotlin.math.abs
 import android.graphics.Color as AndroidColor
 
@@ -44,7 +46,8 @@ fun AnalysisCard(
     title: String,
     content: @Composable BoxScope.() -> Unit
 ) {
-    val baseColor = Color.White
+    val backgroundColor = BackgroundColor
+    val contentColor= DarkBlue
     val cornerShape = MaterialTheme.shapes.large
     Surface(
         modifier = Modifier
@@ -61,8 +64,8 @@ fun AnalysisCard(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            baseColor.copy(alpha = 0.65f),
-                            baseColor.copy(alpha = 0.35f)
+                            backgroundColor.copy(alpha = 0.45f),
+                            backgroundColor.copy(alpha = 0.15f)
                         )
                     ),
                 )
@@ -70,7 +73,8 @@ fun AnalysisCard(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(12.dp)
+                modifier = Modifier.padding(12.dp),
+                color = contentColor
             )
             Box(
                 Modifier

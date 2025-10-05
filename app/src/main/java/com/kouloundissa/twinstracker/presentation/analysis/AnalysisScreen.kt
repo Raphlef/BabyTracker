@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.data.*
@@ -26,6 +27,7 @@ import com.kouloundissa.twinstracker.ui.components.BarChartView
 import com.kouloundissa.twinstracker.ui.components.ComboChartView
 import com.kouloundissa.twinstracker.ui.components.LineChartView
 import com.kouloundissa.twinstracker.ui.components.MultiLineChartView
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -134,8 +136,10 @@ fun AnalysisScreen(
                 val endDate = last7Days.last().format(DateTimeFormatter.ofPattern("dd/MM"))
                 Text(
                     "Weekly Analysis \n($startDate - $endDate)",
+                    fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.headlineMedium,
-                    color = DarkBlue
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    color = BackgroundColor,
                 )
             }
 
@@ -202,9 +206,6 @@ fun AnalysisScreen(
             }
 
             item {
-
-
-
                 // And for head circumference
                 AnalysisCard(title = "Head Circumference (cm)") {
                     MultiLineChartView(
