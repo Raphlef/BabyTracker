@@ -105,7 +105,7 @@ fun EventFormDialog(
             viewModel.updateForm { newState }
         }
     }
-    LaunchedEffect(babyId) {
+    LaunchedEffect(babyId,currentType) {
         if (formState.eventId == null && currentType == EventType.GROWTH) {
             viewModel.loadLastGrowth(babyId);
         }
