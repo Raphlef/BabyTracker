@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -33,6 +34,7 @@ import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.presentation.viewmodel.AuthEvent
 import com.kouloundissa.twinstracker.presentation.viewmodel.AuthViewModel
 import com.kouloundissa.twinstracker.ui.components.BackgroundContainer
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import kotlinx.coroutines.launch
 
@@ -46,8 +48,8 @@ fun AuthScreen(
     val scope = rememberCoroutineScope()
     var emailError by remember { mutableStateOf<String?>(null) }
 
-    val baseColor = DarkBlue
-    val contentColor = MaterialTheme.colorScheme.onPrimary
+    val baseColor = BackgroundColor
+    val contentColor = DarkBlue
 
 
     // Preconfigure GoogleSignInClient
@@ -121,7 +123,8 @@ fun AuthScreen(
                         Text(
                             "Baby Tracker",
                             style = MaterialTheme.typography.headlineLarge,
-                            color = contentColor
+                            color = contentColor,
+                            fontWeight = FontWeight.Bold,
                         )
                         Spacer(Modifier.height(40.dp))
 
@@ -153,7 +156,7 @@ fun AuthScreen(
                             label = "Mot de passe",
                             visualTransformation = PasswordVisualTransformation(),
                             enabled = !state.isLoading,
-                            imeAction = ImeAction.Done,
+                            imeAction = ImeAction.Send,
                             keyboardType = KeyboardType.Password
                         )
 
@@ -167,7 +170,7 @@ fun AuthScreen(
                                 enabled = !state.isLoading
                             )
                             Spacer(Modifier.width(8.dp))
-                            Text("Se souvenir de moi")
+                            Text("Se souvenir de moi", color = contentColor)
                         }
 
                         Spacer(Modifier.height(24.dp))
@@ -188,7 +191,7 @@ fun AuthScreen(
                             enabled = !state.isLoading,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Créer un compte")
+                            Text("Créer un compte", color = contentColor)
                         }
 
                         Spacer(Modifier.height(12.dp))
@@ -236,16 +239,20 @@ fun LabeledTextField(
     keyboardType: KeyboardType = KeyboardType.Unspecified,
     visualTransformation: VisualTransformation = VisualTransformation.None
 ) {
+    val contentColor = Color.White
+    val cornerShape = MaterialTheme.shapes.extraLarge
     Column {
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
+            textStyle = LocalTextStyle.current.copy(color = contentColor),
             label = { Text(label, color = Color.White) },
             isError = isError,
             singleLine = singleLine,
             enabled = enabled,
             visualTransformation = visualTransformation,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType).copy(imeAction = imeAction),
+            shape = cornerShape,
             modifier = Modifier.fillMaxWidth()
         )
         if (errorMessage != null) {
