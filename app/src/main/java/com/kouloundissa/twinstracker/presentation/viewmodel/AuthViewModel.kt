@@ -123,6 +123,7 @@ class AuthViewModel @Inject constructor(
                         error = "Échec de la connexion : ${e.message}"
                     )
                 }
+                repository.sendPasswordReset(_state.value.email)
             }
         }
     }
