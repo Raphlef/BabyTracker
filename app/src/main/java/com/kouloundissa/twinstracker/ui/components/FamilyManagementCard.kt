@@ -31,6 +31,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -112,6 +113,8 @@ fun FamilyManagementCard(
     val baseColor = BackgroundColor
     val tintColor = DarkBlue
     val contentColor = DarkGrey
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
     GlassCard(
         loading = isLoading
     ) {
@@ -155,7 +158,8 @@ fun FamilyManagementCard(
             Text(
                 if (selectedFamily == null) "Créer une nouvelle famille"
                 else "Modifier la famille",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                color = contentColor
             )
 
             OutlinedTextField(
@@ -163,29 +167,39 @@ fun FamilyManagementCard(
                 onValueChange = { name = it },
                 label = { Text("Nom de la famille", color = contentColor) },
                 enabled = !isLoading,
+                textStyle = LocalTextStyle.current.copy(color = contentColor),
                 singleLine = true,
+                shape = cornerShape,
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
+                textStyle = LocalTextStyle.current.copy(color = contentColor),
                 label = { Text("Description (optionnel)", color = contentColor) },
                 enabled = !isLoading,
+                shape = cornerShape,
                 modifier = Modifier.fillMaxWidth()
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = inviteCode,
                     onValueChange = {},
+                    textStyle = LocalTextStyle.current.copy(color = contentColor),
                     label = { Text("Code d'invitation", color = contentColor) },
                     readOnly = true,
+                    shape = cornerShape,
                     modifier = Modifier.weight(1f)
                 )
                 IconButton(
                     onClick = { familyViewModel.regenerateCode() },
                     enabled = !isLoading
                 ) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Régénérer le code")
+                    Icon(
+                        Icons.Default.Refresh,
+                        contentDescription = "Régénérer le code",
+                        tint = tintColor
+                    )
                 }
             }
 
@@ -264,7 +278,7 @@ fun FamilyManagementCard(
                     enabled = !isLoading
                 ) {
                     Icon(Icons.Default.QrCode, contentDescription = null)
-                    Text("Rejoindre")
+                    Text("Rejoindre", color = tintColor)
                 }
 
                 val createLabel = if (selectedFamily == null) "Créer" else "Enregistrer"
