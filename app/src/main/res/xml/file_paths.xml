@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- For your uploads cache folder -->
+    <cache-path
+        name="uploads"
+        path="uploads/"/>
     <!-- Internal cacheDir -->
     <cache-path
         name="cache"
@@ -11,9 +15,12 @@
         path="." />
 
     <!-- If you only want to expose captured_images subfolder -->
-    <!--
+
     <external-files-path
         name="captured_images"
-        path="captured_images/" />
-    -->
+        path="captured_images/"/>
+    <!-- For external-files directory (images) -->
+    <external-files-path
+        name="images"
+        path="images/"/>
 </paths>
