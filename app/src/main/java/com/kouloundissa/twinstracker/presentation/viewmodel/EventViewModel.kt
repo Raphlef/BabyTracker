@@ -400,13 +400,16 @@ class EventViewModel @Inject constructor(
             repository.getLastGrowthEvent(babyId)
                 .onSuccess { event ->
                     event?.let {
-                        _formState.value = EventFormState.Growth(
-                            weightKg = it.weightKg?.toString().orEmpty(),
-                            heightCm = it.heightCm?.toString().orEmpty(),
-                            headCircumferenceCm = it.headCircumferenceCm?.toString().orEmpty(),
-                        )
+                        // Only run this once—guarded by LaunchedEffect
+                        updateForm {
+                            (this as EventFormState.Growth).copy(
+                                weightKg = it.weightKg?.toString().orEmpty(),
+                                heightCm = it.heightCm?.toString().orEmpty(),
+                                headCircumferenceCm = it.headCircumferenceCm?.toString().orEmpty()
+                                // notes and other fields remain untouched
+                            )
+                        }
                     }
-
                 }
                 .onFailure { throwable ->
                     Log.e("EventVM", "Failed loading last growth", throwable)

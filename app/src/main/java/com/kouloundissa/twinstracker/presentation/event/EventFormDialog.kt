@@ -69,7 +69,6 @@ fun EventFormDialog(
     initialEventType: EventType? = null,
     viewModel: EventViewModel = hiltViewModel()
 ) {
-
     val formState by viewModel.formState.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
     val saveSuccess by viewModel.saveSuccess.collectAsState()
@@ -104,6 +103,11 @@ fun EventFormDialog(
                 EventType.DRUGS -> Drugs()
             }
             viewModel.updateForm { newState }
+        }
+    }
+    LaunchedEffect(babyId) {
+        if (formState.eventId == null) {
+            viewModel.loadLastGrowth(babyId);
         }
     }
 
@@ -293,13 +297,7 @@ fun EventFormDialog(
                             when (s) {
                                 is EventFormState.Diaper -> DiaperForm(s, viewModel)
                                 is EventFormState.Feeding -> FeedingForm(s, viewModel)
-                                is EventFormState.Growth -> {
-                                   if(!isEditMode) {
-                                       viewModel.loadLastGrowth(babyId);
-                                   }
-                                    GrowthForm(s, viewModel)
-                                }
-
+                                is EventFormState.Growth -> GrowthForm(s, viewModel)
                                 is EventFormState.Pumping -> PumpingForm(s, viewModel)
                                 is EventFormState.Drugs -> DrugsForm(s, viewModel)
                                 else -> {}
