@@ -349,6 +349,9 @@ fun HomeScreen(
                                                 sleepEvent = activeSleepEvent,
                                                 onClick = {
                                                     editingEvent = activeSleepEvent
+                                                    eventViewModel.loadEventIntoForm(
+                                                        activeSleepEvent
+                                                    )
                                                     showEventDialog = true
                                                 },
                                                 modifier = Modifier
@@ -391,7 +394,11 @@ fun HomeScreen(
                     items(babyEvents, key = { it.id }) { event ->
                         EventCard(
                             event = event,
-                            onEdit = { editingEvent = event; showEventDialog = true },
+                            onEdit = {
+                                editingEvent = event;
+                                eventViewModel.loadEventIntoForm(event)
+                                showEventDialog = true
+                            },
                             onDelete = { eventViewModel.deleteEvent(event.id, selectedBaby!!.id) }
                         )
                     }
@@ -406,7 +413,9 @@ fun HomeScreen(
                             ) {
                                 Card(
                                     colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+                                            alpha = 0.8f
+                                        )
                                     ),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                                 ) {
