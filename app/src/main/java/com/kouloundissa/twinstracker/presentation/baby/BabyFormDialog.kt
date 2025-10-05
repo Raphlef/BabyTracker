@@ -544,7 +544,8 @@ private fun BabyFormContent(
         textStyle = LocalTextStyle.current.copy(color = contentColor),
         label = { Text("Baby Name*", color = Color.White) },
         isError = state.nameError,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = cornerShape,
     )
     if (state.nameError) Text("Name is required", color = Color.Red)
 
