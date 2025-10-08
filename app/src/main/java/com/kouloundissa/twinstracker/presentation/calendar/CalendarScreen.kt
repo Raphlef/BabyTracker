@@ -66,6 +66,7 @@ fun CalendarScreen(
     /** Helpers **/
     fun refresh() {
         selectedBaby?.id?.let {
+            viewModel.resetDateRangeAndHistory()
             viewModel.setDateRangeForMonth(currentMonth)
             viewModel.streamEventsInRangeForBaby(it)
         }
@@ -103,7 +104,16 @@ fun CalendarScreen(
                 contentPadding = contentPadding,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-
+                item {
+                    FilterBar(
+                        types = availableTypes,
+                        selected = filterTypes,
+                        onToggle = { type ->
+                            filterTypes =
+                                if (type in filterTypes) filterTypes - type else filterTypes + type
+                        }
+                    )
+                }
                 item {
                     val eventsByDayCover: Map<LocalDate, List<Event>> = remember(allEvents, filterTypes, currentMonth) {
                         val year = currentMonth.year
