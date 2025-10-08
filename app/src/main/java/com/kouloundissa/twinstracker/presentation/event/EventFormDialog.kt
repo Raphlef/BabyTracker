@@ -105,7 +105,7 @@ fun EventFormDialog(
             viewModel.updateForm { newState }
         }
     }
-    LaunchedEffect(babyId,currentType) {
+    LaunchedEffect(babyId, currentType) {
         if (formState.eventId == null && currentType == EventType.GROWTH) {
             viewModel.loadLastGrowth(babyId);
         }
@@ -162,7 +162,7 @@ fun EventFormDialog(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .blur(radiusX = 4.dp, radiusY = 4.dp)
+                    .blur(8.dp)
             )
 
             Box(
