@@ -106,42 +106,8 @@ fun AnalysisScreen(
             }
         }
     }
-    val weightpercentileCurves = remember(omsGender) {
-        listOf(15.0, 50.0, 85.0).associate { pct ->
-            "$pct th pct" to WhoLmsRepository.percentileCurveInRange(
-                context,
-                "weight",
-                omsGender,
-                pct,
-                startAge,
-                endAge
-            )
-        }
-    }
-    val lengthpercentileCurves = remember(omsGender) {
-        listOf(15.0, 50.0, 85.0).associate { pct ->
-            "$pct th pct" to WhoLmsRepository.percentileCurveInRange(
-                context,
-                "length",
-                omsGender,
-                pct,
-                startAge,
-                endAge
-            )
-        }
-    }
-    val headpercentileCurves = remember(omsGender) {
-        listOf(15.0, 50.0, 85.0).associate { pct ->
-            "$pct th pct" to WhoLmsRepository.percentileCurveInRange(
-                context,
-                "head_circumference",
-                omsGender,
-                pct,
-                startAge,
-                endAge
-            )
-        }
-    }
+
+
     val last7Days = (0L..6L).map { today.minusDays(6 - it) }
     val last7DaysLabels = last7Days.map { date ->
         val dayName = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
@@ -249,7 +215,20 @@ fun AnalysisScreen(
                         ?.maxByOrNull { it.timestamp }
                         ?.weightKg
                         ?.toFloat()
-                        ?: 0f
+                        ?: Float.NaN
+                }
+
+                val weightpercentileCurves = remember(omsGender, startAge, endAge, dateList) {
+                    listOf(15.0, 50.0, 85.0).associate { pct ->
+                        "$pct th pct" to WhoLmsRepository.percentileCurveInRange(
+                            context,
+                            "weight",
+                            omsGender,
+                            pct,
+                            startAge,
+                            endAge
+                        )
+                    }
                 }
                 AnalysisCard(title = "Weight Growth (kg)") {
                     MultiLineChartView(
@@ -267,9 +246,20 @@ fun AnalysisScreen(
                         ?.maxByOrNull { it.timestamp }
                         ?.heightCm
                         ?.toFloat()
-                        ?: 0f
+                        ?: Float.NaN
                 }
-
+                val lengthpercentileCurves = remember(omsGender) {
+                    listOf(15.0, 50.0, 85.0).associate { pct ->
+                        "$pct th pct" to WhoLmsRepository.percentileCurveInRange(
+                            context,
+                            "length",
+                            omsGender,
+                            pct,
+                            startAge,
+                            endAge
+                        )
+                    }
+                }
 
                 AnalysisCard(title = "Length Growth (cm)") {
                     MultiLineChartView(
@@ -287,7 +277,19 @@ fun AnalysisScreen(
                         ?.maxByOrNull { it.timestamp }
                         ?.headCircumferenceCm
                         ?.toFloat()
-                        ?: 0f
+                        ?: Float.NaN
+                }
+                val headpercentileCurves = remember(omsGender) {
+                    listOf(15.0, 50.0, 85.0).associate { pct ->
+                        "$pct th pct" to WhoLmsRepository.percentileCurveInRange(
+                            context,
+                            "head_circumference",
+                            omsGender,
+                            pct,
+                            startAge,
+                            endAge
+                        )
+                    }
                 }
                 AnalysisCard(title = "Head Circumference (cm)") {
                     MultiLineChartView(
@@ -330,36 +332,39 @@ fun getDateRange(
     baby: Baby?
 ): Pair<List<LocalDate>, Pair<Int, Int>> {
     val today = LocalDate.now()
-    val nowMillis = System.currentTimeMillis()
-    val ageMillis = nowMillis - (baby?.birthDate ?: nowMillis)
-    val oneDayMillis = 24 * 60 * 60 * 1000L
-    val currentAgeDays = (ageMillis / oneDayMillis).toInt().coerceAtLeast(0)
+    val birthDate = baby?.birthDate
+        ?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+        ?: today
+    val ageDays = ChronoUnit.DAYS.between(birthDate, today).toInt().coerceAtLeast(0)
 
-    val (startDate, endDate) = when (range) {
+    // Determine start and end dates
+    val (rawStart, rawEnd) = when (range) {
         AnalysisRange.CUSTOM -> {
-            if (customStart != null && customEnd != null) {
-                customStart to customEnd
-            } else {
-                today.minusDays(6) to today
-            }
+            val s = customStart ?: today.minusDays(6)
+            val e = customEnd ?: today
+            if (s <= e) s to e else e to s
         }
-
         else -> {
-            val daysBack = range.days - 1
-            today.minusDays(daysBack.toLong()) to today
+            today.minusDays((range.days - 1).toLong()) to today
         }
     }
 
+    // Clamp end to today if in future
+    val startDate = rawStart.coerceAtMost(today)
+    val endDate = rawEnd.coerceAtMost(today)
+
+    // Build the list of dates
     val dateList = generateSequence(startDate) { it.plusDays(1) }
         .takeWhile { !it.isAfter(endDate) }
         .toList()
 
-    // Calculate age range for WHO curves
-    val startAgeDays = currentAgeDays - ChronoUnit.DAYS.between(startDate, today).toInt()
-    val endAgeDays = currentAgeDays
+    // Ages for WHO curves
+    val startAge = ChronoUnit.DAYS.between(birthDate, startDate).toInt().coerceAtLeast(0)
+    val endAge = ageDays
 
-    return dateList to (startAgeDays.coerceAtLeast(0) to endAgeDays)
+    return dateList to (startAge to endAge)
 }
+
 
 // Create a reusable date range selector component
 @OptIn(ExperimentalMaterial3Api::class)
