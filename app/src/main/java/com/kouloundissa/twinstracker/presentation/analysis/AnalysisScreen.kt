@@ -218,23 +218,40 @@ fun AnalysisScreen(
                         ?: Float.NaN
                 }
 
-                val weightpercentileCurves = remember(omsGender, startAge, endAge, dateList) {
+                val birthDate = selectedBaby?.birthDate
+                    ?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+                    ?: LocalDate.now()
+                val currentAgeDays = ChronoUnit.DAYS.between(birthDate, LocalDate.now())
+                    .toInt().coerceAtLeast(0)
+
+                //  Build aligned WHO percentile curves
+                val weightPercentileCurves = remember(
+                    omsGender, startAge, endAge, dateList
+                ) {
                     listOf(15.0, 50.0, 85.0).associate { pct ->
-                        "$pct th pct" to WhoLmsRepository.percentileCurveInRange(
-                            context,
-                            "weight",
-                            omsGender,
-                            pct,
-                            startAge,
-                            endAge
-                        )
+                        // Raw WHO data only for valid ages
+                        val rawCurve = WhoLmsRepository.percentileCurveInRange(
+                            context, "weight", omsGender, pct,
+                            startAge, endAge.coerceAtMost(currentAgeDays)
+                        ) // List<Pair<ageDays, value>>
+
+                        // Align with dateList by computing each date’s age
+                        val aligned = dateList.map { date ->
+                            val ageForDate = ChronoUnit.DAYS.between(birthDate, date).toInt()
+                            // Only look up if age >= 0 and <= currentAgeDays
+                            rawCurve.find { it.first.toInt() == ageForDate }
+                                ?.second
+                                ?: Float.NaN
+                        }
+
+                        "${pct.toInt()}th pct" to aligned
                     }
                 }
                 AnalysisCard(title = "Weight Growth (kg)") {
                     MultiLineChartView(
                         labels = chartLabels,
-                        series = listOf("Baby" to babyWeight) + weightpercentileCurves.map { (label, data) ->
-                            label to data.map { it.second }
+                        series = listOf("Baby" to babyWeight) + weightPercentileCurves.map { (label, data) ->
+                            label to data
                         }
                     )
                 }
@@ -248,24 +265,34 @@ fun AnalysisScreen(
                         ?.toFloat()
                         ?: Float.NaN
                 }
-                val lengthpercentileCurves = remember(omsGender) {
+                val birthDate = selectedBaby?.birthDate
+                    ?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+                    ?: LocalDate.now()
+                val currentAgeDays = ChronoUnit.DAYS.between(birthDate, LocalDate.now())
+                    .toInt().coerceAtLeast(0)
+
+                // 3. Align WHO length curves
+                val lengthPercentileCurves = remember(omsGender, startAge, endAge, dateList) {
                     listOf(15.0, 50.0, 85.0).associate { pct ->
-                        "$pct th pct" to WhoLmsRepository.percentileCurveInRange(
-                            context,
-                            "length",
-                            omsGender,
-                            pct,
-                            startAge,
-                            endAge
+                        val rawCurve = WhoLmsRepository.percentileCurveInRange(
+                            context, "length", omsGender, pct,
+                            startAge, endAge.coerceAtMost(currentAgeDays)
                         )
+                        val aligned = dateList.map { date ->
+                            val ageForDate = ChronoUnit.DAYS.between(birthDate, date).toInt()
+                            rawCurve.find { it.first.toInt() == ageForDate }
+                                ?.second
+                                ?: Float.NaN
+                        }
+                        "${pct.toInt()}th pct" to aligned
                     }
                 }
 
                 AnalysisCard(title = "Length Growth (cm)") {
                     MultiLineChartView(
                         labels = chartLabels,
-                        series = listOf("Baby" to babyLength) + lengthpercentileCurves.map { (label, data) ->
-                            label to data.map { it.second }
+                        series = listOf("Baby" to babyLength) + lengthPercentileCurves.map { (label, data) ->
+                            label to data
                         }
                     )
                 }
@@ -279,23 +306,32 @@ fun AnalysisScreen(
                         ?.toFloat()
                         ?: Float.NaN
                 }
-                val headpercentileCurves = remember(omsGender) {
+                val birthDate = selectedBaby?.birthDate
+                    ?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+                    ?: LocalDate.now()
+                val currentAgeDays = ChronoUnit.DAYS.between(birthDate, LocalDate.now())
+                    .toInt().coerceAtLeast(0)
+
+                val headPercentileCurves = remember(omsGender, startAge, endAge, dateList) {
                     listOf(15.0, 50.0, 85.0).associate { pct ->
-                        "$pct th pct" to WhoLmsRepository.percentileCurveInRange(
-                            context,
-                            "head_circumference",
-                            omsGender,
-                            pct,
-                            startAge,
-                            endAge
+                        val rawCurve = WhoLmsRepository.percentileCurveInRange(
+                            context, "head_circumference", omsGender, pct,
+                            startAge, endAge.coerceAtMost(currentAgeDays)
                         )
+                        val aligned = dateList.map { date ->
+                            val ageForDate = ChronoUnit.DAYS.between(birthDate, date).toInt()
+                            rawCurve.find { it.first.toInt() == ageForDate }
+                                ?.second
+                                ?: Float.NaN
+                        }
+                        "${pct.toInt()}th pct" to aligned
                     }
                 }
                 AnalysisCard(title = "Head Circumference (cm)") {
                     MultiLineChartView(
                         labels = chartLabels,
-                        series = listOf("Baby" to babyHead)  + headpercentileCurves.map { (label, data) ->
-                            label to data.map { it.second }
+                        series = listOf("Baby" to babyHead)  + headPercentileCurves.map { (label, data) ->
+                            label to data
                         }
                     )
                 }
