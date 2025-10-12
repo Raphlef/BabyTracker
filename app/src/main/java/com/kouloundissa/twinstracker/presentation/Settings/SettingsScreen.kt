@@ -104,15 +104,17 @@ fun SettingsScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             ReadOnlyField("Email", profile?.email.orEmpty(), color = contentColor)
                             OutlinedTextField(
-                                value = displayName ,
+                                value = displayName,
                                 onValueChange = { newValue ->
                                     displayName = newValue
                                 },
                                 textStyle = LocalTextStyle.current.copy(color = contentColor),
-                                label = {  Text(
-                                    "Nom affiché",
-                                    color = contentColor,
-                                ) },
+                                label = {
+                                    Text(
+                                        "Nom affiché",
+                                        color = contentColor,
+                                    )
+                                },
                                 singleLine = true,
                                 enabled = !isAuthLoading,
                                 modifier = Modifier.fillMaxWidth(),
@@ -262,7 +264,7 @@ fun SectionCard(
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = baseColor.copy(alpha = 0.4f)
+            containerColor = baseColor.copy(alpha = 0.7f)
         ),
     ) {
         Column(modifier = Modifier) {
@@ -274,7 +276,7 @@ fun SectionCard(
                     .clickable(enabled = onClickHeader != null) {
                         onClickHeader?.invoke()
                     }
-                    .background(color = baseColor.copy(alpha = 0.6f))
+                    .background(color = baseColor.copy(alpha = 0.9f))
                     .padding(16.dp)
             ) {
                 icon?.let {
@@ -359,7 +361,6 @@ private fun ReadOnlyField(label: String, value: String, color: Color) {
 }
 
 
-
 @Composable
 private fun ToggleSetting(
     label: String,
@@ -367,10 +368,11 @@ private fun ToggleSetting(
     enabled: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
+    val contentColor = DarkGrey
     Row(verticalAlignment = Alignment.CenterVertically) {
         Checkbox(checked, onCheckedChange = onToggle, enabled = enabled)
         Spacer(Modifier.width(8.dp))
-        Text(label)
+        Text(label, color = contentColor)
     }
 }
 
