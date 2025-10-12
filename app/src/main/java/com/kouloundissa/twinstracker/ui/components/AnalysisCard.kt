@@ -116,6 +116,7 @@ fun BarChartView(
                 color = "#FFB300".toColorInt()
                 valueTextColor = AndroidColor.BLACK
                 valueTextSize = 10f
+                setDrawValues(values.size <= 10)
             }
             chart.data = BarData(barSet).apply { barWidth = 0.6f }
 
@@ -182,6 +183,7 @@ fun LineChartView(
                 lineWidth = 2f
                 circleRadius = 4f
                 setDrawCircles(true)
+                setDrawValues(values.size <= 10)
             }
             chart.data = LineData(dataSet)
 
@@ -227,38 +229,28 @@ fun MultiLineChartView(
         val allValues = series.flatMap { it.second }
         calculateAxisRange(allValues, paddingPercentage, forceIncludeZero)
     }
+
     AndroidView(
         factory = {
             LineChart(context).apply {
                 description.isEnabled = false
-                setTouchEnabled(false)
                 axisRight.isEnabled = false
-                xAxis.apply {
-                    position = XAxis.XAxisPosition.BOTTOM
-                    granularity = 1f
-                    valueFormatter = object : ValueFormatter() {
-                        override fun getFormattedValue(v: Float) =
-                            labels[v.toInt().coerceIn(labels.indices)]
-                    }
-                }
                 legend.isEnabled = true
-                // Enable zoom and drag
                 setTouchEnabled(true)
                 isDragEnabled = true
                 setScaleEnabled(true)
                 setPinchZoom(true)
-                axisLeft.apply {
-                    axisMinimum = axisMin
-                    axisMaximum = axisMax
-                    setSpaceTop(5f)
-                    setSpaceBottom(5f)
-                }
             }
         },
         update = { chart ->
-            val sets = series.mapIndexed { idx, (_, vals) ->
+            // Determine if we should draw values (use the longest series length)
+            val maxPoints = series.maxOfOrNull { it.second.size } ?: 0
+            val showValues = maxPoints <= 10
+
+            // Build data sets
+            val sets = series.mapIndexed { idx, (label, vals) ->
                 val entries = vals.mapIndexed { i, v -> Entry(i.toFloat(), v) }
-                LineDataSet(entries, series[idx].first).apply {
+                LineDataSet(entries, label).apply {
                     color = listOf(
                         "#E91E63".toColorInt(),
                         "#4CAF50".toColorInt(),
@@ -267,13 +259,39 @@ fun MultiLineChartView(
                     )[idx % 4]
                     lineWidth = 2f
                     setDrawCircles(false)
+                    setDrawValues(showValues)
                 }
             }
+
+            // Apply data
             chart.data = LineData(sets)
+
+            // Update left axis
             chart.axisLeft.apply {
                 axisMinimum = axisMin
                 axisMaximum = axisMax
+                setSpaceTop(5f)
+                setSpaceBottom(5f)
             }
+
+            // Improve X-axis labeling
+            chart.xAxis.apply {
+                position = XAxis.XAxisPosition.BOTTOM
+                setDrawGridLines(false)
+                labelRotationAngle = 45f
+                // Show at most 6 labels
+                val maxLabels = 6
+                val step = (labels.size / maxLabels).coerceAtLeast(1)
+                granularity = step.toFloat()
+                labelCount = (labels.size + step - 1) / step
+                valueFormatter = object : ValueFormatter() {
+                    override fun getFormattedValue(v: Float): String {
+                        val idx = v.toInt().coerceIn(0, labels.lastIndex)
+                        return if (idx % step == 0) labels[idx] else ""
+                    }
+                }
+            }
+
             chart.invalidate()
         },
         modifier = Modifier.fillMaxSize()
@@ -316,6 +334,7 @@ fun ComboChartView(
             val barSet = BarDataSet(barEntries, "Meals").apply {
                 color = "#FF5722".toColorInt()
                 axisDependency = YAxis.AxisDependency.LEFT
+                setDrawValues(barValues.size <= 10)
             }
 
             val lineEntries = lineValues.mapIndexed { i, v -> Entry(i.toFloat(), v) }
@@ -325,6 +344,7 @@ fun ComboChartView(
                 setDrawCircles(true)
                 circleRadius = 4f
                 axisDependency = YAxis.AxisDependency.RIGHT
+                setDrawValues(barValues.size <= 10)
             }
 
             // 2. Set combined data
