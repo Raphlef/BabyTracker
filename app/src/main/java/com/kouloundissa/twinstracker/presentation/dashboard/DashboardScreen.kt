@@ -32,6 +32,8 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -328,36 +330,46 @@ fun BabySelectorRow(
         items(babies) { baby ->
             val isSelected = baby == selectedBaby
 
-            Surface(
-                modifier = Modifier
-                    .height(40.dp)
-                    .clickable { onSelectBaby(baby) },
-                shape = cornerShape,
-                color = if (isSelected) baseColor.copy(alpha = 0.85f) else baseColor.copy(alpha = 0.15f),
-                border = BorderStroke(
-                    0.5.dp,
-                    contentColor.copy(alpha = 0.55f)
-                ),
-                tonalElevation = 0.dp
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                ) {
+            FilterChip(
+                selected = isSelected,
+                onClick = { onSelectBaby(baby) },
+                label = {
                     Text(
                         text = baby.name.ifEmpty { "Sans nom" },
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (isSelected) contentColor else contentColor.copy(alpha = 0.85f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                }
-            }
+                },
+                modifier = Modifier.height(40.dp),
+                shape = cornerShape,
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = baseColor.copy(alpha = 0.15f),
+                    labelColor = contentColor.copy(alpha = 0.85f),
+                    selectedContainerColor = baseColor.copy(alpha = 0.85f),
+                    selectedLabelColor = contentColor
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = isSelected,
+                    borderColor = contentColor.copy(alpha = 0.55f),
+                    selectedBorderColor = contentColor.copy(alpha = 0.55f),
+                    borderWidth = 0.5.dp,
+                    selectedBorderWidth = 0.5.dp
+                ),
+                elevation = FilterChipDefaults.filterChipElevation(
+                    elevation = 0.dp,
+                    pressedElevation = 0.dp,
+                    focusedElevation = 0.dp,
+                    hoveredElevation = 0.dp,
+                    draggedElevation = 0.dp,
+                    disabledElevation = 0.dp
+                )
+            )
         }
 
         item {
-            // Add button with matching glass effect
+            // Add button with matching design
             Surface(
                 modifier = Modifier
                     .size(40.dp)
