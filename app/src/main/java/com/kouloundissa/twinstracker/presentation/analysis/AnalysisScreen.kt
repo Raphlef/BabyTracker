@@ -67,7 +67,7 @@ fun AnalysisScreen(
     }
 
     val weightpercentileCurves = remember(omsGender) {
-        listOf(3.0, 15.0, 50.0, 85.0, 97.0).associate { pct ->
+        listOf( 15.0, 50.0, 85.0).associate { pct ->
             "$pct th pct" to WhoLmsRepository.percentileCurveInRange(
                 context,
                 "weight",
