@@ -236,7 +236,7 @@ fun FamilyManagementCard(
             IconSelector(
                 title = "Niveau de confidentialité",
                 options = PrivacyLevel.entries.toList(),
-                selected = PrivacyLevel.values().find { it.name == privacyLevel },
+                selected = PrivacyLevel.entries.find { it.name == privacyLevel },
                 onSelect = { selected -> privacyLevel = selected.name },
                 getIcon = { level ->
                     when (level) {
