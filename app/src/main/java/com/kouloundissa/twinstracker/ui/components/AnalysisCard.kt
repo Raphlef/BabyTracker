@@ -181,7 +181,7 @@ fun LineChartView(
                 color = "#2196F3".toColorInt()
                 valueTextColor = AndroidColor.BLACK
                 lineWidth = 2f
-                circleRadius = 4f
+                circleRadius = 1f
                 setDrawCircles(true)
                 setDrawValues(values.size <= 10)
             }
@@ -243,13 +243,15 @@ fun MultiLineChartView(
             }
         },
         update = { chart ->
-            // Determine if we should draw values (use the longest series length)
+            // Determine if we should draw point values
             val maxPoints = series.maxOfOrNull { it.second.size } ?: 0
             val showValues = maxPoints <= 10
 
-            // Build data sets
+            // Build data sets, including NaN entries
             val sets = series.mapIndexed { idx, (label, vals) ->
-                val entries = vals.mapIndexed { i, v -> Entry(i.toFloat(), v) }
+                val entries = vals.mapIndexedNotNull { i, v ->
+                    if (v.isNaN()) null else Entry(i.toFloat(), v)
+                }
                 LineDataSet(entries, label).apply {
                     color = listOf(
                         "#E91E63".toColorInt(),
@@ -258,8 +260,12 @@ fun MultiLineChartView(
                         "#FFC107".toColorInt()
                     )[idx % 4]
                     lineWidth = 2f
-                    setDrawCircles(false)
+                    // Draw circles only for real points
+                    setDrawCircles(true)
+                    circleRadius = 1f
+                    // Skip NaN values automatically, leave gaps
                     setDrawValues(showValues)
+                    mode = LineDataSet.Mode.LINEAR
                 }
             }
 
@@ -342,7 +348,7 @@ fun ComboChartView(
                 color = "#009688".toColorInt()
                 lineWidth = 2f
                 setDrawCircles(true)
-                circleRadius = 4f
+                circleRadius = 1f
                 axisDependency = YAxis.AxisDependency.RIGHT
                 setDrawValues(barValues.size <= 10)
             }
@@ -406,10 +412,11 @@ fun calculateAxisRange(
     paddingPercentage: Float = 0.1f,
     forceIncludeZero: Boolean = false
 ): Pair<Float, Float> {
-    if (values.isEmpty()) return 0f to 1f
+    val data = values.filterNot { it.isNaN() }
+    if (data.isEmpty()) return 0f to 1f
 
-    val minVal = values.minOrNull() ?: 0f
-    val maxVal = values.maxOrNull() ?: 1f
+    val minVal = data.minOrNull() ?: 0f
+    val maxVal = data.maxOrNull() ?: 1f
 
     // Handle case where all values are the same
     if (minVal == maxVal) {
@@ -429,7 +436,7 @@ fun calculateAxisRange(
         val dataRange = maxVal - minVal
         val padding = dataRange * paddingPercentage
 
-        val calculatedMin = if (forceIncludeZero || shouldIncludeZero(values)) {
+        val calculatedMin = if (forceIncludeZero || shouldIncludeZero(data)) {
             0f  // Include zero and don't go below it
         } else {
             minVal - padding
