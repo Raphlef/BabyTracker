@@ -144,13 +144,11 @@ fun AnalysisScreen(
             }
 
             item {
-                // 1. Poop count per day
-
                 val poopCounts = last7Days.map { date ->
                     eventsByDay[date].orEmpty()
                         .count { it is DiaperEvent && it.poopColor != null }
                 }
-                AnalysisCard(title = "Daily Poop Count") {
+                AnalysisCard(title = "Daily Poop") {
                     BarChartView(
                         labels = last7DaysLabels,
                         values = poopCounts.map { it.toFloat() },
@@ -158,8 +156,8 @@ fun AnalysisScreen(
                     )
                 }
             }
+
             item {
-                // 2. Sleep minutes per day
                 val sleepMins = last7Days.map { date ->
                     eventsByDay[date].orEmpty().filterIsInstance<SleepEvent>()
                         .sumOf { it.durationMinutes ?: 0L }.toFloat()
@@ -171,6 +169,24 @@ fun AnalysisScreen(
                         forceIncludeZero = true
                     )
                 }
+            }
+
+            item {
+                val mealCounts = last7Days.map { date ->
+                    eventsByDay[date].orEmpty().count { it is FeedingEvent }
+                }
+                val mealVolumes = last7Days.map { date ->
+                    eventsByDay[date].orEmpty().filterIsInstance<FeedingEvent>()
+                        .sumOf { it.amountMl ?: 0.0 }.toFloat()
+                }
+                AnalysisCard(title = "Meals & Volume") {
+                    ComboChartView(
+                        labels = last7DaysLabels,
+                        barValues = mealCounts.map { it.toFloat() },
+                        lineValues = mealVolumes
+                    )
+                }
+
             }
 
             item {
@@ -188,8 +204,6 @@ fun AnalysisScreen(
             }
 
             item {
-
-                // Similarly for length
                 AnalysisCard(title = "Length Growth (cm)") {
                     MultiLineChartView(
                         labels = last7DaysLabels,
@@ -206,7 +220,6 @@ fun AnalysisScreen(
             }
 
             item {
-                // And for head circumference
                 AnalysisCard(title = "Head Circumference (cm)") {
                     MultiLineChartView(
                         labels = last7DaysLabels,
@@ -218,36 +231,6 @@ fun AnalysisScreen(
                             label to data.map { it.second }
                         }
                     )
-                }
-            }
-
-            item {
-
-                // 4. Meals & Volume
-                val mealCounts = last7Days.map { date ->
-                    eventsByDay[date].orEmpty().count { it is FeedingEvent }
-                }
-                val mealVolumes = last7Days.map { date ->
-                    eventsByDay[date].orEmpty().filterIsInstance<FeedingEvent>()
-                        .sumOf { it.amountMl ?: 0.0 }.toFloat()
-                }
-                AnalysisCard(title = "Meals & Volume") {
-                    ComboChartView(
-                        labels = last7DaysLabels,
-                        barValues = mealCounts.map { it.toFloat() },
-                        lineValues = mealVolumes
-                    )
-                }
-
-                // Loading Overlay
-                if (isLoading) {
-                    Box(
-                        Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f))
-                    ) {
-                        CircularProgressIndicator(Modifier.align(Alignment.Center))
-                    }
                 }
             }
         }
