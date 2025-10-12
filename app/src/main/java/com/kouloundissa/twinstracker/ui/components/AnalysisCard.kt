@@ -64,8 +64,8 @@ fun AnalysisCard(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            backgroundColor.copy(alpha = 0.45f),
-                            backgroundColor.copy(alpha = 0.15f)
+                            backgroundColor.copy(alpha = 0.85f),
+                            backgroundColor.copy(alpha = 0.75f)
                         )
                     ),
                 )
@@ -183,7 +183,7 @@ fun LineChartView(
         update = { chart ->
             val entries = values.mapIndexed { i, v -> Entry(i.toFloat(), v) }
             val set = LineDataSet(entries, "").apply {
-                color = AndroidColor.parseColor("#2196F3")
+                color = "#2196F3".toColorInt()
                 valueTextColor = AndroidColor.BLACK
                 lineWidth = 2f
                 circleRadius = 4f
