@@ -128,7 +128,18 @@ class FirebaseRepository @Inject constructor(
     fun getCurrentUserId(): String? {
         return auth.currentUser?.uid
     }
-
+    suspend fun getUserById(userId: String): User? {
+        return try {
+            db.collection(USERS_COLLECTION)
+                .document(userId)
+                .get()
+                .await()
+                .toObject(User::class.java)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching user $userId", e)
+            null
+        }
+    }
     suspend fun saveUserSession() {
         context.dataStore.edit { prefs ->
             prefs[REMEMBER_ME_KEY] = true

@@ -1,10 +1,13 @@
 package com.kouloundissa.twinstracker.presentation.viewmodel
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.kouloundissa.twinstracker.data.Family
+import com.kouloundissa.twinstracker.data.FamilyRole
 import com.kouloundissa.twinstracker.data.FirebaseRepository
 import com.kouloundissa.twinstracker.data.addMemberToFamily
 import com.kouloundissa.twinstracker.data.addOrUpdateFamily
@@ -53,6 +56,8 @@ class FamilyViewModel @Inject constructor(
     private val _newCode = MutableSharedFlow<String>()
     val newCode: SharedFlow<String> = _newCode
 
+    private val _familyUsers = MutableStateFlow<List<FamilyUser>>(emptyList())
+    val familyUsers: StateFlow<List<FamilyUser>> = _familyUsers.asStateFlow()
 
     // Backing StateFlow for currentUserId
     private val _currentUserId = MutableStateFlow<String?>(null)
@@ -87,6 +92,96 @@ class FamilyViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
+    fun loadFamilyUsers(family: Family) {
+        viewModelScope.launch {
+            repository.runCatching {
+                family.memberIds.mapNotNull { uid ->
+                    repository.getUserById(uid)?.let { user ->
+                        FamilyUser(
+                            userId = uid,
+                            displayName = user.displayName,
+                            role = when {
+                                family.adminIds.contains(uid) -> FamilyRole.ADMIN
+                                else -> FamilyRole.MEMBER
+                            }
+                        )
+                    }
+                }
+            }.onSuccess { users ->
+                _familyUsers.value = users
+            }.onFailure { e ->
+                _state.update { it.copy(error = e.message) }
+            }
+        }
+    }
+    fun updateUserRole(family: Family, userId: String, newRole: FamilyRole) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            val currentId = _currentUserId.value
+            // Only admins can change roles
+            if (currentId == null || !family.adminIds.contains(currentId)) {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Seuls les administrateurs peuvent modifier les rôles."
+                    )
+                }
+                return@launch
+            }
+            try {
+                val updatedFamily = family.copy(
+                    adminIds = when (newRole) {
+                        FamilyRole.ADMIN -> (family.adminIds + userId).distinct()
+                        else -> family.adminIds - userId
+                    },
+                    memberIds = when (newRole) {
+                        FamilyRole.VIEWER -> family.memberIds - userId
+                        else -> (family.memberIds + userId).distinct()
+                    }
+                )
+                repository.addOrUpdateFamily(updatedFamily)
+                _selectedFamily.value = updatedFamily
+                loadFamilyUsers(updatedFamily)
+                _state.update { it.copy(isLoading = false) }
+            } catch (e: Exception) {
+                _state.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+
+
+    fun removeUserFromFamily(family: Family, userId: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            try {
+                // Prevent removing sole admin
+                if (family.adminIds.contains(userId) && family.adminIds.size == 1) {
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            error = "Assign another admin before removing this user."
+                        )
+                    }
+                    return@launch
+                }
+                val updatedFamily = family.copy(
+                    adminIds = family.adminIds - userId,
+                    memberIds = family.memberIds - userId
+                )
+                repository.addOrUpdateFamily(updatedFamily)
+                // If current user removed, clear selection
+                if (_currentUserId.value == userId) {
+                    _selectedFamily.value = null
+                } else {
+                    _selectedFamily.value = updatedFamily
+                }
+                loadFamilyUsers(updatedFamily)
+                _state.update { it.copy(isLoading = false) }
+            } catch (e: Exception) {
+                _state.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
 
     private fun startObservingFamilyUpdates() {
         familiesJob?.cancel()
@@ -117,6 +212,7 @@ class FamilyViewModel @Inject constructor(
 
     fun selectFamily(family: Family?) {
         _selectedFamily.value = family
+        family?.let { loadFamilyUsers(it) }
     }
 
     fun createOrUpdateFamily(family: Family) {
@@ -288,4 +384,9 @@ class FamilyViewModel @Inject constructor(
 data class FamilyState(
     val isLoading: Boolean = false,
     val error: String? = null
+)
+data class FamilyUser(
+    val userId: String,
+    val displayName: String,
+    val role: FamilyRole
 )

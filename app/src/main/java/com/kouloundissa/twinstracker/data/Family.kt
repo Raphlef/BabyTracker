@@ -1,5 +1,9 @@
 package com.kouloundissa.twinstracker.data
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.google.firebase.firestore.IgnoreExtraProperties
 import java.util.UUID
 
@@ -76,8 +80,24 @@ enum class PrivacyLevel {
 /**
  * Roles within a family structure
  */
-enum class FamilyRole {
-    ADMIN,        // Can manage family settings, add/remove members
-    MEMBER,       // Can view and contribute to family data
-    VIEWER        // Can only view family data
+enum class FamilyRole(
+    val label: String,
+    val icon: ImageVector,
+    val color: Color
+) {
+    ADMIN(
+        label = "Admin",
+        icon = Icons.Default.Shield,
+        color = Color(0xFFD32F2F)      // Red for administrators
+    ),
+    MEMBER(
+        label = "Membre",
+        icon = Icons.Default.Person,
+        color = Color(0xFF1976D2)      // Blue for regular members
+    ),
+    VIEWER(
+        label = "Lecteur",
+        icon = Icons.Default.Visibility,
+        color = Color(0xFF388E3C)      // Green for viewers
+    );
 }

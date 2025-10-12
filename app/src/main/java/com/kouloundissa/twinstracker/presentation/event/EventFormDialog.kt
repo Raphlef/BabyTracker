@@ -390,11 +390,12 @@ fun <T> IconSelector(
     getIcon: (T) -> ImageVector,
     getLabel: (T) -> String,
     getColor: ((T) -> Color)? = null,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 
 ) {
-    val titleColor = Color.White
-    val backgroundcolor = Color.White.copy(alpha = 0.5f)
+    val titleColor =  if (enabled) Color.White else Color.LightGray
+    val backgroundcolor = Color.White.copy(alpha = if (enabled) 0.5f else 0.2f)
     val contentcolor = Color.DarkGray
 
     val tint = Color(0xFF003366)
@@ -422,7 +423,14 @@ fun <T> IconSelector(
                         BorderStroke(2.dp, itemColor)
                     else
                         BorderStroke(1.dp, contentcolor.copy(alpha = 0.3f)),
-                    modifier = Modifier.size(80.dp, 88.dp)
+                    modifier = Modifier
+                        .size(80.dp, 88.dp)
+                        .then(
+                            if (enabled)
+                                Modifier.clickable { onSelect(option) }
+                            else
+                                Modifier
+                        )
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,

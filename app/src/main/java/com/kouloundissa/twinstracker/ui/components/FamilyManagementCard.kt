@@ -8,22 +8,30 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FamilyRestroom
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DividerDefaults
@@ -51,6 +59,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.data.Family
+import com.kouloundissa.twinstracker.data.FamilyRole
 import com.kouloundissa.twinstracker.data.FamilySettings
 import com.kouloundissa.twinstracker.data.PrivacyLevel
 import com.kouloundissa.twinstracker.presentation.Family.CreateFamilyDialog
@@ -58,6 +67,7 @@ import com.kouloundissa.twinstracker.presentation.dashboard.BabySelectorRow
 import com.kouloundissa.twinstracker.presentation.event.IconSelector
 import com.kouloundissa.twinstracker.presentation.settings.GlassCard
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
+import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyUser
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.theme.*
 import kotlinx.coroutines.flow.map
@@ -74,8 +84,10 @@ fun FamilyManagementCard(
 ) {
     // Selected family from ViewModel
     val selectedFamily by familyViewModel.selectedFamily.collectAsState()
+    val familyUsers by familyViewModel.familyUsers.collectAsState(emptyList())
     val babies by babyViewModel.babies.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
+    val currentUserId by familyViewModel.currentUserId.collectAsState()
 
     val inviteResult by familyViewModel.inviteResult.collectAsState(initial = null)
 
@@ -102,7 +114,9 @@ fun FamilyManagementCard(
             babies.filter { it.id in fam.babyIds }
         } ?: emptyList()
     }
-
+    LaunchedEffect(selectedFamily) {
+        selectedFamily?.let { familyViewModel.loadFamilyUsers(it) }
+    }
     // Handle successful join
     LaunchedEffect(inviteResult) {
         inviteResult?.onSuccess {
@@ -142,6 +156,22 @@ fun FamilyManagementCard(
                 }
             }
             HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+            selectedFamily?.let { family ->
+                FamilyMemberSection(
+                    family = family,
+                    familyUsers = familyUsers,
+                    isLoading = isLoading,
+                    onRoleChange = { userId, newRole ->
+                        familyViewModel.updateUserRole(family, userId, newRole)
+                    },
+                    onRemoveUser = { userId ->
+                        familyViewModel.removeUserFromFamily(family, userId)
+                    },
+                    currentUserId = currentUserId
+                )
+
+                HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+            }
             // Baby selector row
             if (selectedFamily != null) {
                 Text("Bébés", style = MaterialTheme.typography.titleSmall, color = contentColor)
@@ -232,21 +262,38 @@ fun FamilyManagementCard(
                 Text("Notifications partagées", color = contentColor)
             }
 
-            // Privacy
-            IconSelector(
-                title = "Niveau de confidentialité",
-                options = PrivacyLevel.entries.toList(),
-                selected = PrivacyLevel.entries.find { it.name == privacyLevel },
-                onSelect = { selected -> privacyLevel = selected.name },
-                getIcon = { level ->
-                    when (level) {
-                        PrivacyLevel.PRIVATE -> Icons.Default.Lock
-                        PrivacyLevel.FAMILY_ONLY -> Icons.Default.Group
-                        PrivacyLevel.PUBLIC -> Icons.Default.Public
-                    }
-                },
-                getLabel = { it.name.replace('_', ' ').lowercase() }
-            )
+            Surface(
+                tonalElevation = 2.dp,
+                shape = MaterialTheme.shapes.medium,
+                color = tintColor.copy(alpha = 0.1f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                )
+                {
+                    // Privacy
+                    IconSelector(
+                        title = "Niveau de confidentialité",
+                        options = PrivacyLevel.entries.toList(),
+                        selected = PrivacyLevel.entries.find { it.name == privacyLevel },
+                        onSelect = { selected -> privacyLevel = selected.name },
+                        getIcon = { level ->
+                            when (level) {
+                                PrivacyLevel.PRIVATE -> Icons.Default.Lock
+                                PrivacyLevel.FAMILY_ONLY -> Icons.Default.Group
+                                PrivacyLevel.PUBLIC -> Icons.Default.Public
+                            }
+                        },
+                        getLabel = { it.name.replace('_', ' ').lowercase() }
+                    )
+                }
+            }
 
 
             // Save / leave buttons
@@ -338,9 +385,76 @@ fun FamilyManagementCard(
             isLoading = isLoading
         )
     }
-
-
 }
+
+@Composable
+private fun FamilyMemberSection(
+    family: Family,
+    familyUsers: List<FamilyUser>,
+    currentUserId: String?,
+    isLoading: Boolean,
+    onRoleChange: (String, FamilyRole) -> Unit,
+    onRemoveUser: (String) -> Unit
+) {
+    val tintColor = DarkGrey
+    val isCurrentAdmin = currentUserId != null && family.adminIds.contains(currentUserId)
+    Column {
+        Text(
+            "Membres de la famille",
+            style = MaterialTheme.typography.titleSmall,
+            color = tintColor
+        )
+        Spacer(Modifier.height(8.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+            familyUsers.forEach { user ->
+                val isAdmin = family.adminIds.contains(user.userId)
+                Surface(
+                    tonalElevation = if (isAdmin) 2.dp else 0.dp,
+                    shape = MaterialTheme.shapes.medium,
+                    color = tintColor.copy(alpha = 0.1f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconSelector(
+                            title = user.displayName,
+                            options = FamilyRole.entries,
+                            selected = user.role,
+                            onSelect = { newRole ->
+                                onRoleChange(user.userId, newRole)
+                            },
+                            getIcon = { it.icon },
+                            getLabel = { it.label },
+                            getColor = { it.color },
+                            modifier = Modifier.padding(end = 8.dp),
+                            enabled = isCurrentAdmin && !isLoading
+                        )
+                        IconButton(
+                            onClick = { onRemoveUser(user.userId) },
+                            enabled = isCurrentAdmin && !isLoading
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Supprimer",
+                                tint = Color.Red
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -349,14 +463,14 @@ fun FamilyList(
     selectedFamily: Family?,
     onSelect: (Family) -> Unit
 ) {
-    val colorContent = DarkBlue
+    val tintColor = DarkBlue
     Column {
         families.forEach { family ->
             val isSelected = family.id == selectedFamily?.id
             Surface(
                 tonalElevation = if (isSelected) 4.dp else 0.dp,
                 shape = MaterialTheme.shapes.medium,
-                color = if (isSelected) colorContent.copy(alpha = 0.1f)
+                color = if (isSelected) tintColor.copy(alpha = 0.1f)
                 else MaterialTheme.colorScheme.surface,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -372,7 +486,7 @@ fun FamilyList(
                     Icon(
                         imageVector = Icons.Default.FamilyRestroom,
                         contentDescription = null,
-                        tint = if (isSelected) colorContent
+                        tint = if (isSelected) tintColor
                         else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(24.dp)
                     )
@@ -380,7 +494,7 @@ fun FamilyList(
                     Text(
                         text = family.name,
                         style = MaterialTheme.typography.bodyLarge.copy(
-                            color = if (isSelected) colorContent
+                            color = if (isSelected) tintColor
                             else MaterialTheme.colorScheme.onSurface
                         ),
                         modifier = Modifier.weight(1f)
@@ -389,7 +503,7 @@ fun FamilyList(
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = "Selected",
-                            tint = colorContent
+                            tint = tintColor
                         )
                     }
                 }
@@ -468,8 +582,8 @@ fun FamilyLeaveButton(
             onClick = { showConfirmDialog = true },
             enabled = !isLoading,
             colors = ButtonDefaults.textButtonColors(
-                contentColor = if (isOnlyAdmin) MaterialTheme.colorScheme.outline
-                else MaterialTheme.colorScheme.error
+                contentColor = if (isOnlyAdmin)  Color.Red.copy(alpha = 0.5f)
+                else Color.Red
             )
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
