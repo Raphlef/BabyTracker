@@ -253,6 +253,7 @@ private fun BabyFormBottomSheetContent(
     onOpenDeleteDialog: () -> Unit,
     onSave: (Baby, Uri?, Boolean) -> Unit
 ) {
+    val darkGrey=DarkGrey
     val baseColor = DarkBlue
     val contentColor = BackgroundColor
     val cornerShape = MaterialTheme.shapes.extraLarge
@@ -279,8 +280,8 @@ private fun BabyFormBottomSheetContent(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            DarkGrey.copy(alpha = 0.35f),
-                            DarkGrey.copy(alpha = 0.15f)
+                            darkGrey.copy(alpha = 0.35f),
+                            darkGrey.copy(alpha = 0.15f)
                         )
                     ),
                     shape = cornerShape,
