@@ -87,36 +87,22 @@ fun AnalysisCard(
 
 @Composable
 fun BarChartView(
-    labels: List<String>, values: List<Float>,
+    labels: List<String>,
+    values: List<Float>,
     forceIncludeZero: Boolean = false,
     paddingPercentage: Float = 0.1f
 ) {
     val context = LocalContext.current
-    // Calculate optimal axis range
     val (axisMin, axisMax) = remember(values) {
         calculateAxisRange(values, paddingPercentage, forceIncludeZero)
     }
+
     AndroidView(
         factory = {
             BarChart(context).apply {
-                this.description.isEnabled = false
-                this.setPinchZoom(false)
-                this.axisRight.isEnabled = false
-                xAxis.apply {
-                    position = XAxis.XAxisPosition.BOTTOM
-                    granularity = 1f
-                    valueFormatter = object : ValueFormatter() {
-                        override fun getFormattedValue(v: Float) = labels[v.toInt()]
-                    }
-                }
-                axisLeft.apply {
-                    axisMinimum = axisMin
-                    axisMaximum = axisMax
-                    spaceTop = 5f   // Additional visual spacing
-                    spaceBottom = 5f
-                }
-                legend.isEnabled = false
-                // Enable zoom and drag
+                description.isEnabled = false
+                setPinchZoom(false)
+                axisRight.isEnabled = false
                 setTouchEnabled(true)
                 isDragEnabled = true
                 setScaleEnabled(true)
@@ -124,27 +110,50 @@ fun BarChartView(
             }
         },
         update = { chart ->
+            // 1. Build entries and data set
             val entries = values.mapIndexed { i, v -> BarEntry(i.toFloat(), v) }
-            val set = BarDataSet(entries, "").apply {
+            val barSet = BarDataSet(entries, "").apply {
                 color = "#FFB300".toColorInt()
                 valueTextColor = AndroidColor.BLACK
                 valueTextSize = 10f
             }
-            chart.data = BarData(set).apply { barWidth = 0.6f }
+            chart.data = BarData(barSet).apply { barWidth = 0.6f }
+
+            // 2. Update axes
             chart.axisLeft.apply {
                 axisMinimum = axisMin
                 axisMaximum = axisMax
+                spaceTop = 5f
+                spaceBottom = 5f
+            }
+            chart.xAxis.apply {
+                position = XAxis.XAxisPosition.BOTTOM
+                setDrawGridLines(false)
+                // Show only every nth label to avoid clutter
+                val maxLabels = 6
+                val step = (labels.size / maxLabels).coerceAtLeast(1)
+                granularity = step.toFloat()
+                labelCount = (labels.size + step - 1) / step
+                valueFormatter = object : ValueFormatter() {
+                    override fun getFormattedValue(v: Float): String {
+                        val idx = v.toInt().coerceIn(0, labels.lastIndex)
+                        return if (idx % step == 0) labels[idx] else ""
+                    }
+                }
             }
 
+            // 3. Refresh chart
             chart.invalidate()
         },
         modifier = Modifier.fillMaxSize()
     )
 }
 
+
 @Composable
 fun LineChartView(
-    labels: List<String>, values: List<Float>,
+    labels: List<String>,
+    values: List<Float>,
     forceIncludeZero: Boolean = false,
     paddingPercentage: Float = 0.1f
 ) {
@@ -157,43 +166,49 @@ fun LineChartView(
         factory = {
             LineChart(context).apply {
                 description.isEnabled = false
-                setTouchEnabled(false)
                 axisRight.isEnabled = false
-                xAxis.apply {
-                    position = XAxis.XAxisPosition.BOTTOM
-                    granularity = 1f
-                    valueFormatter = object : ValueFormatter() {
-                        override fun getFormattedValue(v: Float) = labels[v.toInt()]
-                    }
-                }
-                legend.isEnabled = false
-                // Enable zoom and drag
                 setTouchEnabled(true)
                 isDragEnabled = true
                 setScaleEnabled(true)
                 setPinchZoom(true)
-                axisLeft.apply {
-                    axisMinimum = axisMin
-                    axisMaximum = axisMax
-                    spaceTop = 5f
-                    spaceBottom = 5f
-                }
             }
         },
         update = { chart ->
+            // 1. Build entries
             val entries = values.mapIndexed { i, v -> Entry(i.toFloat(), v) }
-            val set = LineDataSet(entries, "").apply {
+            val dataSet = LineDataSet(entries, "").apply {
                 color = "#2196F3".toColorInt()
                 valueTextColor = AndroidColor.BLACK
                 lineWidth = 2f
                 circleRadius = 4f
                 setDrawCircles(true)
             }
-            chart.data = LineData(set)
+            chart.data = LineData(dataSet)
+
+            // 2. Update axes
             chart.axisLeft.apply {
                 axisMinimum = axisMin
                 axisMaximum = axisMax
+                spaceTop = 5f
+                spaceBottom = 5f
             }
+            chart.xAxis.apply {
+                position = XAxis.XAxisPosition.BOTTOM
+                setDrawGridLines(false)
+                // Show only every nth label to avoid clutter
+                val maxLabels = 6
+                val step = (labels.size / maxLabels).coerceAtLeast(1)
+                granularity = step.toFloat()
+                labelCount = (labels.size + step - 1) / step
+                valueFormatter = object : ValueFormatter() {
+                    override fun getFormattedValue(v: Float): String {
+                        val idx = v.toInt().coerceIn(0, labels.lastIndex)
+                        return if (idx % step == 0) labels[idx] else ""
+                    }
+                }
+            }
+
+            // 3. Refresh
             chart.invalidate()
         },
         modifier = Modifier.fillMaxSize()
@@ -283,54 +298,26 @@ fun ComboChartView(
     val (rightAxisMin, rightAxisMax) = remember(lineValues) {
         calculateAxisRange(lineValues, paddingPercentage, forceIncludeZeroRight)
     }
+
     AndroidView(
         factory = {
             CombinedChart(context).apply {
                 description.isEnabled = false
-                setTouchEnabled(false)
-                xAxis.apply {
-                    position = XAxis.XAxisPosition.BOTTOM
-                    granularity = 1f
-                    valueFormatter = object : ValueFormatter() {
-                        override fun getFormattedValue(v: Float) = labels[v.toInt()]
-                    }
-                }
-                // Left axis for bar (meals)
-                axisLeft.apply {
-                    isEnabled = true
-                    axisMinimum = leftAxisMin
-                    axisMaximum = leftAxisMax
-                    textColor = "#FF5722".toColorInt()
-                    granularity = 1f
-                    spaceTop = 5f
-                    setSpaceBottom(5f)
-                }
-                // Right axis with calculated range
-                axisRight.apply {
-                    isEnabled = true
-                    axisMinimum = rightAxisMin
-                    axisMaximum = rightAxisMax
-                    textColor = "#009688".toColorInt()
-                    granularity = 1f
-                    spaceTop = 5f
-                    spaceBottom = 5f
-                }
-                legend.isEnabled = true
-                // Enable zoom and drag
                 setTouchEnabled(true)
                 isDragEnabled = true
                 setScaleEnabled(true)
                 setPinchZoom(true)
+                legend.isEnabled = true
             }
         },
         update = { chart ->
-            // Bar entries and dataset
+            // 1. Build datasets
             val barEntries = barValues.mapIndexed { i, v -> BarEntry(i.toFloat(), v) }
             val barSet = BarDataSet(barEntries, "Meals").apply {
                 color = "#FF5722".toColorInt()
                 axisDependency = YAxis.AxisDependency.LEFT
             }
-            // Line entries and dataset
+
             val lineEntries = lineValues.mapIndexed { i, v -> Entry(i.toFloat(), v) }
             val lineSet = LineDataSet(lineEntries, "Volume (ml)").apply {
                 color = "#009688".toColorInt()
@@ -339,24 +326,57 @@ fun ComboChartView(
                 circleRadius = 4f
                 axisDependency = YAxis.AxisDependency.RIGHT
             }
-            // Combine data
+
+            // 2. Set combined data
             chart.data = CombinedData().apply {
                 setData(BarData(barSet).apply { barWidth = 0.4f })
                 setData(LineData(lineSet))
             }
+
+            // 3. Update axes
             chart.axisLeft.apply {
+                isEnabled = true
                 axisMinimum = leftAxisMin
                 axisMaximum = leftAxisMax
+                textColor = "#FF5722".toColorInt()
+                granularity = 1f
+                spaceTop = 5f
+                spaceBottom = 5f
             }
+
             chart.axisRight.apply {
+                isEnabled = true
                 axisMinimum = rightAxisMin
                 axisMaximum = rightAxisMax
+                textColor = "#009688".toColorInt()
+                granularity = 1f
+                spaceTop = 5f
+                spaceBottom = 5f
             }
+
+            // 4. Update X-axis with safe formatter
+            chart.xAxis.apply {
+                position = XAxis.XAxisPosition.BOTTOM
+                setDrawGridLines(false)
+                val maxLabels = 6
+                val step = (labels.size / maxLabels).coerceAtLeast(1)
+                granularity = step.toFloat()
+                labelCount = (labels.size + step - 1) / step
+                valueFormatter = object : ValueFormatter() {
+                    override fun getFormattedValue(v: Float): String {
+                        val idx = v.toInt().coerceIn(0, labels.lastIndex)
+                        return if (idx % step == 0) labels[idx] else ""
+                    }
+                }
+            }
+
+            // 5. Refresh
             chart.invalidate()
         },
         modifier = Modifier.fillMaxSize()
     )
 }
+
 
 /**
  * Calculate optimal axis range ensuring no negative values for positive data

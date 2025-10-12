@@ -35,6 +35,7 @@ import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
+import java.util.Date
 import java.util.Locale
 import kotlin.math.max
 
@@ -83,7 +84,9 @@ fun AnalysisScreen(
         getDateRange(selectedRange, customStartDate, customEndDate, selectedBaby)
     }
     val (startAge, endAge) = ageRange
-
+    val growthByDate = remember(allGrowth, dateList) {
+        allGrowth.groupBy { it.timestamp.toLocalDate() }
+    }
     // Generate labels for charts
     val chartLabels = remember(dateList) {
         when {
@@ -209,13 +212,13 @@ fun AnalysisScreen(
             }
 
             item {
-                val sleepMins = last7Days.map { date ->
+                val sleepMins = dateList.map { date ->
                     eventsByDay[date].orEmpty().filterIsInstance<SleepEvent>()
                         .sumOf { it.durationMinutes ?: 0L }.toFloat()
                 }
                 AnalysisCard(title = "Daily Sleep (min)") {
                     LineChartView(
-                        labels = last7DaysLabels,
+                        labels = chartLabels,
                         values = sleepMins,
                         forceIncludeZero = true
                     )
@@ -223,16 +226,16 @@ fun AnalysisScreen(
             }
 
             item {
-                val mealCounts = last7Days.map { date ->
+                val mealCounts = dateList.map { date ->
                     eventsByDay[date].orEmpty().count { it is FeedingEvent }
                 }
-                val mealVolumes = last7Days.map { date ->
+                val mealVolumes = dateList.map { date ->
                     eventsByDay[date].orEmpty().filterIsInstance<FeedingEvent>()
                         .sumOf { it.amountMl ?: 0.0 }.toFloat()
                 }
                 AnalysisCard(title = "Meals & Volume") {
                     ComboChartView(
-                        labels = last7DaysLabels,
+                        labels = chartLabels,
                         barValues = mealCounts.map { it.toFloat() },
                         lineValues = mealVolumes
                     )
@@ -241,12 +244,16 @@ fun AnalysisScreen(
             }
 
             item {
-
-                val babyWeight = allGrowth.sortedBy { it.timestamp }
-                    .map { it.weightKg?.toFloat() ?: 0f }
+                val babyWeight = dateList.map { date ->
+                    growthByDate[date]
+                        ?.maxByOrNull { it.timestamp }
+                        ?.weightKg
+                        ?.toFloat()
+                        ?: 0f
+                }
                 AnalysisCard(title = "Weight Growth (kg)") {
                     MultiLineChartView(
-                        labels = last7DaysLabels,
+                        labels = chartLabels,
                         series = listOf("Baby" to babyWeight) + weightpercentileCurves.map { (label, data) ->
                             label to data.map { it.second }
                         }
@@ -255,15 +262,19 @@ fun AnalysisScreen(
             }
 
             item {
+                val babyLength = dateList.map { date ->
+                    growthByDate[date]
+                        ?.maxByOrNull { it.timestamp }
+                        ?.heightCm
+                        ?.toFloat()
+                        ?: 0f
+                }
+
+
                 AnalysisCard(title = "Length Growth (cm)") {
                     MultiLineChartView(
-                        labels = last7DaysLabels,
-                        series = listOf(
-                            "Baby" to growthPoints.map { (_, _) ->
-                                // Use baby's length data from your GrowthEvent model or list
-                                allGrowth.find { it.heightCm != null }?.heightCm?.toFloat() ?: 0f
-                            }
-                        ) + lengthpercentileCurves.map { (label, data) ->
+                        labels = chartLabels,
+                        series = listOf("Baby" to babyLength) + lengthpercentileCurves.map { (label, data) ->
                             label to data.map { it.second }
                         }
                     )
@@ -271,14 +282,17 @@ fun AnalysisScreen(
             }
 
             item {
+                val babyHead = dateList.map { date ->
+                    growthByDate[date]
+                        ?.maxByOrNull { it.timestamp }
+                        ?.headCircumferenceCm
+                        ?.toFloat()
+                        ?: 0f
+                }
                 AnalysisCard(title = "Head Circumference (cm)") {
                     MultiLineChartView(
-                        labels = last7DaysLabels,
-                        series = listOf(
-                            "Baby" to allGrowth.sortedBy { it.timestamp }.map {
-                                (it.headCircumferenceCm ?: 0.0).toFloat()
-                            }
-                        ) + headpercentileCurves.map { (label, data) ->
+                        labels = chartLabels,
+                        series = listOf("Baby" to babyHead)  + headpercentileCurves.map { (label, data) ->
                             label to data.map { it.second }
                         }
                     )
@@ -288,6 +302,8 @@ fun AnalysisScreen(
     }
 }
 
+private fun Date.toLocalDate(): LocalDate =
+    this.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
 // First, create an enum for predefined ranges
 enum class AnalysisRange(val displayName: String, val days: Int) {
     ONE_DAY("1 Day", 1),
