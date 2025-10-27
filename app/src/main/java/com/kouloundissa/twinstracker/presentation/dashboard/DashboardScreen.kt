@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +42,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -354,14 +356,14 @@ fun BabySelectorRow(
                     selected = isSelected,
                     borderColor = contentColor.copy(alpha = 0.55f),
                     selectedBorderColor = contentColor.copy(alpha = 0.55f),
-                    borderWidth = 1.dp,
+                    borderWidth = 0.5.dp,
                     selectedBorderWidth = 1.dp
                 ),
                 elevation = FilterChipDefaults.filterChipElevation(
                     elevation = 0.dp,
-                    pressedElevation = 0.dp,
-                    focusedElevation = 0.dp,
-                    hoveredElevation = 0.dp,
+                    pressedElevation = 4.dp,
+                    focusedElevation = 2.dp,
+                    hoveredElevation = 2.dp,
                     draggedElevation = 0.dp,
                     disabledElevation = 0.dp
                 )
@@ -373,7 +375,11 @@ fun BabySelectorRow(
             Surface(
                 modifier = Modifier
                     .size(48.dp)
-                    .clickable(onClick = onAddBaby),
+                    .clickable(
+                        onClick = onAddBaby,
+                        indication = ripple(bounded = false),
+                        interactionSource = remember { MutableInteractionSource() }
+                    ),
                 shape = CircleShape,
                 color = baseColor.copy(alpha = 0.12f),
                 border = BorderStroke(

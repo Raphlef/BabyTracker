@@ -308,7 +308,6 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     item {
-                        Spacer(Modifier.height(24.dp))
                         Text(
                             "Aujourd'hui",
                             fontWeight = FontWeight.Bold,
