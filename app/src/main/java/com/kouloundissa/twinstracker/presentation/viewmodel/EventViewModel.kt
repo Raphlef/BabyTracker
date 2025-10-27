@@ -155,6 +155,7 @@ class EventViewModel @Inject constructor(
             }
         }
     }
+
     // Called when notification is tapped
     fun onNotificationClicked(eventId: String) {
         viewModelScope.launch {
@@ -162,7 +163,7 @@ class EventViewModel @Inject constructor(
             val found = _events.value.firstOrNull { it.id == eventId }
                 ?: repository.getEventById(eventId) // implement this if needed
 
-                _notificationEvent.value = found as Event
+            _notificationEvent.value = found as Event
         }
     }
 
@@ -263,6 +264,7 @@ class EventViewModel @Inject constructor(
                 beginTime = event.beginTime,
                 endTime = event.endTime,
                 durationMinutes = event.durationMinutes,
+                isSleeping = event.isSleeping,
                 notes = event.notes.orEmpty(),
                 photoUrl = event.photoUrl
             )
@@ -292,6 +294,7 @@ class EventViewModel @Inject constructor(
                 eventId = id,
                 eventTimestamp = timestamp,
                 drugType = event.drugType,
+                otherDrugName = event.otherDrugName.orEmpty(),
                 dosage = event.dosage?.toString().orEmpty(),
                 unit = event.unit,
                 notes = event.notes.orEmpty(),
@@ -303,6 +306,7 @@ class EventViewModel @Inject constructor(
                 eventTimestamp = timestamp,
                 amountMl = event.amountMl?.toString().orEmpty(),
                 durationMin = event.durationMinutes?.toString().orEmpty(),
+                breastSide = event.breastSide,
                 notes = event.notes.orEmpty(),
                 photoUrl = event.photoUrl
             )
