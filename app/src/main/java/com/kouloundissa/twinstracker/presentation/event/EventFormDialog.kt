@@ -212,8 +212,8 @@ fun EventFormDialog(
                             Icon(Icons.Default.Close, contentDescription = "Close")
                         }
                     }
-
-                    if (errorMessage != null) {
+                    val displayMessage = errorMessage ?: deleteError
+                    if (displayMessage != null) {
                         Surface(
                             color = Color.Transparent,
                             shape = cornerShape
