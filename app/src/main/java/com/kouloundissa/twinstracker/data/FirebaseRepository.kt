@@ -241,12 +241,15 @@ class FirebaseRepository @Inject constructor(
         // Delete photo from Storage
         try {
             photoRef.delete().await()
+            Log.d("PhotoDeletion", "Photo deleted successfully: $entityType/$entityId")
         } catch (e: StorageException) {
-            // ERROR_OBJECT_NOT_FOUND = 404
-            if (e.errorCode != StorageException.ERROR_OBJECT_NOT_FOUND) {
+            if (e.errorCode == StorageException.ERROR_OBJECT_NOT_FOUND) {
+                // File doesn't exist - this is fine, just continue silently
+                Log.d("PhotoDeletion", "Photo not found, skipping: $entityType/$entityId")
+            } else {
+                // Other errors (permission denied, network, etc.) - still throw
                 throw e
             }
-            // else: object missing—ignore
         }
 
         // Remove photoUrl from Firestore document
@@ -260,12 +263,15 @@ class FirebaseRepository @Inject constructor(
                     )
                 )
                 .await()
+            Log.d("PhotoDeletion", "PhotoUrl field removed from Firestore: $entityType/$entityId")
         } catch (e: FirebaseFirestoreException) {
-            // If the document doesn’t exist, error code is NOT_FOUND (code = 5)
-            if (e.code != FirebaseFirestoreException.Code.NOT_FOUND) {
+            if (e.code == FirebaseFirestoreException.Code.NOT_FOUND) {
+                // Document doesn't exist - this is fine, just continue silently
+                Log.d("PhotoDeletion", "Document not found, skipping: $entityType/$entityId")
+            } else {
+                // Other Firestore errors - still throw
                 throw e
             }
-            // else: missing document—ignore
         }
     }
 
