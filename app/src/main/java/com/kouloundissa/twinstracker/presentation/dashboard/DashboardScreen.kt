@@ -159,7 +159,7 @@ fun DashboardScreen(
             ) {
                 Column() {
                     // --- BABY SELECTOR + INFO ---
-
+                    Spacer(Modifier.height(8.dp))
                     BabySelectorRow(
                         babies = babies,
                         selectedBaby = selectedBaby,
@@ -323,7 +323,7 @@ fun BabySelectorRow(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .height(40.dp)
+            .height(56.dp)
             .padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -341,7 +341,7 @@ fun BabySelectorRow(
                         overflow = TextOverflow.Ellipsis
                     )
                 },
-                modifier = Modifier.height(40.dp),
+                modifier = Modifier.height(48.dp),
                 shape = cornerShape,
                 colors = FilterChipDefaults.filterChipColors(
                     containerColor = baseColor.copy(alpha = 0.15f),
@@ -354,8 +354,8 @@ fun BabySelectorRow(
                     selected = isSelected,
                     borderColor = contentColor.copy(alpha = 0.55f),
                     selectedBorderColor = contentColor.copy(alpha = 0.55f),
-                    borderWidth = 0.5.dp,
-                    selectedBorderWidth = 0.5.dp
+                    borderWidth = 1.dp,
+                    selectedBorderWidth = 1.dp
                 ),
                 elevation = FilterChipDefaults.filterChipElevation(
                     elevation = 0.dp,
@@ -372,12 +372,12 @@ fun BabySelectorRow(
             // Add button with matching design
             Surface(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(48.dp)
                     .clickable(onClick = onAddBaby),
                 shape = CircleShape,
                 color = baseColor.copy(alpha = 0.12f),
                 border = BorderStroke(
-                    0.5.dp,
+                    1.dp,
                     contentColor.copy(alpha = 0.55f)
                 ),
                 tonalElevation = 0.dp
