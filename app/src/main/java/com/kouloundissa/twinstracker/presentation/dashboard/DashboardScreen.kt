@@ -315,7 +315,7 @@ fun BabySelectorRow(
     babies: List<Baby>,
     selectedBaby: Baby?,
     onSelectBaby: (Baby) -> Unit,
-    onAddBaby: () -> Unit
+    onAddBaby: (() -> Unit)? = null
 ) {
     val baseColor = BackgroundColor
     val contentColor = DarkBlue
@@ -369,31 +369,32 @@ fun BabySelectorRow(
                 )
             )
         }
-
-        item {
-            // Add button with matching design
-            Surface(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clickable(
-                        onClick = onAddBaby,
-                        indication = ripple(bounded = false),
-                        interactionSource = remember { MutableInteractionSource() }
+        if (onAddBaby != null) {
+            item {
+                // Add button with matching design
+                Surface(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clickable(
+                            onClick = onAddBaby,
+                            indication = ripple(bounded = false),
+                            interactionSource = remember { MutableInteractionSource() }
+                        ),
+                    shape = CircleShape,
+                    color = baseColor.copy(alpha = 0.12f),
+                    border = BorderStroke(
+                        1.dp,
+                        contentColor.copy(alpha = 0.55f)
                     ),
-                shape = CircleShape,
-                color = baseColor.copy(alpha = 0.12f),
-                border = BorderStroke(
-                    1.dp,
-                    contentColor.copy(alpha = 0.55f)
-                ),
-                tonalElevation = 0.dp
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add Baby",
-                        tint = contentColor.copy(alpha = 0.85f)
-                    )
+                    tonalElevation = 0.dp
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add Baby",
+                            tint = contentColor.copy(alpha = 0.85f)
+                        )
+                    }
                 }
             }
         }
