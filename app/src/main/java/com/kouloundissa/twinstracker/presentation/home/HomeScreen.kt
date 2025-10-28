@@ -1,16 +1,13 @@
 package com.kouloundissa.twinstracker.presentation.home
 
 import android.annotation.SuppressLint
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,7 +25,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -65,12 +60,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import coil.compose.rememberAsyncImagePainter
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.Event
@@ -85,7 +78,6 @@ import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.EventCard
 import com.kouloundissa.twinstracker.ui.components.SleepTimer
-import com.kouloundissa.twinstracker.ui.components.TimelineList
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -505,7 +497,7 @@ fun HomeScreen(
             // dialog handling:
             if (showEventDialog && editingEvent != null) {
                 EventFormDialog(
-                    babyId = selectedBaby?.id ?: return@Box,
+                    initialBabyId = selectedBaby?.id ?: return@Box,
                     onDismiss = {
                         showEventDialog = false
                         editingEvent = null
@@ -516,7 +508,7 @@ fun HomeScreen(
             }
             if (showEventDialog && selectedType != null && editingEvent == null) {
                 EventFormDialog(
-                    babyId = selectedBaby?.id ?: return@Box,
+                    initialBabyId = selectedBaby?.id ?: return@Box,
                     initialEventType = selectedType,
                     onDismiss = {
                         showEventDialog = false

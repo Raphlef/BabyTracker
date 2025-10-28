@@ -1,7 +1,6 @@
 package com.kouloundissa.twinstracker.presentation.calendar
 
 import DayTimeline
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
@@ -13,17 +12,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
-import com.kouloundissa.twinstracker.ui.components.BackgroundContainer
-import com.kouloundissa.twinstracker.ui.components.CalendarGrid
 import com.kouloundissa.twinstracker.ui.components.FilterBar
-import com.kouloundissa.twinstracker.ui.components.MonthHeader
 import com.kouloundissa.twinstracker.ui.components.SwipeableCalendar
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
@@ -164,7 +159,7 @@ fun CalendarScreen(
             // Edit Dialog
             if (showDialog) {
                 EventFormDialog(
-                    babyId = selectedBaby?.id ?: return@Box,
+                    initialBabyId = selectedBaby?.id ?: return@Box,
                     onDismiss = {
                         showDialog = false
                         editingEvent = null

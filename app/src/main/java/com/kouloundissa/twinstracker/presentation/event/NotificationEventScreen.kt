@@ -18,7 +18,7 @@ fun NotificationEventScreen(
     }
 
     EventFormDialog(
-        babyId = viewModel.notificationEvent.collectAsState().value!!.babyId,
+        initialBabyId = viewModel.notificationEvent.collectAsState().value!!.babyId,
         onDismiss = {
             viewModel.clearEditingEvent()
             viewModel.resetFormState()
