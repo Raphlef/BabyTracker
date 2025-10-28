@@ -125,7 +125,6 @@ fun HomeScreen(
             eventViewModel.setDateRangeForLastDays(30L)
             eventViewModel.streamEventsInRangeForBaby(babyId)
         }
-
     }
     val loadMoreHistory = remember(selectedBaby) {
         {

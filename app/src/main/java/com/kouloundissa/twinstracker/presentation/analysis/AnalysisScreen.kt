@@ -107,11 +107,12 @@ fun AnalysisScreen(
         }
     }
 
-
-    val last7Days = (0L..6L).map { today.minusDays(6 - it) }
-    val last7DaysLabels = last7Days.map { date ->
-        val dayName = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-        "$dayName"
+    LaunchedEffect(selectedBaby?.id) {
+        selectedBaby?.id?.let { babyId ->
+            eventViewModel.resetDateRangeAndHistory()
+            eventViewModel.setDateRangeForLastDays(selectedRange.days.toLong())
+            eventViewModel.streamEventsInRangeForBaby(babyId)
+        }
     }
 
     LaunchedEffect(errorMessage) {
