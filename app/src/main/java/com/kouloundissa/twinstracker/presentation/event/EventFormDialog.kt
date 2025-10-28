@@ -635,10 +635,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
 }
 
 @Composable
-private fun GrowthForm(
-    state: EventFormState.Growth,
-    viewModel: EventViewModel
-) {
+private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) {
     val contentColor = Color.White
     val cornerShape = MaterialTheme.shapes.extraLarge
 
@@ -696,10 +693,7 @@ private fun GrowthForm(
 }
 
 @Composable
-private fun PumpingForm(
-    state: EventFormState.Pumping,
-    viewModel: EventViewModel
-) {
+private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
     val contentColor = Color.White
     val cornerShape = MaterialTheme.shapes.extraLarge
     Column(
@@ -773,7 +767,6 @@ private fun PumpingForm(
         )
     }
 }
-
 
 @Composable
 private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
