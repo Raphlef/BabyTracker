@@ -1,15 +1,20 @@
 package com.kouloundissa.twinstracker.ui.components
 
 import android.text.format.DateFormat
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
@@ -17,6 +22,7 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -50,114 +56,134 @@ fun ModernDateSelector(
     onDateSelected: (Date) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // State control for dialogs
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
-    val initialMillis = selectedDate?.time ?: System.currentTimeMillis()
-    var interimDateMillis by remember { mutableStateOf(initialMillis) }
-    // Hold interim date before time selection
-    val interimCalendar = remember { Calendar.getInstance().apply { timeInMillis = initialMillis } }
 
+    // Interim selection state
+    val calendar = remember(selectedDate) {
+        Calendar.getInstance().apply { time = selectedDate ?: Date() }
+    }
+    val displayDate = calendar.time
+
+    // UI Colors
     val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
     val contentcolor = DarkGrey
     val tint = DarkBlue
 
-    // Date picker state
-    val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = interimDateMillis
-    )
-
-    // Trigger surface
+    // --- UI surface with 2 chips/buttons ---
     Surface(
-        onClick = { showDatePicker = true },
         shape = RoundedCornerShape(16.dp),
         color = backgroundcolor,
         modifier = modifier,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(20.dp)
-        ) {
-            Icon(
-                Icons.Default.DateRange,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = contentcolor
-                )
-                Text(
-                    text = selectedDate
-                        ?.let {
-                            SimpleDateFormat(
-                                "EEE, MMM dd, yyyy • HH:mm",
-                                Locale.getDefault()
-                            ).format(it)
-                        }
-                        ?: "Select date & time",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = contentcolor
-                )
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = contentcolor)
+            Spacer(Modifier.height(6.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.height(IntrinsicSize.Min)
+            ) {
+                // Date chip
+                OutlinedButton(
+                    onClick = { showDatePicker = true },
+                    border = BorderStroke(1.dp, tint),
+                    contentPadding = PaddingValues(vertical = 8.dp, horizontal = 12.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        Icons.Default.DateRange,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = tint
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = SimpleDateFormat("EEE, MMM dd, yyyy", Locale.getDefault()).format(
+                            displayDate
+                        ),
+                        color = contentcolor
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+
+                // Time chip
+                OutlinedButton(
+                    onClick = { showTimePicker = true },
+                    border = BorderStroke(1.dp, tint),
+                    contentPadding = PaddingValues(vertical = 8.dp, horizontal = 12.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        Icons.Default.AccessTime,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = tint
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(displayDate),
+                        color = contentcolor
+                    )
+                }
             }
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = contentcolor,
-            )
         }
     }
 
-    // Date picker dialog
+    // --- Date picker ---
     if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = calendar.timeInMillis
+        )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
                     showDatePicker = false
                     datePickerState.selectedDateMillis?.let { ms ->
-                        interimDateMillis = ms
-                        showTimePicker = true
+                        // Save previous time
+                        val previousHour = calendar.get(Calendar.HOUR_OF_DAY)
+                        val previousMinute = calendar.get(Calendar.MINUTE)
+                        // Update only the date part
+                        calendar.timeInMillis = ms
+                        // Restore time
+                        calendar.set(Calendar.HOUR_OF_DAY, previousHour)
+                        calendar.set(Calendar.MINUTE, previousMinute)
+                        calendar.set(Calendar.SECOND, 0)
+                        calendar.set(Calendar.MILLISECOND, 0)
+                        onDateSelected(calendar.time)
                     }
-                }) {
-                    Text("Next")
-                }
+                }) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel")
-                }
-            },
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
         ) {
             DatePicker(state = datePickerState)
         }
     }
 
-    // Time picker dialog (reuses ModernTimeSelector internals)
+    // --- Time picker ---
     if (showTimePicker) {
         ShowTimePickerDialog(
             label = "Event Time",
-            initialDate = interimCalendar.time,
-            onTimeSelected = { timeDate ->
-                // Merge date + time
-                val cal = Calendar.getInstance().apply {
-                    timeInMillis = interimDateMillis
-                    set(Calendar.HOUR_OF_DAY, timeDate.hours)
-                    set(Calendar.MINUTE, timeDate.minutes)
+            initialDate = displayDate,
+            onTimeSelected = { timePart ->
+                // Set only hour/minute/second on existing date
+                with(calendar) {
+                    set(Calendar.HOUR_OF_DAY, timePart.hours)
+                    set(Calendar.MINUTE, timePart.minutes)
                     set(Calendar.SECOND, 0)
                     set(Calendar.MILLISECOND, 0)
                 }
-                onDateSelected(cal.time)
+                onDateSelected(calendar.time)
                 showTimePicker = false
             },
             onDismiss = { showTimePicker = false }
         )
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
