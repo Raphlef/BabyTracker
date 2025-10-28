@@ -52,6 +52,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.core.net.toUri
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.EventFormState.*
+import com.kouloundissa.twinstracker.ui.components.IconSelector
 import com.kouloundissa.twinstracker.ui.components.ModernDateSelector
 import com.kouloundissa.twinstracker.ui.components.PhotoPicker
 import com.kouloundissa.twinstracker.ui.theme.*
@@ -380,87 +381,6 @@ fun EventFormDialog(
         }
     }
 }
-
-// Reusable Icon Selector Component
-@Composable
-fun <T> IconSelector(
-    title: String,
-    options: List<T>,
-    selected: T?,
-    onSelect: (T) -> Unit,
-    getIcon: (T) -> ImageVector,
-    getLabel: (T) -> String,
-    getColor: ((T) -> Color)? = null,
-    enabled: Boolean = true,
-    modifier: Modifier = Modifier
-
-) {
-    val titleColor =  if (enabled) Color.White else Color.LightGray
-    val backgroundcolor = Color.White.copy(alpha = if (enabled) 0.5f else 0.2f)
-    val contentcolor = Color.DarkGray
-
-    val tint = Color(0xFF003366)
-
-    Column(modifier = modifier) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(bottom = 12.dp),
-            color = titleColor
-        )
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(horizontal = 4.dp)
-        ) {
-            items(options) { option ->
-                val itemColor = getColor?.invoke(option) ?: tint.copy(alpha = 0.2f)
-                val isSelected = selected == option
-                Surface(
-                    onClick = { onSelect(option) },
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (isSelected) itemColor.copy(alpha = 0.2f) else backgroundcolor,
-                    border = if (isSelected)
-                        BorderStroke(2.dp, itemColor)
-                    else
-                        BorderStroke(1.dp, contentcolor.copy(alpha = 0.3f)),
-                    modifier = Modifier
-                        .size(80.dp, 88.dp)
-                        .then(
-                            if (enabled)
-                                Modifier.clickable { onSelect(option) }
-                            else
-                                Modifier
-                        )
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                        modifier = Modifier.padding(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = getIcon(option),
-                            contentDescription = getLabel(option),
-                            tint = if (isSelected) titleColor else contentcolor.copy(alpha = 0.8f),
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            text = getLabel(option),
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = TextAlign.Center,
-                            color = if (isSelected) titleColor else contentcolor.copy(alpha = 0.8f),
-                            maxLines = 2
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-
 @Composable
 private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
     val contentColor = Color.White

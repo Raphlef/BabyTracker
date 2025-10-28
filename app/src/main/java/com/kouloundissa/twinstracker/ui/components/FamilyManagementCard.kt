@@ -64,7 +64,6 @@ import com.kouloundissa.twinstracker.data.FamilySettings
 import com.kouloundissa.twinstracker.data.PrivacyLevel
 import com.kouloundissa.twinstracker.presentation.Family.CreateFamilyDialog
 import com.kouloundissa.twinstracker.presentation.dashboard.BabySelectorRow
-import com.kouloundissa.twinstracker.presentation.event.IconSelector
 import com.kouloundissa.twinstracker.presentation.settings.GlassCard
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyUser
