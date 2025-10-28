@@ -48,9 +48,9 @@ import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.BloodType
 import com.kouloundissa.twinstracker.data.Gender
 import com.kouloundissa.twinstracker.presentation.event.IconSelector
-import com.kouloundissa.twinstracker.presentation.event.ModernDateSelector
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
+import com.kouloundissa.twinstracker.ui.components.ModernDateSelector
 import com.kouloundissa.twinstracker.ui.components.PhotoPicker
 import com.kouloundissa.twinstracker.ui.theme.*
 import java.text.SimpleDateFormat
@@ -567,6 +567,7 @@ private fun BabyFormContent(
     Spacer(Modifier.height(16.dp))
 
     ModernDateSelector(
+        label= "Date of Birth",
         selectedDate = Date(state.birthDateTimeMillis),
         onDateSelected = { dt -> state.birthDateTimeMillis = dt.time },
         modifier = Modifier.fillMaxWidth()
