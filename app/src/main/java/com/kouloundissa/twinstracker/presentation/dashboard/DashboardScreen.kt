@@ -67,6 +67,7 @@ import com.kouloundissa.twinstracker.presentation.baby.BabyFormDialog
 import com.kouloundissa.twinstracker.presentation.home.HomeScreen
 import com.kouloundissa.twinstracker.presentation.settings.SettingsScreen
 import com.kouloundissa.twinstracker.ui.components.BabyInfoBar
+import com.kouloundissa.twinstracker.ui.components.BabySelectorRow
 import com.kouloundissa.twinstracker.ui.components.BackgroundContainer
 import com.kouloundissa.twinstracker.ui.components.BottomNavBar
 import com.kouloundissa.twinstracker.ui.theme.*
@@ -291,97 +292,6 @@ fun DashboardScreen(
                             }
                         }
                     )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun BabySelectorRow(
-    babies: List<Baby>,
-    selectedBaby: Baby?,
-    onSelectBaby: (Baby) -> Unit,
-    onAddBaby: (() -> Unit)? = null
-) {
-    val baseColor = BackgroundColor
-    val contentColor = DarkBlue
-
-    val cornerShape = MaterialTheme.shapes.extraLarge
-
-    LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .padding(horizontal = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(babies) { baby ->
-            val isSelected = baby == selectedBaby
-
-            FilterChip(
-                selected = isSelected,
-                onClick = { onSelectBaby(baby) },
-                label = {
-                    Text(
-                        text = baby.name.ifEmpty { "Sans nom" },
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                },
-                modifier = Modifier.height(48.dp),
-                shape = cornerShape,
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = baseColor.copy(alpha = 0.15f),
-                    labelColor = contentColor.copy(alpha = 0.85f),
-                    selectedContainerColor = baseColor.copy(alpha = 0.85f),
-                    selectedLabelColor = contentColor
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = isSelected,
-                    borderColor = contentColor.copy(alpha = 0.55f),
-                    selectedBorderColor = contentColor.copy(alpha = 0.55f),
-                    borderWidth = 0.5.dp,
-                    selectedBorderWidth = 1.dp
-                ),
-                elevation = FilterChipDefaults.filterChipElevation(
-                    elevation = 0.dp,
-                    pressedElevation = 4.dp,
-                    focusedElevation = 2.dp,
-                    hoveredElevation = 2.dp,
-                    draggedElevation = 0.dp,
-                    disabledElevation = 0.dp
-                )
-            )
-        }
-        if (onAddBaby != null) {
-            item {
-                // Add button with matching design
-                Surface(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clickable(
-                            onClick = onAddBaby,
-                            indication = ripple(bounded = false),
-                            interactionSource = remember { MutableInteractionSource() }
-                        ),
-                    shape = CircleShape,
-                    color = baseColor.copy(alpha = 0.12f),
-                    border = BorderStroke(
-                        1.dp,
-                        contentColor.copy(alpha = 0.55f)
-                    ),
-                    tonalElevation = 0.dp
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Add Baby",
-                            tint = contentColor.copy(alpha = 0.85f)
-                        )
-                    }
                 }
             }
         }

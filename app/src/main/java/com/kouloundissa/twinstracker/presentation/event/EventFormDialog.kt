@@ -29,8 +29,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.EventFormState.*
-import com.kouloundissa.twinstracker.presentation.dashboard.BabySelectorRow
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
+import com.kouloundissa.twinstracker.ui.components.BabySelectorRow
 import com.kouloundissa.twinstracker.ui.components.IconSelector
 import com.kouloundissa.twinstracker.ui.components.ModernDateSelector
 import com.kouloundissa.twinstracker.ui.components.PhotoPicker
