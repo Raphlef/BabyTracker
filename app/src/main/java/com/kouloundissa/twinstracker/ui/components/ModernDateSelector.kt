@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
@@ -89,7 +90,7 @@ fun ModernDateSelector(
                     onClick = { showDatePicker = true },
                     border = BorderStroke(1.dp, tint),
                     contentPadding = PaddingValues(vertical = 8.dp, horizontal = 12.dp),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(2f)
                 ) {
                     Icon(
                         Icons.Default.DateRange,
@@ -102,7 +103,9 @@ fun ModernDateSelector(
                         text = SimpleDateFormat("EEE, MMM dd, yyyy", Locale.getDefault()).format(
                             displayDate
                         ),
-                        color = contentcolor
+                        color = contentcolor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
                 Spacer(Modifier.width(12.dp))
