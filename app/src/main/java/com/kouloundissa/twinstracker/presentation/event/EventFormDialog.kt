@@ -1,16 +1,10 @@
 package com.kouloundissa.twinstracker.presentation.event
 
-import android.graphics.Color.alpha
 import android.net.Uri
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -18,58 +12,40 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.data.*
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
-import android.text.format.DateFormat
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.SheetValue.Hidden
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.core.net.toUri
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.EventFormState.*
+import com.kouloundissa.twinstracker.presentation.dashboard.BabySelectorRow
+import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.ui.components.IconSelector
 import com.kouloundissa.twinstracker.ui.components.ModernDateSelector
 import com.kouloundissa.twinstracker.ui.components.PhotoPicker
 import com.kouloundissa.twinstracker.ui.theme.*
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
 import java.util.*
-import java.util.Collections.copy
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventFormDialog(
-    babyId: String,
+    initialBabyId: String,
     onDismiss: () -> Unit,
     initialEventType: EventType? = null,
-    viewModel: EventViewModel = hiltViewModel()
+    viewModel: EventViewModel = hiltViewModel(),
+    babyViewModel: BabyViewModel = hiltViewModel(),
 ) {
     val formState by viewModel.formState.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
@@ -94,6 +70,19 @@ fun EventFormDialog(
     val contentColor = Color.White
     val cornerShape = MaterialTheme.shapes.extraLarge
 
+    val babies by babyViewModel.babies.collectAsState()
+    val selectedBaby by babyViewModel.selectedBaby.collectAsState()
+
+    // Initialize selectedBaby on first composition
+    LaunchedEffect(babies, initialBabyId) {
+        if (babies.isNotEmpty() && selectedBaby == null) {
+            val toSelect = initialBabyId?.let { id ->
+                babies.find { it.id == id }
+            } ?: babies.first()
+            babyViewModel.selectBaby(toSelect)
+        }
+    }
+
     LaunchedEffect(initialEventType) {
         initialEventType?.let {
             val newState = when (it) {
@@ -107,9 +96,9 @@ fun EventFormDialog(
             viewModel.updateForm { newState }
         }
     }
-    LaunchedEffect(babyId, currentType) {
+    LaunchedEffect(selectedBaby, currentType) {
         if (formState.eventId == null && currentType == EventType.GROWTH) {
-            viewModel.loadLastGrowth(babyId);
+            selectedBaby?.let { viewModel.loadLastGrowth(it.id) };
         }
     }
 
@@ -128,7 +117,7 @@ fun EventFormDialog(
             text = { Text("Are you sure you want to delete this event?") },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.deleteEvent(formState.eventId!!, babyId)
+                    viewModel.deleteEvent(formState.eventId!!, initialBabyId)
                     showDeleteConfirm = false
                 }) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
@@ -228,6 +217,14 @@ fun EventFormDialog(
                         }
                     }
 
+                    BabySelectorRow(
+                        babies = babies,
+                        selectedBaby = selectedBaby,
+                        onSelectBaby = {
+                            babyViewModel.selectBaby(it)
+                        },
+                        onAddBaby = null
+                    )
                     // Event Type Selector (only for new events)
                     val isEditMode = formState.eventId != null
                     if (isEditMode) {
@@ -354,7 +351,7 @@ fun EventFormDialog(
                     }
                     Spacer(Modifier.weight(1f))
                     Button(
-                        onClick = { viewModel.SaveEvent(babyId) },
+                        onClick = { selectedBaby?.let { viewModel.SaveEvent(it.id) } },
                         enabled = !isSaving,
                         shape = cornerShape,
                         modifier = Modifier
@@ -381,6 +378,7 @@ fun EventFormDialog(
         }
     }
 }
+
 @Composable
 private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
     val contentColor = Color.White
