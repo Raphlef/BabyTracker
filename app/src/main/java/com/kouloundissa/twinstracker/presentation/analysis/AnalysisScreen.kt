@@ -103,7 +103,7 @@ fun AnalysisScreen(
         }
     }
 
-    LaunchedEffect(selectedBaby?.id) {
+    LaunchedEffect(selectedBaby?.id, selectedRange) {
         selectedBaby?.id?.let { babyId ->
             eventViewModel.resetDateRangeAndHistory()
             eventViewModel.setDateRangeForLastDays(selectedRange.days.toLong())
@@ -327,14 +327,14 @@ fun AnalysisScreen(
                 AnalysisCard(title = "Head Circumference (cm)") {
                     MultiLineChartView(
                         labels = chartLabels,
-                        series = listOf("Baby" to babyHead)  + headPercentileCurves.map { (label, data) ->
+                        series = listOf("Baby" to babyHead) + headPercentileCurves.map { (label, data) ->
                             label to data
                         }
                     )
                 }
             }
         }
-        if (isLoading ) {
+        if (isLoading) {
             Box(
                 Modifier
                     .fillMaxSize()
@@ -370,6 +370,7 @@ fun AnalysisScreen(
 
 private fun Date.toLocalDate(): LocalDate =
     this.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+
 // First, create an enum for predefined ranges
 enum class AnalysisRange(val displayName: String, val days: Int) {
     ONE_DAY("1 Day", 1),
@@ -408,6 +409,7 @@ fun getDateRange(
             val e = customEnd ?: today
             if (s <= e) s to e else e to s
         }
+
         else -> {
             today.minusDays((range.days - 1).toLong()) to today
         }
