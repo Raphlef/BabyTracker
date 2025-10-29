@@ -362,7 +362,7 @@ class EventViewModel @Inject constructor(
         userProfileCache[userId]?.let { return it }
 
         // Fetch from repository
-        val profile = repository.getCurrentUserProfile()
+        val profile = repository.getUserProfileById(userId)
         profile.let {
             userProfileCache[userId] = it
         }

@@ -100,6 +100,13 @@ class FirebaseRepository @Inject constructor(
             ?: throw IllegalStateException("Profil utilisateur introuvable")
     }
 
+    suspend fun getUserProfileById(userId: String): User {
+        val doc = db.collection(USERS_COLLECTION).document(userId).get().await()
+        return doc.toObject(User::class.java)
+            ?: throw IllegalStateException("Profil utilisateur introuvable pour $userId")
+    }
+
+
     suspend fun updateUserProfile(updates: Map<String, Any?>) {
         val userId = auth.currentUser?.uid
             ?: throw IllegalStateException("Utilisateur non authentifié")
