@@ -70,16 +70,7 @@ class GrowthViewModel @Inject constructor(
 
     // --- Event Handlers for UI ---
 
-    fun setStartDate(date: Date, babyId: String) {
-        _startDate.value = date
-        loadGrowthEventsInRange(babyId)
-    }
 
-    /** Met à jour la date de fin et recharge les events */
-    fun setEndDate(date: Date, babyId: String) {
-        _endDate.value = date
-        loadGrowthEventsInRange(babyId)
-    }
     fun onNotesChanged(newNotes: String) {
         _notes.value = newNotes
     }
@@ -99,119 +90,6 @@ class GrowthViewModel @Inject constructor(
     fun setMeasurementTimestamp(ms: Long) {
         _measurementTimestamp.value = ms
     }
-
-    fun loadGrowthEventsInRange(babyId: String) {
-        viewModelScope.launch {
-            _isLoading.value = true
-
-            // 1. Bornes normalisées
-            val calStart = Calendar.getInstance().apply {
-                time = _startDate.value
-                set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-            }
-            val calEnd = Calendar.getInstance().apply {
-                time = _endDate.value
-                set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59)
-                set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 999)
-            }
-            val start = calStart.time
-            val end   = calEnd.time
-
-            // 2. Calcul de la durée en jours
-            val days = ((end.time - start.time) / (1000 * 60 * 60 * 24)).toInt().coerceAtLeast(0)
-
-            val events: List<GrowthEvent> = when {
-                days == 0 -> {
-                    // Même jour → un seul point
-                    repository.getGrowthEventsInRange(babyId, start, end)
-                        .getOrNull().orEmpty().take(1)
-                }
-                days <= 30 -> {
-                    // Période courte (≤1 mois) → tous les événements
-                    repository.getGrowthEventsInRange(babyId, start, end)
-                        .getOrNull().orEmpty()
-                }
-                else -> {
-                    // Période longue (>2 semaines) → un point par semaine
-                    val weeks = splitIntoWeeks(start, end)
-                    weeks.mapNotNull { (weekStart, weekEnd) ->
-                        repository.getOneGrowthEventInRange(babyId, weekStart, weekEnd)
-                            .getOrNull()
-                    }
-                }
-            }
-
-            // 3. Mise à jour et tri pour le chart
-            _growthEvents.value = events.sortedBy { it.timestamp }
-            _isLoading.value = false
-        }
-    }
-
-    fun getMultiLineData(): Pair<LineData, IndexAxisValueFormatter> {
-        val events = _growthEvents.value.sortedBy { it.timestamp.time }
-        Log.d("GrowthVM", "Display ${events.size} growth events for chart")
-        // Axe X : liste de dates formatées
-        val dateLabels = events.map { SimpleDateFormat("dd/MM", Locale.getDefault()).format(it.timestamp) }
-
-        // Création des Entry pour chaque propriété
-        val weightEntries = events.mapIndexed { i, e -> Entry(i.toFloat(), e.weightKg?.toFloat() ?: 0f) }
-        val heightEntries = events.mapIndexed { i, e -> Entry(i.toFloat(), e.heightCm?.toFloat() ?: 0f) }
-        val headEntries   = events.mapIndexed { i, e -> Entry(i.toFloat(), e.headCircumferenceCm?.toFloat() ?: 0f) }
-
-        // DataSets
-        val weightSet = LineDataSet(weightEntries, "Poids (kg)").apply {
-            color = ComposeColor.Blue.toArgb()
-            valueTextColor = ComposeColor.Blue.toArgb()
-            lineWidth = 2f; circleRadius = 4f; setDrawCircles(true); setDrawValues(false)
-        }
-        val heightSet = LineDataSet(heightEntries, "Taille (cm)").apply {
-            color = ComposeColor.Green.toArgb()
-            valueTextColor = ComposeColor.Green.toArgb()
-            lineWidth = 2f; circleRadius = 4f; setDrawCircles(true); setDrawValues(false)
-        }
-        val headSet = LineDataSet(headEntries, "Périmètre (cm)").apply {
-            color = ComposeColor.Red.toArgb()
-            valueTextColor = ComposeColor.Red.toArgb()
-            lineWidth = 2f; circleRadius = 4f; setDrawCircles(true); setDrawValues(false)
-        }
-
-        // Concaténation et formatter pour l'axe X
-        val data = LineData(weightSet, heightSet, headSet)
-        val xFormatter = IndexAxisValueFormatter(dateLabels)
-        return Pair(data, xFormatter)
-    }
-
-    /**
-     * Découpe l’intervalle [startDate,endDate] en sous-intervalles d’une semaine.
-     * Chaque Pair représente le début (lundi 00:00) et la fin (dimanche 23:59:59) d’une semaine.
-     */
-    private fun splitIntoWeeks(startDate: Date, endDate: Date): List<Pair<Date, Date>> {
-        val weeks = mutableListOf<Pair<Date, Date>>()
-        val calStart = Calendar.getInstance().apply {
-            time = startDate
-            // Ajuste au lundi de la semaine
-            set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-        }
-        val calEnd = Calendar.getInstance().apply { time = endDate }
-        while (calStart.time.before(endDate)) {
-            val weekStart = calStart.time
-            // Calcule le dimanche de cette semaine
-            calStart.add(Calendar.DAY_OF_WEEK, 6)
-            calStart.set(Calendar.HOUR_OF_DAY, 23); calStart.set(Calendar.MINUTE, 59)
-            calStart.set(Calendar.SECOND, 59); calStart.set(Calendar.MILLISECOND, 999)
-            val weekEnd = if (calStart.time.before(endDate)) calStart.time else endDate
-            weeks += weekStart to weekEnd
-            // Passe au lundi suivant
-            calStart.time = weekEnd
-            calStart.add(Calendar.DAY_OF_MONTH, 1)
-            calStart.set(Calendar.HOUR_OF_DAY, 0); calStart.set(Calendar.MINUTE, 0)
-            calStart.set(Calendar.SECOND, 0); calStart.set(Calendar.MILLISECOND, 0)
-        }
-        return weeks
-    }
     fun resetSaveSuccess() {
         _saveSuccess.value = false
     }
@@ -220,24 +98,5 @@ class GrowthViewModel @Inject constructor(
         _errorMessage.value = null
     }
 
-    fun loadLastGrowth(babyId: String) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            repository.getLastGrowthEvent(babyId)
-                .onSuccess { event ->
-                event?.let {
-                    _measurementTimestamp.value = it.timestamp.time
-                    _weightKg.value = it.weightKg ?: 0.0
-                    _heightCm.value = it.heightCm ?: 0.0
-                    _headCircumferenceCm.value = it.headCircumferenceCm ?: 0.0
-                    _notes.value = it.notes.orEmpty()
-                }
-            }
-                .onFailure { throwable ->
-                    _errorMessage.value = "Erreur chargement historique: ${throwable.message}"
-                    Log.e("GrowthVM", "loadLastGrowth failed", throwable)
-                }
-            _isLoading.value = false
-        }
-    }
+
 }
