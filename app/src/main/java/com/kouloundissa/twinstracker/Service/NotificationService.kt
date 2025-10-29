@@ -72,12 +72,13 @@ class NotificationService @Inject constructor(
             if (ContextCompat.checkSelfPermission(
                     context,
                     Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED) {
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
                 return
             }
         }
         val eventType = EventType.forClass(event::class)
-        val eventTypeText =eventType.displayName
+        val eventTypeText = eventType.displayName
 
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -99,8 +100,10 @@ class NotificationService @Inject constructor(
             .setSmallIcon(R.drawable.icon)
             .setContentTitle("New $eventTypeText")
             .setContentText("$authorName added a $eventTypeText at $timeText")
-            .setStyle(NotificationCompat.BigTextStyle()
-                .bigText("$authorName added a $eventTypeText at $timeText"))
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText("$authorName added a $eventTypeText at $timeText")
+            )
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
@@ -123,6 +126,7 @@ class NotificationService @Inject constructor(
         }
     }
 }
+
 @Module
 @InstallIn(SingletonComponent::class)
 object NotificationModule {
