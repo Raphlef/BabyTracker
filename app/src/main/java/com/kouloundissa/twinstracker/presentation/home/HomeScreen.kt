@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Button
@@ -49,6 +50,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -78,6 +80,7 @@ import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.EventCard
 import com.kouloundissa.twinstracker.ui.components.SleepTimer
+import kotlinx.coroutines.flow.distinctUntilChanged
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -119,19 +122,27 @@ fun HomeScreen(
     val deleteError by eventViewModel.deleteError.collectAsState()
     val isDeleting by eventViewModel.isDeleting.collectAsState()
 
+    val lazyListState = rememberLazyListState()
+
     LaunchedEffect(selectedBaby?.id) {
         selectedBaby?.id?.let { babyId ->
             eventViewModel.resetDateRangeAndHistory()
-            eventViewModel.setDateRangeForLastDays(30L)
+            eventViewModel.setDateRangeForLastDays(1L)
             eventViewModel.streamEventsInRangeForBaby(babyId)
         }
     }
-    val loadMoreHistory = remember(selectedBaby) {
-        {
-            selectedBaby?.id?.let { _ ->
-                eventViewModel.loadMoreHistoricalEvents()
+    LaunchedEffect(lazyListState) {
+        snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .distinctUntilChanged()
+            .collect { lastVisibleIndex ->
+                val totalItems = lazyListState.layoutInfo.totalItemsCount
+                // Trigger when user is within last 3 items
+                if (lastVisibleIndex != null && lastVisibleIndex >= totalItems - 3) {
+                    if (hasMoreHistory && !isLoadingMore) {
+                        eventViewModel.loadMoreHistoricalEvents()
+                    }
+                }
             }
-        }
     }
 
     LaunchedEffect(editingEvent) {
@@ -292,6 +303,7 @@ fun HomeScreen(
                 }
 
                 LazyColumn(
+                    state = lazyListState,
                     contentPadding = contentPadding,
                     modifier = Modifier
                         .fillMaxSize()

@@ -543,18 +543,21 @@ class FirebaseRepository @Inject constructor(
             Result.failure(e)
         }
     }
-    fun streamEventsForBaby(babyId: String): Flow<List<Event>> {
+    fun streamEventsForBaby(babyId: String, startDate: Date, endDate: Date): Flow<List<Event>> {
         val userId = auth.currentUser?.uid
             ?: throw IllegalStateException("User not authenticated")
 
         return db.collection(EVENTS_COLLECTION)
             .whereEqualTo("babyId", babyId)
+            .whereGreaterThanOrEqualTo("timestamp", startDate)
+            .whereLessThanOrEqualTo("timestamp", endDate)
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .snapshots()
             .map { snapshot ->
                 snapshot.documents.mapNotNull { it.toEvent() }
             }
     }
+
 
     suspend fun getLastGrowthEvent(babyId: String): Result<GrowthEvent?> = runCatching {
         val userId = auth.currentUser?.uid

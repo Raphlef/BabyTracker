@@ -22,20 +22,23 @@ import com.kouloundissa.twinstracker.data.setPhotoUrl
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.reflect.KClass
-import androidx.core.net.toUri
 import com.google.firebase.storage.StorageException
 import com.kouloundissa.twinstracker.Service.NotificationService
+import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.EventFormState.*
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.User
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 
 @HiltViewModel
 class EventViewModel @Inject constructor(
@@ -118,7 +121,7 @@ class EventViewModel @Inject constructor(
     private var currentDaysWindow = 30L
     private val maxDaysWindow = 365L // Maximum 1 year of history
     private val _startDate = MutableStateFlow<Date>(Date().apply {
-        time = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000 // Default: 30 days ago
+        time = System.currentTimeMillis() - 1L * 24 * 60 * 60 * 1000 // Default: 1 days ago
     })
     val startDate: StateFlow<Date> = _startDate.asStateFlow()
 
@@ -177,7 +180,7 @@ class EventViewModel @Inject constructor(
         _isLoadingMore.value = true
 
         // Extend the window by additional days (e.g., 30 more days)
-        val additionalDays = 30L
+        val additionalDays = 1L
         val newDaysWindow = (currentDaysWindow + additionalDays).coerceAtMost(maxDaysWindow)
 
         // Check if we've reached the maximum
@@ -194,21 +197,21 @@ class EventViewModel @Inject constructor(
         currentDaysWindow = newDaysWindow
         _startDate.value = Date.from(newStartDate)
         _endDate.value = Date.from(endDate)
-
-        // The streaming will automatically pick up the new date range
-        // and update the events accordingly
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun streamEventsInRangeForBaby(babyId: String) {
         streamJob?.cancel()
-        streamJob = repository.streamEventsForBaby(babyId)
-            .map { allEvents ->
-                // apply your existing date‐range filter
-                allEvents.filter { e ->
-                    val ts = e.timestamp
-                    ts in _startDate.value.._endDate.value
-                }
+
+        // Create a flow that responds to date range changes
+        streamJob = combine(_startDate, _endDate) { start, end ->
+            start to end
+        }
+            .distinctUntilChanged()
+            .flatMapLatest { (start, end) ->
+                repository.streamEventsForBaby(babyId, start, end)
             }
+            .distinctUntilChanged()
             .onStart {
                 if (!_isLoadingMore.value) {
                     _isLoading.value = true
@@ -581,10 +584,10 @@ class EventViewModel @Inject constructor(
     }
 
     fun resetDateRangeAndHistory() {
-        currentDaysWindow = 30L
+        currentDaysWindow = 1L
         _hasMoreHistory.value = true
         _isLoadingMore.value = false
-        setDateRangeForLastDays(30L)
+        setDateRangeForLastDays(currentDaysWindow)
     }
 
     /**
