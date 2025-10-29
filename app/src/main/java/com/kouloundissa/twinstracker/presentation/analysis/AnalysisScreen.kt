@@ -110,7 +110,9 @@ fun AnalysisScreen(
             eventViewModel.streamEventsInRangeForBaby(babyId)
         }
     }
-
+    DisposableEffect(Unit) {
+        onDispose { eventViewModel.stopStreaming() }
+    }
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)

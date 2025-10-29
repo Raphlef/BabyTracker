@@ -66,7 +66,9 @@ fun CalendarScreen(
             viewModel.streamEventsInRangeForBaby(it)
         }
     }
-
+    DisposableEffect(Unit) {
+        onDispose { viewModel.stopStreaming() }
+    }
     LaunchedEffect(currentMonth, selectedBaby?.id) { refresh() }
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
