@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.SleepEvent
@@ -31,15 +32,15 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun CalendarScreen(
     contentPadding: PaddingValues = PaddingValues(),
-    viewModel: EventViewModel = hiltViewModel(),
+    eventViewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
     /** State **/
-    val allEvents by viewModel.events.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
+    val allEvents by eventViewModel.events.collectAsState()
+    val isLoading by eventViewModel.isLoading.collectAsState()
+    val errorMessage by eventViewModel.errorMessage.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
-    val eventsByDay by viewModel.eventsByDay.collectAsState()
+    val eventsByDay by eventViewModel.eventsByDay.collectAsState()
     var currentMonth by rememberSaveable { mutableStateOf(LocalDate.now()) }
     var selectedDate by rememberSaveable { mutableStateOf(LocalDate.now()) }
     var filterTypes by rememberSaveable { mutableStateOf<Set<EventType>>(emptySet()) }
@@ -61,24 +62,32 @@ fun CalendarScreen(
     /** Helpers **/
     fun refresh() {
         selectedBaby?.id?.let {
-            viewModel.resetDateRangeAndHistory()
-            viewModel.setDateRangeForMonth(currentMonth)
-            viewModel.streamEventsInRangeForBaby(it)
+           // eventViewModel.resetDateRangeAndHistory()
+            eventViewModel.setDateRangeForMonth(currentMonth)
+            eventViewModel.streamEventsInRangeForBaby(it)
+        }
+    }
+    LifecycleResumeEffect(Unit) {
+        //refresh()
+
+        onPauseOrDispose {
+            // Optional: cleanup when screen pauses/disposes
+            //eventViewModel.stopStreaming()
         }
     }
     DisposableEffect(Unit) {
-        onDispose { viewModel.stopStreaming() }
+        onDispose { eventViewModel.stopStreaming() }
     }
     LaunchedEffect(currentMonth, selectedBaby?.id) { refresh() }
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
-            viewModel.clearErrorMessage()
+            eventViewModel.clearErrorMessage()
         }
     }
     LaunchedEffect(editingEvent) {
         editingEvent?.let {
-            viewModel.loadEventIntoForm(it)
+            eventViewModel.loadEventIntoForm(it)
             showDialog = true
         }
     }
@@ -165,7 +174,7 @@ fun CalendarScreen(
                     onDismiss = {
                         showDialog = false
                         editingEvent = null
-                        viewModel.resetFormState()
+                        eventViewModel.resetFormState()
                         refresh()
                     }
                 )

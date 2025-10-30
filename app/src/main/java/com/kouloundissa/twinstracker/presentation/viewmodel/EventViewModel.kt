@@ -118,10 +118,10 @@ class EventViewModel @Inject constructor(
     }
 
     // --- Date Range Filtering ---
-    private var currentDaysWindow = 30L
+    private var currentDaysWindow = 1L
     private val maxDaysWindow = 365L // Maximum 1 year of history
     private val _startDate = MutableStateFlow<Date>(Date().apply {
-        time = System.currentTimeMillis() - 1L * 24 * 60 * 60 * 1000 // Default: 1 days ago
+        time = System.currentTimeMillis() - currentDaysWindow * 24 * 60 * 60 * 1000 // Default: 1 days ago
     })
     val startDate: StateFlow<Date> = _startDate.asStateFlow()
 
@@ -129,6 +129,7 @@ class EventViewModel @Inject constructor(
     val endDate: StateFlow<Date> = _endDate.asStateFlow()
 
     fun setDateRangeForLastDays(days: Long) {
+        resetDateRangeAndHistory()
         // use existing _startDate/_endDate vars
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now()
@@ -139,6 +140,7 @@ class EventViewModel @Inject constructor(
     }
 
     fun setDateRangeForMonth(month: LocalDate) {
+        resetDateRangeAndHistory()
         val first = month.withDayOfMonth(1)
         val last = month.withDayOfMonth(month.lengthOfMonth())
         _startDate.value = Date.from(first.atStartOfDay(ZoneId.systemDefault()).toInstant())
@@ -202,6 +204,7 @@ class EventViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     fun streamEventsInRangeForBaby(babyId: String) {
         streamJob?.cancel()
+        streamJob = null
 
         // Create a flow that responds to date range changes
         streamJob = combine(_startDate, _endDate) { start, end ->
@@ -587,7 +590,7 @@ class EventViewModel @Inject constructor(
         currentDaysWindow = 1L
         _hasMoreHistory.value = true
         _isLoadingMore.value = false
-        setDateRangeForLastDays(currentDaysWindow)
+       // setDateRangeForLastDays(currentDaysWindow)
     }
 
     /**

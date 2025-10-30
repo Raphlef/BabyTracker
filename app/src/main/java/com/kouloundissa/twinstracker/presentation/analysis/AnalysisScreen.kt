@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.kouloundissa.twinstracker.data.*
 import com.kouloundissa.twinstracker.data.WhoLms.WhoLmsRepository
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
@@ -102,12 +103,22 @@ fun AnalysisScreen(
             }
         }
     }
-
-    LaunchedEffect(selectedBaby?.id, selectedRange) {
-        selectedBaby?.id?.let { babyId ->
-            eventViewModel.resetDateRangeAndHistory()
+    fun refresh() {
+        selectedBaby?.id?.let {
+            //eventViewModel.resetDateRangeAndHistory()
             eventViewModel.setDateRangeForLastDays(selectedRange.days.toLong())
-            eventViewModel.streamEventsInRangeForBaby(babyId)
+            eventViewModel.streamEventsInRangeForBaby(it)
+        }
+    }
+    LaunchedEffect(selectedBaby?.id, selectedRange) {
+        refresh()
+    }
+    LifecycleResumeEffect(Unit) {
+        refresh()
+
+        onPauseOrDispose {
+            // Optional: cleanup when screen pauses/disposes
+            //eventViewModel.stopStreaming()
         }
     }
     DisposableEffect(Unit) {

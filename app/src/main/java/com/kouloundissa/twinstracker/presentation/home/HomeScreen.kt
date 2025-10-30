@@ -66,6 +66,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.Event
@@ -123,13 +124,15 @@ fun HomeScreen(
     val isDeleting by eventViewModel.isDeleting.collectAsState()
 
     val lazyListState = rememberLazyListState()
-
-    LaunchedEffect(selectedBaby?.id) {
-        selectedBaby?.id?.let { babyId ->
-            eventViewModel.resetDateRangeAndHistory()
+    fun refresh() {
+        selectedBaby?.id?.let {
+           // eventViewModel.resetDateRangeAndHistory()
             eventViewModel.setDateRangeForLastDays(1L)
-            eventViewModel.streamEventsInRangeForBaby(babyId)
+            eventViewModel.streamEventsInRangeForBaby(it)
         }
+    }
+    LaunchedEffect(selectedBaby?.id) {
+        refresh()
     }
     LaunchedEffect(lazyListState) {
         snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
@@ -148,6 +151,14 @@ fun HomeScreen(
     LaunchedEffect(editingEvent) {
         editingEvent?.let {
             eventViewModel.loadEventIntoForm(it)
+        }
+    }
+    LifecycleResumeEffect(Unit) {
+        refresh()
+
+        onPauseOrDispose {
+            // Optional: cleanup when screen pauses/disposes
+            //eventViewModel.stopStreaming()
         }
     }
     DisposableEffect(Unit) {
