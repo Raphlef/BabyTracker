@@ -60,8 +60,6 @@ fun SettingsScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
     // Local editable values
     var displayName by remember { mutableStateOf(profile?.displayName.orEmpty()) }
-    var themeChoice by remember { mutableStateOf(profile?.theme?.name.orEmpty()) }
-    var localeChoice by remember { mutableStateOf(profile?.locale.orEmpty()) }
     var notificationsEnabled by remember { mutableStateOf(profile?.notificationsEnabled == true) }
 
 
