@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -41,62 +42,67 @@ fun <T> IconSelector(
     modifier: Modifier = Modifier
 
 ) {
-    val titleColor = if (enabled) Color.White else Color.LightGray
+    val titleColor = if (enabled) Color.White else DarkGrey
     val backgroundcolor = BackgroundColor.copy(alpha = if (enabled) 0.5f else 0.2f)
     val contentcolor = DarkGrey
     val tint = DarkBlue
 
-    Column(modifier = modifier) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(bottom = 12.dp),
-            color = titleColor
-        )
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(horizontal = 4.dp)
-        ) {
-            items(options) { option ->
-                val itemColor = getColor?.invoke(option) ?: tint.copy(alpha = 0.2f)
-                val isSelected = selected == option
-                Surface(
-                    onClick = { onSelect(option) },
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (isSelected) itemColor.copy(alpha = 0.2f) else backgroundcolor,
-                    border = if (isSelected)
-                        BorderStroke(2.dp, itemColor)
-                    else
-                        BorderStroke(1.dp, contentcolor.copy(alpha = 0.3f)),
-                    modifier = Modifier
-                        .size(80.dp, 88.dp)
-                        .then(
-                            if (enabled)
-                                Modifier.clickable { onSelect(option) }
-                            else
-                                Modifier
-                        )
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                        modifier = Modifier.padding(8.dp)
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = backgroundcolor,
+        modifier = modifier,
+    ) {
+        Column(modifier = modifier.padding(12.dp).fillMaxWidth()) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                color = contentcolor
+            )
+            Spacer(Modifier.height(12.dp))
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(horizontal = 4.dp)
+            ) {
+                items(options) { option ->
+                    val itemColor = getColor?.invoke(option) ?: tint.copy(alpha = 0.2f)
+                    val isSelected = selected == option
+                    Surface(
+                        onClick = { onSelect(option) },
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (isSelected) itemColor.copy(alpha = 0.5f) else backgroundcolor,
+                        border = if (isSelected)
+                            BorderStroke(2.dp, itemColor)
+                        else
+                            BorderStroke(1.dp, contentcolor.copy(alpha = 0.3f)),
+                        modifier = Modifier
+                            .size(80.dp, 88.dp)
+                            .then(
+                                if (enabled)
+                                    Modifier.clickable { onSelect(option) }
+                                else
+                                    Modifier
+                            )
                     ) {
-                        Icon(
-                            imageVector = getIcon(option),
-                            contentDescription = getLabel(option),
-                            tint = if (isSelected) titleColor else contentcolor.copy(alpha = 0.8f),
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            text = getLabel(option),
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = TextAlign.Center,
-                            color = if (isSelected) titleColor else contentcolor.copy(alpha = 0.8f),
-                            maxLines = 2
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = getIcon(option),
+                                contentDescription = getLabel(option),
+                                tint = if (isSelected) titleColor else contentcolor.copy(alpha = 0.8f),
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                text = getLabel(option),
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = TextAlign.Center,
+                                color = if (isSelected) titleColor else contentcolor.copy(alpha = 0.8f),
+                                maxLines = 2
+                            )
+                        }
                     }
                 }
             }
