@@ -24,6 +24,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
+import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 
 @Composable
 fun <T> IconSelector(
@@ -38,11 +41,10 @@ fun <T> IconSelector(
     modifier: Modifier = Modifier
 
 ) {
-    val titleColor =  if (enabled) Color.White else Color.LightGray
-    val backgroundcolor = Color.White.copy(alpha = if (enabled) 0.5f else 0.2f)
-    val contentcolor = Color.DarkGray
-
-    val tint = Color(0xFF003366)
+    val titleColor = if (enabled) Color.White else Color.LightGray
+    val backgroundcolor = BackgroundColor.copy(alpha = if (enabled) 0.5f else 0.2f)
+    val contentcolor = DarkGrey
+    val tint = DarkBlue
 
     Column(modifier = modifier) {
         Text(

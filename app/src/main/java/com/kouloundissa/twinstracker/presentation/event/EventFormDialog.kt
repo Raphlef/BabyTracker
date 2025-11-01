@@ -30,8 +30,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.EventFormState.*
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
+import com.kouloundissa.twinstracker.ui.components.AmountInput
 import com.kouloundissa.twinstracker.ui.components.BabySelectorRow
 import com.kouloundissa.twinstracker.ui.components.IconSelector
+import com.kouloundissa.twinstracker.ui.components.MinutesInput
 import com.kouloundissa.twinstracker.ui.components.ModernDateSelector
 import com.kouloundissa.twinstracker.ui.components.PhotoPicker
 import com.kouloundissa.twinstracker.ui.theme.*
@@ -576,32 +578,29 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
 
     // Amount (hidden for breast milk)
     if (state.feedType != FeedType.BREAST_MILK) {
-        OutlinedTextField(
-            value = state.amountMl,
-            onValueChange = {
-                viewModel.updateForm { (this as EventFormState.Feeding).copy(amountMl = it) }
+        AmountInput(
+            value = state.amountMl.toIntOrNull() ?: 0,
+            onValueChange = { newAmount ->
+                viewModel.updateForm {
+                    (this as EventFormState.Feeding).copy(amountMl = newAmount.toString())
+                }
             },
-            label = { Text("Amount (ml)", color = Color.White) },
-            textStyle = LocalTextStyle.current.copy(color = contentColor),
-            shape = cornerShape,
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            min = 0,
+            max = 300,
+            step = 5
         )
     }
-
-    // Duration
-    OutlinedTextField(
-        value = state.durationMin,
-        onValueChange = {
-            viewModel.updateForm { (this as EventFormState.Feeding).copy(durationMin = it) }
+    MinutesInput(
+        value = state.durationMin.toIntOrNull() ?: 0,
+        onValueChange = { newDuration ->
+            viewModel.updateForm {
+                (this as EventFormState.Feeding).copy(durationMin = newDuration.toString())
+            }
         },
-        label = { Text("Duration (minutes)", color = contentColor) },
-        textStyle = LocalTextStyle.current.copy(color = contentColor),
-        shape = cornerShape,
-        modifier = Modifier.fillMaxWidth(),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
     )
-
     // Breast Side (for breast milk)
     if (state.feedType == FeedType.BREAST_MILK) {
         IconSelector(
@@ -696,76 +695,62 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
 private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
     val contentColor = Color.White
     val cornerShape = MaterialTheme.shapes.extraLarge
-    Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+
+    AmountInput(
+        value = state.amountMl.toIntOrNull() ?: 0,
+        onValueChange = { newAmount ->
+            viewModel.updateForm {
+                (this as EventFormState.Pumping).copy(amountMl = newAmount.toString())
+            }
+        },
+        min = 0,
+        max = 300,
+        step = 5
+    )
+
+    MinutesInput(
+        value = state.durationMin.toIntOrNull() ?: 0,
+        onValueChange = { newDuration ->
+            viewModel.updateForm {
+                (this as EventFormState.Pumping).copy(durationMin = newDuration.toString())
+            }
+        },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
-    ) {
-        // Amount Pumped (ml)
-        OutlinedTextField(
-            value = state.amountMl,
-            onValueChange = {
-                viewModel.updateForm {
-                    (this as EventFormState.Pumping).copy(amountMl = it)
-                }
-            },
-            label = { Text("Amount (ml)", color = contentColor) },
-            textStyle = LocalTextStyle.current.copy(color = contentColor),
-            shape = cornerShape,
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-        )
+            .padding(vertical = 8.dp)
+    )
 
-        // Duration of Pumping (minutes)
-        OutlinedTextField(
-            value = state.durationMin,
-            onValueChange = {
-                viewModel.updateForm {
-                    (this as EventFormState.Pumping).copy(durationMin = it)
-                }
-            },
-            label = { Text("Duration (minutes)", color = contentColor) },
-            textStyle = LocalTextStyle.current.copy(color = contentColor),
-            shape = cornerShape,
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-        )
-
-        // Breast Side
-        IconSelector(
-            title = "Breast Side",
-            options = BreastSide.entries,
-            selected = state.breastSide,
-            onSelect = {
-                viewModel.updateForm {
-                    (this as EventFormState.Pumping).copy(breastSide = it)
-                }
-            },
-            getIcon = { side -> side.icon },
-            getLabel = { side ->
-                side.name.lowercase().replaceFirstChar { it.uppercase() }
+    // Breast Side
+    IconSelector(
+        title = "Breast Side",
+        options = BreastSide.entries,
+        selected = state.breastSide,
+        onSelect = {
+            viewModel.updateForm {
+                (this as EventFormState.Pumping).copy(breastSide = it)
             }
-        )
+        },
+        getIcon = { side -> side.icon },
+        getLabel = { side ->
+            side.name.lowercase().replaceFirstChar { it.uppercase() }
+        }
+    )
 
-        // Notes (optional)
-        OutlinedTextField(
-            value = state.notes,
-            onValueChange = {
-                viewModel.updateForm {
-                    (this as EventFormState.Pumping).copy(notes = it)
-                }
-            },
-            label = { Text("Notes (optional)", color = contentColor) },
-            textStyle = LocalTextStyle.current.copy(color = contentColor),
-            shape = cornerShape,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(80.dp)
-        )
-    }
+    // Notes (optional)
+    OutlinedTextField(
+        value = state.notes,
+        onValueChange = {
+            viewModel.updateForm {
+                (this as EventFormState.Pumping).copy(notes = it)
+            }
+        },
+        label = { Text("Notes (optional)", color = contentColor) },
+        textStyle = LocalTextStyle.current.copy(color = contentColor),
+        shape = cornerShape,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp)
+    )
 }
 
 @Composable
