@@ -579,10 +579,10 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
     // Amount (hidden for breast milk)
     if (state.feedType != FeedType.BREAST_MILK) {
         AmountInput(
-            value = state.amountMl.toIntOrNull() ?: 0,
+            value = state.amountMl,
             onValueChange = { newAmount ->
                 viewModel.updateForm {
-                    (this as EventFormState.Feeding).copy(amountMl = newAmount.toString())
+                    (this as EventFormState.Feeding).copy(amountMl = newAmount)
                 }
             },
             min = 0,
@@ -590,19 +590,20 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
             step = 5
         )
     }
-    MinutesInput(
-        value = state.durationMin.toIntOrNull() ?: 0,
-        onValueChange = { newDuration ->
-            viewModel.updateForm {
-                (this as EventFormState.Feeding).copy(durationMin = newDuration.toString())
-            }
-        },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    )
+
     // Breast Side (for breast milk)
     if (state.feedType == FeedType.BREAST_MILK) {
+        MinutesInput(
+            value = state.durationMin,
+            onValueChange = { newDuration ->
+                viewModel.updateForm {
+                    (this as EventFormState.Feeding).copy(durationMin = newDuration)
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        )
         IconSelector(
             title = "Breast Side",
             options = BreastSide.entries,
@@ -697,10 +698,10 @@ private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     AmountInput(
-        value = state.amountMl.toIntOrNull() ?: 0,
+        value = state.amountMl,
         onValueChange = { newAmount ->
             viewModel.updateForm {
-                (this as EventFormState.Pumping).copy(amountMl = newAmount.toString())
+                (this as EventFormState.Pumping).copy(amountMl = newAmount)
             }
         },
         min = 0,
@@ -709,10 +710,10 @@ private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel
     )
 
     MinutesInput(
-        value = state.durationMin.toIntOrNull() ?: 0,
+        value = state.durationMin,
         onValueChange = { newDuration ->
             viewModel.updateForm {
-                (this as EventFormState.Pumping).copy(durationMin = newDuration.toString())
+                (this as EventFormState.Pumping).copy(durationMin = newDuration)
             }
         },
         modifier = Modifier

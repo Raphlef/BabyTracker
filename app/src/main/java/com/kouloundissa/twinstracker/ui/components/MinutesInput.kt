@@ -20,6 +20,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,16 +37,18 @@ import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 
 @Composable
 fun MinutesInput(
-    value: Int,
-    onValueChange: (Int) -> Unit,
+    value: String,
+    onValueChange: (String) -> Unit,
     label: String = "Duration (minutes)",
     modifier: Modifier = Modifier
 ) {
-
     val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
     val contentcolor = DarkGrey
     val tint = DarkBlue
 
+    var textValue by remember(value) { mutableStateOf(value) }
+
+    fun stringToInt(str: String): Int = str.toDoubleOrNull()?.toInt() ?: 0
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = backgroundcolor,
@@ -71,7 +77,7 @@ fun MinutesInput(
                 ) {
                     listOf(5, 10, 15, 20).forEach { preset ->
                         Button(
-                            onClick = { onValueChange(preset) },
+                            onClick = { onValueChange(preset.toString()) },
                             modifier = Modifier
                                 .size(40.dp)
                                 .border(
@@ -80,7 +86,7 @@ fun MinutesInput(
                                 )
                                 .clip(CircleShape),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (value == preset)
+                                containerColor = if (stringToInt(value) == preset)
                                     BackgroundColor
                                 else
                                     BackgroundColor.copy(alpha = 0.3f)
@@ -89,7 +95,7 @@ fun MinutesInput(
                         ) {
                             Text(
                                 "$preset",
-                                color = if (value == preset) tint else contentcolor,
+                                color = if (stringToInt(value) == preset) tint else contentcolor,
                                 fontSize = 12.sp
                             )
                         }
@@ -99,9 +105,9 @@ fun MinutesInput(
 
             // Input field for custom values
             OutlinedTextField(
-                value = value.toString(),
+                value = textValue,
                 onValueChange = { newValue ->
-                    newValue.toIntOrNull()?.let { onValueChange(it) }
+                    newValue.toIntOrNull()?.let { onValueChange(it.toString()) }
                 },
                 label = { Text("Minutes", color = contentcolor) },
                 textStyle = LocalTextStyle.current.copy(color = contentcolor),

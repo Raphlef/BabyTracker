@@ -48,8 +48,8 @@ import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 
 @Composable
 fun AmountInput(
-    value: Int,
-    onValueChange: (Int) -> Unit,
+    value: String,
+    onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     min: Int = 0,
     max: Int = 300,
@@ -57,6 +57,8 @@ fun AmountInput(
     step: Int = 5
 ) {
     var textValue by remember(value) { mutableStateOf(value.toString()) }
+
+    fun stringToInt(str: String): Int = str.toDoubleOrNull()?.toInt() ?: 0
 
     val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
     val contentcolor = DarkGrey
@@ -87,14 +89,18 @@ fun AmountInput(
                 // Decrement button
                 IconButton(
                     onClick = {
-                        val newValue = maxOf(min, value - step)
-                        onValueChange(newValue)
+                        val currentValue = stringToInt(value)
+                        val newValue = maxOf(min, currentValue - step)
                         textValue = newValue.toString()
+                        onValueChange(textValue)
                     },
                     modifier = Modifier
                         .size(40.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .border(BorderStroke(1.dp, contentcolor.copy(alpha = 0.5f)), shape = RoundedCornerShape(16.dp))
+                        .border(
+                            BorderStroke(1.dp, contentcolor.copy(alpha = 0.5f)),
+                            shape = RoundedCornerShape(16.dp)
+                        )
                         .background(BackgroundColor.copy(alpha = 0.15f))
                 ) {
                     Icon(Icons.Default.Remove, contentDescription = "Decrease", tint = tint)
@@ -105,11 +111,8 @@ fun AmountInput(
                     value = textValue,
                     onValueChange = { newText ->
                         textValue = newText
-                        newText.toIntOrNull()?.let { intValue ->
-                            val clampedValue = intValue.coerceIn(min, max)
-                            if (clampedValue != value) {
-                                onValueChange(clampedValue)
-                            }
+                        if (newText.isEmpty() || newText.toIntOrNull() != null || newText.toDoubleOrNull() != null) {
+                            onValueChange(newText)
                         }
                     },
                     modifier = Modifier
@@ -132,14 +135,18 @@ fun AmountInput(
                 // Increment button
                 IconButton(
                     onClick = {
-                        val newValue = minOf(max, value + step)
-                        onValueChange(newValue)
+                        val currentValue = stringToInt(value)
+                        val newValue = minOf(max, currentValue + step)
                         textValue = newValue.toString()
+                        onValueChange(textValue)
                     },
                     modifier = Modifier
                         .size(40.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .border(BorderStroke(1.dp, contentcolor.copy(alpha = 0.5f)), shape = RoundedCornerShape(16.dp))
+                        .border(
+                            BorderStroke(1.dp, contentcolor.copy(alpha = 0.5f)),
+                            shape = RoundedCornerShape(16.dp)
+                        )
                         .background(BackgroundColor.copy(alpha = 0.15f))
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Increase", tint = contentcolor)
@@ -156,16 +163,19 @@ fun AmountInput(
                 listOf(50, 100, 150, 200).forEach { preset ->
                     Button(
                         onClick = {
-                            onValueChange(preset)
                             textValue = preset.toString()
+                            onValueChange(textValue)
                         },
                         modifier = Modifier
                             .height(32.dp)
                             .weight(1f)
-                            .border(BorderStroke(1.dp, contentcolor.copy(alpha = 0.5f)), shape = RoundedCornerShape(16.dp))
+                            .border(
+                                BorderStroke(1.dp, contentcolor.copy(alpha = 0.5f)),
+                                shape = RoundedCornerShape(16.dp)
+                            )
                             .clip(RoundedCornerShape(16.dp)),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (value == preset)
+                            containerColor = if (stringToInt(value) == preset)
                                 BackgroundColor.copy(alpha = 0.9f)
                             else
                                 BackgroundColor.copy(alpha = 0.15f)
@@ -174,7 +184,7 @@ fun AmountInput(
                     ) {
                         Text(
                             "$preset",
-                            color = if (value == preset) tint else contentcolor,
+                            color = if (stringToInt(value) == preset) tint else contentcolor,
                             fontSize = 12.sp
                         )
                     }
