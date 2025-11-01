@@ -103,26 +103,17 @@ fun AnalysisScreen(
             }
         }
     }
-    fun refresh() {
-        selectedBaby?.id?.let {
-            //eventViewModel.resetDateRangeAndHistory()
-            eventViewModel.setDateRangeForLastDays(selectedRange.days.toLong())
-            eventViewModel.streamEventsInRangeForBaby(it)
-        }
-    }
-    LaunchedEffect(selectedBaby?.id, selectedRange) {
-        refresh()
-    }
-    LifecycleResumeEffect(Unit) {
-        refresh()
 
-        onPauseOrDispose {
-            // Optional: cleanup when screen pauses/disposes
-            //eventViewModel.stopStreaming()
+    DisposableEffect(selectedBaby?.id, selectedRange) {
+        selectedBaby?.id?.let {
+            // Single, atomic call with built-in date range
+            eventViewModel.refreshWithLastDays(it, selectedRange.days.toLong())
         }
-    }
-    DisposableEffect(Unit) {
-        onDispose { eventViewModel.stopStreaming() }
+
+        onDispose {
+            // Clean up only when screen leaves or baby changes
+            eventViewModel.stopStreaming()
+        }
     }
     LaunchedEffect(errorMessage) {
         errorMessage?.let {

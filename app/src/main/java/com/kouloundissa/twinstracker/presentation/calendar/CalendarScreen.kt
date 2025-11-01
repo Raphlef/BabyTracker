@@ -59,26 +59,18 @@ fun CalendarScreen(
     }
     LaunchedEffect(availableTypes) { filterTypes = availableTypes }
 
-    /** Helpers **/
-    fun refresh() {
+    DisposableEffect(currentMonth, selectedBaby?.id) {
         selectedBaby?.id?.let {
-           // eventViewModel.resetDateRangeAndHistory()
-            eventViewModel.setDateRangeForMonth(currentMonth)
-            eventViewModel.streamEventsInRangeForBaby(it)
+            // Single, atomic call with built-in date range
+            eventViewModel.refreshWithMonth(it, currentMonth)
         }
-    }
-    LifecycleResumeEffect(Unit) {
-        //refresh()
 
-        onPauseOrDispose {
-            // Optional: cleanup when screen pauses/disposes
-            //eventViewModel.stopStreaming()
+        onDispose {
+            // Clean up only when screen leaves or baby changes
+            eventViewModel.stopStreaming()
         }
     }
-    DisposableEffect(Unit) {
-        onDispose { eventViewModel.stopStreaming() }
-    }
-    LaunchedEffect(currentMonth, selectedBaby?.id) { refresh() }
+
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
@@ -121,18 +113,19 @@ fun CalendarScreen(
                     )
                 }
                 item {
-                    val eventsByDayCover: Map<LocalDate, List<Event>> = remember(allEvents, filterTypes, currentMonth) {
-                        val year = currentMonth.year
-                        val month = currentMonth.monthValue
-                        // Generate each date in the month
-                        (1..currentMonth.lengthOfMonth()).associateWith { day ->
-                            val date = LocalDate.of(year, month, day)
-                            allEvents.filter { it.coversDay(date) }
-                                .filter { filterTypes.contains(EventType.forClass(it::class)) }
-                        }.mapKeys { (day, evts) ->
-                            LocalDate.of(year, month, day)
+                    val eventsByDayCover: Map<LocalDate, List<Event>> =
+                        remember(allEvents, filterTypes, currentMonth) {
+                            val year = currentMonth.year
+                            val month = currentMonth.monthValue
+                            // Generate each date in the month
+                            (1..currentMonth.lengthOfMonth()).associateWith { day ->
+                                val date = LocalDate.of(year, month, day)
+                                allEvents.filter { it.coversDay(date) }
+                                    .filter { filterTypes.contains(EventType.forClass(it::class)) }
+                            }.mapKeys { (day, evts) ->
+                                LocalDate.of(year, month, day)
+                            }
                         }
-                    }
                     SwipeableCalendar(
                         currentMonth = currentMonth,
                         onMonthChange = { delta -> currentMonth = currentMonth.plusMonths(delta) },
@@ -159,7 +152,7 @@ fun CalendarScreen(
                         Text("No events", style = MaterialTheme.typography.bodyMedium)
                     } else {
                         DayTimeline(
-                            date   = selectedDate,
+                            date = selectedDate,
                             events = dailyEvents,
                             onEdit = { editingEvent = it }
                         )
@@ -175,7 +168,6 @@ fun CalendarScreen(
                         showDialog = false
                         editingEvent = null
                         eventViewModel.resetFormState()
-                        refresh()
                     }
                 )
             }

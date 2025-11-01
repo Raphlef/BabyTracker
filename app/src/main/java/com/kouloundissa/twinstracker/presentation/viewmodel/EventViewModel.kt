@@ -38,6 +38,7 @@ import com.kouloundissa.twinstracker.data.User
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 
 @HiltViewModel
@@ -45,8 +46,6 @@ class EventViewModel @Inject constructor(
     private val repository: FirebaseRepository,
     private val notificationService: NotificationService
 ) : ViewModel() {
-
-    private var streamJob: Job? = null
 
     // Current form values
     private val _formState = MutableStateFlow<EventFormState>(EventFormState.Diaper())
@@ -118,6 +117,73 @@ class EventViewModel @Inject constructor(
     }
 
     // --- Date Range Filtering ---
+    data class DateRangeParams(
+        val startDate: Date,
+        val endDate: Date
+    )
+
+    sealed class DateRangeStrategy {
+        data class LastDays(val days: Long) : DateRangeStrategy()
+        data class Month(val month: LocalDate) : DateRangeStrategy()
+        data class Custom(val dateRange: DateRangeParams) : DateRangeStrategy()
+    }
+
+    fun calculateRange(
+        strategy: DateRangeStrategy,
+        zone: ZoneId = ZoneId.systemDefault()
+    ): DateRangeParams {
+        val today = LocalDate.now()
+        return when (strategy) {
+            is DateRangeStrategy.LastDays -> {
+                val startDate = today.minusDays(strategy.days - 1)
+                    .atStartOfDay(zone).toInstant()
+                val endDate = today.atTime(23, 59, 59).atZone(zone).toInstant()
+                DateRangeParams(
+                    Date.from(startDate),
+                    Date.from(endDate)
+                )
+            }
+
+            is DateRangeStrategy.Month -> {
+                val first = strategy.month.withDayOfMonth(1)
+                val last = strategy.month.withDayOfMonth(strategy.month.lengthOfMonth())
+                DateRangeParams(
+                    Date.from(first.atStartOfDay(zone).toInstant()),
+                    Date.from(last.atTime(23, 59, 59).atZone(zone).toInstant())
+                )
+            }
+
+            is DateRangeStrategy.Custom -> strategy.dateRange
+        }
+    }
+
+    data class EventStreamRequest(
+        val babyId: String,
+        val dateRange: DateRangeParams
+    )
+    /**
+     * Convenience method for last N days
+     */
+    fun refreshWithLastDays(babyId: String, days: Long = 1L) {
+        startStreaming(babyId, DateRangeStrategy.LastDays(days))
+    }
+
+    /**
+     * Convenience method for specific month
+     */
+    fun refreshWithMonth(babyId: String, month: LocalDate) {
+        startStreaming(babyId, DateRangeStrategy.Month(month))
+    }
+    /**
+     * Convenience method for custom range
+     */
+    fun refreshWithCustomRange(babyId: String, startDate: Date, endDate: Date) {
+        startStreaming(babyId, DateRangeStrategy.Custom(DateRangeParams(startDate, endDate)))
+    }
+
+    // Use this instead of passing babyId separately and maintaining date ranges in state
+    private val _streamRequest = MutableStateFlow<EventStreamRequest?>(null)
+    private var streamJob: Job? = null
     private var currentDaysWindow = 1L
     private val maxDaysWindow = 365L // Maximum 1 year of history
     private val _startDate = MutableStateFlow<Date>(Date().apply {
@@ -177,29 +243,99 @@ class EventViewModel @Inject constructor(
         _notificationEvent.value = null
     }
 
+
+    /**
+     * Safe date range expansion for loading more history
+     * Calculates new range without race conditions
+     */
     fun loadMoreHistoricalEvents() {
         if (_isLoadingMore.value || !_hasMoreHistory.value) return
 
         _isLoadingMore.value = true
 
-        // Extend the window by additional days (e.g., 30 more days)
+        val currentRequest = _streamRequest.value ?: run {
+            _isLoadingMore.value = false
+            return
+        }
+
         val additionalDays = 1L
         val newDaysWindow = (currentDaysWindow + additionalDays).coerceAtMost(maxDaysWindow)
 
-        // Check if we've reached the maximum
         if (newDaysWindow >= maxDaysWindow) {
             _hasMoreHistory.value = false
         }
 
-        // Update the date range
-        val zone = ZoneId.systemDefault()
-        val today = LocalDate.now()
-        val newStartDate = today.minusDays(newDaysWindow - 1).atStartOfDay(zone).toInstant()
-        val endDate = today.atTime(23, 59, 59).atZone(zone).toInstant()
-
         currentDaysWindow = newDaysWindow
-        _startDate.value = Date.from(newStartDate)
-        _endDate.value = Date.from(endDate)
+
+        // Recalculate range based on new window
+        val newStrategy = DateRangeStrategy.LastDays(newDaysWindow)
+        val newDateRange = calculateRange(newStrategy)
+
+        // Update stream request atomically
+        _streamRequest.value = EventStreamRequest(currentRequest.babyId, newDateRange)
+    }
+
+    /**
+     * Centralized stream setup - only called once in init
+     * Responds to changes in _streamRequest only
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun setupStreamListener() {
+        // Only set up the listener once
+        if (streamJob != null) return
+
+        streamJob?.cancel()
+        streamJob = _streamRequest
+            .filterNotNull() // Only process valid requests
+            .distinctUntilChanged() // Prevent duplicate requests
+            .flatMapLatest { request ->
+                repository.streamEventsForBaby(
+                    request.babyId,
+                    request.dateRange.startDate,
+                    request.dateRange.endDate
+                )
+            }
+            .onStart {
+                if (!_isLoadingMore.value) {
+                    _isLoading.value = true
+                }
+            }
+            .catch { e ->
+                _errorMessage.value = "Stream error: ${e.localizedMessage}"
+                _isLoading.value = false
+                _isLoadingMore.value = false
+            }
+            .onEach { filtered ->
+                checkForNewEvents(filtered)
+                _eventsByType.value = filtered.groupBy { it::class }
+                groupEventsByDay(filtered)
+                _events.value = filtered
+                _isLoading.value = false
+                _isLoadingMore.value = false
+            }
+            .launchIn(viewModelScope)
+    }
+
+    /**
+     * Single entry point for all event stream requests
+     * Ensures babyId and dateRange are always in sync
+     */
+    fun startStreaming(
+        babyId: String,
+        strategy: DateRangeStrategy = DateRangeStrategy.LastDays(1)
+    ) {
+        if (babyId.isEmpty()) return
+
+        setupStreamListener();
+
+        val dateRange = calculateRange(strategy)
+        val request = EventStreamRequest(babyId, dateRange)
+
+        // Only update if request actually changed
+        if (_streamRequest.value != request) {
+            _streamRequest.value = request
+            resetDateRangeAndHistory()
+        }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -240,6 +376,7 @@ class EventViewModel @Inject constructor(
     /** Stops any active real-time listener. */
     fun stopStreaming() {
         streamJob?.cancel()
+        _streamRequest.value = null
         streamJob = null
         _isLoading.value = false
         _isLoadingMore.value = false

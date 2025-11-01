@@ -124,16 +124,7 @@ fun HomeScreen(
     val isDeleting by eventViewModel.isDeleting.collectAsState()
 
     val lazyListState = rememberLazyListState()
-    fun refresh() {
-        selectedBaby?.id?.let {
-           // eventViewModel.resetDateRangeAndHistory()
-            eventViewModel.setDateRangeForLastDays(1L)
-            eventViewModel.streamEventsInRangeForBaby(it)
-        }
-    }
-    LaunchedEffect(selectedBaby?.id) {
-        refresh()
-    }
+
     LaunchedEffect(lazyListState) {
         snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .distinctUntilChanged()
@@ -153,16 +144,16 @@ fun HomeScreen(
             eventViewModel.loadEventIntoForm(it)
         }
     }
-    LifecycleResumeEffect(Unit) {
-        refresh()
-
-        onPauseOrDispose {
-            // Optional: cleanup when screen pauses/disposes
-            //eventViewModel.stopStreaming()
+    DisposableEffect(selectedBaby?.id) {
+        selectedBaby?.id?.let {
+            // Single, atomic call with built-in date range
+            eventViewModel.refreshWithLastDays(it, 1L)
         }
-    }
-    DisposableEffect(Unit) {
-        onDispose { eventViewModel.stopStreaming() }
+
+        onDispose {
+            // Clean up only when screen leaves or baby changes
+            eventViewModel.stopStreaming()
+        }
     }
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
