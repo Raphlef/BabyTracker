@@ -54,12 +54,8 @@ fun AnalysisScreen(
     val allGrowth by remember { derivedStateOf { eventViewModel.getEventsOfType(GrowthEvent::class) } }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val today = LocalDate.now()
+
     val context = LocalContext.current
-    val nowMillis = System.currentTimeMillis()
-    val ageMillis = nowMillis - (selectedBaby?.birthDate ?: nowMillis)
-    val oneDayMillis = 24 * 60 * 60 * 1000L
-    val currentAgeDays = (ageMillis / oneDayMillis).toInt().coerceAtLeast(0)
 
     val omsGender = when (selectedBaby?.gender) {
         Gender.MALE -> Gender.MALE
