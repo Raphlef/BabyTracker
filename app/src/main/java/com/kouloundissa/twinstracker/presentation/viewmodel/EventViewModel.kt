@@ -147,7 +147,10 @@ class EventViewModel @Inject constructor(
             is DateRangeStrategy.Month -> {
                 val first = strategy.month.withDayOfMonth(1)
                 val last = strategy.month.withDayOfMonth(strategy.month.lengthOfMonth())
-                Log.d("DateRange", "Month query: ${strategy.month} → $first to $last (${strategy.month.lengthOfMonth()} days)")
+                Log.d(
+                    "DateRange",
+                    "Month query: ${strategy.month} → $first to $last (${strategy.month.lengthOfMonth()} days)"
+                )
                 DateRangeParams(
                     Date.from(first.atStartOfDay(zone).toInstant()),
                     Date.from(last.atTime(23, 59, 59).atZone(zone).toInstant())
@@ -162,6 +165,7 @@ class EventViewModel @Inject constructor(
         val babyId: String,
         val dateRange: DateRangeParams
     )
+
     /**
      * Convenience method for last N days
      */
@@ -175,6 +179,7 @@ class EventViewModel @Inject constructor(
     fun refreshWithMonth(babyId: String, month: LocalDate) {
         startStreaming(babyId, DateRangeStrategy.Month(month))
     }
+
     /**
      * Convenience method for custom range
      */
@@ -187,34 +192,6 @@ class EventViewModel @Inject constructor(
     private var streamJob: Job? = null
     private var currentDaysWindow = 1L
     private val maxDaysWindow = 365L // Maximum 1 year of history
-    private val _startDate = MutableStateFlow<Date>(Date().apply {
-        time =
-            System.currentTimeMillis() - currentDaysWindow * 24 * 60 * 60 * 1000 // Default: 1 days ago
-    })
-    val startDate: StateFlow<Date> = _startDate.asStateFlow()
-
-    private val _endDate = MutableStateFlow<Date>(Date()) // Default: today
-    val endDate: StateFlow<Date> = _endDate.asStateFlow()
-
-    fun setDateRangeForLastDays(days: Long) {
-        resetDateRangeAndHistory()
-        // use existing _startDate/_endDate vars
-        val zone = ZoneId.systemDefault()
-        val today = LocalDate.now()
-        val startDate = today.minusDays(days - 1).atStartOfDay(zone).toInstant()
-        val endDate = today.atTime(23, 59, 59).atZone(zone).toInstant()
-        _startDate.value = Date.from(startDate)
-        _endDate.value = Date.from(endDate)
-    }
-
-    fun setDateRangeForMonth(month: LocalDate) {
-        resetDateRangeAndHistory()
-        val first = month.withDayOfMonth(1)
-        val last = month.withDayOfMonth(month.lengthOfMonth())
-        _startDate.value = Date.from(first.atStartOfDay(ZoneId.systemDefault()).toInstant())
-        _endDate.value =
-            Date.from(last.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant())
-    }
 
     fun updateEventTimestamp(date: Date) {
         _formState.update { state ->
@@ -243,7 +220,6 @@ class EventViewModel @Inject constructor(
     fun clearEditingEvent() {
         _notificationEvent.value = null
     }
-
 
     /**
      * Safe date range expansion for loading more history
@@ -337,41 +313,6 @@ class EventViewModel @Inject constructor(
             _streamRequest.value = request
             resetDateRangeAndHistory()
         }
-    }
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    fun streamEventsInRangeForBaby(babyId: String) {
-        streamJob?.cancel()
-        streamJob = null
-
-        // Create a flow that responds to date range changes
-        streamJob = combine(_startDate, _endDate) { start, end ->
-            start to end
-        }
-            .distinctUntilChanged()
-            .flatMapLatest { (start, end) ->
-                repository.streamEventsForBaby(babyId, start, end)
-            }
-            .distinctUntilChanged()
-            .onStart {
-                if (!_isLoadingMore.value) {
-                    _isLoading.value = true
-                }
-            }
-            .catch { e ->
-                _errorMessage.value = "Stream error: ${e.localizedMessage}"
-                _isLoading.value = false
-                _isLoadingMore.value = false
-            }
-            .onEach { filtered ->
-                checkForNewEvents(filtered)
-                _eventsByType.value = filtered.groupBy { it::class }
-                groupEventsByDay(filtered)
-                _events.value = filtered
-                _isLoading.value = false
-                _isLoadingMore.value = false
-            }
-            .launchIn(viewModelScope)
     }
 
     /** Stops any active real-time listener. */
@@ -704,7 +645,6 @@ class EventViewModel @Inject constructor(
                 repository.deleteEvent(eventId).fold(
                     onSuccess = {
                         _deleteSuccess.value = true
-                        streamEventsInRangeForBaby(babyId)
                     },
                     onFailure = { throwable ->
                         throw throwable
