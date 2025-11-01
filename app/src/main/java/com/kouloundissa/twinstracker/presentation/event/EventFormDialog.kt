@@ -1,6 +1,7 @@
 package com.kouloundissa.twinstracker.presentation.event
 
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -18,6 +19,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.data.*
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -27,6 +30,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.EventFormState.*
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
@@ -69,7 +73,9 @@ fun EventFormDialog(
     var selectedDate by remember(formState.eventTimestamp) {
         mutableStateOf(formState.eventTimestamp)
     }
-    val contentColor = Color.White
+    val backgroundcolor = BackgroundColor
+    val contentcolor = DarkGrey
+    val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     val babies by babyViewModel.babies.collectAsState()
@@ -191,7 +197,7 @@ fun EventFormDialog(
                             text = if (formState.eventId == null) "Add Event" else "Edit Event",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
-                            color = contentColor,
+                            color = backgroundcolor,
                         )
                         IconButton(
                             onClick = onDismiss,
@@ -231,28 +237,53 @@ fun EventFormDialog(
                     val isEditMode = formState.eventId != null
                     if (isEditMode) {
                         // Edit mode: show only the selected icon (no list)
-                        Column {
-                            Text(
-                                text = "Event Type",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.padding(bottom = 12.dp),
-                                color = contentColor,
-                            )
-                            Row {
-                                currentType?.let { type ->
-                                    Icon(
-                                        imageVector = type.icon,
-                                        contentDescription = type.displayName,
-                                        tint = type.color,
-                                        modifier = Modifier.size(32.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = type.displayName,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = contentColor
-                                    )
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = backgroundcolor.copy(0.5f),
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .padding(12.dp)
+                                    .fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "Event Type",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(bottom = 12.dp),
+                                    color = contentcolor,
+                                )
+                                Row {
+                                    currentType.let { type ->
+                                        Surface(
+                                            shape = RoundedCornerShape(16.dp),
+                                            color = type.color.copy(alpha = 0.5f),
+                                            border = BorderStroke(2.dp, type.color),
+                                            modifier = Modifier
+                                                .size(80.dp, 88.dp)
+                                        ) {
+                                            Column(
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.Center,
+                                                modifier = Modifier.padding(8.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector =type.icon,
+                                                    contentDescription = type.displayName,
+                                                    tint = BackgroundColor,
+                                                    modifier = Modifier.size(32.dp)
+                                                )
+                                                Spacer(Modifier.height(6.dp))
+                                                Text(
+                                                    text =type.displayName,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    textAlign = TextAlign.Center,
+                                                    color = BackgroundColor,
+                                                    maxLines = 2
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -329,7 +360,7 @@ fun EventFormDialog(
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
-                        .background(color = contentColor.copy(alpha = 0.2f), shape = cornerShape)
+                        .background(color = backgroundcolor.copy(alpha = 0.2f), shape = cornerShape)
                         .padding(12.dp)
                 ) {
                     TextButton(onClick = onDismiss) {
