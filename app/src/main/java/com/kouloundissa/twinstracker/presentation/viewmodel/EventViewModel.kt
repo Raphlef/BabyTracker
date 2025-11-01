@@ -121,7 +121,8 @@ class EventViewModel @Inject constructor(
     private var currentDaysWindow = 1L
     private val maxDaysWindow = 365L // Maximum 1 year of history
     private val _startDate = MutableStateFlow<Date>(Date().apply {
-        time = System.currentTimeMillis() - currentDaysWindow * 24 * 60 * 60 * 1000 // Default: 1 days ago
+        time =
+            System.currentTimeMillis() - currentDaysWindow * 24 * 60 * 60 * 1000 // Default: 1 days ago
     })
     val startDate: StateFlow<Date> = _startDate.asStateFlow()
 
@@ -590,7 +591,7 @@ class EventViewModel @Inject constructor(
         currentDaysWindow = 1L
         _hasMoreHistory.value = true
         _isLoadingMore.value = false
-       // setDateRangeForLastDays(currentDaysWindow)
+        // setDateRangeForLastDays(currentDaysWindow)
     }
 
     /**
