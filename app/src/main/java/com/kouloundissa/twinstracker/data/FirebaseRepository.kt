@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -64,9 +65,11 @@ class FirebaseRepository @Inject constructor(
     suspend fun login(email: String, password: String) {
         auth.signInWithEmailAndPassword(email, password).await()
     }
+
     suspend fun sendPasswordReset(email: String) {
         auth.sendPasswordResetEmail(email).await()
     }
+
     suspend fun register(email: String, password: String) {
         val normalizedEmail = email.trim().lowercase(Locale.getDefault())
         auth.createUserWithEmailAndPassword(normalizedEmail, password).await()
@@ -135,6 +138,7 @@ class FirebaseRepository @Inject constructor(
     fun getCurrentUserId(): String? {
         return auth.currentUser?.uid
     }
+
     suspend fun getUserById(userId: String): User? {
         return try {
             db.collection(USERS_COLLECTION)
@@ -147,6 +151,7 @@ class FirebaseRepository @Inject constructor(
             null
         }
     }
+
     suspend fun saveUserSession() {
         context.dataStore.edit { prefs ->
             prefs[REMEMBER_ME_KEY] = true
@@ -308,7 +313,7 @@ class FirebaseRepository @Inject constructor(
             }
         }
         val existingBaby = allBabyIds.find { it == baby.id }
-        val isNew =  existingBaby == null
+        val isNew = existingBaby == null
         // 2. Determine document ref
         val docRef = if (isNew) {
             db.collection(BABIES_COLLECTION).document()
@@ -353,6 +358,7 @@ class FirebaseRepository @Inject constructor(
             }
             .distinctUntilChanged()
     }
+
     private fun streamBabiesByIds(babyIds: List<String>): Flow<List<Baby>> {
         if (babyIds.isEmpty()) {
             return flowOf(emptyList())
@@ -533,6 +539,7 @@ class FirebaseRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
     suspend fun getEventById(eventId: String): Result<Event?> {
         return try {
             val documentSnapshot = db.collection(EVENTS_COLLECTION).document(eventId).get().await()
@@ -543,7 +550,11 @@ class FirebaseRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
     fun streamEventsForBaby(babyId: String, startDate: Date, endDate: Date): Flow<List<Event>> {
+        require(babyId.isNotBlank()) { "Baby ID cannot be empty" }
+        require(startDate.before(endDate)) { "Start date must be before end date" }
+
         val userId = auth.currentUser?.uid
             ?: throw IllegalStateException("User not authenticated")
 
@@ -555,6 +566,13 @@ class FirebaseRepository @Inject constructor(
             .snapshots()
             .map { snapshot ->
                 snapshot.documents.mapNotNull { it.toEvent() }
+            }.catch { e ->
+                // Log the error with context for debugging
+                Log.e(
+                    "EventStream", "Error streaming events for baby=$babyId, " +
+                            "startDate=$startDate, endDate=$endDate", e
+                )
+                throw e
             }
     }
 
@@ -573,7 +591,6 @@ class FirebaseRepository @Inject constructor(
 
         snapshot.toObjects(GrowthEvent::class.java).firstOrNull()
     }
-
 
 
     suspend fun deleteEvent(eventId: String): Result<Unit> {
