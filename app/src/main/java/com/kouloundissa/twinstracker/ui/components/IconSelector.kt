@@ -42,7 +42,7 @@ fun <T> IconSelector(
     modifier: Modifier = Modifier
 
 ) {
-    val titleColor = if (enabled) Color.White else DarkGrey
+    val titleColor = if (enabled) BackgroundColor else DarkGrey
     val backgroundcolor = BackgroundColor.copy(alpha = if (enabled) 0.5f else 0.2f)
     val contentcolor = DarkGrey
     val tint = DarkBlue
