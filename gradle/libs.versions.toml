@@ -34,6 +34,7 @@ firebaseStorageKtx = "21.0.2"
 firebaseCrashlyticsKtx = "19.4.4"
 roomKtxVersion = "2.8.1"
 foundationLayoutVersion = "1.9.2"
+androidxFoundation = "1.9.4"
 
 [libraries]
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
@@ -102,6 +103,7 @@ firebase-storage-ktx = { group = "com.google.firebase", name = "firebase-storage
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "roomKtxVersion" }
 androidx-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayoutVersion" }
+androidx-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "androidxFoundation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

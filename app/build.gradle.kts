@@ -142,6 +142,7 @@ dependencies {
     implementation(libs.google.firebase.crashlytics.ktx)
     implementation(libs.room.ktx)
     implementation(libs.androidx.foundation.layout)
+    implementation(libs.androidx.foundation)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
