@@ -39,7 +39,7 @@ import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 fun MinutesInput(
     value: String,
     onValueChange: (String) -> Unit,
-    label: String = "Duration (minutes)",
+    label: String = "Duration (min)",
     modifier: Modifier = Modifier
 ) {
     val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
@@ -109,6 +109,7 @@ fun MinutesInput(
                 onValueChange = { newValue ->
                     newValue.toIntOrNull()?.let { onValueChange(it.toString()) }
                 },
+                shape = RoundedCornerShape(16.dp),
                 label = { Text("Minutes", color = contentcolor) },
                 textStyle = LocalTextStyle.current.copy(color = contentcolor),
                 modifier = Modifier.fillMaxWidth(),
