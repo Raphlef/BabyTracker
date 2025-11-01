@@ -53,7 +53,6 @@ fun SettingsScreen(
     val families by familyViewModel.families.collectAsState()
 
     val isAuthLoading by authViewModel.state.map { it.isLoading }.collectAsState(false)
-    val isBabyLoading by babyViewModel.isLoading.collectAsState(false)
     val isFamilyLoading by familyViewModel.state.map { it.isLoading }.collectAsState(false)
     // val isLoading = isAuthLoading || isBabyLoading || isFamilyLoading
     val snackbarHostState = remember { SnackbarHostState() }
