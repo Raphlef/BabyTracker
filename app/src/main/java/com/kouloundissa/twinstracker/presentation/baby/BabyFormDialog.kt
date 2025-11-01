@@ -253,7 +253,7 @@ private fun BabyFormBottomSheetContent(
     onOpenDeleteDialog: () -> Unit,
     onSave: (Baby, Uri?, Boolean) -> Unit
 ) {
-    val darkGrey=DarkGrey
+    val darkGrey = DarkGrey
     val baseColor = DarkBlue
     val contentColor = BackgroundColor
     val cornerShape = MaterialTheme.shapes.extraLarge
@@ -567,7 +567,7 @@ private fun BabyFormContent(
     Spacer(Modifier.height(16.dp))
 
     ModernDateSelector(
-        label= "Date of Birth",
+        label = "Date of Birth",
         selectedDate = Date(state.birthDateTimeMillis),
         onDateSelected = { dt -> state.birthDateTimeMillis = dt.time },
         modifier = Modifier.fillMaxWidth()
@@ -581,6 +581,7 @@ private fun BabyFormContent(
         selected = state.gender,
         onSelect = { state.gender = it },
         getIcon = { it.icon },
+        getColor = { it.color },
         getLabel = { it.displayName }
     )
     Spacer(Modifier.height(16.dp))
@@ -620,8 +621,9 @@ private fun BabyFormContent(
         title = "Blood Type",
         options = BloodType.entries.toList(),
         selected = state.bloodType,
-        onSelect =  { state.bloodType = it },
+        onSelect = { state.bloodType = it },
         getIcon = { it.icon },
+        getColor = { it.color },
         getLabel = { it.name }
     )
     Spacer(Modifier.height(12.dp))
@@ -663,8 +665,8 @@ private fun BabyFormContent(
     )
     Spacer(Modifier.height(12.dp))
     OutlinedTextField(
-        value =  state.notes,
-        onValueChange =  { state.notes = it },
+        value = state.notes,
+        onValueChange = { state.notes = it },
         textStyle = LocalTextStyle.current.copy(color = contentColor),
         label = { Text("Notes", color = contentColor) },
         shape = cornerShape,

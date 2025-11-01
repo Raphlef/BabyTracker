@@ -19,7 +19,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.data.*
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -434,6 +433,7 @@ private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) 
                 DiaperType.DRY -> Icons.Default.InvertColorsOff
             }
         },
+        getColor = { it.color },
         getLabel = { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } }
     )
 
@@ -450,7 +450,7 @@ private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) 
             },
             getIcon = { Icons.Default.Palette },
             getLabel = { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } },
-            getColor = { it.colorValue }
+            getColor = { it.color }
         )
 
         IconSelector(
@@ -462,6 +462,7 @@ private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) 
                     (this as EventFormState.Diaper).copy(poopConsistency = it)
                 }
             },
+            getColor = { it.color },
             getIcon = { it.icon },           // use enum's icon
             getLabel = { it.displayName }    // use enum's displayName
         )
@@ -600,6 +601,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
         getIcon = { type ->
             type.icon
         },
+        getColor = { it.color },
         getLabel = {
             it.name.replace("_", " ").lowercase()
                 .split(" ")
@@ -647,6 +649,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
             getIcon = { side ->
                 side.icon
             },
+            getColor = { it.color },
             getLabel = {
                 it.name.lowercase().replaceFirstChar { c -> c.uppercase() }
             }
@@ -762,6 +765,7 @@ private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel
                 (this as EventFormState.Pumping).copy(breastSide = it)
             }
         },
+        getColor = { it.color },
         getIcon = { side -> side.icon },
         getLabel = { side ->
             side.name.lowercase().replaceFirstChar { it.uppercase() }
@@ -800,6 +804,7 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
                     (this as EventFormState.Drugs).copy(drugType = selected)
                 }
             },
+            getColor = { it.color },
             getIcon = { it.icon },
             getLabel = { it.displayName }
         )
