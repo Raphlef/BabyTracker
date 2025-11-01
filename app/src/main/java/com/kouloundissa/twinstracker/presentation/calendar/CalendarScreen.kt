@@ -24,6 +24,8 @@ import com.kouloundissa.twinstracker.ui.components.SwipeableCalendar
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -59,14 +61,16 @@ fun CalendarScreen(
     }
     LaunchedEffect(availableTypes) { filterTypes = availableTypes }
 
-    DisposableEffect(currentMonth, selectedBaby?.id) {
+    LaunchedEffect(currentMonth, selectedBaby?.id) {
         selectedBaby?.id?.let {
-            // Single, atomic call with built-in date range
+            // Debounce in the effect itself
+            delay(150) // Wait for rapid changes to settle
             eventViewModel.refreshWithMonth(it, currentMonth)
         }
+    }
 
+    DisposableEffect(selectedBaby?.id) {
         onDispose {
-            // Clean up only when screen leaves or baby changes
             eventViewModel.stopStreaming()
         }
     }

@@ -147,6 +147,7 @@ class EventViewModel @Inject constructor(
             is DateRangeStrategy.Month -> {
                 val first = strategy.month.withDayOfMonth(1)
                 val last = strategy.month.withDayOfMonth(strategy.month.lengthOfMonth())
+                Log.d("DateRange", "Month query: ${strategy.month} → $first to $last (${strategy.month.lengthOfMonth()} days)")
                 DateRangeParams(
                     Date.from(first.atStartOfDay(zone).toInstant()),
                     Date.from(last.atTime(23, 59, 59).atZone(zone).toInstant())
