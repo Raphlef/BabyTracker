@@ -314,7 +314,12 @@ class EventViewModel @Inject constructor(
             resetDateRangeAndHistory()
         }
     }
-
+    fun resetDateRangeAndHistory() {
+        currentDaysWindow = 1L
+        _hasMoreHistory.value = true
+        _isLoadingMore.value = false
+        // setDateRangeForLastDays(currentDaysWindow)
+    }
     /** Stops any active real-time listener. */
     fun stopStreaming() {
         streamJob?.cancel()
@@ -665,12 +670,7 @@ class EventViewModel @Inject constructor(
         _deleteError.value = null
     }
 
-    fun resetDateRangeAndHistory() {
-        currentDaysWindow = 1L
-        _hasMoreHistory.value = true
-        _isLoadingMore.value = false
-        // setDateRangeForLastDays(currentDaysWindow)
-    }
+
 
     /**
      * Returns the list of events for the given Event subclass,
