@@ -265,8 +265,17 @@ class EventViewModel @Inject constructor(
 
         streamJob?.cancel()
         streamJob = _streamRequest
+            .onEach { request ->
+                Log.d("EventStream", "StreamRequest changed: $request")
+                request?.let {
+                    Log.d("EventStream", "BabyId: ${it.babyId}, DateRange: ${it.dateRange.startDate} to ${it.dateRange.endDate}")
+                } ?: Log.d("EventStream", "StreamRequest is null")
+            }
             .filterNotNull() // Only process valid requests
             .distinctUntilChanged() // Prevent duplicate requests
+            .onEach { request ->
+                Log.d("EventStream", "Processing valid request for babyId: ${request.babyId}")
+            }
             .flatMapLatest { request ->
                 repository.streamEventsForBaby(
                     request.babyId,
@@ -275,16 +284,19 @@ class EventViewModel @Inject constructor(
                 )
             }
             .onStart {
+                Log.d("EventStream", "Stream started")
                 if (!_isLoadingMore.value) {
                     _isLoading.value = true
                 }
             }
             .catch { e ->
+                Log.e("EventStream", "Stream error occurred", e)
                 _errorMessage.value = "Stream error: ${e.localizedMessage}"
                 _isLoading.value = false
                 _isLoadingMore.value = false
             }
             .onEach { filtered ->
+                Log.d("EventStream", "Received ${filtered.size} events")
                 checkForNewEvents(filtered)
                 _eventsByType.value = filtered.groupBy { it::class }
                 groupEventsByDay(filtered)
@@ -324,8 +336,8 @@ class EventViewModel @Inject constructor(
     /** Stops any active real-time listener. */
     fun stopStreaming() {
         streamJob?.cancel()
-        _streamRequest.value = null
         streamJob = null
+        _streamRequest.value = null
         _isLoading.value = false
         _isLoadingMore.value = false
     }
