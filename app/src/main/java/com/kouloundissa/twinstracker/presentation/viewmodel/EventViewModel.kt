@@ -335,9 +335,12 @@ class EventViewModel @Inject constructor(
     }
     /** Stops any active real-time listener. */
     fun stopStreaming() {
+        Log.d("EventViewModel", "Stopping stream")
         streamJob?.cancel()
         streamJob = null
+
         _streamRequest.value = null
+
         _isLoading.value = false
         _isLoadingMore.value = false
     }
