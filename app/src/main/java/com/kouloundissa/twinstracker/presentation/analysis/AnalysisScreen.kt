@@ -18,6 +18,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.kouloundissa.twinstracker.data.*
 import com.kouloundissa.twinstracker.data.WhoLms.WhoLmsRepository
+import com.kouloundissa.twinstracker.presentation.viewmodel.AuthEvent
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.WHOHeadCircumferenceCurve
@@ -46,14 +47,12 @@ fun AnalysisScreen(
     eventViewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
-
     val isLoading by eventViewModel.isLoading.collectAsState()
     val errorMessage by eventViewModel.errorMessage.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
     val eventsByDay by eventViewModel.eventsByDay.collectAsState()
     val allGrowth by remember { derivedStateOf { eventViewModel.getEventsOfType(GrowthEvent::class) } }
     val snackbarHostState = remember { SnackbarHostState() }
-
 
     val context = LocalContext.current
 
@@ -382,12 +381,7 @@ enum class AnalysisRange(val displayName: String, val days: Int) {
     CUSTOM("Custom", -1)
 }
 
-// Add this data class for date range state
-data class DateRangeState(
-    val startDate: LocalDate,
-    val endDate: LocalDate,
-    val range: AnalysisRange
-)
+
 
 // Create a helper function to get date range
 fun getDateRange(
