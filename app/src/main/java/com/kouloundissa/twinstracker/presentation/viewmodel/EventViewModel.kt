@@ -170,6 +170,7 @@ class EventViewModel @Inject constructor(
      * Convenience method for last N days
      */
     fun refreshWithLastDays(babyId: String, days: Long = 1L) {
+        resetDateRangeAndHistory()
         startStreaming(babyId, DateRangeStrategy.LastDays(days))
     }
 
@@ -177,6 +178,7 @@ class EventViewModel @Inject constructor(
      * Convenience method for specific month
      */
     fun refreshWithMonth(babyId: String, month: LocalDate) {
+        resetDateRangeAndHistory()
         startStreaming(babyId, DateRangeStrategy.Month(month))
     }
 
@@ -299,7 +301,7 @@ class EventViewModel @Inject constructor(
      */
     fun startStreaming(
         babyId: String,
-        strategy: DateRangeStrategy = DateRangeStrategy.LastDays(1)
+        strategy: DateRangeStrategy
     ) {
         if (babyId.isEmpty()) return
 
@@ -311,7 +313,6 @@ class EventViewModel @Inject constructor(
         // Only update if request actually changed
         if (_streamRequest.value != request) {
             _streamRequest.value = request
-            resetDateRangeAndHistory()
         }
     }
     fun resetDateRangeAndHistory() {
