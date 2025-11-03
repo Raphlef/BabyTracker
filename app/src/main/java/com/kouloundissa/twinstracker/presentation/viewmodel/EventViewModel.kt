@@ -40,6 +40,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import java.time.temporal.ChronoUnit
 
 @HiltViewModel
 class EventViewModel @Inject constructor(
@@ -142,7 +143,7 @@ class EventViewModel @Inject constructor(
                     Date.from(startDate),
                     Date.from(endDate)
                 )
-                Log.d("DateRange", "LastDays result: ${result.startDate} → ${result.endDate}")
+                Log.d("DateRange", "LastDays result: ${result.startDate} → ${result.endDate} (${strategy.days} days)")
                 result
             }
 
@@ -153,14 +154,19 @@ class EventViewModel @Inject constructor(
                     Date.from(first.atStartOfDay(zone).toInstant()),
                     Date.from(last.atTime(23, 59, 59).atZone(zone).toInstant())
                 )
-                Log.d("DateRange", "Month result: ${result.startDate} → ${result.endDate}")
+                val daysInMonth = strategy.month.lengthOfMonth()
+                Log.d("DateRange", "Month result: ${result.startDate} → ${result.endDate} ($daysInMonth days)")
                 result
             }
 
             is DateRangeStrategy.Custom -> {
+                val daysBetween = ChronoUnit.DAYS.between(
+                    strategy.dateRange.startDate.toInstant(),
+                    strategy.dateRange.endDate.toInstant()
+                ) + 1 // +1 to include both start and end dates
                 Log.d(
                     "DateRange",
-                    "Custom range: ${strategy.dateRange.startDate} → ${strategy.dateRange.endDate}"
+                    "Custom range: ${strategy.dateRange.startDate} → ${strategy.dateRange.endDate} ($daysBetween days)"
                 )
                 strategy.dateRange
             }
