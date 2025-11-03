@@ -53,7 +53,7 @@ fun AnalysisScreen(
     val errorMessage by eventViewModel.errorMessage.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
     val eventsByDay by eventViewModel.eventsByDay.collectAsState()
-    val allGrowth by remember { derivedStateOf { eventViewModel.getEventsOfType(GrowthEvent::class) } }
+    val allGrowth by eventViewModel.getEventsOfTypeAsFlow(GrowthEvent::class).collectAsState(initial = emptyList())
     val snackbarHostState = remember { SnackbarHostState() }
 
     val context = LocalContext.current

@@ -36,10 +36,12 @@ import com.kouloundissa.twinstracker.data.EventFormState.*
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.User
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import java.time.temporal.ChronoUnit
 
 @HiltViewModel
@@ -716,12 +718,14 @@ class EventViewModel @Inject constructor(
      * Returns the list of events for the given Event subclass,
      * e.g. FeedingEvent::class, DiaperEvent::class, etc.
      */
-    fun <T : Event> getEventsOfType(type: KClass<T>): List<T> {
-        val list = _eventsByType.value[type] ?: emptyList()
-        @Suppress("UNCHECKED_CAST")
-        return list as List<T>
-    }
 
+    fun <T : Event> getEventsOfTypeAsFlow(type: KClass<T>): Flow<List<T>> {
+        return _eventsByType.map { map ->
+            val list = map[type] ?: emptyList()
+            @Suppress("UNCHECKED_CAST")
+            list as List<T>
+        }.distinctUntilChanged()
+    }
 
     /**
      * Returns a map of displayName → event count for all loaded types.
