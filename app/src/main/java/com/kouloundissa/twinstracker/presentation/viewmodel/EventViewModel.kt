@@ -138,26 +138,32 @@ class EventViewModel @Inject constructor(
                 val startDate = today.minusDays(strategy.days - 1)
                     .atStartOfDay(zone).toInstant()
                 val endDate = today.atTime(23, 59, 59).atZone(zone).toInstant()
-                DateRangeParams(
+                val result = DateRangeParams(
                     Date.from(startDate),
                     Date.from(endDate)
                 )
+                Log.d("DateRange", "LastDays result: ${result.startDate} → ${result.endDate}")
+                result
             }
 
             is DateRangeStrategy.Month -> {
                 val first = strategy.month.withDayOfMonth(1)
                 val last = strategy.month.withDayOfMonth(strategy.month.lengthOfMonth())
-                Log.d(
-                    "DateRange",
-                    "Month query: ${strategy.month} → $first to $last (${strategy.month.lengthOfMonth()} days)"
-                )
-                DateRangeParams(
+                val result = DateRangeParams(
                     Date.from(first.atStartOfDay(zone).toInstant()),
                     Date.from(last.atTime(23, 59, 59).atZone(zone).toInstant())
                 )
+                Log.d("DateRange", "Month result: ${result.startDate} → ${result.endDate}")
+                result
             }
 
-            is DateRangeStrategy.Custom -> strategy.dateRange
+            is DateRangeStrategy.Custom -> {
+                Log.d(
+                    "DateRange",
+                    "Custom range: ${strategy.dateRange.startDate} → ${strategy.dateRange.endDate}"
+                )
+                strategy.dateRange
+            }
         }
     }
 
@@ -268,7 +274,10 @@ class EventViewModel @Inject constructor(
             .onEach { request ->
                 Log.d("EventStream", "StreamRequest changed: $request")
                 request?.let {
-                    Log.d("EventStream", "BabyId: ${it.babyId}, DateRange: ${it.dateRange.startDate} to ${it.dateRange.endDate}")
+                    Log.d(
+                        "EventStream",
+                        "BabyId: ${it.babyId}, DateRange: ${it.dateRange.startDate} to ${it.dateRange.endDate}"
+                    )
                 } ?: Log.d("EventStream", "StreamRequest is null")
             }
             .filterNotNull() // Only process valid requests
@@ -321,18 +330,23 @@ class EventViewModel @Inject constructor(
 
         val dateRange = calculateRange(strategy)
         val request = EventStreamRequest(babyId, dateRange)
-
+        Log.d("EventViewModel", "Range: ${dateRange.startDate} → ${dateRange.endDate}")
         // Only update if request actually changed
         if (_streamRequest.value != request) {
+            Log.i("EventViewModel", "✓ StreamRequest UPDATED")
             _streamRequest.value = request
+        } else {
+            Log.i("EventViewModel", "✗ StreamRequest UNCHANGED - skipped")
         }
     }
+
     fun resetDateRangeAndHistory() {
         currentDaysWindow = 1L
         _hasMoreHistory.value = true
         _isLoadingMore.value = false
         // setDateRangeForLastDays(currentDaysWindow)
     }
+
     /** Stops any active real-time listener. */
     fun stopStreaming() {
         Log.d("EventViewModel", "Stopping stream")
@@ -685,7 +699,6 @@ class EventViewModel @Inject constructor(
         _deleteSuccess.value = false
         _deleteError.value = null
     }
-
 
 
     /**
