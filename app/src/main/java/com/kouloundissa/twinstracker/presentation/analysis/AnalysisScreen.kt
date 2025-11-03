@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.presentation.analysis
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -96,6 +97,22 @@ fun AnalysisScreen(
                 dateList.filterIndexed { index, _ -> index % step == 0 }
                     .map { it.format(DateTimeFormatter.ofPattern("dd/MM")) }
             }
+        }
+    }
+
+    LaunchedEffect(selectedRange, selectedBaby?.id) {
+        selectedBaby?.id?.let {
+            // Debounce in the effect itself
+            //  delay(150) // Wait for rapid changes to settle
+            Log.d("AnalysisScreen", "Starting stream for babyId: ${it}")
+            eventViewModel.refreshWithLastDays(it,  selectedRange.days.toLong())
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            Log.d("AnalysisScreen", "Screen disposed - stopping stream")
+            eventViewModel.stopStreaming()
         }
     }
 

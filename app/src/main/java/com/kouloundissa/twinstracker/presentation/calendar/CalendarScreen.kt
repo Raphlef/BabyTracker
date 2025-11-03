@@ -1,6 +1,7 @@
 package com.kouloundissa.twinstracker.presentation.calendar
 
 import DayTimeline
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
@@ -63,14 +64,14 @@ fun CalendarScreen(
 
     LaunchedEffect(currentMonth, selectedBaby?.id) {
         selectedBaby?.id?.let {
-            // Debounce in the effect itself
-            delay(150) // Wait for rapid changes to settle
+            Log.d("CalendarScreen", "Starting stream for babyId: ${it}")
             eventViewModel.refreshWithMonth(it, currentMonth)
         }
     }
 
-    DisposableEffect(selectedBaby?.id) {
+    DisposableEffect(Unit) {
         onDispose {
+            Log.d("CalendarScreen", "Screen disposed - stopping stream")
             eventViewModel.stopStreaming()
         }
     }

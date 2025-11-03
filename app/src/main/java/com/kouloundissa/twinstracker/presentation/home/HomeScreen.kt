@@ -1,6 +1,7 @@
 package com.kouloundissa.twinstracker.presentation.home
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -66,7 +67,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.Event
@@ -144,14 +147,16 @@ fun HomeScreen(
             eventViewModel.loadEventIntoForm(it)
         }
     }
-    DisposableEffect(selectedBaby?.id) {
+    LaunchedEffect(selectedBaby?.id) {
         selectedBaby?.id?.let {
-            // Single, atomic call with built-in date range
+            Log.d("HomeScreen", "Starting stream for babyId: ${it}")
             eventViewModel.refreshWithLastDays(it, 1L)
         }
+    }
 
+    DisposableEffect(Unit) {
         onDispose {
-            // Clean up only when screen leaves or baby changes
+            Log.d("HomeScreen", "Screen disposed - stopping stream")
             eventViewModel.stopStreaming()
         }
     }
