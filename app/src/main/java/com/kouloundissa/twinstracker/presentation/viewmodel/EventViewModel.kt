@@ -338,6 +338,7 @@ class EventViewModel @Inject constructor(
     ) {
         if (babyId.isEmpty()) return
 
+        _isLoading.value = true
         setupStreamListener();
 
         Log.d("CalculateRange", "from startStreaming")
@@ -350,6 +351,7 @@ class EventViewModel @Inject constructor(
             _streamRequest.value = request
         } else {
             Log.i("EventViewModel", "✗ StreamRequest UNCHANGED - skipped")
+            _isLoading.value = false
         }
     }
 
