@@ -47,17 +47,17 @@ android {
         }
         create("stage") {
             initWith(getByName("debug"))
-            isMinifyEnabled    = true
-            isShrinkResources  = true
-            isDebuggable       = true
+            isMinifyEnabled = true
+            isShrinkResources = true
+            isDebuggable = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            ndk.debugSymbolLevel          = "FULL"
+            ndk.debugSymbolLevel = "FULL"
             firebaseCrashlytics {
-                nativeSymbolUploadEnabled  = true
-                mappingFileUploadEnabled   = true
+                nativeSymbolUploadEnabled = true
+                mappingFileUploadEnabled = true
             }
         }
         named("debug") {
