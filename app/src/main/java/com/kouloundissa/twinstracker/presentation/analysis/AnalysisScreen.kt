@@ -552,7 +552,8 @@ fun DateRangeSelector(
                         labelColor = contentColor.copy(alpha = 0.85f),
                         selectedContainerColor = baseColor.copy(alpha = 0.85f),
                         selectedLabelColor = tint
-                    ), border = FilterChipDefaults.filterChipBorder(
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
                         enabled = true,
                         selected = true,
                         borderColor = contentColor.copy(alpha = 0.55f),
