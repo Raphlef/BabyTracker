@@ -35,6 +35,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun CalendarScreen(
     contentPadding: PaddingValues = PaddingValues(),
+    isVisible: Boolean,
     eventViewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
@@ -62,19 +63,21 @@ fun CalendarScreen(
     }
     LaunchedEffect(availableTypes) { filterTypes = availableTypes }
 
-    LaunchedEffect(currentMonth, selectedBaby?.id) {
-        selectedBaby?.id?.let {
-            Log.d("CalendarScreen", "Starting stream for babyId: ${it}")
-            eventViewModel.refreshWithMonth(it, currentMonth)
+    LaunchedEffect(isVisible, currentMonth, selectedBaby?.id) {
+        if (isVisible) {
+            selectedBaby?.id?.let {
+                Log.d("CalendarScreen", "Starting stream for babyId: ${it}")
+                eventViewModel.refreshWithMonth(it, currentMonth)
+            }
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            Log.d("CalendarScreen", "Screen disposed - stopping stream")
-            eventViewModel.stopStreaming()
-        }
-    }
+//    DisposableEffect(Unit) {
+//        onDispose {
+//            Log.d("CalendarScreen", "Screen disposed - stopping stream")
+//            eventViewModel.stopStreaming()
+//        }
+//    }
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {

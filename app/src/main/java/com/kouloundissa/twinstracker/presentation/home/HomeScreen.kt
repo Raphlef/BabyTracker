@@ -94,6 +94,7 @@ import kotlin.math.ceil
 @Composable
 fun HomeScreen(
     contentPadding: PaddingValues = PaddingValues(),
+    isVisible: Boolean,
     babyViewModel: BabyViewModel = hiltViewModel(),
     eventViewModel: EventViewModel = hiltViewModel()
 ) {
@@ -147,19 +148,24 @@ fun HomeScreen(
             eventViewModel.loadEventIntoForm(it)
         }
     }
-    LaunchedEffect(selectedBaby?.id) {
-        selectedBaby?.id?.let {
-            Log.d("HomeScreen", "Starting stream for babyId: ${it}")
-            eventViewModel.refreshWithLastDays(it, 1L)
+    LaunchedEffect(isVisible, selectedBaby?.id) {
+        if (isVisible) {
+            selectedBaby?.id?.let {
+                Log.d("HomeScreen", "Starting stream - babyId: $it, isVisible: $isVisible")
+                eventViewModel.refreshWithLastDays(it, 1L)
+            }
+        } else {
+//            Log.d("HomeScreen", "Screen not visible - stopping stream")
+//            eventViewModel.stopStreaming()
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            Log.d("HomeScreen", "Screen disposed - stopping stream")
-            eventViewModel.stopStreaming()
-        }
-    }
+//    DisposableEffect(Unit) {
+//        onDispose {
+//            Log.d("HomeScreen", "Screen disposed - stopping stream")
+//            eventViewModel.stopStreaming()
+//        }
+//    }
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)

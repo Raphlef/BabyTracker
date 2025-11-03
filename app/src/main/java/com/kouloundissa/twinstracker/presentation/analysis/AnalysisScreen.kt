@@ -45,6 +45,7 @@ import kotlin.math.max
 @Composable
 fun AnalysisScreen(
     contentPadding: PaddingValues = PaddingValues(),
+    isVisible: Boolean,
     eventViewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
@@ -100,33 +101,24 @@ fun AnalysisScreen(
         }
     }
 
-    LaunchedEffect(selectedRange, selectedBaby?.id) {
-        selectedBaby?.id?.let {
-            // Debounce in the effect itself
-            //  delay(150) // Wait for rapid changes to settle
-            Log.d("AnalysisScreen", "Starting stream for babyId: ${it}")
-            eventViewModel.refreshWithLastDays(it,  selectedRange.days.toLong())
+    LaunchedEffect(isVisible, selectedRange, selectedBaby?.id) {
+        if (isVisible) {
+            selectedBaby?.id?.let {
+                // Debounce in the effect itself
+                //  delay(150) // Wait for rapid changes to settle
+                Log.d("AnalysisScreen", "Starting stream for babyId: ${it}")
+                eventViewModel.refreshWithLastDays(it, selectedRange.days.toLong())
+            }
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            Log.d("AnalysisScreen", "Screen disposed - stopping stream")
-            eventViewModel.stopStreaming()
-        }
-    }
+//    DisposableEffect(Unit) {
+//        onDispose {
+//            Log.d("AnalysisScreen", "Screen disposed - stopping stream")
+//            eventViewModel.stopStreaming()
+//        }
+//    }
 
-    DisposableEffect(selectedBaby?.id, selectedRange) {
-        selectedBaby?.id?.let {
-            // Single, atomic call with built-in date range
-            eventViewModel.refreshWithLastDays(it, selectedRange.days.toLong())
-        }
-
-        onDispose {
-            // Clean up only when screen leaves or baby changes
-            eventViewModel.stopStreaming()
-        }
-    }
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
@@ -397,7 +389,6 @@ enum class AnalysisRange(val displayName: String, val days: Int) {
     THREE_MONTHS("3 Months", 90),
     CUSTOM("Custom", -1)
 }
-
 
 
 // Create a helper function to get date range

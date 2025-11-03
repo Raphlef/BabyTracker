@@ -66,6 +66,7 @@ import com.kouloundissa.twinstracker.presentation.analysis.AnalysisScreen
 import com.kouloundissa.twinstracker.presentation.baby.BabyFormDialog
 import com.kouloundissa.twinstracker.presentation.home.HomeScreen
 import com.kouloundissa.twinstracker.presentation.settings.SettingsScreen
+import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.BabyInfoBar
 import com.kouloundissa.twinstracker.ui.components.BabySelectorRow
 import com.kouloundissa.twinstracker.ui.components.BackgroundContainer
@@ -90,7 +91,8 @@ fun DashboardScreen(
     navController: NavController,
     initialBabyId: String,
     babyViewModel: BabyViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    eventViewModel: EventViewModel = androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel()
 ) {
     // HazeState for glassmorphic blur
     val hazeState = remember { HazeState() }
@@ -108,6 +110,7 @@ fun DashboardScreen(
     var showEventForm by remember { mutableStateOf(false) }
     var selectedEventFormState by remember { mutableStateOf<EventFormState?>(null) }
     val babyError by babyViewModel.errorMessage.collectAsState()
+
 
     // Initialize selectedBaby on first composition
     LaunchedEffect(babies, initialBabyId) {
@@ -129,6 +132,14 @@ fun DashboardScreen(
         initialPage = 0,
         pageCount = { tabs.size }
     )
+    val currentTab = tabs[pagerState.currentPage]
+
+    LaunchedEffect(pagerState.currentPage) {
+        Log.d("Dashboard", "Page changed to: $currentTab (index: ${pagerState.currentPage})")
+
+        // Arrêter tous les streams actifs quand on change de page
+        eventViewModel.stopStreaming()
+    }
     val coroutineScope = rememberCoroutineScope()
 
     // Synchronisation entre l'onglet sélectionné et le pager
@@ -172,17 +183,21 @@ fun DashboardScreen(
                             state = pagerState,
                             modifier = Modifier.fillMaxSize()
                         ) { page ->
+                            val isCurrentPage = page == pagerState.currentPage
                             when (tabs[page]) {
                                 DashboardTab.Home -> HomeScreen(
-                                    contentPadding = contentPadding
+                                    contentPadding = contentPadding,
+                                    isVisible = isCurrentPage
                                 )
 
                                 DashboardTab.Calendar -> CalendarScreen(
-                                    contentPadding = contentPadding
+                                    contentPadding = contentPadding,
+                                    isVisible = isCurrentPage
                                 )
 
                                 DashboardTab.Analysis -> AnalysisScreen(
-                                    contentPadding = contentPadding
+                                    contentPadding = contentPadding,
+                                    isVisible = isCurrentPage
                                 )
 
                                 DashboardTab.Settings -> SettingsScreen(
