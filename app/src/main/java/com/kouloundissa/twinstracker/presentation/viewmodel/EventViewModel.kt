@@ -260,6 +260,7 @@ class EventViewModel @Inject constructor(
 
         // Recalculate range based on new window
         val newStrategy = DateRangeStrategy.LastDays(newDaysWindow)
+        Log.d("CalculateRange", "from load more")
         val newDateRange = calculateRange(newStrategy)
 
         // Update stream request atomically
@@ -278,11 +279,14 @@ class EventViewModel @Inject constructor(
         streamJob?.cancel()
         streamJob = _streamRequest
             .onEach { request ->
-                Log.d("EventStream", "StreamRequest changed: $request")
                 request?.let {
+                    val daysBetween = ChronoUnit.DAYS.between(
+                        it.dateRange.startDate.toInstant(),
+                        it.dateRange.endDate.toInstant()
+                    ) + 1 // +1 to include both start and end dates
                     Log.d(
                         "EventStream",
-                        "BabyId: ${it.babyId}, DateRange: ${it.dateRange.startDate} to ${it.dateRange.endDate}"
+                        "BabyId: ${it.babyId}, DateRange: ${it.dateRange.startDate} to ${it.dateRange.endDate} ($daysBetween days)"
                     )
                 } ?: Log.d("EventStream", "StreamRequest is null")
             }
@@ -334,6 +338,7 @@ class EventViewModel @Inject constructor(
 
         setupStreamListener();
 
+        Log.d("CalculateRange", "from startStreaming")
         val dateRange = calculateRange(strategy)
         val request = EventStreamRequest(babyId, dateRange)
         Log.d("EventViewModel", "Range: ${dateRange.startDate} → ${dateRange.endDate}")
