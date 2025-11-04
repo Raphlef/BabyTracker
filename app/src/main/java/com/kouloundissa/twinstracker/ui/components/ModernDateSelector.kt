@@ -63,7 +63,11 @@ fun ModernDateSelector(
 
     // Interim selection state
     val calendar = remember(selectedDate) {
-        Calendar.getInstance().apply { time = selectedDate ?: Date() }
+        Calendar.getInstance().apply {
+            if (selectedDate != null) {
+                time = selectedDate
+            }
+        }
     }
     val displayDate = calendar.time
 
