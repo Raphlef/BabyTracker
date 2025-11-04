@@ -45,13 +45,13 @@ fun CalendarGrid(
 
     val firstOfMonth = LocalDate.of(year, month, 1)
     val daysInMonth = firstOfMonth.lengthOfMonth()
-    val startDow = firstOfMonth.dayOfWeek.value % 7
+    val startDow = firstOfMonth.dayOfWeek.value % 7 - 1
     val totalCells = ((startDow + daysInMonth + 6) / 7) * 7
     val weeks = totalCells / 7
 
     Column {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            listOf("S", "M", "T", "W", "T", "F", "S").forEach { dow ->
+            listOf("M", "T", "W", "T", "F", "S", "S").forEach { dow ->
                 Text(
                     dow, Modifier.weight(1f), textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelMedium,
