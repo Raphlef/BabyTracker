@@ -413,7 +413,7 @@ fun EventFormDialog(
 
 @Composable
 private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
-    val contentColor = Color.White
+    val contentColor = BackgroundColor
     val cornerShape = MaterialTheme.shapes.extraLarge
     // Diaper Type
     IconSelector(
@@ -510,7 +510,7 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
     }
 
     val cornerShape = MaterialTheme.shapes.extraLarge
-    val contentColor = Color.White
+    val contentColor = BackgroundColor
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.fillMaxWidth()
@@ -586,7 +586,7 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
 
 @Composable
 private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
-    val contentColor = Color.White
+    val contentColor = BackgroundColor
     val cornerShape = MaterialTheme.shapes.extraLarge
     // Feed Type
     IconSelector(
@@ -670,7 +670,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
 
 @Composable
 private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) {
-    val contentColor = Color.White
+    val contentColor = BackgroundColor
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     Row(
@@ -728,7 +728,7 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
 
 @Composable
 private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
-    val contentColor = Color.White
+    val contentColor = BackgroundColor
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     AmountInput(
@@ -772,26 +772,12 @@ private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel
         }
     )
 
-    // Notes (optional)
-    OutlinedTextField(
-        value = state.notes,
-        onValueChange = {
-            viewModel.updateForm {
-                (this as EventFormState.Pumping).copy(notes = it)
-            }
-        },
-        label = { Text("Notes (optional)", color = contentColor) },
-        textStyle = LocalTextStyle.current.copy(color = contentColor),
-        shape = cornerShape,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(80.dp)
-    )
+
 }
 
 @Composable
 private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
-    val contentColor = Color.White
+    val contentColor = BackgroundColor
     val cornerShape = MaterialTheme.shapes.extraLarge
     Column(modifier = Modifier.fillMaxWidth()) {
         // Drug Type Picker
