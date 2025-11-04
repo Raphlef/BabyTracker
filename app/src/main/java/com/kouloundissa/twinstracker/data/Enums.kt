@@ -1,9 +1,12 @@
 package com.kouloundissa.twinstracker.data
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.Composable
 
 
 // Enum for different Diaper event types
@@ -72,4 +75,13 @@ enum class DrugType(
     companion object {
         val entries = DrugType.entries
     }
+}
+
+enum class DashboardTab(val label: String, val icon: @Composable () -> Unit) {
+    Home("Home", { Icon(Icons.Default.Home, contentDescription = "Home") }),
+    Calendar("Calendar", { Icon(Icons.Default.CalendarToday, contentDescription = "Calendar") }),
+    Analysis(
+        "Analysis",
+        { Icon(Icons.AutoMirrored.Filled.ShowChart, contentDescription = "Analysis") }),
+    Settings("Settings", { Icon(Icons.Default.Settings, contentDescription = "Settings") }),
 }

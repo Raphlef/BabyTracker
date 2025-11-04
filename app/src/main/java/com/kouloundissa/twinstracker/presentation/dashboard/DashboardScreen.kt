@@ -56,6 +56,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Baby
+import com.kouloundissa.twinstracker.data.DashboardTab
 import com.kouloundissa.twinstracker.data.EventFormState
 import com.kouloundissa.twinstracker.data.EventFormState.*
 import com.kouloundissa.twinstracker.data.EventType
@@ -75,16 +76,6 @@ import com.kouloundissa.twinstracker.ui.theme.*
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.launch
 import java.util.Locale
-
-
-enum class DashboardTab(val label: String, val icon: @Composable () -> Unit) {
-    Home("Home", { Icon(Icons.Default.Home, contentDescription = "Home") }),
-    Calendar("Calendar", { Icon(Icons.Default.CalendarToday, contentDescription = "Calendar") }),
-    Analysis(
-        "Analysis",
-        { Icon(Icons.AutoMirrored.Filled.ShowChart, contentDescription = "Analysis") }),
-    Settings("Settings", { Icon(Icons.Default.Settings, contentDescription = "Settings") }),
-}
 
 @Composable
 fun DashboardScreen(
