@@ -18,3 +18,8 @@ local.properties
 /app/release/app-release.aab
 /app/release/app-debug.apk
 /.kotlin/sessions/kotlin-compiler-8020607486918546671.salive
+/app/release/app-release.apk
+/app/release/baselineProfiles/0/app-release.dm
+/app/release/baselineProfiles/1/app-release.dm
+/.idea/appInsightsSettings.xml
+/app/release/output-metadata.json
