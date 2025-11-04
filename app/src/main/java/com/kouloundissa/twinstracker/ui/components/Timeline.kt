@@ -3,21 +3,16 @@ package com.kouloundissa.twinstracker.ui.components
 import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,8 +23,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -42,15 +35,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -67,12 +57,12 @@ import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
-import java.text.SimpleDateFormat
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
+import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.time.Duration
-import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 import kotlin.collections.forEach
 import kotlin.math.roundToInt
 
@@ -110,8 +100,9 @@ fun EventCard(
 ) {
     val eventType = EventType.forClass(event::class)
 
-    val contentColor = Color.White
-    val backColor = Color.DarkGray
+    val backgroundColor = BackgroundColor
+    val grey = DarkGrey
+    val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     val context = LocalContext.current
@@ -132,7 +123,7 @@ fun EventCard(
 
         // Foreground card
         Surface(
-            color = backColor.copy(alpha = 0.3f),
+            color = grey.copy(alpha = 0.3f),
             shape = cornerShape,
             modifier = Modifier
                 .fillMaxWidth()
@@ -182,8 +173,8 @@ fun EventCard(
                     .background(
                         Brush.horizontalGradient(
                             colors = listOf(
-                                eventType.color.copy(alpha = 0.15f),
-                                eventType.color.copy(alpha = 0.85f)
+                                eventType.color.copy(alpha = 0.25f),
+                                eventType.color.copy(alpha = 0.95f)
                             )
                         ),
                         shape = cornerShape
@@ -197,14 +188,14 @@ fun EventCard(
                     Text(
                         buildEventTitle(event, eventType),
                         style = MaterialTheme.typography.titleMedium,
-                        color = contentColor
+                        color = backgroundColor
                     )
                     TimeDisplay(event)
                     event.notes?.takeIf(String::isNotBlank)?.let {
                         Text(
                             it,
                             style = MaterialTheme.typography.bodySmall,
-                            color = contentColor.copy(alpha = 0.85f),
+                            color = backgroundColor.copy(alpha = 0.85f),
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -215,14 +206,14 @@ fun EventCard(
                     Icon(
                         Icons.Default.PhotoCamera,
                         contentDescription = "Photo attached",
-                        tint = contentColor,
+                        tint = backgroundColor,
                         modifier = Modifier.size(20.dp)
                     )
                 }
                 Icon(
                     Icons.Default.Edit,
                     contentDescription = "Edit",
-                    tint = contentColor,
+                    tint = backgroundColor,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -270,11 +261,14 @@ fun EventCard(
 
 @Composable
 private fun EventTypeIndicator(eventType: EventType) {
+    val backgroundColor = BackgroundColor
+    val grey = DarkGrey
+    val tint = DarkBlue
     Box(
         modifier = Modifier
             .size(48.dp)
             .clip(CircleShape)
-            .background(Color.DarkGray.copy(alpha = 0.15f)),
+            .background(grey.copy(alpha = 0.45f)),
         contentAlignment = Alignment.Center
     ) {
         Icon(
@@ -289,7 +283,7 @@ private fun EventTypeIndicator(eventType: EventType) {
 @Composable
 private fun TimeDisplay(event: Event) {
     val formatter = DateTimeFormatter.ofPattern("MMM dd, HH:mm")  // e.g. "Sep 30, 14:45"
-    val contentColor = Color.White
+    val contentColor = BackgroundColor
     val timeText = when (event) {
         is SleepEvent -> {
             val startTime = event.beginTime?.toInstant()
