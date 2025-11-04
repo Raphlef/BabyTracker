@@ -174,11 +174,11 @@ fun IslandFAB(
     val tintColor = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
 
-    val iconSizeDp = 40.dp
+    val iconSizeDp = 54.dp
     val density = LocalDensity.current
     val fabRadiusPx = with(density) { fabSizeDp.toPx() / 2f }
     val iconRadiusPx = with(density) { iconSizeDp.toPx() / 2f }
-    val arcRadiusPx = with(density) { 130.dp.toPx() }
+    val arcRadiusPx = with(density) { 160.dp.toPx() }
 
     var longPressActive by remember { mutableStateOf(false) }
     var iconsVisible by remember { mutableStateOf(false) }
@@ -281,7 +281,7 @@ fun IslandFAB(
             Surface(
                 shape = CircleShape,
                 color = if (isSelected)
-                    baseColor.copy(alpha = 0.98f)
+                    tintColor.copy(alpha = 0.5f)
                 else
                     baseColor.copy(alpha = 0.6f),
                 modifier = Modifier
