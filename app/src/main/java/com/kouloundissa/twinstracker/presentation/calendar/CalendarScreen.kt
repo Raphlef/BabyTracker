@@ -78,14 +78,6 @@ fun CalendarScreen(
         }
     }
 
-
-//    DisposableEffect(Unit) {
-//        onDispose {
-//            Log.d("CalendarScreen", "Screen disposed - stopping stream")
-//            eventViewModel.stopStreaming()
-//        }
-//    }
-
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
@@ -108,7 +100,22 @@ fun CalendarScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = Modifier.fillMaxSize()
     ) { padding ->
-        Box(Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            FilterBar(
+                types = availableTypes,
+                selected = filterTypes,
+                onToggle = { type ->
+                    filterTypes =
+                        if (type in filterTypes) filterTypes - type else filterTypes + type
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            )
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -117,16 +124,7 @@ fun CalendarScreen(
                 contentPadding = contentPadding,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                item {
-                    FilterBar(
-                        types = availableTypes,
-                        selected = filterTypes,
-                        onToggle = { type ->
-                            filterTypes =
-                                if (type in filterTypes) filterTypes - type else filterTypes + type
-                        }
-                    )
-                }
+
                 item {
                     val eventsByDayCover: Map<LocalDate, List<Event>> =
                         remember(allEvents, filterTypes, currentMonth) {
@@ -178,7 +176,7 @@ fun CalendarScreen(
             // Edit Dialog
             if (showDialog) {
                 EventFormDialog(
-                    initialBabyId = selectedBaby?.id ?: return@Box,
+                    initialBabyId = selectedBaby?.id ?: return@Column,
                     onDismiss = {
                         showDialog = false
                         editingEvent = null

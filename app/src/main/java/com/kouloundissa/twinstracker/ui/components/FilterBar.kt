@@ -24,13 +24,13 @@ import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 fun FilterBar(
     types: Set<EventType>,
     selected: Set<EventType>,
-    onToggle: (EventType) -> Unit
+    onToggle: (EventType) -> Unit, modifier: Modifier = Modifier,
 ) {
     val contentColor = DarkGrey.copy(alpha = 0.5f)
     val backgroundColor = BackgroundColor.copy(alpha = 0.2f)
     val tint = DarkBlue
     Row(
-        Modifier
+        modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
