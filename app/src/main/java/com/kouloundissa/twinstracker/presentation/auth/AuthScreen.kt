@@ -196,12 +196,12 @@ fun AuthScreen(
 
                         Spacer(Modifier.height(12.dp))
 
-                        SocialButton(
-                            text = "Continuer avec Google",
-                            icon = Icons.Filled.AccountCircle,
-                            onClick = viewModel::loginWithGoogle,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+//                        SocialButton(
+//                            text = "Continuer avec Google",
+//                            icon = Icons.Filled.AccountCircle,
+//                            onClick = viewModel::loginWithGoogle,
+//                            modifier = Modifier.fillMaxWidth()
+//                        )
 
                         state.error?.let {
                             Spacer(Modifier.height(16.dp))
