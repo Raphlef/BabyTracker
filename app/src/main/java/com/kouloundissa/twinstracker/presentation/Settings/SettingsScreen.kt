@@ -321,14 +321,14 @@ fun GlassCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
 
-    val baseColor = Color.White
-    val contentColor = DarkBlue
+    val backgroundColor = BackgroundColor
+    val tint = DarkBlue
 
     Box(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             content = content
         )
@@ -337,11 +337,11 @@ fun GlassCard(
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .background(baseColor.copy(alpha = 0.4f)),
+                    .background(backgroundColor.copy(alpha = 0.4f)),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
-                    color = contentColor,
+                    color = tint,
                     strokeWidth = 2.dp
                 )
             }
