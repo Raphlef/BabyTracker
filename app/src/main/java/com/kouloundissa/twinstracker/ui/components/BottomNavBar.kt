@@ -1,5 +1,8 @@
 package com.kouloundissa.twinstracker.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -30,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -80,8 +84,7 @@ fun BottomNavBar(
             hazeState = hazeState,
             eventTypes = eventTypes,
             onEventTypeSelected = onEventTypeSelected,
-            modifier = Modifier.offset(y = (-36).dp),
-            label = "Add"
+            modifier = Modifier.align(Alignment.Center)
         )
     }
 }
@@ -101,29 +104,46 @@ fun GlassIslandNavBar(
 
     val cornerShape = MaterialTheme.shapes.extraLarge
     Surface(
-        modifier = modifier
-            .height(64.dp)
-        ,
+        modifier = modifier.height(64.dp),
         color = baseColor.copy(alpha = 0.95f),
         shape = cornerShape
     ) {
-        Row(
 
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             navItems.forEachIndexed { index, tab ->
                 if (index == navItems.size / 2) {
-                    Spacer(Modifier.width(48.dp)) // add gap around the FAB
+                    Spacer(Modifier.width(64.dp))
                 }
+
+                val animatedScale by animateFloatAsState(
+                    targetValue = if (selectedTab == tab) 1.1f else 1f,
+                    animationSpec = spring(dampingRatio = 0.6f, stiffness = 300f),
+                    label = "nav_item_scale"
+                )
+
+                val animatedAlpha by animateFloatAsState(
+                    targetValue = if (selectedTab == tab) 1f else 0.6f,
+                    animationSpec = tween(200),
+                    label = "nav_item_alpha"
+                )
                 NavigationBarItem(
-                    icon = { tab.icon() },
+                    icon = {
+                        Box(
+                            modifier = Modifier
+                                .graphicsLayer {
+                                    scaleX = animatedScale
+                                    scaleY = animatedScale
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            tab.icon()
+                        }
+                    },
                     label = {
                         Text(
                             tab.label,
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (selectedTab == tab) contentColor else contentColor.copy(
-                                alpha = 0.5f
-                            )
+                            color = contentColor.copy(alpha = animatedAlpha)
                         )
                     },
                     selected = selectedTab == tab,
@@ -132,7 +152,7 @@ fun GlassIslandNavBar(
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = tint,
                         unselectedIconColor = contentColor.copy(alpha = 0.5f),
-                        indicatorColor = tint.copy(alpha = 0.1f)
+                        indicatorColor = tint.copy(alpha = 0.12f)
                     )
                 )
             }
@@ -147,18 +167,18 @@ fun IslandFAB(
     modifier: Modifier = Modifier,
     eventTypes: List<Pair<String, @Composable () -> Unit>>,
     onEventTypeSelected: (String) -> Unit,
-    label: String
 ) {
-    val fabSizeDp = 64.dp
-    val baseColor = SmallWhite
-    val contentColor = DarkBlue
+    val fabSizeDp = 54.dp
+    val baseColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tintColor = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
 
-    val iconSizeDp = 48.dp
+    val iconSizeDp = 40.dp
     val density = LocalDensity.current
     val fabRadiusPx = with(density) { fabSizeDp.toPx() / 2f }
     val iconRadiusPx = with(density) { iconSizeDp.toPx() / 2f }
-    val arcRadiusPx = with(density) { 140.dp.toPx() }
+    val arcRadiusPx = with(density) { 130.dp.toPx() }
 
     var longPressActive by remember { mutableStateOf(false) }
     var iconsVisible by remember { mutableStateOf(false) }
@@ -215,31 +235,20 @@ fun IslandFAB(
     ) {
         // Main FAB icon
         Surface(
-            color = Color.Transparent,
+            color = tintColor,
             shape = cornerShape,
-            // shadowElevation = 10.dp,
             modifier = Modifier
-                .size(fabSizeDp)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            baseColor.copy(alpha = 0.99f),
-                            baseColor.copy(alpha = 0.90f)
-                        )
-                    ),
-                    shape = cornerShape,
-                ),
+                .size(fabSizeDp)               ,
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize(),
-
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = contentColor
+                    text = "+",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = baseColor,
                 )
             }
         }
@@ -264,10 +273,15 @@ fun IslandFAB(
                 selectedIconIndex = index
             }
 
+            val animatedScale by animateFloatAsState(
+                targetValue = if (isSelected) 1.15f else 1f,
+                animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+                label = "icon_scale_$index"
+            )
             Surface(
                 shape = CircleShape,
                 color = if (isSelected)
-                    baseColor
+                    baseColor.copy(alpha = 0.98f)
                 else
                     baseColor.copy(alpha = 0.6f),
                 modifier = Modifier
@@ -276,8 +290,9 @@ fun IslandFAB(
                         translationX = offsetX
                         translationY = offsetY
                         alpha = if (iconsVisible) 1f else 0f
+                        scaleX = animatedScale
+                        scaleY = animatedScale
                     },
-                // shadowElevation = 8.dp
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     icon()
