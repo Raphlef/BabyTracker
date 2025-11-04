@@ -200,8 +200,6 @@ private fun ShowTimePickerDialog(
     onTimeSelected: (Date) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val contentColor = Color.White
-
     // Extract initial hour/minute
     val (initialHour, initialMinute) = remember(initialDate) {
         Calendar.getInstance().apply { time = initialDate }
