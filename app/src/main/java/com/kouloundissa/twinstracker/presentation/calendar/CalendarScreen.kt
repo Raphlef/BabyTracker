@@ -31,6 +31,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Date
 
 @Composable
 fun CalendarScreen(
@@ -62,15 +63,21 @@ fun CalendarScreen(
             .distinct().toSet()
     }
     LaunchedEffect(availableTypes) { filterTypes = availableTypes }
-
+    fun LocalDate.toDate(): Date = Date.from(this.atStartOfDay(ZoneId.systemDefault()).toInstant())
     LaunchedEffect(isVisible, currentMonth, selectedBaby?.id) {
         if (isVisible) {
             selectedBaby?.id?.let {
-                Log.d("CalendarScreen", "Starting stream for babyId: ${it}")
-                eventViewModel.refreshWithMonth(it, currentMonth)
+                val startOfMonth = currentMonth.withDayOfMonth(1)
+                val endOfMonth = currentMonth.withDayOfMonth(currentMonth.lengthOfMonth())
+                eventViewModel.refreshWithCustomRange(
+                    it,
+                    startOfMonth.toDate(),
+                    endOfMonth.toDate()
+                )
             }
         }
     }
+
 
 //    DisposableEffect(Unit) {
 //        onDispose {

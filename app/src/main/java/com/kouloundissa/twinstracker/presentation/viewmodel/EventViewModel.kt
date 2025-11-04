@@ -127,7 +127,6 @@ class EventViewModel @Inject constructor(
 
     sealed class DateRangeStrategy {
         data class LastDays(val days: Long) : DateRangeStrategy()
-        data class Month(val month: LocalDate) : DateRangeStrategy()
         data class Custom(val dateRange: DateRangeParams) : DateRangeStrategy()
     }
 
@@ -146,18 +145,6 @@ class EventViewModel @Inject constructor(
                     Date.from(endDate)
                 )
                 Log.d("DateRange", "LastDays result: ${result.startDate} → ${result.endDate} (${strategy.days} days)")
-                result
-            }
-
-            is DateRangeStrategy.Month -> {
-                val first = strategy.month.withDayOfMonth(1)
-                val last = strategy.month.withDayOfMonth(strategy.month.lengthOfMonth())
-                val result = DateRangeParams(
-                    Date.from(first.atStartOfDay(zone).toInstant()),
-                    Date.from(last.atTime(23, 59, 59).atZone(zone).toInstant())
-                )
-                val daysInMonth = strategy.month.lengthOfMonth()
-                Log.d("DateRange", "Month result: ${result.startDate} → ${result.endDate} ($daysInMonth days)")
                 result
             }
 
@@ -187,15 +174,6 @@ class EventViewModel @Inject constructor(
         resetDateRangeAndHistory()
         startStreaming(babyId, DateRangeStrategy.LastDays(days))
     }
-
-    /**
-     * Convenience method for specific month
-     */
-    fun refreshWithMonth(babyId: String, month: LocalDate) {
-        resetDateRangeAndHistory()
-        startStreaming(babyId, DateRangeStrategy.Month(month))
-    }
-
     /**
      * Convenience method for custom range
      */
