@@ -27,6 +27,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -215,9 +216,11 @@ fun IslandFAB(
                 awaitPointerEventScope {
                     while (true) {
                         val event = awaitPointerEvent()
-                        pointerPosition = event.changes.firstOrNull()?.position
+                        val newPointerPosition = event.changes.firstOrNull()?.position
 
                         if (longPressActive) {
+                            pointerPosition = newPointerPosition
+
                             if (event.changes.all { it.changedToUp() }) {
                                 selectedIconIndex?.let { index ->
                                     onEventTypeSelected(eventTypes[index].first.uppercase(Locale.getDefault()))
@@ -269,8 +272,13 @@ fun IslandFAB(
                 iconRect.contains(pointer)
             } ?: false
 
-            if (isSelected) {
-                selectedIconIndex = index
+            LaunchedEffect(isSelected) {
+                if (isSelected) {
+                    selectedIconIndex = index
+                } else if (selectedIconIndex == index) {
+                    // Only reset if this was the previously selected icon
+                    selectedIconIndex = null
+                }
             }
 
             val animatedScale by animateFloatAsState(
