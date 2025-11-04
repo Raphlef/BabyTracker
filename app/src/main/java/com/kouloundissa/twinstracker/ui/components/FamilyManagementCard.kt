@@ -130,7 +130,7 @@ fun FamilyManagementCard(
     GlassCard(
         loading = isLoading
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Vos familles", style = MaterialTheme.typography.titleSmall, color = contentColor)
 
             FamilyList(
@@ -260,39 +260,28 @@ fun FamilyManagementCard(
                 Text("Notifications partagées", color = contentColor)
             }
 
-            Surface(
-                tonalElevation = 2.dp,
-                shape = MaterialTheme.shapes.medium,
-                color = tintColor.copy(alpha = 0.1f),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            Row(
+                Modifier
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            )
+            {
+                // Privacy
+                IconSelector(
+                    title = "Niveau de confidentialité",
+                    options = PrivacyLevel.entries.toList(),
+                    selected = PrivacyLevel.entries.find { it.name == privacyLevel },
+                    onSelect = { selected -> privacyLevel = selected.name },
+                    getIcon = { level ->
+                        when (level) {
+                            PrivacyLevel.PRIVATE -> Icons.Default.Lock
+                            PrivacyLevel.FAMILY_ONLY -> Icons.Default.Group
+                            PrivacyLevel.PUBLIC -> Icons.Default.Public
+                        }
+                    },
+                    getLabel = { it.name.replace('_', ' ').lowercase() }
                 )
-                {
-                    // Privacy
-                    IconSelector(
-                        title = "Niveau de confidentialité",
-                        options = PrivacyLevel.entries.toList(),
-                        selected = PrivacyLevel.entries.find { it.name == privacyLevel },
-                        onSelect = { selected -> privacyLevel = selected.name },
-                        getIcon = { level ->
-                            when (level) {
-                                PrivacyLevel.PRIVATE -> Icons.Default.Lock
-                                PrivacyLevel.FAMILY_ONLY -> Icons.Default.Group
-                                PrivacyLevel.PUBLIC -> Icons.Default.Public
-                            }
-                        },
-                        getLabel = { it.name.replace('_', ' ').lowercase() }
-                    )
-                }
             }
-
 
             // Save / leave buttons
             Row(
@@ -408,44 +397,36 @@ private fun FamilyMemberSection(
                 .fillMaxWidth()
         ) {
             familyUsers.forEach { user ->
-                val isAdmin = family.adminIds.contains(user.userId)
-                Surface(
-                    tonalElevation = if (isAdmin) 2.dp else 0.dp,
-                    shape = MaterialTheme.shapes.medium,
-                    color = tintColor.copy(alpha = 0.1f),
-                    modifier = Modifier
+                Row(
+                    Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .padding(
+                            top = 12.dp, bottom = 12.dp
+                        ),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    IconSelector(
+                        title = user.displayName,
+                        options = FamilyRole.entries,
+                        selected = user.role,
+                        onSelect = { newRole ->
+                            onRoleChange(user.userId, newRole)
+                        },
+                        getIcon = { it.icon },
+                        getLabel = { it.label },
+                        getColor = { it.color },
+                        modifier = Modifier.padding(end = 8.dp),
+                        enabled = isCurrentAdmin && !isLoading
+                    )
+                    IconButton(
+                        onClick = { onRemoveUser(user.userId) },
+                        enabled = isCurrentAdmin && !isLoading
                     ) {
-                        IconSelector(
-                            title = user.displayName,
-                            options = FamilyRole.entries,
-                            selected = user.role,
-                            onSelect = { newRole ->
-                                onRoleChange(user.userId, newRole)
-                            },
-                            getIcon = { it.icon },
-                            getLabel = { it.label },
-                            getColor = { it.color },
-                            modifier = Modifier.padding(end = 8.dp),
-                            enabled = isCurrentAdmin && !isLoading
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Supprimer",
+                            tint = Color.Red
                         )
-                        IconButton(
-                            onClick = { onRemoveUser(user.userId) },
-                            enabled = isCurrentAdmin && !isLoading
-                        ) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Supprimer",
-                                tint = Color.Red
-                            )
-                        }
                     }
                 }
             }
@@ -580,7 +561,7 @@ fun FamilyLeaveButton(
             onClick = { showConfirmDialog = true },
             enabled = !isLoading,
             colors = ButtonDefaults.textButtonColors(
-                contentColor = if (isOnlyAdmin)  Color.Red.copy(alpha = 0.5f)
+                contentColor = if (isOnlyAdmin) Color.Red.copy(alpha = 0.5f)
                 else Color.Red
             )
         ) {
