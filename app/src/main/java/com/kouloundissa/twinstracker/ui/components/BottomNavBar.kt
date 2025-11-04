@@ -95,8 +95,10 @@ fun GlassIslandNavBar(
     hazeState: HazeState,
     modifier: Modifier = Modifier
 ) {
-    val baseColor = Color.White
-    val contentColor = Color.DarkGray
+    val baseColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+
     val cornerShape = MaterialTheme.shapes.extraLarge
     Surface(
         modifier = modifier
@@ -136,9 +138,9 @@ fun GlassIslandNavBar(
                     onClick = { onTabSelected(tab) },
                     alwaysShowLabel = true,
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = contentColor,
+                        selectedIconColor = tint,
                         unselectedIconColor = contentColor.copy(alpha = 0.5f),
-                        indicatorColor = Color.Transparent
+                        indicatorColor = tint.copy(alpha = 0.1f)
                     )
                 )
             }
