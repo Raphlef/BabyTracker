@@ -102,17 +102,9 @@ fun GlassIslandNavBar(
     val cornerShape = MaterialTheme.shapes.extraLarge
     Surface(
         modifier = modifier
-            .height(64.dp)                    // reduce height for tighter island
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        baseColor.copy(alpha = 0.99f),
-                        baseColor.copy(alpha = 0.90f)
-                    )
-                ),
-                shape = cornerShape
-            ),
-        color = baseColor.copy(alpha = 0.20f),
+            .height(64.dp)
+        ,
+        color = baseColor.copy(alpha = 0.95f),
         shape = cornerShape
     ) {
         Row(
