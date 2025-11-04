@@ -671,10 +671,26 @@ private fun EventTypeDialog(
     val contentColor = Color.White
     val cornerShape = MaterialTheme.shapes.extraLarge
 
+    val isLoadingMore by eventViewModel.isLoadingMore.collectAsState()
+    val hasMoreHistory by eventViewModel.hasMoreHistory.collectAsState()
 
+    val lazyListState = rememberLazyListState()
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,  // skips intermediate state to start fully expanded
     )
+    LaunchedEffect(lazyListState) {
+        snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .distinctUntilChanged()
+            .collect { lastVisibleIndex ->
+                val totalItems = lazyListState.layoutInfo.totalItemsCount
+                // Trigger when user is within last 3 items
+                if (lastVisibleIndex != null && lastVisibleIndex >= totalItems - 3) {
+                    if (hasMoreHistory && !isLoadingMore) {
+                        eventViewModel.loadMoreHistoricalEvents()
+                    }
+                }
+            }
+    }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -732,6 +748,7 @@ private fun EventTypeDialog(
                         Text("No ${type.displayName.lowercase()} events yet")
                     } else {
                         LazyColumn(
+                            state = lazyListState,
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
