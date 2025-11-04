@@ -683,10 +683,10 @@ private fun EventTypeDialog(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.75f)
+                .fillMaxHeight(0.9f)
                 .clip(cornerShape)
         ) {
-            val blurRadius = if (events.size > 5) 5.dp else 1.dp
+            val blurRadius = if (events.size > 5) 5.dp else 0.dp
             //  Background image sized to the dialog
             Image(
                 painter = painterResource(id = type.drawableRes),
