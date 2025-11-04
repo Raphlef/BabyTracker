@@ -140,13 +140,13 @@ fun GlassIslandNavBar(
                             tab.icon()
                         }
                     },
-                    label = {
-                        Text(
-                            tab.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = contentColor.copy(alpha = animatedAlpha)
-                        )
-                    },
+//                    label = {
+//                        Text(
+//                            tab.label,
+//                            style = MaterialTheme.typography.labelSmall,
+//                            color = contentColor.copy(alpha = animatedAlpha)
+//                        )
+//                    },
                     selected = selectedTab == tab,
                     onClick = { onTabSelected(tab) },
                     alwaysShowLabel = true,
