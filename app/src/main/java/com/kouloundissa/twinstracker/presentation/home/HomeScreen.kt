@@ -84,12 +84,15 @@ import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.EventCard
 import com.kouloundissa.twinstracker.ui.components.SleepTimer
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.math.ceil
 
+@OptIn(FlowPreview::class)
 @SuppressLint("DefaultLocale", "UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun HomeScreen(
@@ -132,6 +135,7 @@ fun HomeScreen(
     LaunchedEffect(lazyListState) {
         snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .distinctUntilChanged()
+            .debounce(600)
             .collect { lastVisibleIndex ->
                 val totalItems = lazyListState.layoutInfo.totalItemsCount
                 // Trigger when user is within last 3 items
@@ -657,7 +661,7 @@ fun EventTypeCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
 private fun EventTypeDialog(
     type: EventType,
@@ -681,6 +685,7 @@ private fun EventTypeDialog(
     LaunchedEffect(lazyListState) {
         snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .distinctUntilChanged()
+            .debounce(600)
             .collect { lastVisibleIndex ->
                 val totalItems = lazyListState.layoutInfo.totalItemsCount
                 // Trigger when user is within last 3 items
@@ -766,6 +771,42 @@ private fun EventTypeDialog(
                                         }
                                     }
                                 )
+                            }
+                            if (isLoadingMore && hasMoreHistory) {
+                                item {
+                                    Box(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Card(
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+                                                    alpha = 0.8f
+                                                )
+                                            ),
+                                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                        ) {
+                                            Row(
+                                                Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                CircularProgressIndicator(
+                                                    Modifier.size(16.dp),
+                                                    strokeWidth = 2.dp,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                                Text(
+                                                    "Loading older events…",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
