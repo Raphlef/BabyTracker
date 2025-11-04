@@ -35,6 +35,7 @@ firebaseCrashlyticsKtx = "19.4.4"
 roomKtxVersion = "2.8.1"
 foundationLayoutVersion = "1.9.2"
 androidxFoundation = "1.9.4"
+animation = "1.9.4"
 
 [libraries]
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
@@ -104,6 +105,7 @@ play-services-auth = { module = "com.google.android.gms:play-services-auth", ver
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "roomKtxVersion" }
 androidx-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayoutVersion" }
 androidx-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "androidxFoundation" }
+androidx-compose-animation = { group = "androidx.compose.animation", name = "animation", version.ref = "animation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
