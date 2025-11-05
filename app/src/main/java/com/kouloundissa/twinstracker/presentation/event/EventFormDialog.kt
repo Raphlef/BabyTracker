@@ -516,10 +516,9 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
             ((end.time - begin.time) / 60000).coerceAtLeast(0L)
         else null
 
-    LaunchedEffect(state.beginTime) {
+    LaunchedEffect(Unit) {
         if (state.beginTime == null) {
             val now = Date()
-            viewModel.updateEventTimestamp(now)
             viewModel.updateForm {
                 val s = this as EventFormState.Sleep
                 s.copy(
@@ -527,6 +526,7 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
                     durationMinutes = computeDuration(now, s.endTime)
                 )
             }
+            viewModel.updateEventTimestamp(now)
         }
     }
 
@@ -554,7 +554,6 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
-
                 ModernDateSelector(
                     label = "End sleep",
                     selectedDate = state.endTime,
