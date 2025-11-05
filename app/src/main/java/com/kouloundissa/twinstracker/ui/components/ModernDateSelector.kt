@@ -92,7 +92,7 @@ fun ModernDateSelector(
                 // Date chip
                 OutlinedButton(
                     onClick = { showDatePicker = true },
-                    border = BorderStroke(1.dp, tint),
+                    border = BorderStroke(1.dp, contentcolor.copy(alpha = 0.5f)),
                     contentPadding = PaddingValues(vertical = 8.dp, horizontal = 12.dp),
                     modifier = Modifier.weight(2f)
                 ) {
@@ -117,7 +117,7 @@ fun ModernDateSelector(
                 // Time chip
                 OutlinedButton(
                     onClick = { showTimePicker = true },
-                    border = BorderStroke(1.dp, tint),
+                    border = BorderStroke(1.dp, contentcolor.copy(alpha = 0.5f)),
                     contentPadding = PaddingValues(vertical = 8.dp, horizontal = 12.dp),
                     modifier = Modifier.weight(1f)
                 ) {
