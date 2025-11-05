@@ -267,7 +267,10 @@ fun DashboardScreen(
                                 }
                             }
                         },
-                        onAddClicked = { showEventForm = true },
+                        onAddClicked = {
+                            eventViewModel.resetFormState()
+                            showEventForm = true
+                        },
                         navItems = tabs,
                         hazeState = hazeState,
                         eventTypes = eventTypes.map { et ->
