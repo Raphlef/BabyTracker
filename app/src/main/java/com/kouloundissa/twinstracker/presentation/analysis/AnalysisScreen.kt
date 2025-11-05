@@ -143,7 +143,7 @@ fun AnalysisScreen(
                     color = backgroundcolor.copy(alpha = 0.85f),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(10.dp)
                 ) {
                     DateRangeSelector(
                         selectedRange = selectedRange,
@@ -154,7 +154,7 @@ fun AnalysisScreen(
                             customStartDate = start
                             customEndDate = end
                         },
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(10.dp)
                     )
                 }
 
@@ -196,7 +196,7 @@ fun AnalysisScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .padding(16.dp),
+                    .padding(10.dp),
             ) {
                 item {
                     val poopCounts = dateList.map { date ->
@@ -517,12 +517,12 @@ fun DateRangeSelector(
                     modifier = Modifier.padding(bottom = 2.dp)
                 )
 
-                Text(
-                    text = "$daysCount days",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = tint.copy(alpha = 0.6f),
-                    fontStyle = FontStyle.Italic
-                )
+//                Text(
+//                    text = "$daysCount days",
+//                    style = MaterialTheme.typography.bodySmall,
+//                    color = tint.copy(alpha = 0.6f),
+//                    fontStyle = FontStyle.Italic
+//                )
             }
         }
 
