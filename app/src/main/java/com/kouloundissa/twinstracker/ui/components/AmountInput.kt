@@ -1,10 +1,17 @@
 package com.kouloundissa.twinstracker.ui.components
 
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -38,6 +45,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -63,6 +72,19 @@ fun AmountInput(
     val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
     val contentcolor = DarkGrey
     val tint = DarkBlue
+
+    var isDecreasePressed by remember { mutableStateOf(false) }
+    var isIncreasePressed by remember { mutableStateOf(false) }
+    val decreaseScale by animateFloatAsState(
+        targetValue = if (isDecreasePressed) 0.95f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        label = "button_scale_decrease"
+    )
+    val increaseScale by animateFloatAsState(
+        targetValue = if (isIncreasePressed) 0.95f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        label = "button_scale_increase"
+    )
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = backgroundcolor,
@@ -87,23 +109,37 @@ fun AmountInput(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Decrement button
-                IconButton(
-                    onClick = {
-                        val currentValue = stringToInt(value)
-                        val newValue = maxOf(min, currentValue - step)
-                        textValue = newValue.toString()
-                        onValueChange(textValue)
-                    },
+                Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .graphicsLayer {
+                            scaleX = decreaseScale
+                            scaleY = decreaseScale
+                        }
                         .border(
                             BorderStroke(1.dp, contentcolor.copy(alpha = 0.5f)),
                             shape = RoundedCornerShape(16.dp)
                         )
-                        .background(BackgroundColor.copy(alpha = 0.15f))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            if (isDecreasePressed) Color.White.copy(alpha = 0.8f)
+                            else BackgroundColor.copy(alpha = 0.25f)
+                        )
+                        .pointerInput(Unit) {
+                            awaitEachGesture {
+                                awaitFirstDown()
+                                isDecreasePressed = true
+                                waitForUpOrCancellation()
+                                val currentValue = stringToInt(value)
+                                val newValue = maxOf(min, currentValue - step)
+                                textValue = newValue.toString()
+                                onValueChange(textValue)
+                                isDecreasePressed = false
+                            }
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Remove, contentDescription = "Decrease", tint = tint)
+                    Icon(Icons.Default.Remove, contentDescription = "Decrease", tint = contentcolor)
                 }
 
                 // Text input (center, editable)
@@ -133,21 +169,35 @@ fun AmountInput(
                 )
 
                 // Increment button
-                IconButton(
-                    onClick = {
-                        val currentValue = stringToInt(value)
-                        val newValue = minOf(max, currentValue + step)
-                        textValue = newValue.toString()
-                        onValueChange(textValue)
-                    },
+                Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .graphicsLayer {
+                            scaleX = increaseScale
+                            scaleY = increaseScale
+                        }
                         .border(
                             BorderStroke(1.dp, contentcolor.copy(alpha = 0.5f)),
                             shape = RoundedCornerShape(16.dp)
                         )
-                        .background(BackgroundColor.copy(alpha = 0.15f))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            if (isIncreasePressed) Color.White.copy(alpha = 0.8f)
+                            else BackgroundColor.copy(alpha = 0.25f)
+                        )
+                        .pointerInput(Unit) {
+                            awaitEachGesture {
+                                awaitFirstDown()
+                                isIncreasePressed = true
+                                waitForUpOrCancellation()
+                                val currentValue = stringToInt(value)
+                                val newValue = minOf(max, currentValue + step)
+                                textValue = newValue.toString()
+                                onValueChange(textValue)
+                                isIncreasePressed = false
+                            }
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Increase", tint = contentcolor)
                 }
