@@ -128,11 +128,16 @@ fun ModernDateSelector(
                         tint = tint
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(displayDate),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = contentcolor
-                    )
+                    if (selectedDate != null) {
+                        Text(
+                            text = SimpleDateFormat(
+                                "HH:mm",
+                                Locale.getDefault()
+                            ).format(displayDate),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = contentcolor
+                        )
+                    }
                 }
             }
         }
