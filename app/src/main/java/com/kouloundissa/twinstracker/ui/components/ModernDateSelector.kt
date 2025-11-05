@@ -93,8 +93,8 @@ fun ModernDateSelector(
                 OutlinedButton(
                     onClick = { showDatePicker = true },
                     border = BorderStroke(1.dp, contentcolor.copy(alpha = 0.5f)),
-                    contentPadding = PaddingValues(vertical = 8.dp, horizontal = 12.dp),
-                    modifier = Modifier.weight(2f)
+                    contentPadding = PaddingValues(vertical = 8.dp, horizontal = 4.dp),
+                    modifier = Modifier.weight(1f)
                 ) {
                     Icon(
                         Icons.Default.DateRange,
@@ -118,18 +118,19 @@ fun ModernDateSelector(
                 OutlinedButton(
                     onClick = { showTimePicker = true },
                     border = BorderStroke(1.dp, contentcolor.copy(alpha = 0.5f)),
-                    contentPadding = PaddingValues(vertical = 8.dp, horizontal = 12.dp),
-                    modifier = Modifier.weight(1f)
+                    contentPadding = PaddingValues(vertical = 8.dp, horizontal = 4.dp),
+                    modifier = Modifier.weight(0.5f)
                 ) {
                     Icon(
                         Icons.Default.AccessTime,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(15.dp),
                         tint = tint
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
                         text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(displayDate),
+                        style = MaterialTheme.typography.labelMedium,
                         color = contentcolor
                     )
                 }
