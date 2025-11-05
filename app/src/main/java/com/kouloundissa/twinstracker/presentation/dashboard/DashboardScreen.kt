@@ -150,13 +150,16 @@ fun DashboardScreen(
                     .padding(paddingValues)
             ) {
                 Column() {
-                    // --- BABY SELECTOR + INFO ---
                     Spacer(Modifier.height(8.dp))
-                    BabySelectorRow(
+
+                    BabyInfoBar(
                         babies = babies,
                         selectedBaby = selectedBaby,
                         onSelectBaby = {
                             babyViewModel.selectBaby(it)
+                        },
+                        onEditBaby = {
+                            editingBaby = selectedBaby
                         },
                         onAddBaby = {
                             // Open create baby dialog
@@ -164,8 +167,7 @@ fun DashboardScreen(
                             showBabyDialog = true
                         }
                     )
-                    Spacer(Modifier.height(4.dp))
-                    selectedBaby?.let { BabyInfoBar(it) { editingBaby = it } }
+
 
                     Spacer(Modifier.height(8.dp))
                     // --- MAIN CONTENT for selected tab ---

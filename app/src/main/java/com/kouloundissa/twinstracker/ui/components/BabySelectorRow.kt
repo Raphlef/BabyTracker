@@ -47,9 +47,9 @@ fun BabySelectorRow(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
-            .padding(horizontal = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+            .height(48.dp)
+            .padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         items(babies) { baby ->
             val isSelected = baby == selectedBaby
@@ -65,7 +65,7 @@ fun BabySelectorRow(
                         overflow = TextOverflow.Ellipsis
                     )
                 },
-                modifier = Modifier.height(48.dp),
+                modifier = Modifier.height(40.dp),
                 shape = cornerShape,
                 colors = FilterChipDefaults.filterChipColors(
                     containerColor = baseColor.copy(alpha = 0.15f),
@@ -96,7 +96,7 @@ fun BabySelectorRow(
                 // Add button with matching design
                 Surface(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(40.dp)
                         .clickable(
                             onClick = onAddBaby,
                             indication = ripple(bounded = false),
