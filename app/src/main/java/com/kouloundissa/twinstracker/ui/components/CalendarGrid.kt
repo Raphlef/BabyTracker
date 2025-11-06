@@ -1,19 +1,24 @@
 package com.kouloundissa.twinstracker.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -92,13 +97,21 @@ fun DayCell(
     isSelected: Boolean,
     onClick: (LocalDate) -> Unit
 ) {
-
     val tint = DarkBlue
-    val backgroundColor = when {
-        isSelected -> tint.copy(alpha = 0.7f)
-        eventCount > 0 -> BackgroundColor.copy(alpha = 0.7f)
-        else -> BackgroundColor.copy(alpha = 0.4f)
+
+    val activityLevel = when {
+        eventCount == 0 -> ActivityLevel.NONE
+        eventCount <= 7 -> ActivityLevel.LOW
+        eventCount <= 15 -> ActivityLevel.MEDIUM
+        else -> ActivityLevel.HIGH
     }
+
+    val backgroundColor = when {
+        isSelected -> tint.copy(alpha = 0.6f)
+        eventCount > 0 -> BackgroundColor.copy(alpha = 0.4f + (activityLevel.ordinal * 0.2f))
+        else -> BackgroundColor.copy(alpha = 0.3f)
+    }
+
     val contentColor = when {
         isSelected -> BackgroundColor
         else -> DarkGrey
@@ -113,26 +126,75 @@ fun DayCell(
             .clickable { onClick(date) },
         contentAlignment = Alignment.TopCenter
     ) {
+        // Numéro du jour
         Text(
             "${date.dayOfMonth}",
             style = MaterialTheme.typography.bodySmall,
             color = contentColor,
-            fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
+            fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+            modifier = Modifier.padding(top = 2.dp)
         )
-        // Indicateur simple basé sur le comptage
+
+        // Indicateur visuel
         if (eventCount > 0) {
-            Box(
+            Row(
                 Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 4.dp)
+                    .padding(bottom = 2.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(tint)
-                )
+                // Icône d'activité
+                when (activityLevel) {
+                    ActivityLevel.LOW -> {
+                        // Point simple
+                        Box(
+                            Modifier
+                                .size(5.dp)
+                                .clip(CircleShape)
+                                .background(tint.copy(alpha = if (isSelected) 1f else 0.7f))
+                        )
+                    }
+                    ActivityLevel.MEDIUM -> {
+                        // Deux points
+                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                            repeat(2) {
+                                Box(
+                                    Modifier
+                                        .size(4.dp)
+                                        .clip(CircleShape)
+                                        .background(tint.copy(alpha = if (isSelected) 1f else 0.8f))
+                                )
+                            }
+                        }
+                    }
+                    ActivityLevel.HIGH -> {
+                        // Badge avec nombre
+                        Box(
+                            Modifier
+                                .height(11.dp)
+                                .widthIn(min = 16.dp)
+                                .clip(RoundedCornerShape(5.dp))
+                                .background(tint.copy(alpha = if (isSelected) 1f else 0.9f))
+                                .padding(horizontal = 3.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (eventCount > 99) "99+" else eventCount.toString(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = BackgroundColor,
+                                fontSize = 7.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    ActivityLevel.NONE -> { /* Rien */ }
+                }
             }
         }
     }
+}
+
+enum class ActivityLevel {
+    NONE, LOW, MEDIUM, HIGH
 }
