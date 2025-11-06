@@ -42,10 +42,12 @@ fun CalendarScreen(
 ) {
     /** State **/
     val allEvents by eventViewModel.events.collectAsState()
+    val eventCountsByDay by eventViewModel.eventCountsByDay.collectAsState()
     val isLoading by eventViewModel.isLoading.collectAsState()
     val errorMessage by eventViewModel.errorMessage.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
     val eventsByDay by eventViewModel.eventsByDay.collectAsState()
+
     var currentMonth by rememberSaveable { mutableStateOf(LocalDate.now()) }
     var selectedDate by rememberSaveable { mutableStateOf(LocalDate.now()) }
     var filterTypes by rememberSaveable { mutableStateOf<Set<EventType>>(emptySet()) }
@@ -64,20 +66,35 @@ fun CalendarScreen(
     }
     LaunchedEffect(availableTypes) { filterTypes = availableTypes }
     fun LocalDate.toDate(): Date = Date.from(this.atStartOfDay(ZoneId.systemDefault()).toInstant())
-    LaunchedEffect(isVisible, currentMonth, selectedBaby?.id) {
+    LaunchedEffect(isVisible, selectedDate, selectedBaby?.id) {
         if (isVisible) {
             selectedBaby?.id?.let {
-                val startOfMonth = currentMonth.withDayOfMonth(1)
-                val endOfMonth = currentMonth.withDayOfMonth(currentMonth.lengthOfMonth())
+                val startOfDay = selectedDate.atStartOfDay(ZoneId.systemDefault()).toInstant()
+                val endOfDay = selectedDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
+
                 eventViewModel.refreshWithCustomRange(
                     it,
+                    Date.from(startOfDay),
+                    Date.from(endOfDay)
+                )
+            }
+        }
+    }
+    LaunchedEffect(isVisible, currentMonth, selectedBaby?.id) {
+        if (isVisible) {
+            selectedBaby?.id?.let { babyId ->
+                val startOfMonth = currentMonth.withDayOfMonth(1)
+                val endOfMonth = currentMonth.withDayOfMonth(currentMonth.lengthOfMonth())
+
+                // Stream des COMPTAGES pour tout le mois (léger)
+                eventViewModel.refreshCountWithCustomRange(
+                    babyId,
                     startOfMonth.toDate(),
                     endOfMonth.toDate()
                 )
             }
         }
     }
-
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
@@ -126,30 +143,27 @@ fun CalendarScreen(
             ) {
 
                 item {
-                    val eventsByDayCover: Map<LocalDate, List<Event>> =
-                        remember(allEvents, filterTypes, currentMonth) {
-                            val year = currentMonth.year
-                            val month = currentMonth.monthValue
-                            // Generate each date in the month
-                            (1..currentMonth.lengthOfMonth()).associateWith { day ->
-                                val date = LocalDate.of(year, month, day)
-                                allEvents.filter { it.coversDay(date) }
-                                    .filter { filterTypes.contains(EventType.forClass(it::class)) }
-                            }.mapKeys { (day, evts) ->
-                                LocalDate.of(year, month, day)
+                    val eventsByDayForCalendar: Map<LocalDate, Int> =
+                        remember(eventCountsByDay, currentMonth) {
+                            eventCountsByDay.mapKeys { (dateStr, _) ->
+                                LocalDate.parse(dateStr) // "yyyy-MM-dd" -> LocalDate
                             }
+                                .filterKeys {
+                                    it.monthValue == currentMonth.monthValue &&
+                                            it.year == currentMonth.year
+                                }
+                                .mapValues { (_, count) -> count.count }
                         }
                     SwipeableCalendar(
                         currentMonth = currentMonth,
                         onMonthChange = { delta -> currentMonth = currentMonth.plusMonths(delta) },
-                        eventsByDay = eventsByDayCover,
+                        eventCountsByDay = eventsByDayForCalendar,
                         selectedDate = selectedDate,
                         onDayClick = { selectedDate = it }
                     )
                 }
 
                 val dailyEvents = allEvents
-                    .filter { it.coversDay(selectedDate) }
                     .filter { filterTypes.contains(EventType.forClass(it::class)) }
                 item {
                     Text(
@@ -196,12 +210,4 @@ fun CalendarScreen(
             }
         }
     }
-}
-
-fun Event.coversDay(day: LocalDate): Boolean {
-    val start = (this as? SleepEvent)?.beginTime ?: this.timestamp
-    val end = (this as? SleepEvent)?.endTime ?: start
-    val startDate = Instant.ofEpochMilli(start.time).atZone(ZoneId.systemDefault()).toLocalDate()
-    val endDate = Instant.ofEpochMilli(end.time).atZone(ZoneId.systemDefault()).toLocalDate()
-    return !day.isBefore(startDate) && !day.isAfter(endDate)
 }

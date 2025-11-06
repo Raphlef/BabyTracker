@@ -33,7 +33,7 @@ import java.time.LocalDate
 fun SwipeableCalendar(
     currentMonth: LocalDate,
     onMonthChange: (delta: Long) -> Unit,
-    eventsByDay: Map<LocalDate, List<Event>>,
+    eventCountsByDay : Map<LocalDate, Int>,
     selectedDate: LocalDate,
     onDayClick: (LocalDate) -> Unit,
     modifier: Modifier = Modifier
@@ -86,7 +86,7 @@ fun SwipeableCalendar(
                 CalendarGrid(
                     year = month.year,
                     month = month.monthValue,
-                    eventsByDay = eventsByDay,
+                    eventCountsByDay = eventCountsByDay,
                     selectedDate = selectedDate,
                     onDayClick = onDayClick
                 )

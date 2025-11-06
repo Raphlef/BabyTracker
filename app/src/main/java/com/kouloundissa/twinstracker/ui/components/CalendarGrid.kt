@@ -35,7 +35,7 @@ import java.time.LocalDate
 fun CalendarGrid(
     year: Int,
     month: Int,
-    eventsByDay: Map<LocalDate, List<Event>>,
+    eventCountsByDay: Map<LocalDate, Int>,
     selectedDate: LocalDate,
     onDayClick: (LocalDate) -> Unit
 ) {
@@ -74,7 +74,7 @@ fun CalendarGrid(
                     val date = LocalDate.of(year, month, dayNum)
                     DayCell(
                         date = date,
-                        events = eventsByDay[LocalDate.of(year, month, dayNum)].orEmpty(),
+                        eventCount = eventCountsByDay[date] ?: 0,
                         isSelected = date == selectedDate,
                         onClick = onDayClick
                     )
@@ -88,7 +88,7 @@ fun CalendarGrid(
 @Composable
 fun DayCell(
     date: LocalDate,
-    events: List<Event>,
+    eventCount: Int,
     isSelected: Boolean,
     onClick: (LocalDate) -> Unit
 ) {
@@ -96,7 +96,7 @@ fun DayCell(
     val tint = DarkBlue
     val backgroundColor = when {
         isSelected -> tint.copy(alpha = 0.7f)
-        events.isNotEmpty() -> BackgroundColor.copy(alpha = 0.7f)
+        eventCount > 0 -> BackgroundColor.copy(alpha = 0.7f)
         else -> BackgroundColor.copy(alpha = 0.4f)
     }
     val contentColor = when {
@@ -119,27 +119,18 @@ fun DayCell(
             color = contentColor,
             fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
         )
-        Row(
-            Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 2.dp, start = 2.dp, end = 2.dp),
-            horizontalArrangement = Arrangement.spacedBy(1.dp, Alignment.CenterHorizontally)
-        ) {
-
-            events.take(3).forEach { evt ->
+        // Indicateur simple basé sur le comptage
+        if (eventCount > 0) {
+            Box(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 4.dp)
+            ) {
                 Box(
                     Modifier
                         .size(6.dp)
                         .clip(CircleShape)
-                        .background((EventType.forClass(evt::class).color))
-                )
-            }
-            if (events.size > 3) {
-                Text(
-                    text = "+${events.size - 3}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = contentColor.copy(alpha = 0.7f),
-                    fontSize = 8.sp
+                        .background(tint)
                 )
             }
         }
