@@ -125,7 +125,7 @@ fun AmountInput(
                             if (isDecreasePressed) Color.White.copy(alpha = 0.8f)
                             else BackgroundColor.copy(alpha = 0.25f)
                         )
-                        .pointerInput(Unit) {
+                        .pointerInput(value) {
                             awaitEachGesture {
                                 awaitFirstDown()
                                 isDecreasePressed = true
@@ -185,7 +185,7 @@ fun AmountInput(
                             if (isIncreasePressed) Color.White.copy(alpha = 0.8f)
                             else BackgroundColor.copy(alpha = 0.25f)
                         )
-                        .pointerInput(Unit) {
+                        .pointerInput(value) {
                             awaitEachGesture {
                                 awaitFirstDown()
                                 isIncreasePressed = true
