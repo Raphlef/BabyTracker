@@ -565,7 +565,7 @@ class FirebaseRepository @Inject constructor(
         return db.collection(EVENTS_COLLECTION)
             .whereEqualTo("babyId", babyId)
             .whereGreaterThanOrEqualTo("timestamp", startDate)
-            .whereLessThanOrEqualTo("timestamp", endDate)
+            .whereLessThan("timestamp", endDate)
             .snapshots()
             .map { snapshot ->
                 snapshot.documents.mapNotNull { it.toEvent() }
@@ -597,7 +597,7 @@ class FirebaseRepository @Inject constructor(
         return db.collection(EVENTS_COLLECTION)
             .whereEqualTo("babyId", babyId)
             .whereGreaterThanOrEqualTo("timestamp", startDate)
-            .whereLessThanOrEqualTo("timestamp", endDate)
+            .whereLessThan("timestamp", endDate)
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .snapshots()
             .map { snapshot ->
