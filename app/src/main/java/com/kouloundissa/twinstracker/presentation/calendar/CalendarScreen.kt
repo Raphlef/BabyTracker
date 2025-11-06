@@ -85,6 +85,7 @@ fun CalendarScreen(
             selectedBaby?.id?.let { babyId ->
                 val startOfMonth = currentMonth.withDayOfMonth(1)
                 val endOfMonth = currentMonth.withDayOfMonth(currentMonth.lengthOfMonth())
+                    .plusDays(1)
 
                 // Stream des COMPTAGES pour tout le mois (léger)
                 eventViewModel.refreshCountWithCustomRange(
