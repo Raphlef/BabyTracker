@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
@@ -550,7 +551,42 @@ class FirebaseRepository @Inject constructor(
             Result.failure(e)
         }
     }
+    fun streamEventCountsByDayTyped(
+        babyId: String,
+        startDate: Date,
+        endDate: Date
+    ): Flow<Map<String, EventDayCount>> {
+        require(babyId.isNotBlank()) { "Baby ID cannot be empty" }
+        require(startDate.before(endDate)) { "Start date must be before end date" }
 
+        val userId = auth.currentUser?.uid
+            ?: throw IllegalStateException("User not authenticated")
+
+        return db.collection(EVENTS_COLLECTION)
+            .whereEqualTo("babyId", babyId)
+            .whereGreaterThanOrEqualTo("timestamp", startDate)
+            .whereLessThanOrEqualTo("timestamp", endDate)
+            .snapshots()
+            .map { snapshot ->
+                snapshot.documents.mapNotNull { it.toEvent() }
+                    .groupingBy { event ->
+                        SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                            .format(event.timestamp)
+                    }
+                    .eachCount()
+                    .mapValues { (_, count) -> EventDayCount(count = count) }
+            }.catch { e ->
+                Log.e(
+                    "EventCountStream", "Error streaming event counts for baby=$babyId, " +
+                            "startDate=$startDate, endDate=$endDate", e
+                )
+                throw e
+            }
+    }
+    public data class EventDayCount(
+        val count: Int,
+        val hasEvents: Boolean = count > 0
+    )
     fun streamEventsForBaby(babyId: String, startDate: Date, endDate: Date): Flow<List<Event>> {
         require(babyId.isNotBlank()) { "Baby ID cannot be empty" }
         require(startDate.before(endDate)) { "Start date must be before end date" }

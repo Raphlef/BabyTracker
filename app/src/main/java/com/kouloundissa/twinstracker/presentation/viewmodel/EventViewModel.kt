@@ -42,6 +42,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import java.text.SimpleDateFormat
 import java.time.temporal.ChronoUnit
 
 @HiltViewModel
@@ -60,6 +61,9 @@ class EventViewModel @Inject constructor(
 
     private val _eventsByDay = MutableStateFlow<Map<java.time.LocalDate, List<Event>>>(emptyMap())
     val eventsByDay: StateFlow<Map<java.time.LocalDate, List<Event>>> = _eventsByDay
+
+    private val _eventCountsByDay = MutableStateFlow<Map<String, FirebaseRepository.EventDayCount>>(emptyMap())
+    val eventCountsByDay: StateFlow<Map<String, FirebaseRepository.EventDayCount>> = _eventCountsByDay.asStateFlow()
 
     private val _events = MutableStateFlow<List<Event>>(emptyList())
     val events: StateFlow<List<Event>> = _events
@@ -181,9 +185,18 @@ class EventViewModel @Inject constructor(
         startStreaming(babyId, DateRangeStrategy.Custom(DateRangeParams(startDate, endDate)))
     }
 
-    // Use this instead of passing babyId separately and maintaining date ranges in state
+    fun refreshCountWithLastDays(babyId: String, days: Long = 1L) {
+        startCountStreaming(babyId, DateRangeStrategy.LastDays(days))
+    }
+
+    fun refreshCountWithCustomRange(babyId: String, startDate: Date, endDate: Date) {
+        startCountStreaming(babyId, DateRangeStrategy.Custom(DateRangeParams(startDate, endDate)))
+    }
+
     private val _streamRequest = MutableStateFlow<EventStreamRequest?>(null)
+    private val _countStreamRequest = MutableStateFlow<EventStreamRequest?>(null)
     private var streamJob: Job? = null
+    private var countsStreamJob: Job? = null
     private var currentDaysWindow = 1L
     private val maxDaysWindow = 365L // Maximum 1 year of history
 
@@ -305,6 +318,77 @@ class EventViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
     }
+    /**
+     * Configure le stream pour les compteurs d'événements par jour
+     * Permet d'afficher les indicateurs de jours avec événements dans le calendrier
+     * sans charger tous les détails des événements
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun setupEventCountsStreamListener() {
+        // Only set up the listener once
+        if (countsStreamJob != null) return
+
+        countsStreamJob?.cancel()
+        countsStreamJob = _countStreamRequest // Utilise la nouvelle request
+            .onEach { request ->
+                request?.let {
+                    val daysBetween = ChronoUnit.DAYS.between(
+                        it.dateRange.startDate.toInstant(),
+                        it.dateRange.endDate.toInstant()
+                    ) + 1
+                    Log.d(
+                        "EventCountStream",
+                        "BabyId: ${it.babyId}, DateRange: ${it.dateRange.startDate} to ${it.dateRange.endDate} ($daysBetween days)"
+                    )
+                } ?: Log.d("EventCountStream", "CountStreamRequest is null")
+            }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .onEach { request ->
+                Log.d("EventCountStream", "Processing count request for babyId: ${request.babyId}")
+            }
+            .flatMapLatest { request ->
+                repository.streamEventCountsByDayTyped(
+                    request.babyId,
+                    request.dateRange.startDate,
+                    request.dateRange.endDate
+                )
+            }
+            .onStart {
+                Log.d("EventCountStream", "Count stream started")
+            }
+            .catch { e ->
+                Log.e("EventCountStream", "Count stream error occurred", e)
+                // Ne pas affecter l'UI principale
+            }
+            .onEach { counts ->
+                Log.d("EventCountStream", "Received counts for ${counts.size} days")
+                _eventCountsByDay.value = counts
+            }
+            .launchIn(viewModelScope)
+    }
+    /**
+     * Démarre le streaming des comptages uniquement (léger, pour calendrier)
+     */
+    fun startCountStreaming(
+        babyId: String,
+        strategy: DateRangeStrategy
+    ) {
+        if (babyId.isEmpty()) return
+
+        setupEventCountsStreamListener()
+
+        Log.d("CalculateRange", "from startCountStreaming")
+        val dateRange = calculateRange(strategy)
+        val request = EventStreamRequest(babyId, dateRange)
+
+        if (_countStreamRequest.value != request) {
+            Log.i("EventViewModel", "✓ Count StreamRequest UPDATED")
+            _countStreamRequest.value = request
+        } else {
+            Log.i("EventViewModel", "✗ Count StreamRequest UNCHANGED - skipped")
+        }
+    }
 
     /**
      * Single entry point for all event stream requests
@@ -339,12 +423,15 @@ class EventViewModel @Inject constructor(
         _isLoadingMore.value = false
         // setDateRangeForLastDays(currentDaysWindow)
     }
-
     /** Stops any active real-time listener. */
     fun stopStreaming() {
         Log.d("EventViewModel", "Stopping stream")
+
         streamJob?.cancel()
         streamJob = null
+
+        countsStreamJob?.cancel()
+        countsStreamJob = null
 
         _streamRequest.value = null
 
@@ -718,6 +805,21 @@ class EventViewModel @Inject constructor(
         }.mapValues { (_, list) ->
             list.size
         }
+    }
+    /**
+     * Vérifie si un jour spécifique a des événements
+     */
+    fun hasEventsOnDay(date: Date): Boolean {
+        val dateKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(date)
+        return _eventCountsByDay.value[dateKey]?.hasEvents ?: false
+    }
+
+    /**
+     * Obtient le nombre d'événements pour un jour spécifique
+     */
+    fun getEventCountForDay(date: Date): Int {
+        val dateKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(date)
+        return _eventCountsByDay.value[dateKey]?.count ?: 0
     }
 
     private fun clearAllEvents() {
