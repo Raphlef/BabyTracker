@@ -6,12 +6,12 @@ import android.net.Uri
 import android.util.Log // For logging
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
@@ -22,7 +22,6 @@ import com.google.firebase.firestore.toObject
 import com.google.firebase.firestore.toObjects
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageException
-import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -35,19 +34,16 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 import kotlin.runCatching
 
 
-private val Context.dataStore by preferencesDataStore(name = "user_prefs")
+private val Context.userDataStore by preferencesDataStore(name = "user_prefs")
 
 class FirebaseRepository @Inject constructor(
-
     val auth: FirebaseAuth,
     val db: FirebaseFirestore,
     private val context: Context
@@ -60,6 +56,8 @@ class FirebaseRepository @Inject constructor(
         private const val EVENTS_COLLECTION = "events"
         private const val FAMILIES_COLLECTION = "families"
         private val REMEMBER_ME_KEY = booleanPreferencesKey("remember_me")
+        private val FAVORITE_EVENT_TYPES_KEY = stringSetPreferencesKey("favorite_event_types")
+
     }
 
     // Méthodes d'authentification
@@ -131,7 +129,7 @@ class FirebaseRepository @Inject constructor(
 
     // Lit la préférence rememberMe en DataStore (suspend)
     suspend fun isRemembered(): Boolean {
-        return context.dataStore.data.map { prefs ->
+        return context.userDataStore.data.map { prefs ->
             prefs[REMEMBER_ME_KEY] ?: false
         }.first()
     }
@@ -154,21 +152,63 @@ class FirebaseRepository @Inject constructor(
     }
 
     suspend fun saveUserSession() {
-        context.dataStore.edit { prefs ->
+        context.userDataStore.edit { prefs ->
             prefs[REMEMBER_ME_KEY] = true
         }
     }
 
     suspend fun clearUserSession() {
-        context.dataStore.edit { prefs ->
+        context.userDataStore.edit { prefs ->
             prefs.remove(REMEMBER_ME_KEY)
         }
         auth.signOut()
     }
 
     fun getUserSession(): Flow<Boolean> {
-        return context.dataStore.data.map { prefs ->
+        return context.userDataStore.data.map { prefs ->
             prefs[REMEMBER_ME_KEY] ?: false
+        }
+    }
+
+    fun getFavoriteEventTypes(): Flow<Set<EventType>> {
+        return context.userDataStore.data.map { prefs ->
+            prefs[FAVORITE_EVENT_TYPES_KEY]
+                ?.mapNotNull { name ->
+                    try {
+                        EventType.valueOf(name)
+                    } catch (e: IllegalArgumentException) {
+                        null // Ignore invalid event types
+                    }
+                }
+                ?.toSet()
+                ?: emptySet()
+        }
+    }
+
+    suspend fun toggleFavoriteEventType(eventType: EventType) {
+        context.userDataStore.edit { prefs ->
+            val currentFavorites = prefs[FAVORITE_EVENT_TYPES_KEY]?.toMutableSet() ?: mutableSetOf()
+            val eventTypeName = eventType.name
+
+            if (currentFavorites.contains(eventTypeName)) {
+                currentFavorites.remove(eventTypeName)
+            } else {
+                currentFavorites.add(eventTypeName)
+            }
+
+            prefs[FAVORITE_EVENT_TYPES_KEY] = currentFavorites
+        }
+    }
+
+    suspend fun setFavoriteEventTypes(eventTypes: Set<EventType>) {
+        context.userDataStore.edit { prefs ->
+            prefs[FAVORITE_EVENT_TYPES_KEY] = eventTypes.map { it.name }.toSet()
+        }
+    }
+
+    suspend fun clearFavoriteEventTypes() {
+        context.userDataStore.edit { prefs ->
+            prefs.remove(FAVORITE_EVENT_TYPES_KEY)
         }
     }
 
@@ -551,6 +591,7 @@ class FirebaseRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
     fun streamEventCountsByDayTyped(
         babyId: String,
         startDate: Date,
@@ -583,10 +624,12 @@ class FirebaseRepository @Inject constructor(
                 throw e
             }
     }
+
     public data class EventDayCount(
         val count: Int,
         val hasEvents: Boolean = count > 0
     )
+
     fun streamEventsForBaby(babyId: String, startDate: Date, endDate: Date): Flow<List<Event>> {
         require(babyId.isNotBlank()) { "Baby ID cannot be empty" }
         require(startDate.before(endDate)) { "Start date must be before end date" }

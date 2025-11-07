@@ -33,6 +33,7 @@ import com.kouloundissa.twinstracker.Service.NotificationService
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.EventFormState.*
+import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.User
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -62,8 +63,10 @@ class EventViewModel @Inject constructor(
     private val _eventsByDay = MutableStateFlow<Map<java.time.LocalDate, List<Event>>>(emptyMap())
     val eventsByDay: StateFlow<Map<java.time.LocalDate, List<Event>>> = _eventsByDay
 
-    private val _eventCountsByDay = MutableStateFlow<Map<String, FirebaseRepository.EventDayCount>>(emptyMap())
-    val eventCountsByDay: StateFlow<Map<String, FirebaseRepository.EventDayCount>> = _eventCountsByDay.asStateFlow()
+    private val _eventCountsByDay =
+        MutableStateFlow<Map<String, FirebaseRepository.EventDayCount>>(emptyMap())
+    val eventCountsByDay: StateFlow<Map<String, FirebaseRepository.EventDayCount>> =
+        _eventCountsByDay.asStateFlow()
 
     private val _events = MutableStateFlow<List<Event>>(emptyList())
     val events: StateFlow<List<Event>> = _events
@@ -118,11 +121,29 @@ class EventViewModel @Inject constructor(
 
     // Cache for user profiles to avoid repeated fetches
     private val userProfileCache = mutableMapOf<String, User>()
+    private val _favoriteEventTypes = MutableStateFlow<Set<EventType>>(emptySet())
+    val favoriteEventTypes: StateFlow<Set<EventType>> = _favoriteEventTypes
+
+    fun toggleFavorite(eventType: EventType) {
+        viewModelScope.launch {
+            repository.toggleFavoriteEventType(eventType)
+        }
+    }
+
+    // Helper to get sorted event types (favorites first)
+    fun getSortedEventTypes(favorites: Set<EventType>): List<EventType> {
+        val favoritesList = EventType.entries.filter { it in favorites }
+        val nonFavoritesList = EventType.entries.filter { it !in favorites }
+        return favoritesList + nonFavoritesList
+    }
 
     init {
         // Get current user ID on initialization
         viewModelScope.launch {
             _currentUserId.value = repository.getCurrentUserId()
+            repository.getFavoriteEventTypes().collect { favorites ->
+                _favoriteEventTypes.value = favorites
+            }
         }
     }
 
@@ -151,7 +172,10 @@ class EventViewModel @Inject constructor(
                     Date.from(startDate),
                     Date.from(endDate)
                 )
-                Log.d("DateRange", "LastDays result: ${result.startDate} → ${result.endDate} (${strategy.days} days)")
+                Log.d(
+                    "DateRange",
+                    "LastDays result: ${result.startDate} → ${result.endDate} (${strategy.days} days)"
+                )
                 result
             }
 
@@ -181,6 +205,7 @@ class EventViewModel @Inject constructor(
         resetDateRangeAndHistory()
         startStreaming(babyId, DateRangeStrategy.LastDays(days))
     }
+
     /**
      * Convenience method for custom range
      */
@@ -321,6 +346,7 @@ class EventViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
     }
+
     /**
      * Configure le stream pour les compteurs d'événements par jour
      * Permet d'afficher les indicateurs de jours avec événements dans le calendrier
@@ -370,6 +396,7 @@ class EventViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
     }
+
     /**
      * Démarre le streaming des comptages uniquement (léger, pour calendrier)
      */
@@ -426,6 +453,7 @@ class EventViewModel @Inject constructor(
         _isLoadingMore.value = false
         // setDateRangeForLastDays(currentDaysWindow)
     }
+
     /** Stops any active real-time listener. */
     fun stopStreaming() {
         Log.d("EventViewModel", "Stopping stream")
@@ -800,6 +828,7 @@ class EventViewModel @Inject constructor(
             list.size
         }
     }
+
     /**
      * Vérifie si un jour spécifique a des événements
      */

@@ -28,12 +28,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -128,6 +131,12 @@ fun HomeScreen(
     val hasMoreHistory by eventViewModel.hasMoreHistory.collectAsState()
     val errorMessage by eventViewModel.errorMessage.collectAsState()
     val lastGrowthEvent by eventViewModel.lastGrowthEvent.collectAsState()
+    val favoriteEventTypes by eventViewModel.favoriteEventTypes.collectAsState()
+
+    val sortedEventTypes = remember(favoriteEventTypes) {
+        eventViewModel.getSortedEventTypes(favoriteEventTypes)
+    }
+
     val snackbarHostState = remember { SnackbarHostState() }
 
     var selectedType by remember { mutableStateOf<EventType?>(null) }
@@ -359,11 +368,13 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.spacedBy(spacing),
                             verticalArrangement = Arrangement.spacedBy(spacing)
                         ) {
-                            items(EventType.entries) { type ->
+                            items(sortedEventTypes) { type ->
                                 if (type == EventType.SLEEP && activeSleepEvent != null) {
                                     EventTypeCard(
                                         type = type,
                                         summary = summaries[type]!!,
+                                        isFavorite = type in favoriteEventTypes,
+                                        onFavoriteToggle = { eventViewModel.toggleFavorite(type) },
                                         onClick = {
                                             selectedType = type
                                             showTypeDialog = true
@@ -392,6 +403,8 @@ fun HomeScreen(
                                     EventTypeCard(
                                         type = type,
                                         summary = summaries[type]!!,
+                                        isFavorite = type in favoriteEventTypes,
+                                        onFavoriteToggle = { eventViewModel.toggleFavorite(type) },
                                         onClick = {
                                             selectedType = type
                                             showTypeDialog = true
@@ -600,6 +613,8 @@ fun EventTypeCard(
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     size: Dp,
+    isFavorite: Boolean = false,
+    onFavoriteToggle: (() -> Unit)? = null,
     overlayContent: (@Composable BoxScope.() -> Unit)? = null
 ) {
     val backgroundColor = BackgroundColor
@@ -618,7 +633,7 @@ fun EventTypeCard(
             )
 
     ) {
-        // 1. Background image sized to the dialog
+        // Background image
         Image(
             painter = painterResource(id = type.drawableRes),
             contentDescription = null,
@@ -642,7 +657,7 @@ fun EventTypeCard(
                     shape = cornerShape,
                 )
         ) {
-            // 1️⃣ Event name at top-left
+            // Event name at top-left
             Text(
                 text = type.displayName,
                 style = MaterialTheme.typography.titleMedium,
@@ -653,7 +668,25 @@ fun EventTypeCard(
                     .padding(start = 20.dp, top = 20.dp)
             )
 
-            // 2️⃣ Center content - show overlay if available, otherwise show summary
+            // Favorite star icon at top-right
+            if (onFavoriteToggle != null) {
+                IconButton(
+                    onClick = onFavoriteToggle,
+                    modifier = Modifier
+                        .zIndex(4f)
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                        .size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                        contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                        tint = if (isFavorite) Color(0xFFFFD700) else contentColor.copy(alpha = 0.7f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            // Center content - show overlay if available, otherwise show summary
             if (overlayContent != null) {
                 // Overlay content replaces summary
                 Box(
