@@ -73,6 +73,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.Event
+import com.kouloundissa.twinstracker.data.EventFormState
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.FeedType
 import com.kouloundissa.twinstracker.data.FeedingEvent
@@ -123,6 +124,7 @@ fun HomeScreen(
     val isLoadingMore by eventViewModel.isLoadingMore.collectAsState()
     val hasMoreHistory by eventViewModel.hasMoreHistory.collectAsState()
     val errorMessage by eventViewModel.errorMessage.collectAsState()
+    val lastGrowthEvent by eventViewModel.lastGrowthEvent.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     var selectedType by remember { mutableStateOf<EventType?>(null) }
@@ -175,6 +177,7 @@ fun HomeScreen(
             selectedBaby?.id?.let {
                 Log.d("HomeScreen", "Starting stream - babyId: $it, isVisible: $isVisible")
                 eventViewModel.refreshWithLastDays(it, 1L)
+                eventViewModel.loadLastGrowth(it)
             }
         }
     }
@@ -216,7 +219,7 @@ fun HomeScreen(
         .firstOrNull { it.endTime == null && it.beginTime != null }
 
 
-    val summaries = remember(todaysByType, babyEvents) {
+    val summaries = remember(todaysByType, lastGrowthEvent) {
         EventType.entries.associateWith { type ->
             val todayList = todaysByType[type].orEmpty()
             when (type) {
@@ -246,18 +249,17 @@ fun HomeScreen(
                 }
 
                 EventType.GROWTH -> {
-                    // Use last existing growth event, not limited to today
-                    babyEvents
-                        .filterIsInstance<GrowthEvent>()
-                        .maxByOrNull { it.timestamp }
-                        ?.let { "${it.weightKg ?: "-"}kg • ${it.heightCm ?: "-"}cm" }
-                        ?: "No growth today"
+                    // Use last growth event from ViewModel
+                    lastGrowthEvent?.let {
+                        "${it.weightKg ?: "-"}kg • ${it.heightCm ?: "-"}cm"
+                    } ?: "No growth data"
                 }
 
                 EventType.PUMPING -> {
                     if (todayList.isEmpty()) "No pumping today"
                     else {
-                        val totalMl = todayList.sumOf { (it as PumpingEvent).amountMl ?: 0.0 }.toInt()
+                        val totalMl =
+                            todayList.sumOf { (it as PumpingEvent).amountMl ?: 0.0 }.toInt()
                         val count = todayList.size
                         "${totalMl}ml • $count session${if (count > 1) "s" else ""}"
                     }
@@ -821,7 +823,10 @@ private fun EventTypeDialog(
                                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                                         ) {
                                             Row(
-                                                Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                                Modifier.padding(
+                                                    horizontal = 16.dp,
+                                                    vertical = 12.dp
+                                                ),
                                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
