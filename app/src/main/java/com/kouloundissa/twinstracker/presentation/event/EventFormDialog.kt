@@ -2,7 +2,6 @@ package com.kouloundissa.twinstracker.presentation.event
 
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -58,21 +57,21 @@ fun EventFormDialog(
     initialBabyId: String,
     onDismiss: () -> Unit,
     initialEventType: EventType? = null,
-    viewModel: EventViewModel = hiltViewModel(),
+    eventViewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel(),
 ) {
     val focusManager = LocalFocusManager.current
     val isFocusedOnDateField = remember { mutableStateOf(false) }
 
-    val formState by viewModel.formState.collectAsState()
-    val lastGrowthEvent by viewModel.lastGrowthEvent.collectAsState()
-    val isSaving by viewModel.isSaving.collectAsState()
-    val saveSuccess by viewModel.saveSuccess.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
+    val formState by eventViewModel.formState.collectAsState()
+    val lastGrowthEvent by eventViewModel.lastGrowthEvent.collectAsState()
+    val isSaving by eventViewModel.isSaving.collectAsState()
+    val saveSuccess by eventViewModel.saveSuccess.collectAsState()
+    val errorMessage by eventViewModel.errorMessage.collectAsState()
 
-    val isDeleting by viewModel.isDeleting.collectAsState()
-    val deleteSuccess by viewModel.deleteSuccess.collectAsState()
-    val deleteError by viewModel.deleteError.collectAsState()
+    val isDeleting by eventViewModel.isDeleting.collectAsState()
+    val deleteSuccess by eventViewModel.deleteSuccess.collectAsState()
+    val deleteError by eventViewModel.deleteError.collectAsState()
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     val currentType = formState.eventType
@@ -117,16 +116,16 @@ fun EventFormDialog(
                 EventType.PUMPING -> Pumping()
                 EventType.DRUGS -> Drugs()
             }
-            viewModel.updateForm { newState }
+            eventViewModel.updateForm { newState }
         }
     }
     LaunchedEffect(selectedBaby, currentType) {
         if (formState.eventId == null && currentType == EventType.GROWTH) {
             selectedBaby?.let { baby ->
-                viewModel.loadLastGrowth(baby.id)
+                eventViewModel.loadLastGrowth(baby.id)
                 lastGrowthEvent?.let {event->
                     // Only run this once—guarded by LaunchedEffect
-                    viewModel.updateForm {
+                    eventViewModel.updateForm {
                         (this as EventFormState.Growth).copy(
                             weightKg = event.weightKg?.toString().orEmpty(),
                             heightCm = event.heightCm?.toString().orEmpty(),
@@ -142,8 +141,8 @@ fun EventFormDialog(
     LaunchedEffect(saveSuccess, deleteSuccess) {
         if (saveSuccess || deleteSuccess) {
             onDismiss()
-            viewModel.resetSaveSuccess()
-            viewModel.resetDeleteState()
+            eventViewModel.resetSaveSuccess()
+            eventViewModel.resetDeleteState()
         }
     }
     // Confirmation dialog
@@ -154,7 +153,7 @@ fun EventFormDialog(
             text = { Text("Are you sure you want to delete this event?") },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.deleteEvent(formState.eventId!!, initialBabyId)
+                    eventViewModel.deleteEvent(formState.eventId!!, initialBabyId)
                     showDeleteConfirm = false
                 }) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
@@ -330,7 +329,7 @@ fun EventFormDialog(
                                     EventType.PUMPING -> Pumping()
                                     EventType.DRUGS -> Drugs()
                                 }
-                                viewModel.updateForm { newState }
+                                eventViewModel.updateForm { newState }
                             },
                             getIcon = { it.icon },
                             getLabel = { it.displayName },
@@ -343,7 +342,7 @@ fun EventFormDialog(
                     when (val s = formState) {
                         is Sleep -> {
                             // No top-level date selector for Sleep
-                            SleepForm(s, viewModel)
+                            SleepForm(s, eventViewModel)
                         }
 
                         else -> {
@@ -352,15 +351,15 @@ fun EventFormDialog(
                                 selectedDate = selectedDate,
                                 onDateSelected = {
                                     selectedDate = it
-                                    viewModel.updateEventTimestamp(it)
+                                    eventViewModel.updateEventTimestamp(it)
                                 }
                             )
                             when (s) {
-                                is Diaper -> DiaperForm(s, viewModel)
-                                is Feeding -> FeedingForm(s, viewModel)
-                                is Growth -> GrowthForm(s, viewModel)
-                                is Pumping -> PumpingForm(s, viewModel)
-                                is Drugs -> DrugsForm(s, viewModel)
+                                is Diaper -> DiaperForm(s, eventViewModel)
+                                is Feeding -> FeedingForm(s, eventViewModel)
+                                is Growth -> GrowthForm(s, eventViewModel)
+                                is Pumping -> PumpingForm(s, eventViewModel)
+                                is Drugs -> DrugsForm(s, eventViewModel)
                                 else -> {}
                             }
                         }
@@ -376,7 +375,7 @@ fun EventFormDialog(
                         onPhotoRemoved = {
                             // Only remove from storage if this event already exists:
                             if (isEditMode) {
-                                viewModel.deleteEventPhoto(formState.eventId!!)
+                                eventViewModel.deleteEventPhoto(formState.eventId!!)
                             }
                             formState.photoUrl = null
                             formState.photoRemoved = true
@@ -413,7 +412,7 @@ fun EventFormDialog(
                     }
                     Spacer(Modifier.weight(1f))
                     Button(
-                        onClick = { selectedBaby?.let { viewModel.SaveEvent(it.id) } },
+                        onClick = { selectedBaby?.let { eventViewModel.SaveEvent(it.id) } },
                         enabled = !isSaving,
                         shape = cornerShape,
                         modifier = Modifier
