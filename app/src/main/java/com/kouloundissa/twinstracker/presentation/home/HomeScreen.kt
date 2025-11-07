@@ -133,19 +133,36 @@ fun HomeScreen(
     val lazyListState = rememberLazyListState()
 
     LaunchedEffect(lazyListState) {
+        var lastLoadedCount = 0
+        var lastLoadAttempt = 0L
+
         snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .distinctUntilChanged()
-            .debounce(600)
             .collect { lastVisibleIndex ->
                 val totalItems = lazyListState.layoutInfo.totalItemsCount
+                val currentTime = System.currentTimeMillis()
+
                 // Trigger when user is within last 3 items
                 if (lastVisibleIndex != null && lastVisibleIndex >= totalItems - 3) {
-                    if (hasMoreHistory && !isLoadingMore) {
+                    // Only attempt to load if:
+                    // 1. Has more data available
+                    // 2. Not currently loading
+                    // 3. Items were actually loaded in last attempt (or first attempt)
+                    // 4. Prevent rapid consecutive attempts (at least 2s between attempts)
+                    val shouldAttemptLoad = hasMoreHistory &&
+                            !isLoadingMore &&
+                            (lastLoadedCount == 0 || totalItems > lastLoadedCount) &&
+                            (currentTime - lastLoadAttempt > 2000)
+
+                    if (shouldAttemptLoad) {
+                        lastLoadedCount = totalItems
+                        lastLoadAttempt = currentTime
                         eventViewModel.loadMoreHistoricalEvents()
                     }
                 }
             }
     }
+
 
     LaunchedEffect(editingEvent) {
         editingEvent?.let {
@@ -683,19 +700,36 @@ private fun EventTypeDialog(
         skipPartiallyExpanded = true,  // skips intermediate state to start fully expanded
     )
     LaunchedEffect(lazyListState) {
+        var lastLoadedCount = 0
+        var lastLoadAttempt = 0L
+
         snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .distinctUntilChanged()
-            .debounce(600)
             .collect { lastVisibleIndex ->
                 val totalItems = lazyListState.layoutInfo.totalItemsCount
+                val currentTime = System.currentTimeMillis()
+
                 // Trigger when user is within last 3 items
                 if (lastVisibleIndex != null && lastVisibleIndex >= totalItems - 3) {
-                    if (hasMoreHistory && !isLoadingMore) {
+                    // Only attempt to load if:
+                    // 1. Has more data available
+                    // 2. Not currently loading
+                    // 3. Items were actually loaded in last attempt (or first attempt)
+                    // 4. Prevent rapid consecutive attempts (at least 2s between attempts)
+                    val shouldAttemptLoad = hasMoreHistory &&
+                            !isLoadingMore &&
+                            (lastLoadedCount == 0 || totalItems > lastLoadedCount) &&
+                            (currentTime - lastLoadAttempt > 2000)
+
+                    if (shouldAttemptLoad) {
+                        lastLoadedCount = totalItems
+                        lastLoadAttempt = currentTime
                         eventViewModel.loadMoreHistoricalEvents()
                     }
                 }
             }
     }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
