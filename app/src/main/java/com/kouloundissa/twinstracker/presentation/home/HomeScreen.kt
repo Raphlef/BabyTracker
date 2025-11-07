@@ -86,6 +86,9 @@ import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.EventCard
 import com.kouloundissa.twinstracker.ui.components.SleepTimer
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
+import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -361,7 +364,6 @@ fun HomeScreen(
                                     EventTypeCard(
                                         type = type,
                                         summary = summaries[type]!!,
-                                        lastEvent = lastByType[type],
                                         onClick = {
                                             selectedType = type
                                             showTypeDialog = true
@@ -390,7 +392,6 @@ fun HomeScreen(
                                     EventTypeCard(
                                         type = type,
                                         summary = summaries[type]!!,
-                                        lastEvent = lastByType[type],
                                         onClick = {
                                             selectedType = type
                                             showTypeDialog = true
@@ -596,13 +597,15 @@ fun HomeScreen(
 fun EventTypeCard(
     type: EventType,
     summary: String,
-    lastEvent: Event?,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     size: Dp,
     overlayContent: (@Composable BoxScope.() -> Unit)? = null
 ) {
-    val contentColor = Color.White
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+
     val cornerShape = MaterialTheme.shapes.extraLarge
     Surface(
         shape = cornerShape,
@@ -643,7 +646,7 @@ fun EventTypeCard(
             Text(
                 text = type.displayName,
                 style = MaterialTheme.typography.titleMedium,
-                color = contentColor,
+                color = backgroundColor,
                 modifier = Modifier
                     .zIndex(3f)
                     .align(Alignment.TopStart)
@@ -667,7 +670,7 @@ fun EventTypeCard(
                 Text(
                     text = summary,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = contentColor.copy(alpha = 0.85f),
+                    color = backgroundColor.copy(alpha = 0.85f),
                     modifier = Modifier
                         .zIndex(2f)
                         .align(Alignment.CenterStart)
