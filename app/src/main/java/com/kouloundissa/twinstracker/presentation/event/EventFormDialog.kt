@@ -65,6 +65,7 @@ fun EventFormDialog(
     val isFocusedOnDateField = remember { mutableStateOf(false) }
 
     val formState by viewModel.formState.collectAsState()
+    val lastGrowthEvent by viewModel.lastGrowthEvent.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
     val saveSuccess by viewModel.saveSuccess.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
@@ -121,7 +122,20 @@ fun EventFormDialog(
     }
     LaunchedEffect(selectedBaby, currentType) {
         if (formState.eventId == null && currentType == EventType.GROWTH) {
-            selectedBaby?.let { viewModel.loadLastGrowth(it.id) };
+            selectedBaby?.let { baby ->
+                viewModel.loadLastGrowth(baby.id)
+                lastGrowthEvent?.let {event->
+                    // Only run this once—guarded by LaunchedEffect
+                    viewModel.updateForm {
+                        (this as EventFormState.Growth).copy(
+                            weightKg = event.weightKg?.toString().orEmpty(),
+                            heightCm = event.heightCm?.toString().orEmpty(),
+                            headCircumferenceCm = event.headCircumferenceCm?.toString().orEmpty()
+                            // notes and other fields remain untouched
+                        )
+                    }
+                }
+            };
         }
     }
 

@@ -68,6 +68,9 @@ class EventViewModel @Inject constructor(
     private val _events = MutableStateFlow<List<Event>>(emptyList())
     val events: StateFlow<List<Event>> = _events
 
+    private val _lastGrowthEvent = MutableStateFlow<GrowthEvent?>(null)
+    val lastGrowthEvent: StateFlow<GrowthEvent?> = _lastGrowthEvent.asStateFlow()
+
     // Track if we can load more (haven't reached the beginning of baby's data)
     private val _hasMoreHistory = MutableStateFlow(true)
     val hasMoreHistory: StateFlow<Boolean> = _hasMoreHistory.asStateFlow()
@@ -604,21 +607,12 @@ class EventViewModel @Inject constructor(
         viewModelScope.launch {
             repository.getLastGrowthEvent(babyId)
                 .onSuccess { event ->
-                    event?.let {
-                        // Only run this once—guarded by LaunchedEffect
-                        updateForm {
-                            (this as EventFormState.Growth).copy(
-                                weightKg = it.weightKg?.toString().orEmpty(),
-                                heightCm = it.heightCm?.toString().orEmpty(),
-                                headCircumferenceCm = it.headCircumferenceCm?.toString().orEmpty()
-                                // notes and other fields remain untouched
-                            )
-                        }
-                    }
+                    _lastGrowthEvent.value = event
                 }
                 .onFailure { throwable ->
                     Log.e("EventVM", "Failed loading last growth", throwable)
                     _errorMessage.value = throwable.message
+                    _lastGrowthEvent.value = null
                 }
         }
     }
