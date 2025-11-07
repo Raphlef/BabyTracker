@@ -26,7 +26,9 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
@@ -47,7 +49,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -70,17 +71,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleResumeEffect
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.Event
-import com.kouloundissa.twinstracker.data.EventFormState
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.FeedType
 import com.kouloundissa.twinstracker.data.FeedingEvent
-import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.presentation.baby.BabyFormDialog
@@ -93,10 +89,7 @@ import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
-import java.time.Duration
-import java.time.Instant
 import java.time.LocalDate
 import kotlin.math.ceil
 
@@ -109,16 +102,19 @@ fun HomeScreen(
     babyViewModel: BabyViewModel = hiltViewModel(),
     eventViewModel: EventViewModel = hiltViewModel()
 ) {
-    val contentColor = Color.White
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
-    val spacing = 16.dp
+    val spacing = 12.dp
     val columns = 2
-    val cardSize = (screenWidth - spacing * (columns + 1)) / columns
-
+    val cardWidth  = (screenWidth - spacing * (columns + 1)) / columns
+    val cardHeight = cardWidth * 1.2f
     // Number of rows needed for the grid
     val rows = ceil(EventType.entries.size / columns.toFloat()).toInt()
-    val gridHeight = cardSize * rows + spacing * (rows + 1)
+    val gridHeight = cardHeight  * rows + spacing * (rows - 1)
 
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
     val babies by babyViewModel.babies.collectAsState()
@@ -321,7 +317,7 @@ fun HomeScreen(
                         Text(
                             "Select a baby to see data",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = contentColor
+                            color = backgroundColor
                         )
                     }
                 }
@@ -353,7 +349,7 @@ fun HomeScreen(
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.headlineMedium,
                             modifier = Modifier.padding(vertical = 8.dp),
-                            color = contentColor,
+                            color = backgroundColor,
                         )
                     }
 
@@ -383,7 +379,8 @@ fun HomeScreen(
                                             selectedType = type
                                             showEventDialog = true
                                         },
-                                        size = cardSize,
+                                        width = cardWidth,
+                                        height = cardHeight,
                                         overlayContent = {
                                             SleepTimer(
                                                 sleepEvent = activeSleepEvent,
@@ -413,7 +410,8 @@ fun HomeScreen(
                                             selectedType = type
                                             showEventDialog = true
                                         },
-                                        size = cardSize
+                                        width = cardWidth,
+                                        height = cardHeight,
                                     )
                                 }
                             }
@@ -427,7 +425,7 @@ fun HomeScreen(
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.headlineMedium,
                             modifier = Modifier.padding(vertical = 8.dp),
-                            color = contentColor,
+                            color = backgroundColor,
                         )
                     }
 
@@ -612,7 +610,8 @@ fun EventTypeCard(
     summary: String,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
-    size: Dp,
+    width: Dp,
+    height: Dp,
     isFavorite: Boolean = false,
     onFavoriteToggle: (() -> Unit)? = null,
     overlayContent: (@Composable BoxScope.() -> Unit)? = null
@@ -626,7 +625,8 @@ fun EventTypeCard(
         shape = cornerShape,
         color = Color.Transparent,
         modifier = Modifier
-            .size(size)
+            .width(width)
+            .height(height)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick ?: {}
@@ -709,6 +709,29 @@ fun EventTypeCard(
                         .align(Alignment.CenterStart)
                         .padding(start = 20.dp)
                 )
+            }
+
+            // Small "+" button at bottom-right
+            if (onLongClick != null) {
+                IconButton(
+                    onClick = onLongClick,
+                    modifier = Modifier
+                        .zIndex(4f)
+                        .align(Alignment.BottomEnd)
+                        .padding(8.dp)
+                        .size(32.dp)
+                        .background(
+                            color = Color.Transparent,
+                            shape = CircleShape
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add ${type.displayName}",
+                        tint = contentColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }
