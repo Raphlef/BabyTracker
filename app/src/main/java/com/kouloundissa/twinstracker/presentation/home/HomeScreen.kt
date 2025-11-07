@@ -77,6 +77,7 @@ import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.FeedType
 import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.GrowthEvent
+import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.presentation.baby.BabyFormDialog
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
@@ -256,12 +257,9 @@ fun HomeScreen(
                 EventType.PUMPING -> {
                     if (todayList.isEmpty()) "No pumping today"
                     else {
-                        val last = todayList.maxByOrNull { it.timestamp }!!
-                        val mins =
-                            Duration.between(last.timestamp.toInstant(), Instant.now()).toMinutes()
-                        val h = mins / 60
-                        val m = mins % 60
-                        "${h}h ${m}m ago"
+                        val totalMl = todayList.sumOf { (it as PumpingEvent).amountMl ?: 0.0 }.toInt()
+                        val count = todayList.size
+                        "${totalMl}ml • $count session${if (count > 1) "s" else ""}"
                     }
                 }
 
