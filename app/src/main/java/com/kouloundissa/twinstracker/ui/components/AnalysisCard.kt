@@ -309,6 +309,8 @@ fun ComboChartView(
     labels: List<String>,
     barValues: List<Float>,
     lineValues: List<Float>,
+    barLabel: String = "Bar Data",
+    lineLabel: String = "Line Data",
     forceIncludeZeroLeft: Boolean = false,
     forceIncludeZeroRight: Boolean = false,
     paddingPercentage: Float = 0.1f
@@ -337,14 +339,14 @@ fun ComboChartView(
         update = { chart ->
             // 1. Build datasets
             val barEntries = barValues.mapIndexed { i, v -> BarEntry(i.toFloat(), v) }
-            val barSet = BarDataSet(barEntries, "Meals").apply {
+            val barSet = BarDataSet(barEntries, barLabel).apply {
                 color = "#FF5722".toColorInt()
                 axisDependency = YAxis.AxisDependency.LEFT
                 setDrawValues(barValues.size <= 10)
             }
 
             val lineEntries = lineValues.mapIndexed { i, v -> Entry(i.toFloat(), v) }
-            val lineSet = LineDataSet(lineEntries, "Volume (ml)").apply {
+            val lineSet = LineDataSet(lineEntries, lineLabel).apply {
                 color = "#009688".toColorInt()
                 lineWidth = 2f
                 setDrawCircles(true)
