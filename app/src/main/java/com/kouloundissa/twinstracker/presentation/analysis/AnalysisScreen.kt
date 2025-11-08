@@ -23,6 +23,8 @@ import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import java.time.LocalDate
 import java.time.ZoneId
 import com.kouloundissa.twinstracker.ui.components.AnalysisCard
+import com.kouloundissa.twinstracker.ui.components.AnalysisFilterPanel
+import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
 import com.kouloundissa.twinstracker.ui.components.BarChartView
 import com.kouloundissa.twinstracker.ui.components.ComboChartView
 import com.kouloundissa.twinstracker.ui.components.LineChartView
@@ -46,10 +48,12 @@ fun AnalysisScreen(
 ) {
     val isLoading by eventViewModel.isLoading.collectAsState()
     val errorMessage by eventViewModel.errorMessage.collectAsState()
-    val selectedBaby by babyViewModel.selectedBaby.collectAsState()
     val eventsByDay by eventViewModel.eventsByDay.collectAsState()
     val allGrowth by eventViewModel.getEventsOfTypeAsFlow(GrowthEvent::class)
         .collectAsState(initial = emptyList())
+
+    val selectedBaby by babyViewModel.selectedBaby.collectAsState()
+    val babies by babyViewModel.babies.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     val context = LocalContext.current
@@ -74,6 +78,8 @@ fun AnalysisScreen(
         getDateRange(selectedRange, customStartDate, customEndDate, selectedBaby)
     }
     val (startAge, endAge) = ageRange
+    val filters = remember { mutableStateOf(AnalysisFilters()) }
+
     val growthByDate = remember(allGrowth, dateList) {
         allGrowth.groupBy { it.timestamp.toLocalDate() }
     }
@@ -99,6 +105,7 @@ fun AnalysisScreen(
     val backgroundcolor = BackgroundColor
     val contentcolor = DarkGrey
     val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
 
     LaunchedEffect(isVisible, selectedRange, selectedBaby?.id) {
         if (isVisible) {
@@ -131,22 +138,20 @@ fun AnalysisScreen(
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = cornerShape,
                     color = backgroundcolor.copy(alpha = 0.85f),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(10.dp)
                 ) {
-                    DateRangeSelector(
-                        selectedRange = selectedRange,
-                        customStartDate = customStartDate,
-                        customEndDate = customEndDate,
-                        onRangeSelected = { range, start, end ->
-                            selectedRange = range
-                            customStartDate = start
-                            customEndDate = end
+                    AnalysisFilterPanel(
+                        filters = filters.value,
+                        onFiltersChanged = { newFilters ->
+                            filters.value = newFilters
+                            // Apply filters to data
+                            //applyFiltersToData(newFilters)
                         },
-                        modifier = Modifier.padding(10.dp)
+                        availableBabies = babies
                     )
                 }
 
@@ -457,180 +462,4 @@ fun getDateRange(
     val endAge = ageDays
 
     return dateList to (startAge to endAge)
-}
-
-
-// Create a reusable date range selector component
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DateRangeSelector(
-    selectedRange: AnalysisRange,
-    customStartDate: LocalDate?,
-    customEndDate: LocalDate?,
-    onRangeSelected: (AnalysisRange, LocalDate?, LocalDate?) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var showDateRangePicker by remember { mutableStateOf(false) }
-    val dateRangePickerState = rememberDateRangePickerState()
-
-    val backgroundColor = BackgroundColor
-    val contentColor = DarkGrey
-    val tint = DarkBlue
-    val cornerShape = MaterialTheme.shapes.extraLarge
-
-    val displayStartDate = remember(selectedRange, customStartDate) {
-        when {
-            selectedRange == AnalysisRange.CUSTOM && customStartDate != null -> customStartDate
-            selectedRange != AnalysisRange.CUSTOM -> LocalDate.now()
-                .minusDays((selectedRange.days - 1).toLong())
-
-            else -> null
-        }
-    }
-
-    val displayEndDate = remember(selectedRange, customEndDate) {
-        when {
-            selectedRange == AnalysisRange.CUSTOM && customEndDate != null -> customEndDate
-            selectedRange != AnalysisRange.CUSTOM -> LocalDate.now()
-            else -> null
-        }
-    }
-
-    // Formater les dates pour le titre
-    val dateRangeText = remember(displayStartDate, displayEndDate) {
-        if (displayStartDate != null && displayEndDate != null) {
-            val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-            if (displayStartDate == displayEndDate) {
-                displayStartDate.format(formatter)
-            } else {
-                "${displayStartDate.format(formatter)} - ${displayEndDate.format(formatter)}"
-            }
-        } else {
-            ""
-        }
-    }
-
-    // Calculer le nombre de jours
-    val daysCount = remember(displayStartDate, displayEndDate) {
-        if (displayStartDate != null && displayEndDate != null) {
-            ChronoUnit.DAYS.between(displayStartDate, displayEndDate).toInt() + 1
-        } else {
-            0
-        }
-    }
-
-    Column(modifier = modifier) {
-        Column(modifier = Modifier.padding(bottom = 12.dp)) {
-            Text(
-                text = "Analysis Period",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = tint,
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
-
-            if (dateRangeText.isNotEmpty()) {
-                Text(
-                    text = dateRangeText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = tint.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(bottom = 2.dp)
-                )
-            }
-        }
-
-        // Range selection chips
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 4.dp)
-        ) {
-            items(AnalysisRange.entries.toTypedArray()) { range ->
-                FilterChip(
-                    onClick = {
-                        if (range == AnalysisRange.CUSTOM) {
-                            showDateRangePicker = true
-                        } else {
-                            onRangeSelected(range, null, null)
-                        }
-                    },
-                    label = {
-                        Text(
-                            text = range.displayName,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    },
-                    selected = selectedRange == range,
-                    colors = FilterChipDefaults.filterChipColors(
-                        containerColor = backgroundColor.copy(alpha = 0.15f),
-                        labelColor = contentColor.copy(alpha = 0.85f),
-                        selectedContainerColor = backgroundColor.copy(alpha = 0.85f),
-                        selectedLabelColor = tint
-                    ),
-                    border = FilterChipDefaults.filterChipBorder(
-                        enabled = true,
-                        selected = true,
-                        borderColor = contentColor.copy(alpha = 0.55f),
-                        selectedBorderColor = contentColor.copy(alpha = 0.55f),
-                        borderWidth = 0.5.dp,
-                        selectedBorderWidth = 1.dp
-                    ),
-                    shape = cornerShape
-                )
-            }
-        }
-
-        // Show custom range if selected
-        if (selectedRange == AnalysisRange.CUSTOM && customStartDate != null && customEndDate != null) {
-            Text(
-                text = "${customStartDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))} - ${
-                    customEndDate.format(
-                        DateTimeFormatter.ofPattern("dd/MM/yyyy")
-                    )
-                }",
-                style = MaterialTheme.typography.bodyMedium,
-                color = BackgroundColor,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-        }
-    }
-
-    // Date Range Picker Dialog
-    if (showDateRangePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDateRangePicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        dateRangePickerState.selectedStartDateMillis?.let { startMillis ->
-                            dateRangePickerState.selectedEndDateMillis?.let { endMillis ->
-                                val startDate = Instant.ofEpochMilli(startMillis)
-                                    .atZone(ZoneId.systemDefault()).toLocalDate()
-                                val endDate = Instant.ofEpochMilli(endMillis)
-                                    .atZone(ZoneId.systemDefault()).toLocalDate()
-                                onRangeSelected(AnalysisRange.CUSTOM, startDate, endDate)
-                            }
-                        }
-                        showDateRangePicker = false
-                    },
-                    enabled = dateRangePickerState.selectedEndDateMillis != null
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDateRangePicker = false }) {
-                    Text("Cancel")
-                }
-            }
-        ) {
-            DateRangePicker(
-                state = dateRangePickerState,
-                title = { Text("Select Date Range") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(500.dp)
-                    .padding(16.dp)
-            )
-        }
-    }
 }

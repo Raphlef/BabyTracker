@@ -1,0 +1,293 @@
+package com.kouloundissa.twinstracker.ui.components
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.room.util.copy
+import com.kouloundissa.twinstracker.data.Baby
+import com.kouloundissa.twinstracker.data.Event
+import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.presentation.analysis.AnalysisRange
+import com.kouloundissa.twinstracker.ui.theme.*
+import java.time.LocalDate
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AnalysisFilterPanel(
+    filters: AnalysisFilters,
+    onFiltersChanged: (AnalysisFilters) -> Unit,
+    modifier: Modifier = Modifier,
+    availableBabies: List<Baby> = emptyList()
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
+    Column(modifier = modifier) {
+        // Filter Header with Expand/Collapse Toggle
+        FilterPanelHeader(
+            isExpanded = isExpanded,
+            filters = filters,
+            onExpandToggle = { isExpanded = !isExpanded }
+        )
+
+        // Expandable Content
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Date Range Filter
+                DateRangeFilterSection(
+                    filter = filters.dateRange,
+                    onFilterChanged = { newDateRange ->
+                        onFiltersChanged(filters.copy(dateRange = newDateRange))
+                    }
+                )
+
+                Divider(color = contentColor.copy(alpha = 0.1f), thickness = 1.dp)
+
+                // Baby Filter
+                BabyFilterSection(
+                    filter = filters.baby,
+                    availableBabies = availableBabies,
+                    onFilterChanged = { newBabyFilter ->
+                        onFiltersChanged(filters.copy(baby = newBabyFilter))
+                    }
+                )
+
+                Divider(color = contentColor.copy(alpha = 0.1f), thickness = 1.dp)
+
+                // Event Type Filter
+                EventTypeFilterSection(
+                    filter = filters.eventType,
+                    onFilterChanged = { newEventTypeFilter ->
+                        onFiltersChanged(filters.copy(eventType = newEventTypeFilter))
+                    }
+                )
+
+                // Clear All Filters Button
+                if (countActiveFilters(filters) > 0) {
+                    Divider(color = DarkGrey.copy(alpha = 0.1f), thickness = 1.dp)
+
+                    TextButton(
+                        onClick = {
+                            onFiltersChanged(
+                                AnalysisFilters(
+                                    dateRange = filters.dateRange // Keep date range
+                                )
+                            )
+                        },
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = "Clear filters",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Clear Filters")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilterPanelHeader(
+    isExpanded: Boolean,
+    filters: AnalysisFilters,
+    onExpandToggle: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
+    val activeFilterCount = countActiveFilters(filters)
+    val filterSummary = remember(filters) { getFilterSummary(filters) }
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.extraLarge)
+            .clickable(onClick = onExpandToggle),
+        color = BackgroundColor.copy(alpha = 0.85f),
+        shape = cornerShape,
+        border = BorderStroke(1.dp, contentColor.copy(alpha = 0.55f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FilterList,
+                    contentDescription = "Filters",
+                    tint = DarkBlue,
+                    modifier = Modifier.size(20.dp)
+                )
+
+                Column {
+                    Text(
+                        text = "Filters",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DarkBlue
+                    )
+
+                    if (activeFilterCount > 0) {
+                        Text(
+                            text = filterSummary,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = DarkGrey.copy(alpha = 0.7f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    } else {
+                        Text(
+                            text = "No filters applied",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = DarkGrey.copy(alpha = 0.5f)
+                        )
+                    }
+                }
+            }
+            Icon(
+                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = if (isExpanded) "Collapse" else "Expand",
+                tint = DarkBlue,
+                modifier = Modifier
+                    .size(24.dp)
+                    .rotate(if (isExpanded) 0f else 0f)
+            )
+        }
+    }
+}
+
+private fun countActiveFilters(filters: AnalysisFilters): Int {
+    var count = 0
+
+    // Count custom date range as active
+    if (filters.dateRange.selectedRange == AnalysisRange.CUSTOM) count++
+
+    // Count baby filters
+    count += filters.baby.selectedBabyIds.size
+
+    // Count event type filters
+    count += filters.eventType.selectedTypes.size
+
+    return count
+}
+private fun getFilterSummary(filters: AnalysisFilters): String {
+    val parts = mutableListOf<String>()
+
+    if (filters.dateRange.selectedRange == AnalysisRange.CUSTOM) {
+        parts.add("Custom dates")
+    }
+
+    if (filters.baby.selectedBabyIds.isNotEmpty()) {
+        parts.add("${filters.baby.selectedBabyIds.size} baby")
+    }
+
+    if (filters.eventType.selectedTypes.isNotEmpty()) {
+        parts.add("${filters.eventType.selectedTypes.size} event type")
+    }
+
+    return parts.joinToString(", ")
+}
+sealed class AnalysisFilter {
+    data class DateRange(
+        val selectedRange: AnalysisRange,
+        val customStartDate: LocalDate? = null,
+        val customEndDate: LocalDate? = null
+    ) : AnalysisFilter()
+
+    data class Baby(val selectedBabyIds: Set<String> = emptySet()) : AnalysisFilter()
+    data class EventType(val selectedTypes: Set<String> = emptySet()) : AnalysisFilter()
+    // Easy to add more filters in the future
+}
+
+data class AnalysisFilters(
+    val dateRange: AnalysisFilter.DateRange = AnalysisFilter.DateRange(AnalysisRange.ONE_WEEK),
+    val baby: AnalysisFilter.Baby = AnalysisFilter.Baby(),
+    val eventType: AnalysisFilter.EventType = AnalysisFilter.EventType()
+)
+
+interface FilterChangeListener {
+    fun onFiltersChanged(filters: AnalysisFilters)
+}
+fun List<Event>.applyAnalysisFilters(filters: AnalysisFilters): List< Event> {
+    return this
+        .filter { event ->
+            // Filter by baby
+            if (filters.baby.selectedBabyIds.isNotEmpty()) {
+                filters.baby.selectedBabyIds.contains(event.babyId)
+            } else {
+                true
+            }
+        }
+        .filter { event ->
+            // Filter by event type
+            if (filters.eventType.selectedTypes.isNotEmpty()) {
+                val eventType = EventType.forClass(event::class)
+                filters.eventType.selectedTypes.contains(eventType.name)
+            } else {
+                true
+            }
+        }
+}
+
+
+

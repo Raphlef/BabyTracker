@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -42,11 +43,11 @@ fun FilterBar(
                 onClick = { onToggle(type) },
                 label = { Text(type.displayName) },
                 leadingIcon = {
-                    Box(
-                        Modifier
-                            .size(12.dp)
-                            .clip(CircleShape)
-                            .background(type.color)
+                    Icon(
+                        imageVector = type.icon,
+                        contentDescription = type.displayName,
+                        modifier = Modifier.size(16.dp),
+                        tint = if (isSelected) type.color else DarkGrey.copy(alpha = 0.6f)
                     )
                 },
                 shape = CircleShape
