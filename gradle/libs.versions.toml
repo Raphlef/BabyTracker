@@ -37,6 +37,9 @@ foundationLayoutVersion = "1.9.2"
 androidxFoundation = "1.9.4"
 animation = "1.9.4"
 ui = "1.9.4"
+androidxRoomKtx = "2.8.3"
+coreI18n = "1.0.0"
+androidxFoundationLayout = "1.9.4"
 
 [libraries]
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
@@ -108,6 +111,9 @@ androidx-foundation-layout = { group = "androidx.compose.foundation", name = "fo
 androidx-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "androidxFoundation" }
 androidx-compose-animation = { group = "androidx.compose.animation", name = "animation", version.ref = "animation" }
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "ui" }
+androidx-room-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "androidxRoomKtx" }
+androidx-core-i18n = { group = "androidx.core", name = "core-i18n", version.ref = "coreI18n" }
+foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "androidxFoundationLayout" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
