@@ -11,22 +11,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.kouloundissa.twinstracker.data.*
 import com.kouloundissa.twinstracker.data.WhoLms.WhoLmsRepository
-import com.kouloundissa.twinstracker.presentation.viewmodel.AuthEvent
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
-import com.kouloundissa.twinstracker.ui.components.WHOHeadCircumferenceCurve
-import com.kouloundissa.twinstracker.ui.components.WHOLengthCurve
-import com.kouloundissa.twinstracker.ui.components.WHOWeightCurve
 import java.time.LocalDate
 import java.time.ZoneId
 import com.kouloundissa.twinstracker.ui.components.AnalysisCard
@@ -43,7 +36,6 @@ import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
 import java.util.Date
 import java.util.Locale
-import kotlin.math.max
 
 @Composable
 fun AnalysisScreen(
@@ -199,15 +191,61 @@ fun AnalysisScreen(
                     .padding(10.dp),
             ) {
                 item {
+                    val mealCounts = dateList.map { date ->
+                        eventsByDay[date].orEmpty().count { it is FeedingEvent }
+                    }
+                    val mealVolumes = dateList.map { date ->
+                        eventsByDay[date].orEmpty().filterIsInstance<FeedingEvent>()
+                            .sumOf { it.amountMl ?: 0.0 }.toFloat()
+                    }
+                    AnalysisCard(title = "Meals") {
+                        ComboChartView(
+                            labels = chartLabels,
+                            barValues = mealCounts.map { it.toFloat() },
+                            lineValues = mealVolumes,
+                            barLabel = "Meals",
+                            lineLabel = "Volumes (ml)",
+                        )
+                    }
+                }
+
+                item {
+                    val pumpingVolumes = dateList.map { date ->
+                        eventsByDay[date].orEmpty().filterIsInstance<PumpingEvent>()
+                            .sumOf { it.amountMl ?: 0.0 }.toFloat()
+                    }
+                    val pumpingCounts = dateList.map { date ->
+                        eventsByDay[date].orEmpty()
+                            .count { it is PumpingEvent }
+                    }
+
+                    AnalysisCard(title = "Pumping") {
+                        ComboChartView(
+                            labels = chartLabels,
+                            barValues = pumpingCounts.map { it.toFloat() },
+                            lineValues = pumpingVolumes,
+                            barLabel = "Pumping number",
+                            lineLabel = "Volumes (ml)",
+                        )
+                    }
+                }
+
+                item {
                     val poopCounts = dateList.map { date ->
                         eventsByDay[date].orEmpty()
-                            .count { it is DiaperEvent && it.poopColor != null }
+                            .count { it is DiaperEvent && (it.diaperType == DiaperType.DIRTY || it.diaperType == DiaperType.MIXED) }
                     }
-                    AnalysisCard(title = "Daily Poop") {
-                        BarChartView(
+                    val wetCounts = dateList.map { date ->
+                        eventsByDay[date].orEmpty()
+                            .count { it is DiaperEvent && (it.diaperType == DiaperType.WET || it.diaperType == DiaperType.MIXED) }
+                    }
+                    AnalysisCard(title = "Poop") {
+                        ComboChartView(
                             labels = chartLabels,
-                            values = poopCounts.map { it.toFloat() },
-                            forceIncludeZero = true
+                            barValues = poopCounts.map { it.toFloat() },
+                            lineValues = wetCounts.map { it.toFloat() },
+                            barLabel = "Poop count",
+                            lineLabel = "Wet count",
                         )
                     }
                 }
@@ -224,24 +262,6 @@ fun AnalysisScreen(
                             forceIncludeZero = true
                         )
                     }
-                }
-
-                item {
-                    val mealCounts = dateList.map { date ->
-                        eventsByDay[date].orEmpty().count { it is FeedingEvent }
-                    }
-                    val mealVolumes = dateList.map { date ->
-                        eventsByDay[date].orEmpty().filterIsInstance<FeedingEvent>()
-                            .sumOf { it.amountMl ?: 0.0 }.toFloat()
-                    }
-                    AnalysisCard(title = "Meals & Volume") {
-                        ComboChartView(
-                            labels = chartLabels,
-                            barValues = mealCounts.map { it.toFloat() },
-                            lineValues = mealVolumes
-                        )
-                    }
-
                 }
 
                 item {
@@ -453,7 +473,7 @@ fun DateRangeSelector(
     var showDateRangePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
 
-    val baseColor = BackgroundColor
+    val backgroundColor = BackgroundColor
     val contentColor = DarkGrey
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
@@ -516,13 +536,6 @@ fun DateRangeSelector(
                     color = tint.copy(alpha = 0.7f),
                     modifier = Modifier.padding(bottom = 2.dp)
                 )
-
-//                Text(
-//                    text = "$daysCount days",
-//                    style = MaterialTheme.typography.bodySmall,
-//                    color = tint.copy(alpha = 0.6f),
-//                    fontStyle = FontStyle.Italic
-//                )
             }
         }
 
@@ -548,9 +561,9 @@ fun DateRangeSelector(
                     },
                     selected = selectedRange == range,
                     colors = FilterChipDefaults.filterChipColors(
-                        containerColor = baseColor.copy(alpha = 0.15f),
+                        containerColor = backgroundColor.copy(alpha = 0.15f),
                         labelColor = contentColor.copy(alpha = 0.85f),
-                        selectedContainerColor = baseColor.copy(alpha = 0.85f),
+                        selectedContainerColor = backgroundColor.copy(alpha = 0.85f),
                         selectedLabelColor = tint
                     ),
                     border = FilterChipDefaults.filterChipBorder(
