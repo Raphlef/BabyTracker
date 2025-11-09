@@ -158,43 +158,6 @@ fun AnalysisScreen(
                         },
                     )
                 }
-
-                // Beautiful loading overlay with animation
-                this@Column.AnimatedVisibility(
-                    visible = isLoading,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.Center)
-                            .background(
-                                color = contentcolor.copy(alpha = 0.3f),
-                                shape = cornerShape
-                            )
-                            .padding(24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(48.dp),
-                                strokeWidth = 4.dp,
-                                color = DarkBlue,
-                                trackColor = DarkBlue.copy(alpha = 0.2f)
-                            )
-                            Text(
-                                text = "Loading baby events...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = DarkBlue,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-                }
             }
 
             LazyColumn(
