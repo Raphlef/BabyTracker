@@ -30,15 +30,14 @@ import java.time.ZoneId
 import kotlin.reflect.KClass
 import com.google.firebase.storage.StorageException
 import com.kouloundissa.twinstracker.Service.NotificationService
-import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.EventFormState.*
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.User
+import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -197,7 +196,23 @@ class EventViewModel @Inject constructor(
         val babyId: String,
         val dateRange: DateRangeParams
     )
+    fun refreshWithFilters(
+        filters: AnalysisFilters
+    ) {
+        val dateRange = filters.dateRange
+        val selectedRange = dateRange.selectedRange
+        val babyId = filters.babyFilter.selectedBabies.firstOrNull()
 
+        // Current implementation
+        babyId?.let { refreshWithLastDays(it.id, selectedRange.days.toLong()) }
+
+        // Future: Apply other filters when available
+        // val eventTypes = filters.eventType.selectedTypes
+        // val filterByEventType(eventTypes)
+        //
+        // val babyIds = filters.baby.selectedBabyIds
+        // val filterByBabies(babyIds)
+    }
     /**
      * Convenience method for last N days
      */
