@@ -49,6 +49,7 @@ fun AnalysisScreen(
     val isLoading by eventViewModel.isLoading.collectAsState()
     val errorMessage by eventViewModel.errorMessage.collectAsState()
     val eventsByDay by eventViewModel.eventsByDay.collectAsState()
+    val favoriteEventTypes by eventViewModel.favoriteEventTypes.collectAsState()
     val allGrowth by eventViewModel.getEventsOfTypeAsFlow(GrowthEvent::class)
         .collectAsState(initial = emptyList())
 
@@ -106,12 +107,16 @@ fun AnalysisScreen(
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
 
-    LaunchedEffect(selectedBaby) {
-        selectedBaby?.let { baby ->
-            filters.value = filters.value.copy(
-                babyFilter = AnalysisFilter.BabyFilter(selectedBabies = setOf(baby))
-            )
-        }
+    LaunchedEffect(selectedBaby, favoriteEventTypes) {
+        filters.value = AnalysisFilters(
+            dateRange = filters.value.dateRange,  // Preserve date range
+            babyFilter = if (selectedBaby != null) {
+                AnalysisFilter.BabyFilter(selectedBabies = setOf(selectedBaby) as Set<Baby>)
+            } else {
+                AnalysisFilter.BabyFilter()
+            },
+            eventTypeFilter = AnalysisFilter.EventTypeFilter(selectedTypes = favoriteEventTypes)
+        )
     }
     LaunchedEffect(isVisible, filters.value) {
         if (isVisible) {
