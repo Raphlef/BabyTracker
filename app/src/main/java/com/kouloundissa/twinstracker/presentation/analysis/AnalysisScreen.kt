@@ -197,7 +197,6 @@ fun AnalysisScreen(
                 }
             }
 
-
             LazyColumn(
                 contentPadding = contentPadding,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -206,211 +205,236 @@ fun AnalysisScreen(
                     .padding(innerPadding)
                     .padding(16.dp),
             ) {
-                item {
-                    val mealCounts = dateList.map { date ->
-                        eventsByDay[date].orEmpty().count { it is FeedingEvent }
-                    }
-                    val mealVolumes = dateList.map { date ->
-                        eventsByDay[date].orEmpty().filterIsInstance<FeedingEvent>()
-                            .sumOf { it.amountMl ?: 0.0 }.toFloat()
-                    }
-                    AnalysisCard(title = "Meals") {
-                        ComboChartView(
-                            labels = chartLabels,
-                            barValues = mealCounts.map { it.toFloat() },
-                            lineValues = mealVolumes,
-                            barLabel = "Meals",
-                            lineLabel = "Volumes (ml)",
-                        )
-                    }
-                }
-
-                item {
-                    val pumpingVolumes = dateList.map { date ->
-                        eventsByDay[date].orEmpty().filterIsInstance<PumpingEvent>()
-                            .sumOf { it.amountMl ?: 0.0 }.toFloat()
-                    }
-                    val pumpingCounts = dateList.map { date ->
-                        eventsByDay[date].orEmpty()
-                            .count { it is PumpingEvent }
-                    }
-
-                    AnalysisCard(title = "Pumping") {
-                        ComboChartView(
-                            labels = chartLabels,
-                            barValues = pumpingCounts.map { it.toFloat() },
-                            lineValues = pumpingVolumes,
-                            barLabel = "Pumping number",
-                            lineLabel = "Volumes (ml)",
-                        )
-                    }
-                }
-
-                item {
-                    val poopCounts = dateList.map { date ->
-                        eventsByDay[date].orEmpty()
-                            .count { it is DiaperEvent && (it.diaperType == DiaperType.DIRTY || it.diaperType == DiaperType.MIXED) }
-                    }
-                    val wetCounts = dateList.map { date ->
-                        eventsByDay[date].orEmpty()
-                            .count { it is DiaperEvent && (it.diaperType == DiaperType.WET || it.diaperType == DiaperType.MIXED) }
-                    }
-                    AnalysisCard(title = "Poop") {
-                        ComboChartView(
-                            labels = chartLabels,
-                            barValues = poopCounts.map { it.toFloat() },
-                            lineValues = wetCounts.map { it.toFloat() },
-                            barLabel = "Poop count",
-                            lineLabel = "Wet count",
-                        )
-                    }
-                }
-
-                item {
-                    val sleepMins = dateList.map { date ->
-                        eventsByDay[date].orEmpty().filterIsInstance<SleepEvent>()
-                            .sumOf { it.durationMinutes ?: 0L }.toFloat()
-                    }
-                    AnalysisCard(title = "Daily Sleep (min)") {
-                        LineChartView(
-                            labels = chartLabels,
-                            values = sleepMins,
-                            forceIncludeZero = true
-                        )
-                    }
-                }
-
-                item {
-                    val babyWeight = dateList.map { date ->
-                        growthByDate[date]
-                            ?.maxByOrNull { it.timestamp }
-                            ?.weightKg
-                            ?.toFloat()
-                            ?: Float.NaN
-                    }
-
-                    val birthDate = selectedBaby?.birthDate
-                        ?.let {
-                            Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
+                    filters.value.eventTypeFilter.selectedTypes.contains(EventType.FEEDING)
+                ) {
+                    item {
+                        val mealCounts = dateList.map { date ->
+                            eventsByDay[date].orEmpty().count { it is FeedingEvent }
                         }
-                        ?: LocalDate.now()
-                    val currentAgeDays = ChronoUnit.DAYS.between(birthDate, LocalDate.now())
-                        .toInt().coerceAtLeast(0)
-
-                    //  Build aligned WHO percentile curves
-                    val weightPercentileCurves = remember(
-                        omsGender, startAge, endAge, dateList
-                    ) {
-                        listOf(15.0, 50.0, 85.0).associate { pct ->
-                            // Raw WHO data only for valid ages
-                            val rawCurve = WhoLmsRepository.percentileCurveInRange(
-                                context, "weight", omsGender, pct,
-                                startAge, endAge.coerceAtMost(currentAgeDays)
-                            ) // List<Pair<ageDays, value>>
-
-                            // Align with dateList by computing each date’s age
-                            val aligned = dateList.map { date ->
-                                val ageForDate = ChronoUnit.DAYS.between(birthDate, date).toInt()
-                                // Only look up if age >= 0 and <= currentAgeDays
-                                rawCurve.find { it.first.toInt() == ageForDate }
-                                    ?.second
-                                    ?: Float.NaN
-                            }
-
-                            "${pct.toInt()}th pct" to aligned
+                        val mealVolumes = dateList.map { date ->
+                            eventsByDay[date].orEmpty().filterIsInstance<FeedingEvent>()
+                                .sumOf { it.amountMl ?: 0.0 }.toFloat()
                         }
-                    }
-                    AnalysisCard(title = "Weight Growth (kg)") {
-                        MultiLineChartView(
-                            labels = chartLabels,
-                            series = listOf("Baby" to babyWeight) + weightPercentileCurves.map { (label, data) ->
-                                label to data
-                            }
-                        )
-                    }
-                }
-
-                item {
-                    val babyLength = dateList.map { date ->
-                        growthByDate[date]
-                            ?.maxByOrNull { it.timestamp }
-                            ?.heightCm
-                            ?.toFloat()
-                            ?: Float.NaN
-                    }
-                    val birthDate = selectedBaby?.birthDate
-                        ?.let {
-                            Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
-                        }
-                        ?: LocalDate.now()
-                    val currentAgeDays = ChronoUnit.DAYS.between(birthDate, LocalDate.now())
-                        .toInt().coerceAtLeast(0)
-
-                    // 3. Align WHO length curves
-                    val lengthPercentileCurves = remember(omsGender, startAge, endAge, dateList) {
-                        listOf(15.0, 50.0, 85.0).associate { pct ->
-                            val rawCurve = WhoLmsRepository.percentileCurveInRange(
-                                context, "length", omsGender, pct,
-                                startAge, endAge.coerceAtMost(currentAgeDays)
+                        AnalysisCard(title = "Meals") {
+                            ComboChartView(
+                                labels = chartLabels,
+                                barValues = mealCounts.map { it.toFloat() },
+                                lineValues = mealVolumes,
+                                barLabel = "Meals",
+                                lineLabel = "Volumes (ml)",
                             )
-                            val aligned = dateList.map { date ->
-                                val ageForDate = ChronoUnit.DAYS.between(birthDate, date).toInt()
-                                rawCurve.find { it.first.toInt() == ageForDate }
-                                    ?.second
-                                    ?: Float.NaN
-                            }
-                            "${pct.toInt()}th pct" to aligned
                         }
-                    }
-
-                    AnalysisCard(title = "Length Growth (cm)") {
-                        MultiLineChartView(
-                            labels = chartLabels,
-                            series = listOf("Baby" to babyLength) + lengthPercentileCurves.map { (label, data) ->
-                                label to data
-                            }
-                        )
                     }
                 }
 
-                item {
-                    val babyHead = dateList.map { date ->
-                        growthByDate[date]
-                            ?.maxByOrNull { it.timestamp }
-                            ?.headCircumferenceCm
-                            ?.toFloat()
-                            ?: Float.NaN
-                    }
-                    val birthDate = selectedBaby?.birthDate
-                        ?.let {
-                            Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
+                    filters.value.eventTypeFilter.selectedTypes.contains(EventType.PUMPING)
+                ) {
+                    item {
+                        val pumpingVolumes = dateList.map { date ->
+                            eventsByDay[date].orEmpty().filterIsInstance<PumpingEvent>()
+                                .sumOf { it.amountMl ?: 0.0 }.toFloat()
                         }
-                        ?: LocalDate.now()
-                    val currentAgeDays = ChronoUnit.DAYS.between(birthDate, LocalDate.now())
-                        .toInt().coerceAtLeast(0)
+                        val pumpingCounts = dateList.map { date ->
+                            eventsByDay[date].orEmpty()
+                                .count { it is PumpingEvent }
+                        }
 
-                    val headPercentileCurves = remember(omsGender, startAge, endAge, dateList) {
-                        listOf(15.0, 50.0, 85.0).associate { pct ->
-                            val rawCurve = WhoLmsRepository.percentileCurveInRange(
-                                context, "head_circumference", omsGender, pct,
-                                startAge, endAge.coerceAtMost(currentAgeDays)
+                        AnalysisCard(title = "Pumping") {
+                            ComboChartView(
+                                labels = chartLabels,
+                                barValues = pumpingCounts.map { it.toFloat() },
+                                lineValues = pumpingVolumes,
+                                barLabel = "Pumping number",
+                                lineLabel = "Volumes (ml)",
                             )
-                            val aligned = dateList.map { date ->
-                                val ageForDate = ChronoUnit.DAYS.between(birthDate, date).toInt()
-                                rawCurve.find { it.first.toInt() == ageForDate }
-                                    ?.second
-                                    ?: Float.NaN
-                            }
-                            "${pct.toInt()}th pct" to aligned
                         }
                     }
-                    AnalysisCard(title = "Head Circumference (cm)") {
-                        MultiLineChartView(
-                            labels = chartLabels,
-                            series = listOf("Baby" to babyHead) + headPercentileCurves.map { (label, data) ->
-                                label to data
+                }
+
+                if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
+                    filters.value.eventTypeFilter.selectedTypes.contains(EventType.DIAPER)
+                ) {
+                    item {
+                        val poopCounts = dateList.map { date ->
+                            eventsByDay[date].orEmpty()
+                                .count { it is DiaperEvent && (it.diaperType == DiaperType.DIRTY || it.diaperType == DiaperType.MIXED) }
+                        }
+                        val wetCounts = dateList.map { date ->
+                            eventsByDay[date].orEmpty()
+                                .count { it is DiaperEvent && (it.diaperType == DiaperType.WET || it.diaperType == DiaperType.MIXED) }
+                        }
+                        AnalysisCard(title = "Poop") {
+                            ComboChartView(
+                                labels = chartLabels,
+                                barValues = poopCounts.map { it.toFloat() },
+                                lineValues = wetCounts.map { it.toFloat() },
+                                barLabel = "Poop count",
+                                lineLabel = "Wet count",
+                            )
+                        }
+                    }
+                }
+                if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
+                    filters.value.eventTypeFilter.selectedTypes.contains(EventType.SLEEP)
+                ) {
+                    item {
+                        val sleepMins = dateList.map { date ->
+                            eventsByDay[date].orEmpty().filterIsInstance<SleepEvent>()
+                                .sumOf { it.durationMinutes ?: 0L }.toFloat()
+                        }
+                        AnalysisCard(title = "Daily Sleep (min)") {
+                            LineChartView(
+                                labels = chartLabels,
+                                values = sleepMins,
+                                forceIncludeZero = true
+                            )
+                        }
+                    }
+                }
+                if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
+                    filters.value.eventTypeFilter.selectedTypes.contains(EventType.GROWTH)
+                ) {
+                    item {
+                        val babyWeight = dateList.map { date ->
+                            growthByDate[date]
+                                ?.maxByOrNull { it.timestamp }
+                                ?.weightKg
+                                ?.toFloat()
+                                ?: Float.NaN
+                        }
+
+                        val birthDate = selectedBaby?.birthDate
+                            ?.let {
+                                Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
+                                    .toLocalDate()
                             }
-                        )
+                            ?: LocalDate.now()
+                        val currentAgeDays = ChronoUnit.DAYS.between(birthDate, LocalDate.now())
+                            .toInt().coerceAtLeast(0)
+
+                        //  Build aligned WHO percentile curves
+                        val weightPercentileCurves = remember(
+                            omsGender, startAge, endAge, dateList
+                        ) {
+                            listOf(15.0, 50.0, 85.0).associate { pct ->
+                                // Raw WHO data only for valid ages
+                                val rawCurve = WhoLmsRepository.percentileCurveInRange(
+                                    context, "weight", omsGender, pct,
+                                    startAge, endAge.coerceAtMost(currentAgeDays)
+                                ) // List<Pair<ageDays, value>>
+
+                                // Align with dateList by computing each date’s age
+                                val aligned = dateList.map { date ->
+                                    val ageForDate =
+                                        ChronoUnit.DAYS.between(birthDate, date).toInt()
+                                    // Only look up if age >= 0 and <= currentAgeDays
+                                    rawCurve.find { it.first.toInt() == ageForDate }
+                                        ?.second
+                                        ?: Float.NaN
+                                }
+
+                                "${pct.toInt()}th pct" to aligned
+                            }
+                        }
+                        AnalysisCard(title = "Weight Growth (kg)") {
+                            MultiLineChartView(
+                                labels = chartLabels,
+                                series = listOf("Baby" to babyWeight) + weightPercentileCurves.map { (label, data) ->
+                                    label to data
+                                }
+                            )
+                        }
+                    }
+
+                    item {
+                        val babyLength = dateList.map { date ->
+                            growthByDate[date]
+                                ?.maxByOrNull { it.timestamp }
+                                ?.heightCm
+                                ?.toFloat()
+                                ?: Float.NaN
+                        }
+                        val birthDate = selectedBaby?.birthDate
+                            ?.let {
+                                Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
+                                    .toLocalDate()
+                            }
+                            ?: LocalDate.now()
+                        val currentAgeDays = ChronoUnit.DAYS.between(birthDate, LocalDate.now())
+                            .toInt().coerceAtLeast(0)
+
+                        // 3. Align WHO length curves
+                        val lengthPercentileCurves =
+                            remember(omsGender, startAge, endAge, dateList) {
+                                listOf(15.0, 50.0, 85.0).associate { pct ->
+                                    val rawCurve = WhoLmsRepository.percentileCurveInRange(
+                                        context, "length", omsGender, pct,
+                                        startAge, endAge.coerceAtMost(currentAgeDays)
+                                    )
+                                    val aligned = dateList.map { date ->
+                                        val ageForDate =
+                                            ChronoUnit.DAYS.between(birthDate, date).toInt()
+                                        rawCurve.find { it.first.toInt() == ageForDate }
+                                            ?.second
+                                            ?: Float.NaN
+                                    }
+                                    "${pct.toInt()}th pct" to aligned
+                                }
+                            }
+
+                        AnalysisCard(title = "Length Growth (cm)") {
+                            MultiLineChartView(
+                                labels = chartLabels,
+                                series = listOf("Baby" to babyLength) + lengthPercentileCurves.map { (label, data) ->
+                                    label to data
+                                }
+                            )
+                        }
+                    }
+
+                    item {
+                        val babyHead = dateList.map { date ->
+                            growthByDate[date]
+                                ?.maxByOrNull { it.timestamp }
+                                ?.headCircumferenceCm
+                                ?.toFloat()
+                                ?: Float.NaN
+                        }
+                        val birthDate = selectedBaby?.birthDate
+                            ?.let {
+                                Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
+                                    .toLocalDate()
+                            }
+                            ?: LocalDate.now()
+                        val currentAgeDays = ChronoUnit.DAYS.between(birthDate, LocalDate.now())
+                            .toInt().coerceAtLeast(0)
+
+                        val headPercentileCurves = remember(omsGender, startAge, endAge, dateList) {
+                            listOf(15.0, 50.0, 85.0).associate { pct ->
+                                val rawCurve = WhoLmsRepository.percentileCurveInRange(
+                                    context, "head_circumference", omsGender, pct,
+                                    startAge, endAge.coerceAtMost(currentAgeDays)
+                                )
+                                val aligned = dateList.map { date ->
+                                    val ageForDate =
+                                        ChronoUnit.DAYS.between(birthDate, date).toInt()
+                                    rawCurve.find { it.first.toInt() == ageForDate }
+                                        ?.second
+                                        ?: Float.NaN
+                                }
+                                "${pct.toInt()}th pct" to aligned
+                            }
+                        }
+                        AnalysisCard(title = "Head Circumference (cm)") {
+                            MultiLineChartView(
+                                labels = chartLabels,
+                                series = listOf("Baby" to babyHead) + headPercentileCurves.map { (label, data) ->
+                                    label to data
+                                }
+                            )
+                        }
                     }
                 }
             }
