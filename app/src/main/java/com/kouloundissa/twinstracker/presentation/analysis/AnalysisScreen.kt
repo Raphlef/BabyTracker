@@ -7,9 +7,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,7 +25,6 @@ import java.time.ZoneId
 import com.kouloundissa.twinstracker.ui.components.AnalysisCard
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilterPanel
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
-import com.kouloundissa.twinstracker.ui.components.BarChartView
 import com.kouloundissa.twinstracker.ui.components.ComboChartView
 import com.kouloundissa.twinstracker.ui.components.LineChartView
 import com.kouloundissa.twinstracker.ui.components.MultiLineChartView
@@ -56,9 +52,10 @@ fun AnalysisScreen(
         .collectAsState(initial = emptyList())
 
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
-    val babies by babyViewModel.babies.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val filters = remember { mutableStateOf(AnalysisFilters()) }
+    val selectedRange = filters.value.dateRange.selectedRange
     val context = LocalContext.current
 
     val omsGender = when (selectedBaby?.gender) {
@@ -68,7 +65,6 @@ fun AnalysisScreen(
     }
 
     // Add state for date range selection
-    var selectedRange by remember { mutableStateOf(AnalysisRange.ONE_WEEK) }
     var customStartDate by remember { mutableStateOf<LocalDate?>(null) }
     var customEndDate by remember { mutableStateOf<LocalDate?>(null) }
 
@@ -81,7 +77,6 @@ fun AnalysisScreen(
         getDateRange(selectedRange, customStartDate, customEndDate, selectedBaby)
     }
     val (startAge, endAge) = ageRange
-    val filters = remember { mutableStateOf(AnalysisFilters()) }
 
     val growthByDate = remember(allGrowth, dateList) {
         allGrowth.groupBy { it.timestamp.toLocalDate() }
@@ -110,13 +105,12 @@ fun AnalysisScreen(
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
 
-    LaunchedEffect(isVisible, selectedRange, selectedBaby?.id) {
+    LaunchedEffect(isVisible, filters.value) {
         if (isVisible) {
-            selectedBaby?.id?.let {
-                // Debounce in the effect itself
-                //  delay(150) // Wait for rapid changes to settle
+            filters.value.babyFilter.selectedBabies.firstOrNull()?.let {
+                babyViewModel.selectBaby(it)
                 Log.d("AnalysisScreen", "Starting stream for babyId: ${it}")
-                eventViewModel.refreshWithLastDays(it, selectedRange.days.toLong())
+                eventViewModel.refreshWithFilters(filters.value)
             }
         }
     }
@@ -154,10 +148,8 @@ fun AnalysisScreen(
                             // Apply filters to data
                             //applyFiltersToData(newFilters)
                         },
-                        availableBabies = babies
                     )
                 }
-
 
                 // Beautiful loading overlay with animation
                 this@Column.AnimatedVisibility(
