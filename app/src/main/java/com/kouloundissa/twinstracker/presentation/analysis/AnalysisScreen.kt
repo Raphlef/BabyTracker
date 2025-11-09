@@ -23,6 +23,7 @@ import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import java.time.LocalDate
 import java.time.ZoneId
 import com.kouloundissa.twinstracker.ui.components.AnalysisCard
+import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilterPanel
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
 import com.kouloundissa.twinstracker.ui.components.ComboChartView
@@ -105,6 +106,13 @@ fun AnalysisScreen(
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
 
+    LaunchedEffect(selectedBaby) {
+        selectedBaby?.let { baby ->
+            filters.value = filters.value.copy(
+                babyFilter = AnalysisFilter.BabyFilter(selectedBabies = setOf(baby))
+            )
+        }
+    }
     LaunchedEffect(isVisible, filters.value) {
         if (isVisible) {
             filters.value.babyFilter.selectedBabies.firstOrNull()?.let {
