@@ -226,7 +226,6 @@ fun HomeScreen(
         .filterIsInstance<SleepEvent>()
         .firstOrNull { it.endTime == null && it.beginTime != null }
 
-
     val summaries = remember(todaysByType, lastGrowthEvent) {
         EventType.entries.associateWith { type ->
             val todayList = todaysByType[type].orEmpty()
