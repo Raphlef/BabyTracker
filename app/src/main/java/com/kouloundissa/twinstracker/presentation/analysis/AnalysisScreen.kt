@@ -46,9 +46,7 @@ fun AnalysisScreen(
     eventViewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
-    val isLoading by eventViewModel.isLoading.collectAsState()
     val errorMessage by eventViewModel.errorMessage.collectAsState()
-    val eventsByDay by eventViewModel.eventsByDay.collectAsState()
     val favoriteEventTypes by eventViewModel.favoriteEventTypes.collectAsState()
     val allGrowth by eventViewModel.getEventsOfTypeAsFlow(GrowthEvent::class)
         .collectAsState(initial = emptyList())
@@ -57,6 +55,7 @@ fun AnalysisScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val filters = remember { mutableStateOf(AnalysisFilters()) }
+    val analysisSnapshot by eventViewModel.analysisSnapshot.collectAsState()
     val selectedRange = filters.value.dateRange.selectedRange
     val context = LocalContext.current
 
@@ -80,9 +79,7 @@ fun AnalysisScreen(
     }
     val (startAge, endAge) = ageRange
 
-    val growthByDate = remember(allGrowth, dateList) {
-        allGrowth.groupBy { it.timestamp.toLocalDate() }
-    }
+
     // Generate labels for charts
     val chartLabels = remember(dateList) {
         when {
@@ -177,13 +174,9 @@ fun AnalysisScreen(
                     filters.value.eventTypeFilter.selectedTypes.contains(EventType.FEEDING)
                 ) {
                     item {
-                        val mealCounts = dateList.map { date ->
-                            eventsByDay[date].orEmpty().count { it is FeedingEvent }
-                        }
-                        val mealVolumes = dateList.map { date ->
-                            eventsByDay[date].orEmpty().filterIsInstance<FeedingEvent>()
-                                .sumOf { it.amountMl ?: 0.0 }.toFloat()
-                        }
+                        val mealCounts = analysisSnapshot.dailyAnalysis.map { it.mealCount.toFloat() }
+                        val mealVolumes = analysisSnapshot.dailyAnalysis.map { it.mealVolume }
+
                         AnalysisCard(title = "Meals") {
                             ComboChartView(
                                 labels = chartLabels,
@@ -200,14 +193,9 @@ fun AnalysisScreen(
                     filters.value.eventTypeFilter.selectedTypes.contains(EventType.PUMPING)
                 ) {
                     item {
-                        val pumpingVolumes = dateList.map { date ->
-                            eventsByDay[date].orEmpty().filterIsInstance<PumpingEvent>()
-                                .sumOf { it.amountMl ?: 0.0 }.toFloat()
-                        }
-                        val pumpingCounts = dateList.map { date ->
-                            eventsByDay[date].orEmpty()
-                                .count { it is PumpingEvent }
-                        }
+                        val pumpingVolumes = analysisSnapshot.dailyAnalysis.map { it.pumpingCount.toFloat() }
+                        val pumpingCounts = analysisSnapshot.dailyAnalysis.map { it.pumpingVolume  }
+
 
                         AnalysisCard(title = "Pumping") {
                             ComboChartView(
@@ -225,14 +213,9 @@ fun AnalysisScreen(
                     filters.value.eventTypeFilter.selectedTypes.contains(EventType.DIAPER)
                 ) {
                     item {
-                        val poopCounts = dateList.map { date ->
-                            eventsByDay[date].orEmpty()
-                                .count { it is DiaperEvent && (it.diaperType == DiaperType.DIRTY || it.diaperType == DiaperType.MIXED) }
-                        }
-                        val wetCounts = dateList.map { date ->
-                            eventsByDay[date].orEmpty()
-                                .count { it is DiaperEvent && (it.diaperType == DiaperType.WET || it.diaperType == DiaperType.MIXED) }
-                        }
+                        val poopCounts = analysisSnapshot.dailyAnalysis.map { it.poopCount.toFloat() }
+                        val wetCounts = analysisSnapshot.dailyAnalysis.map { it.wetCount.toFloat() }
+
                         AnalysisCard(title = "Poop") {
                             ComboChartView(
                                 labels = chartLabels,
@@ -248,14 +231,11 @@ fun AnalysisScreen(
                     filters.value.eventTypeFilter.selectedTypes.contains(EventType.SLEEP)
                 ) {
                     item {
-                        val sleepMins = dateList.map { date ->
-                            eventsByDay[date].orEmpty().filterIsInstance<SleepEvent>()
-                                .sumOf { it.durationMinutes ?: 0L }.toFloat()
-                        }
+                        val sleepMinutes = analysisSnapshot.dailyAnalysis.map { it.sleepMinutes.toFloat() }
                         AnalysisCard(title = "Daily Sleep (min)") {
                             LineChartView(
                                 labels = chartLabels,
-                                values = sleepMins,
+                                values = sleepMinutes,
                                 forceIncludeZero = true
                             )
                         }
@@ -264,15 +244,10 @@ fun AnalysisScreen(
                 if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
                     filters.value.eventTypeFilter.selectedTypes.contains(EventType.GROWTH)
                 ) {
+                    val weights = analysisSnapshot.dailyAnalysis.mapNotNull { it.growthMeasurements?.weightKg }
+                    val heights = analysisSnapshot.dailyAnalysis.mapNotNull { it.growthMeasurements?.heightCm }
+                    val heads = analysisSnapshot.dailyAnalysis.mapNotNull { it.growthMeasurements?.headCircumferenceCm }
                     item {
-                        val babyWeight = dateList.map { date ->
-                            growthByDate[date]
-                                ?.maxByOrNull { it.timestamp }
-                                ?.weightKg
-                                ?.toFloat()
-                                ?: Float.NaN
-                        }
-
                         val birthDate = selectedBaby?.birthDate
                             ?.let {
                                 Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
@@ -309,7 +284,7 @@ fun AnalysisScreen(
                         AnalysisCard(title = "Weight Growth (kg)") {
                             MultiLineChartView(
                                 labels = chartLabels,
-                                series = listOf("Baby" to babyWeight) + weightPercentileCurves.map { (label, data) ->
+                                series = listOf("Baby" to weights) + weightPercentileCurves.map { (label, data) ->
                                     label to data
                                 }
                             )
@@ -317,13 +292,6 @@ fun AnalysisScreen(
                     }
 
                     item {
-                        val babyLength = dateList.map { date ->
-                            growthByDate[date]
-                                ?.maxByOrNull { it.timestamp }
-                                ?.heightCm
-                                ?.toFloat()
-                                ?: Float.NaN
-                        }
                         val birthDate = selectedBaby?.birthDate
                             ?.let {
                                 Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
@@ -355,7 +323,7 @@ fun AnalysisScreen(
                         AnalysisCard(title = "Length Growth (cm)") {
                             MultiLineChartView(
                                 labels = chartLabels,
-                                series = listOf("Baby" to babyLength) + lengthPercentileCurves.map { (label, data) ->
+                                series = listOf("Baby" to heights) + lengthPercentileCurves.map { (label, data) ->
                                     label to data
                                 }
                             )
@@ -363,13 +331,6 @@ fun AnalysisScreen(
                     }
 
                     item {
-                        val babyHead = dateList.map { date ->
-                            growthByDate[date]
-                                ?.maxByOrNull { it.timestamp }
-                                ?.headCircumferenceCm
-                                ?.toFloat()
-                                ?: Float.NaN
-                        }
                         val birthDate = selectedBaby?.birthDate
                             ?.let {
                                 Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
@@ -398,7 +359,7 @@ fun AnalysisScreen(
                         AnalysisCard(title = "Head Circumference (cm)") {
                             MultiLineChartView(
                                 labels = chartLabels,
-                                series = listOf("Baby" to babyHead) + headPercentileCurves.map { (label, data) ->
+                                series = listOf("Baby" to heads) + headPercentileCurves.map { (label, data) ->
                                     label to data
                                 }
                             )
