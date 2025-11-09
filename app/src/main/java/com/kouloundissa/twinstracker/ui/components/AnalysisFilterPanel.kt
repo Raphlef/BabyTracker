@@ -36,9 +36,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.room.util.copy
 import com.kouloundissa.twinstracker.data.Baby
-import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.presentation.analysis.AnalysisRange
 import com.kouloundissa.twinstracker.ui.theme.*
@@ -50,7 +48,6 @@ fun AnalysisFilterPanel(
     filters: AnalysisFilters,
     onFiltersChanged: (AnalysisFilters) -> Unit,
     modifier: Modifier = Modifier,
-    availableBabies: List<Baby> = emptyList()
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
@@ -91,10 +88,9 @@ fun AnalysisFilterPanel(
 
                 // Baby Filter
                 BabyFilterSection(
-                    filter = filters.baby,
-                    availableBabies = availableBabies,
+                    filter = filters.babyFilter,
                     onFilterChanged = { newBabyFilter ->
-                        onFiltersChanged(filters.copy(baby = newBabyFilter))
+                        onFiltersChanged(filters.copy(babyFilter = newBabyFilter))
                     }
                 )
 
@@ -102,9 +98,9 @@ fun AnalysisFilterPanel(
 
                 // Event Type Filter
                 EventTypeFilterSection(
-                    filter = filters.eventType,
+                    filter = filters.eventTypeFilter,
                     onFilterChanged = { newEventTypeFilter ->
-                        onFiltersChanged(filters.copy(eventType = newEventTypeFilter))
+                        onFiltersChanged(filters.copy(eventTypeFilter = newEventTypeFilter))
                     }
                 )
 
@@ -223,10 +219,10 @@ private fun countActiveFilters(filters: AnalysisFilters): Int {
     if (filters.dateRange.selectedRange == AnalysisRange.CUSTOM) count++
 
     // Count baby filters
-    count += filters.baby.selectedBabyIds.size
+    count += filters.babyFilter.selectedBabies.size
 
     // Count event type filters
-    count += filters.eventType.selectedTypes.size
+    count += filters.eventTypeFilter.selectedTypes.size
 
     return count
 }
@@ -237,12 +233,12 @@ private fun getFilterSummary(filters: AnalysisFilters): String {
         parts.add("Custom dates")
     }
 
-    if (filters.baby.selectedBabyIds.isNotEmpty()) {
-        parts.add("${filters.baby.selectedBabyIds.size} baby")
+    if (filters.babyFilter.selectedBabies.isNotEmpty()) {
+        parts.add("${filters.babyFilter.selectedBabies.size} baby")
     }
 
-    if (filters.eventType.selectedTypes.isNotEmpty()) {
-        parts.add("${filters.eventType.selectedTypes.size} event type")
+    if (filters.eventTypeFilter.selectedTypes.isNotEmpty()) {
+        parts.add("${filters.eventTypeFilter.selectedTypes.size} event type")
     }
 
     return parts.joinToString(", ")
@@ -254,40 +250,17 @@ sealed class AnalysisFilter {
         val customEndDate: LocalDate? = null
     ) : AnalysisFilter()
 
-    data class Baby(val selectedBabyIds: Set<String> = emptySet()) : AnalysisFilter()
-    data class EventType(val selectedTypes: Set<String> = emptySet()) : AnalysisFilter()
+    data class BabyFilter(val selectedBabies: Set<Baby> = emptySet()) : AnalysisFilter()
+    data class EventTypeFilter(val selectedTypes: Set<EventType> = emptySet()) : AnalysisFilter()
     // Easy to add more filters in the future
 }
 
 data class AnalysisFilters(
     val dateRange: AnalysisFilter.DateRange = AnalysisFilter.DateRange(AnalysisRange.ONE_WEEK),
-    val baby: AnalysisFilter.Baby = AnalysisFilter.Baby(),
-    val eventType: AnalysisFilter.EventType = AnalysisFilter.EventType()
+    val babyFilter: AnalysisFilter.BabyFilter = AnalysisFilter.BabyFilter(),
+    val eventTypeFilter: AnalysisFilter.EventTypeFilter = AnalysisFilter.EventTypeFilter()
 )
 
-interface FilterChangeListener {
-    fun onFiltersChanged(filters: AnalysisFilters)
-}
-fun List<Event>.applyAnalysisFilters(filters: AnalysisFilters): List< Event> {
-    return this
-        .filter { event ->
-            // Filter by baby
-            if (filters.baby.selectedBabyIds.isNotEmpty()) {
-                filters.baby.selectedBabyIds.contains(event.babyId)
-            } else {
-                true
-            }
-        }
-        .filter { event ->
-            // Filter by event type
-            if (filters.eventType.selectedTypes.isNotEmpty()) {
-                val eventType = EventType.forClass(event::class)
-                filters.eventType.selectedTypes.contains(eventType.name)
-            } else {
-                true
-            }
-        }
-}
 
 
 
