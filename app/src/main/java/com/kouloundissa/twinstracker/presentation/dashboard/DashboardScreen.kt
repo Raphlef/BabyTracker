@@ -124,7 +124,10 @@ fun DashboardScreen(
         pageCount = { tabs.size }
     )
     val currentTab = tabs[pagerState.currentPage]
-
+    val showBabyInfoBar = when (currentTab) {
+        DashboardTab.Analysis, DashboardTab.Settings -> false
+        else -> true  // Show for Home and Calendar
+    }
     LaunchedEffect(pagerState.currentPage) {
         Log.d("Dashboard", "Page changed to: $currentTab (index: ${pagerState.currentPage})")
 
@@ -152,21 +155,23 @@ fun DashboardScreen(
                 Column() {
                     Spacer(Modifier.height(8.dp))
 
-                    BabyInfoBar(
-                        babies = babies,
-                        selectedBaby = selectedBaby,
-                        onSelectBaby = {
-                            babyViewModel.selectBaby(it)
-                        },
-                        onEditBaby = {
-                            editingBaby = selectedBaby
-                        },
-                        onAddBaby = {
-                            // Open create baby dialog
-                            editingBaby = null
-                            showBabyDialog = true
-                        }
-                    )
+                    if (showBabyInfoBar) {
+                        BabyInfoBar(
+                            babies = babies,
+                            selectedBaby = selectedBaby,
+                            onSelectBaby = {
+                                babyViewModel.selectBaby(it)
+                            },
+                            onEditBaby = {
+                                editingBaby = selectedBaby
+                            },
+                            onAddBaby = {
+                                // Open create baby dialog
+                                editingBaby = null
+                                showBabyDialog = true
+                            }
+                        )
+                    }
 
 
                     Spacer(Modifier.height(8.dp))
