@@ -436,14 +436,18 @@ class EventViewModel @Inject constructor(
             }
             .onStart {
                 Log.d("EventCountStream", "Count stream started")
+                if (!_isLoadingMore.value) {
+                    _isLoading.value = true
+                }
             }
             .catch { e ->
                 Log.e("EventCountStream", "Count stream error occurred", e)
-                // Ne pas affecter l'UI principale
+                _isLoading.value = false
             }
             .onEach { counts ->
                 Log.d("EventCountStream", "Received counts for ${counts.size} days")
                 _eventCountsByDay.value = counts
+                _isLoading.value = false
             }
             .launchIn(viewModelScope)
     }
@@ -468,13 +472,18 @@ class EventViewModel @Inject constructor(
             }
             .onStart {
                 Log.d("AnalysisStream", "Analysis stream started")
+                if (!_isLoadingMore.value) {
+                    _isLoading.value = true
+                }
             }
             .catch { e ->
                 Log.e("AnalysisStream", "Analysis stream error occurred", e)
+                _isLoading.value = false
             }
             .onEach { snapshot ->
                 Log.d("AnalysisStream", "Received analysis for ${snapshot.dailyAnalysis.size} days")
                 _analysisSnapshot.value = snapshot
+                _isLoading.value = false
             }
             .launchIn(viewModelScope)
     }
@@ -485,6 +494,7 @@ class EventViewModel @Inject constructor(
     ) {
         if (babyId.isEmpty()) return
 
+        _isLoading.value = true
         setupAnalysisStreamListener()
 
         val dateRange = calculateRange(strategy)
@@ -495,6 +505,7 @@ class EventViewModel @Inject constructor(
             _analysisStreamRequest.value = request
         } else {
             Log.i("EventViewModel", "✗ Analysis StreamRequest UNCHANGED - skipped")
+            _isLoading.value = false
         }
     }
 
@@ -507,6 +518,7 @@ class EventViewModel @Inject constructor(
     ) {
         if (babyId.isEmpty()) return
 
+        _isLoading.value = true
         setupEventCountsStreamListener()
 
         Log.d("CalculateRange", "from startCountStreaming")
@@ -518,6 +530,7 @@ class EventViewModel @Inject constructor(
             _countStreamRequest.value = request
         } else {
             Log.i("EventViewModel", "✗ Count StreamRequest UNCHANGED - skipped")
+            _isLoading.value = false
         }
     }
 
