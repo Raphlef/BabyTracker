@@ -206,13 +206,6 @@ class EventViewModel @Inject constructor(
 
         // Current implementation
         babyId?.let { refreshWithLastDays(it.id, selectedRange.days.toLong()) }
-
-        // Future: Apply other filters when available
-        // val eventTypes = filters.eventType.selectedTypes
-        // val filterByEventType(eventTypes)
-        //
-        // val babyIds = filters.baby.selectedBabyIds
-        // val filterByBabies(babyIds)
     }
     /**
      * Convenience method for last N days

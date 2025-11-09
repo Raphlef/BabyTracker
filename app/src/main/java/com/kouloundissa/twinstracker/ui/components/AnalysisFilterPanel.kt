@@ -305,7 +305,7 @@ sealed class AnalysisFilter {
     // Easy to add more filters in the future
 }
 
-public data class AnalysisFilters(
+data class AnalysisFilters(
     val dateRange: AnalysisFilter.DateRange = AnalysisFilter.DateRange(AnalysisRange.ONE_WEEK),
     val babyFilter: AnalysisFilter.BabyFilter = AnalysisFilter.BabyFilter(),
     val eventTypeFilter: AnalysisFilter.EventTypeFilter = AnalysisFilter.EventTypeFilter(
