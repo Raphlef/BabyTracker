@@ -108,13 +108,13 @@ fun AnalysisScreen(
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     LaunchedEffect(selectedBaby, favoriteEventTypes) {
+        val newBabyFilter = selectedBaby?.let { baby ->
+            AnalysisFilter.BabyFilter(selectedBabies = setOf(baby))
+        } ?: AnalysisFilter.BabyFilter()
+
         filters.value = AnalysisFilters(
-            dateRange = filters.value.dateRange,  // Preserve date range
-            babyFilter = if (selectedBaby != null) {
-                AnalysisFilter.BabyFilter(selectedBabies = setOf(selectedBaby) as Set<Baby>)
-            } else {
-                AnalysisFilter.BabyFilter()
-            },
+            dateRange = filters.value.dateRange,
+            babyFilter = newBabyFilter,
             eventTypeFilter = AnalysisFilter.EventTypeFilter(selectedTypes = favoriteEventTypes)
         )
     }
