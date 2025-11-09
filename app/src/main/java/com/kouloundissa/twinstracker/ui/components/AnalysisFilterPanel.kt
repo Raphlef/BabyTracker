@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -151,8 +152,7 @@ fun AnalysisFilterPanel(
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp)
                     .background(
-                        color = contentColor.copy(alpha = 0.15f),
-                        shape = cornerShape
+                        color = Color.Transparent,
                     )
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
