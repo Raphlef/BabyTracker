@@ -215,8 +215,8 @@ private fun FilterPanelHeader(
 private fun countActiveFilters(filters: AnalysisFilters): Int {
     var count = 0
 
-    // Count custom date range as active
-    if (filters.dateRange.selectedRange == AnalysisRange.CUSTOM) count++
+    // Count date range as active
+    count++
 
     // Count baby filters
     count += filters.babyFilter.selectedBabies.size
@@ -226,15 +226,14 @@ private fun countActiveFilters(filters: AnalysisFilters): Int {
 
     return count
 }
+
 private fun getFilterSummary(filters: AnalysisFilters): String {
     val parts = mutableListOf<String>()
 
-    if (filters.dateRange.selectedRange == AnalysisRange.CUSTOM) {
-        parts.add("Custom dates")
-    }
+    parts.add(filters.dateRange.selectedRange.displayName)
 
     if (filters.babyFilter.selectedBabies.isNotEmpty()) {
-        parts.add("${filters.babyFilter.selectedBabies.size} baby")
+        parts.add(filters.babyFilter.selectedBabies.first().name)
     }
 
     if (filters.eventTypeFilter.selectedTypes.isNotEmpty()) {
@@ -243,6 +242,7 @@ private fun getFilterSummary(filters: AnalysisFilters): String {
 
     return parts.joinToString(", ")
 }
+
 sealed class AnalysisFilter {
     data class DateRange(
         val selectedRange: AnalysisRange,
