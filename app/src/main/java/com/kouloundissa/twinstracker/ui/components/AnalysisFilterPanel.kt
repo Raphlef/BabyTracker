@@ -87,21 +87,21 @@ fun AnalysisFilterPanel(
                         .padding(horizontal = 12.dp, vertical = 12.dp).blur(if (isLoading) 3.dp else 0.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Date Range Filter
-                    DateRangeFilterSection(
-                        filter = filters.dateRange,
-                        onFilterChanged = { newDateRange ->
-                            onFiltersChanged(filters.copy(dateRange = newDateRange))
-                        }
-                    )
-
-                    Divider(color = contentColor.copy(alpha = 0.1f), thickness = 1.dp)
-
                     // Baby Filter
                     BabyFilterSection(
                         filter = filters.babyFilter,
                         onFilterChanged = { newBabyFilter ->
                             onFiltersChanged(filters.copy(babyFilter = newBabyFilter))
+                        }
+                    )
+
+                    Divider(color = contentColor.copy(alpha = 0.1f), thickness = 1.dp)
+
+                    // Date Range Filter
+                    DateRangeFilterSection(
+                        filter = filters.dateRange,
+                        onFilterChanged = { newDateRange ->
+                            onFiltersChanged(filters.copy(dateRange = newDateRange))
                         }
                     )
 
@@ -277,11 +277,11 @@ private fun countActiveFilters(filters: AnalysisFilters): Int {
 private fun getFilterSummary(filters: AnalysisFilters): String {
     val parts = mutableListOf<String>()
 
-    parts.add(filters.dateRange.selectedRange.displayName)
-
     if (filters.babyFilter.selectedBabies.isNotEmpty()) {
         parts.add(filters.babyFilter.selectedBabies.first().name)
     }
+
+    parts.add(filters.dateRange.selectedRange.displayName)
 
     if (filters.eventTypeFilter.selectedTypes.isNotEmpty()) {
         parts.add("${filters.eventTypeFilter.selectedTypes.size} event type")
