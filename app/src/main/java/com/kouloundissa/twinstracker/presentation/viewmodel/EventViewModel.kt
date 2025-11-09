@@ -202,6 +202,7 @@ class EventViewModel @Inject constructor(
         val dateRange = filters.dateRange
         val selectedRange = dateRange.selectedRange
         val babyId = filters.babyFilter.selectedBabies.firstOrNull()
+        val selectedTypes = filters.eventTypeFilter.selectedTypes
 
         // Current implementation
         babyId?.let { refreshWithLastDays(it.id, selectedRange.days.toLong()) }
