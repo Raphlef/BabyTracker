@@ -1,6 +1,9 @@
 package com.kouloundissa.twinstracker.presentation.analysis
 
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -142,7 +145,7 @@ fun AnalysisScreen(
                     color = backgroundcolor.copy(alpha = 0.85f),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(10.dp)
+                        .padding(16.dp)
                 ) {
                     AnalysisFilterPanel(
                         filters = filters.value,
@@ -155,37 +158,45 @@ fun AnalysisScreen(
                     )
                 }
 
-                // Overlay de progression
-                if (isLoading) {
+
+                // Beautiful loading overlay with animation
+                this@Column.AnimatedVisibility(
+                    visible = isLoading,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(150.dp)
                             .align(Alignment.Center)
                             .background(
-                                color = Color.Black.copy(alpha = 0.2f),
-                                shape = RoundedCornerShape(16.dp)
-                            ),
+                                color = contentcolor.copy(alpha = 0.3f),
+                                shape = cornerShape
+                            )
+                            .padding(24.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(40.dp),
-                                strokeWidth = 3.dp,
-                                color = DarkBlue
+                                modifier = Modifier.size(48.dp),
+                                strokeWidth = 4.dp,
+                                color = DarkBlue,
+                                trackColor = DarkBlue.copy(alpha = 0.2f)
                             )
                             Text(
                                 text = "Loading baby events...",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = BackgroundColor
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = DarkBlue,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
                 }
             }
+
 
             LazyColumn(
                 contentPadding = contentPadding,
@@ -193,7 +204,7 @@ fun AnalysisScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .padding(10.dp),
+                    .padding(16.dp),
             ) {
                 item {
                     val mealCounts = dateList.map { date ->
