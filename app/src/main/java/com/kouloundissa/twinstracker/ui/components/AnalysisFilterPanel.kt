@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.CircularProgressIndicator
@@ -84,7 +85,8 @@ fun AnalysisFilterPanel(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 12.dp).blur(if (isLoading) 3.dp else 0.dp),
+                        .padding(horizontal = 12.dp, vertical = 12.dp)
+                        .blur(if (isLoading) 3.dp else 0.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // Baby Filter
@@ -142,7 +144,7 @@ fun AnalysisFilterPanel(
             }
         }
         AnimatedVisibility(
-            visible = isLoading,
+            visible = isLoading && isExpanded,
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier.align(Alignment.Center)
@@ -154,7 +156,8 @@ fun AnalysisFilterPanel(
                     .background(
                         color = Color.Transparent,
                     )
-                    .padding(24.dp),
+                    .padding(24.dp)
+                    .wrapContentHeight(),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
