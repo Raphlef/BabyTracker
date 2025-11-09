@@ -30,11 +30,14 @@ import java.time.ZoneId
 import kotlin.reflect.KClass
 import com.google.firebase.storage.StorageException
 import com.kouloundissa.twinstracker.Service.NotificationService
+import com.kouloundissa.twinstracker.data.AnalysisSnapshot
 import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.EventFormState.*
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.User
+import com.kouloundissa.twinstracker.presentation.analysis.AnalysisRange
+import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -67,6 +70,15 @@ class EventViewModel @Inject constructor(
     val eventCountsByDay: StateFlow<Map<String, FirebaseRepository.EventDayCount>> =
         _eventCountsByDay.asStateFlow()
 
+    private val _analysisSnapshot =
+        MutableStateFlow(
+            AnalysisSnapshot(
+                emptyList(),
+                AnalysisFilter.DateRange(AnalysisRange.CUSTOM),
+                ""
+            )
+        )
+    val analysisSnapshot: StateFlow<AnalysisSnapshot> = _analysisSnapshot.asStateFlow()
     private val _events = MutableStateFlow<List<Event>>(emptyList())
     val events: StateFlow<List<Event>> = _events
 
@@ -191,11 +203,31 @@ class EventViewModel @Inject constructor(
             }
         }
     }
+    fun AnalysisRange.toDateRangeStrategy(
+        customStartDate: LocalDate? = null,
+        customEndDate: LocalDate? = null
+    ): DateRangeStrategy = when (this) {
+        AnalysisRange.ONE_DAY,
+        AnalysisRange.THREE_DAYS,
+        AnalysisRange.ONE_WEEK,
+        AnalysisRange.TWO_WEEKS,
+        AnalysisRange.ONE_MONTH,
+        AnalysisRange.THREE_MONTHS -> DateRangeStrategy.LastDays(this.days.toLong())
+
+        AnalysisRange.CUSTOM -> DateRangeStrategy.Custom(
+            DateRangeParams(
+                startDate = customStartDate?.toDate() ?: Date(),
+                endDate =  customEndDate?.toDate() ?: Date()
+            )
+        )
+    }
+    fun LocalDate.toDate(): Date = this.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli().let { Date(it) }
 
     data class EventStreamRequest(
         val babyId: String,
         val dateRange: DateRangeParams
     )
+
     fun refreshWithFilters(
         filters: AnalysisFilters
     ) {
@@ -204,9 +236,17 @@ class EventViewModel @Inject constructor(
         val babyId = filters.babyFilter.selectedBabies.firstOrNull()
         val selectedTypes = filters.eventTypeFilter.selectedTypes
 
-        // Current implementation
-        babyId?.let { refreshWithLastDays(it.id, selectedRange.days.toLong()) }
+        babyId?.let { baby ->
+            val strategy = selectedRange.toDateRangeStrategy(
+                customStartDate = dateRange.customStartDate,
+                customEndDate = dateRange.customEndDate
+            )
+
+            // Start analysis streaming
+            startAnalysisStreaming(baby.id, strategy)
+        }
     }
+
     /**
      * Convenience method for last N days
      */
@@ -232,8 +272,10 @@ class EventViewModel @Inject constructor(
 
     private val _streamRequest = MutableStateFlow<EventStreamRequest?>(null)
     private val _countStreamRequest = MutableStateFlow<EventStreamRequest?>(null)
+    private val _analysisStreamRequest = MutableStateFlow<EventStreamRequest?>(null)
     private var streamJob: Job? = null
     private var countsStreamJob: Job? = null
+    private var analysisStreamJob: Job? = null
     private var currentDaysWindow = 1L
     private val maxDaysWindow = 30L // Maximum 1 month of history
 
@@ -406,6 +448,56 @@ class EventViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun setupAnalysisStreamListener() {
+        if (analysisStreamJob != null) return
+
+        analysisStreamJob?.cancel()
+        analysisStreamJob = _analysisStreamRequest
+            .filterNotNull()
+            .distinctUntilChanged()
+            .onEach { request ->
+                Log.d("AnalysisStream", "Processing analysis request for babyId: ${request.babyId}")
+            }
+            .flatMapLatest { request ->
+                repository.streamAnalysisMetrics(
+                    request.babyId,
+                    request.dateRange.startDate,
+                    request.dateRange.endDate
+                )
+            }
+            .onStart {
+                Log.d("AnalysisStream", "Analysis stream started")
+            }
+            .catch { e ->
+                Log.e("AnalysisStream", "Analysis stream error occurred", e)
+            }
+            .onEach { snapshot ->
+                Log.d("AnalysisStream", "Received analysis for ${snapshot.dailyAnalysis.size} days")
+                _analysisSnapshot.value = snapshot
+            }
+            .launchIn(viewModelScope)
+    }
+
+    fun startAnalysisStreaming(
+        babyId: String,
+        strategy: DateRangeStrategy
+    ) {
+        if (babyId.isEmpty()) return
+
+        setupAnalysisStreamListener()
+
+        val dateRange = calculateRange(strategy)
+        val request = EventStreamRequest(babyId, dateRange)
+
+        if (_analysisStreamRequest.value != request) {
+            Log.i("EventViewModel", "✓ Analysis StreamRequest UPDATED")
+            _analysisStreamRequest.value = request
+        } else {
+            Log.i("EventViewModel", "✗ Analysis StreamRequest UNCHANGED - skipped")
+        }
+    }
+
     /**
      * Démarre le streaming des comptages uniquement (léger, pour calendrier)
      */
@@ -473,7 +565,12 @@ class EventViewModel @Inject constructor(
         countsStreamJob?.cancel()
         countsStreamJob = null
 
+        analysisStreamJob?.cancel()
+        analysisStreamJob = null
+
         _streamRequest.value = null
+        _countStreamRequest.value = null
+        _analysisStreamRequest.value = null
 
         _isLoading.value = false
         _isLoadingMore.value = false
