@@ -1,8 +1,6 @@
 package com.kouloundissa.twinstracker.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,18 +22,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.kouloundissa.twinstracker.data.Baby
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.presentation.analysis.AnalysisRange
+import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
@@ -208,13 +206,15 @@ fun DateRangeFilterSection(
 
 @Composable
 fun BabyFilterSection(
-    filter: AnalysisFilter.Baby,
-    availableBabies: List<Baby>,
-    onFilterChanged: (AnalysisFilter.Baby) -> Unit,
+    filter: AnalysisFilter.BabyFilter,
+    babyViewModel: BabyViewModel = hiltViewModel(),
+    onFilterChanged: (AnalysisFilter.BabyFilter) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val selectedBaby = babyViewModel.selectedBaby.collectAsState()
+    val babies by babyViewModel.babies.collectAsState()
 
-    val selectedCount = filter.selectedBabyIds.size
+
     Column(modifier = modifier) {
         Row(
             modifier = Modifier
@@ -230,9 +230,9 @@ fun BabyFilterSection(
                 color = DarkBlue,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-            if (selectedCount > 0) {
+            if (selectedBaby.value != null) {
                 Text(
-                    text = "$selectedCount selected",
+                    text = selectedBaby.value!!.name,
                     style = MaterialTheme.typography.bodySmall,
                     color = DarkBlue.copy(alpha = 0.7f)
                 )
@@ -244,16 +244,18 @@ fun BabyFilterSection(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             contentPadding = PaddingValues(horizontal = 2.dp)
         ) {
-            items(availableBabies) { baby ->
+            items(babies) { baby ->
                 FilterChip(
                     onClick = {
-                        val newSelected = filter.selectedBabyIds.toMutableSet().apply {
-                            if (contains(baby.id)) remove(baby.id) else add(baby.id)
+                        val newSelected = if (filter.selectedBabies.contains(baby)) {
+                            emptySet()
+                        } else {
+                            setOf(baby)  // Store Baby object directly
                         }
-                        onFilterChanged(filter.copy(selectedBabyIds = newSelected))
+                        onFilterChanged(filter.copy(selectedBabies = newSelected))
                     },
                     label = { Text(baby.name, style = MaterialTheme.typography.labelSmall) },
-                    selected = filter.selectedBabyIds.contains(baby.id),
+                    selected = filter.selectedBabies.contains(baby),
                     colors = FilterChipDefaults.filterChipColors(
                         containerColor = BackgroundColor.copy(alpha = 0.15f),
                         labelColor = DarkGrey.copy(alpha = 0.85f),
@@ -277,8 +279,8 @@ fun BabyFilterSection(
 
 @Composable
 fun EventTypeFilterSection(
-    filter: AnalysisFilter.EventType,
-    onFilterChanged: (AnalysisFilter.EventType) -> Unit,
+    filter: AnalysisFilter.EventTypeFilter,
+    onFilterChanged: (AnalysisFilter.EventTypeFilter) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val eventTypes = EventType.entries
@@ -314,15 +316,15 @@ fun EventTypeFilterSection(
             modifier = Modifier.fillMaxWidth()
         ) {
             eventTypes.forEach { eventType ->
-                val isSelected = filter.selectedTypes.contains(eventType.name)
+                val isSelected = filter.selectedTypes.contains(eventType)
 
                 FilterChip(
                     onClick = {
                         val newSelected = filter.selectedTypes.toMutableSet().apply {
-                            if (contains(eventType.name)) {
-                                remove(eventType.name)
+                            if (contains(eventType)) {
+                                remove(eventType)
                             } else {
-                                add(eventType.name)
+                                add(eventType)
                             }
                         }
                         onFilterChanged(filter.copy(selectedTypes = newSelected))
