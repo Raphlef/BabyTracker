@@ -22,11 +22,14 @@ import com.google.firebase.firestore.toObject
 import com.google.firebase.firestore.toObjects
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageException
+import com.kouloundissa.twinstracker.presentation.analysis.AnalysisRange
+import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -35,6 +38,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
@@ -653,6 +658,107 @@ class FirebaseRepository @Inject constructor(
                 )
                 throw e
             }
+    }
+    fun streamAnalysisMetrics(
+        babyId: String,
+        startDate: Date,
+        endDate: Date,
+        eventTypes: Set<EventType> = EventType.entries.toSet()
+    ): Flow<AnalysisSnapshot> {
+        require(babyId.isNotBlank()) { "Baby ID cannot be empty" }
+        require(startDate.before(endDate)) { "Start date must be before end date" }
+
+        val userId = auth.currentUser?.uid
+            ?: throw IllegalStateException("User not authenticated")
+
+        return combine(
+            // Stream events for the date range
+            db.collection(EVENTS_COLLECTION)
+                .whereEqualTo("babyId", babyId)
+                .whereGreaterThanOrEqualTo("timestamp", startDate)
+                .whereLessThan("timestamp", endDate)
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.documents.mapNotNull { it.toEvent() }
+                },
+            // Stream growth events (separate to allow independent updates)
+            db.collection(EVENTS_COLLECTION)
+                .whereEqualTo("babyId", babyId)
+                .whereEqualTo("eventTypeString", "GROWTH")
+                .whereGreaterThanOrEqualTo("timestamp", startDate)
+                .whereLessThan("timestamp", endDate)
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.documents.mapNotNull { it.toEvent() as? GrowthEvent }
+                }
+        ) { events, growthEvents ->
+            val dateList = generateDateRange(startDate, endDate)
+            val eventsByDay = events.groupBy { it.timestamp.toLocalDate() }
+            val growthByDate = growthEvents.groupBy { it.timestamp.toLocalDate() }
+
+            val dailyAnalysis = dateList.map { date ->
+                val dayEvents = eventsByDay[date].orEmpty()
+
+                DailyAnalysis(
+                    date = date,
+                    mealCount = dayEvents.count { it is FeedingEvent },
+                    mealVolume = dayEvents
+                        .filterIsInstance<FeedingEvent>()
+                        .sumOf { it.amountMl ?: 0.0 }
+                        .toFloat(),
+                    pumpingCount = dayEvents.count { it is PumpingEvent },
+                    pumpingVolume = dayEvents
+                        .filterIsInstance<PumpingEvent>()
+                        .sumOf { it.amountMl ?: 0.0 }
+                        .toFloat(),
+                    poopCount = dayEvents.count { event ->
+                        event is DiaperEvent &&
+                                (event.diaperType == DiaperType.DIRTY || event.diaperType == DiaperType.MIXED)
+                    },
+                    wetCount = dayEvents.count { event ->
+                        event is DiaperEvent &&
+                                (event.diaperType == DiaperType.WET || event.diaperType == DiaperType.MIXED)
+                    },
+                    sleepMinutes = dayEvents
+                        .filterIsInstance<SleepEvent>()
+                        .sumOf { it.durationMinutes ?: 0L },
+                    growthMeasurements = growthByDate[date]
+                        ?.maxByOrNull { it.timestamp }
+                        ?.let {
+                            GrowthMeasurement(
+                                weightKg = it.weightKg?.toFloat() ?: Float.NaN,
+                                heightCm = it.heightCm?.toFloat() ?: Float.NaN,
+                                headCircumferenceCm = it.headCircumferenceCm?.toFloat() ?: Float.NaN,
+                                timestamp = it.timestamp.time
+                            )
+                        }
+                )
+            }
+
+            AnalysisSnapshot(
+                dailyAnalysis = dailyAnalysis,
+                dateRange = AnalysisFilter.DateRange(AnalysisRange.CUSTOM, startDate.toLocalDate(), endDate.toLocalDate()),
+                babyId = babyId
+            )
+        }.catch { e ->
+            Log.e(
+                "AnalysisStream",
+                "Error streaming analysis metrics for baby=$babyId, " +
+                        "startDate=$startDate, endDate=$endDate",
+                e
+            )
+            throw e
+        }
+    }
+    private fun Date.toLocalDate(): LocalDate =
+        this.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+    private fun generateDateRange(startDate: Date, endDate: Date): List<LocalDate> {
+        val start = startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+        val end = endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+
+        return generateSequence(start) { it.plusDays(1) }
+            .takeWhile { it <= end }
+            .toList()
     }
 
 
