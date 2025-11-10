@@ -23,7 +23,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerBasedShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -58,7 +57,6 @@ import com.kouloundissa.twinstracker.data.Gender
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
-import kotlin.text.ifEmpty
 
 @Composable
 fun BabyInfoBar(
@@ -68,7 +66,7 @@ fun BabyInfoBar(
     onEditBaby: () -> Unit = {},
     onAddBaby: (() -> Unit)? = null
 ) {
-    val baseColor = BackgroundColor
+    val backgroundColor = BackgroundColor
     val contentColor = DarkGrey
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
@@ -105,8 +103,8 @@ fun BabyInfoBar(
                     .background(
                         Brush.horizontalGradient(
                             colors = listOf(
-                                baseColor.copy(alpha = 0.75f),
-                                baseColor.copy(alpha = 0.35f)
+                                backgroundColor.copy(alpha = 0.75f),
+                                backgroundColor.copy(alpha = 0.35f)
                             )
                         ),
                         shape = cornerShape
@@ -174,7 +172,7 @@ fun BabyInfoBar(
                             Icon(
                                 imageVector = Icons.Default.Edit,
                                 contentDescription = "Edit Baby",
-                                tint = baseColor
+                                tint = backgroundColor
                             )
                         }
 
@@ -190,7 +188,7 @@ fun BabyInfoBar(
                                 Icon(
                                     imageVector = Icons.Default.KeyboardArrowDown,
                                     contentDescription = "Toggle baby selector",
-                                    tint = baseColor,
+                                    tint = backgroundColor,
                                     modifier = Modifier.rotate(expandRotation)
                                 )
                             }
@@ -212,7 +210,7 @@ fun BabyInfoBar(
             onAddBaby = onAddBaby,
             onDismiss = { isExpanded = false },
             cornerShape = cornerShape ,
-            baseColor = baseColor,
+            baseColor = backgroundColor,
             contentColor = contentColor
         )
     }
