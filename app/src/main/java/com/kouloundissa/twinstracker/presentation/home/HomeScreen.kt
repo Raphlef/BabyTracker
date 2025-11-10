@@ -71,6 +71,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.Event
@@ -110,11 +111,11 @@ fun HomeScreen(
     val screenWidth = configuration.screenWidthDp.dp
     val spacing = 12.dp
     val columns = 2
-    val cardWidth  = (screenWidth - spacing * (columns + 1)) / columns
+    val cardWidth = (screenWidth - spacing * (columns + 1)) / columns
     val cardHeight = cardWidth * 1.2f
     // Number of rows needed for the grid
     val rows = ceil(EventType.entries.size / columns.toFloat()).toInt()
-    val gridHeight = cardHeight  * rows + spacing * (rows - 1)
+    val gridHeight = cardHeight * rows + spacing * (rows - 1)
 
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
     val babies by babyViewModel.babies.collectAsState()
@@ -385,7 +386,9 @@ fun HomeScreen(
                                                 sleepEvent = activeSleepEvent,
                                                 onClick = {
                                                     editingEvent = activeSleepEvent
-                                                    eventViewModel.loadEventIntoForm(activeSleepEvent)
+                                                    eventViewModel.loadEventIntoForm(
+                                                        activeSleepEvent
+                                                    )
                                                     showEventDialog = true
                                                 },
                                                 modifier = Modifier.align(Alignment.CenterStart)
@@ -613,14 +616,14 @@ fun EventTypeCard(
 
     ) {
         // Background image
-        Image(
-            painter = painterResource(id = type.drawableRes),
+        AsyncImage(
+            model = type.drawableRes,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
                 .alpha(0.85f)
-                .blur(5.dp)
+                .blur(4.dp)
         )
 
         Box(
@@ -781,8 +784,8 @@ private fun EventTypeDialog(
         ) {
             val blurRadius = if (events.size > 5) 5.dp else 0.dp
             //  Background image sized to the dialog
-            Image(
-                painter = painterResource(id = type.drawableRes),
+            AsyncImage(
+                model = type.drawableRes,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

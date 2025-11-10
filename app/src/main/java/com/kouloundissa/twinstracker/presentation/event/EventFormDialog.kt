@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import coil.compose.AsyncImage
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.EventFormState.*
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
@@ -183,8 +184,8 @@ fun EventFormDialog(
                 .fillMaxHeight(0.9f)
         ) {
 
-            Image(
-                painter = painterResource(id = R.drawable.background),
+            AsyncImage(
+                model =  R.drawable.background,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

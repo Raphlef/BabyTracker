@@ -11,6 +11,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 
 @Composable
 fun BackgroundContainer(
@@ -19,16 +20,17 @@ fun BackgroundContainer(
     content: @Composable BoxScope.() -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(id = backgroundRes),
+        AsyncImage(
+            model = backgroundRes,
             contentDescription = contentDescription,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.matchParentSize().blur(radius = 0.5.dp)
+            modifier = Modifier
+                .matchParentSize()
+                .blur(radius = 0.dp)
         )
         Box(
             modifier = Modifier
-                .matchParentSize()
-            ,
+                .matchParentSize(),
             content = content
         )
     }

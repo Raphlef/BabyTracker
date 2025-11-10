@@ -265,8 +265,8 @@ private fun BabyFormBottomSheetContent(
             .fillMaxWidth()          // use full width
             .fillMaxHeight(0.9f)
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.background),
+        AsyncImage(
+            model =  R.drawable.background,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
