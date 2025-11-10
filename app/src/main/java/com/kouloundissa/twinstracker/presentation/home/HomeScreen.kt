@@ -2,7 +2,6 @@ package com.kouloundissa.twinstracker.presentation.home
 
 import android.annotation.SuppressLint
 import android.util.Log
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -65,7 +64,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -85,12 +83,14 @@ import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.EventCard
+import com.kouloundissa.twinstracker.ui.components.FeedingTimer
 import com.kouloundissa.twinstracker.ui.components.SleepTimer
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.distinctUntilChanged
+import java.time.Duration
 import java.time.LocalDate
 import kotlin.math.ceil
 
@@ -119,10 +119,13 @@ fun HomeScreen(
 
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
     val babies by babyViewModel.babies.collectAsState()
+
     var editingEvent by remember { mutableStateOf<Event?>(null) }
     var showEventDialog by remember { mutableStateOf(false) }
     var showBabyDialog by remember { mutableStateOf(false) }
 
+    val eventsByDay by eventViewModel.eventsByDay.collectAsState()
+    val eventsByType by eventViewModel.eventsByType.collectAsState()
     val isLoading by eventViewModel.isLoading.collectAsState()
     val isLoadingMore by eventViewModel.isLoadingMore.collectAsState()
     val hasMoreHistory by eventViewModel.hasMoreHistory.collectAsState()
@@ -141,6 +144,8 @@ fun HomeScreen(
     val deleteSuccess by eventViewModel.deleteSuccess.collectAsState()
     val deleteError by eventViewModel.deleteError.collectAsState()
     val isDeleting by eventViewModel.isDeleting.collectAsState()
+
+
 
     val lazyListState = rememberLazyListState()
 
@@ -212,8 +217,6 @@ fun HomeScreen(
     }
 
     val today = LocalDate.now()
-    val eventsByDay by eventViewModel.eventsByDay.collectAsState()
-    val eventsByType by eventViewModel.eventsByType.collectAsState()
     val babyEvents = remember(eventsByType, selectedBaby) {
         eventsByType.values.flatten()
             .filter { it.babyId == selectedBaby?.id }
@@ -222,11 +225,35 @@ fun HomeScreen(
     val todaysByType = remember(todayEvents) {
         todayEvents.groupBy { EventType.forClass(it::class) }
     }
-// In HomeScreen, after calculating todayEvents and todaysByType
+
     val activeSleepEvent: SleepEvent? = todayEvents
         .filterIsInstance<SleepEvent>()
         .firstOrNull { it.endTime == null && it.beginTime != null }
 
+    val activeFeedingEvent: FeedingEvent? = todayEvents
+        .filterIsInstance<FeedingEvent>()
+        ?.maxByOrNull { it.timestamp }
+
+    val nextFeedingTimeMs: Long? = run {
+        if (activeFeedingEvent == null) return@run null
+
+        // Get last 5 feeding events from eventsByDay to calculate average interval
+        val recentFeedings = eventsByDay
+            .values
+            .flatten()
+            .filterIsInstance<FeedingEvent>()
+            .sortedByDescending { it.timestamp }
+            .take(5)
+
+        if (recentFeedings.size < 2) return@run null
+
+        val intervals = recentFeedings.zipWithNext { a, b ->
+            Duration.between(b.timestamp.toInstant(), a.timestamp.toInstant()).toMillis()
+        }
+
+        val averageIntervalMs = intervals.average().toLong()
+        activeFeedingEvent.timestamp.time + averageIntervalMs
+    }
     val summaries = remember(todaysByType, lastGrowthEvent) {
         EventType.entries.associateWith { type ->
             val todayList = todaysByType[type].orEmpty()
@@ -380,21 +407,36 @@ fun HomeScreen(
                                     },
                                     width = cardWidth,
                                     height = cardHeight,
-                                    overlayContent = if (type == EventType.SLEEP && activeSleepEvent != null) {
-                                        {
-                                            SleepTimer(
-                                                sleepEvent = activeSleepEvent,
-                                                onClick = {
-                                                    editingEvent = activeSleepEvent
-                                                    eventViewModel.loadEventIntoForm(
-                                                        activeSleepEvent
-                                                    )
-                                                    showEventDialog = true
-                                                },
-                                                modifier = Modifier.align(Alignment.CenterStart)
-                                            )
-                                        }
-                                    } else null
+                                    overlayContent = when (type) {
+                                        EventType.SLEEP -> if (activeSleepEvent != null) {
+                                            {
+                                                SleepTimer(
+                                                    sleepEvent = activeSleepEvent,
+                                                    onClick = {
+                                                        editingEvent = activeSleepEvent
+                                                        eventViewModel.loadEventIntoForm(activeSleepEvent)
+                                                        showEventDialog = true
+                                                    },
+                                                    modifier = Modifier.align(Alignment.CenterStart)
+                                                )
+                                            }
+                                        } else null
+
+                                        EventType.FEEDING -> if (nextFeedingTimeMs != null) {
+                                            {
+                                                FeedingTimer(
+                                                    nextFeedingTimeMs = nextFeedingTimeMs,
+                                                    onClick = {
+                                                        selectedType = EventType.FEEDING
+                                                        showEventDialog = true
+                                                    },
+                                                    modifier = Modifier.align(Alignment.CenterStart)
+                                                )
+                                            }
+                                        } else null
+
+                                        else -> null
+                                    }
                                 )
                             }
                         }
@@ -668,29 +710,37 @@ fun EventTypeCard(
                     )
                 }
             }
-            // Center content - show overlay if available, otherwise show summary
-            if (overlayContent != null) {
-                // Overlay content replaces summary
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .zIndex(2f)
-                        .padding(start = 20.dp)
-                        .fillMaxSize()
-                ) {
-                    overlayContent()
+
+            // Center content - show overlay and summary together
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .zIndex(2f)
+                    .padding(start = 5.dp)
+            ) {
+                if (overlayContent != null) {
+                    Column(
+                        horizontalAlignment = Alignment.Start,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Overlay at top
+                        this@Box.overlayContent()
+
+                        // Summary directly below overlay
+                        Text(
+                            text = summary,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = backgroundColor.copy(alpha = 0.7f)
+                        )
+                    }
+                } else {
+                    // Default summary text centered
+                    Text(
+                        text = summary,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = backgroundColor.copy(alpha = 0.85f)
+                    )
                 }
-            } else {
-                // Default summary text
-                Text(
-                    text = summary,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = backgroundColor.copy(alpha = 0.85f),
-                    modifier = Modifier
-                        .zIndex(2f)
-                        .align(Alignment.CenterStart)
-                        .padding(start = 20.dp)
-                )
             }
 
             // Small "+" button at bottom-right
