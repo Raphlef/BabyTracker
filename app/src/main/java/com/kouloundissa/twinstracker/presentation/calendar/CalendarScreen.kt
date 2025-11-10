@@ -120,9 +120,9 @@ fun CalendarScreen(
             showDialog = true
         }
     }
-    BackgroundColor.copy(alpha = 0.2f)
-    DarkGrey.copy(alpha = 0.5f)
-    DarkBlue
+    val backgroundColor = BackgroundColor.copy(alpha = 0.2f)
+    val contentColor = DarkGrey.copy(alpha = 0.5f)
+    val tint = DarkBlue
     /** UI **/
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
