@@ -180,12 +180,16 @@ dependencies {
  * Renvoie 1 en cas d’erreur.
  */
 fun getGitCommitCount(): Int = runCatching {
+    val file = File(".git/HEAD")
+    if (!file.exists()) return@runCatching 1
+
     ByteArrayOutputStream().use { stdout ->
         exec {
             commandLine("git", "rev-list", "--count", "HEAD")
             standardOutput = stdout
+            isIgnoreExitValue = true
         }
-        stdout.toString().trim().toInt()
+        stdout.toString().trim().toIntOrNull() ?: 1
     }
 }.getOrDefault(1)
 
@@ -194,16 +198,21 @@ fun getGitCommitCount(): Int = runCatching {
  * Renvoie "1.0.0.0" en cas d’erreur.
  */
 fun getGitVersionName(): String = runCatching {
+    val file = File(".git/HEAD")
+    if (!file.exists()) return@runCatching "1.0.0.0"
+
     ByteArrayOutputStream().use { stdout ->
         exec {
             commandLine("git", "describe", "--tags", "--long")
             standardOutput = stdout
+            isIgnoreExitValue = true
         }
-        val desc = stdout.toString().trim()              // ex: v1.2.0-5-g1234567
-        val (rawTag, commits) = desc.split('-', limit = 3).let {
-            it[0] to it.getOrElse(1) { "0" }
-        }
-        val tag = rawTag.removePrefix("v")
+        val desc = stdout.toString().trim()
+        if (desc.isEmpty()) return@runCatching "1.0.0.0"
+
+        val parts = desc.split('-', limit = 3)
+        val tag = parts.getOrElse(0) { "1.0.0" }.removePrefix("v")
+        val commits = parts.getOrElse(1) { "0" }
         "$tag.$commits"
     }
 }.getOrDefault("1.0.0.0")
