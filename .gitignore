@@ -1,25 +1,34 @@
+# Gradle
+.gradle/
+build/
+
+# Android Studio
+.idea/
 *.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+*.iws
+*.ipr
+*.apk
+
+# IDE
+.idea/**
+!.idea/codeStyles/
+!.idea/inspectionProfiles/
+
+# Local properties
 local.properties
+
+# Generated files
+gen/
+out/
+
+# Misc
+.DS_Store
+*.log
+*.swp
+*.swo
+*~
+/Keystore
 /app/google-services.json
-/.idea/inspectionProfiles/Project_Default.xml
-/app/release/app-release.aab
-/app/release/app-debug.apk
-/.kotlin/sessions/kotlin-compiler-8020607486918546671.salive
-/app/release/app-release.apk
-/app/release/baselineProfiles/0/app-release.dm
+/.kotlin/sessions/kotlin-compiler-558181302106384583.salive
 /app/release/baselineProfiles/1/app-release.dm
-/.idea/appInsightsSettings.xml
-/app/release/output-metadata.json
+/app/release/baselineProfiles/0/app-release.dm
