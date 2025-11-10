@@ -1,14 +1,11 @@
 package com.kouloundissa.twinstracker.ui.components
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.EaseOutElastic
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,24 +13,23 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,19 +37,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.Gender
+import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
+import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
@@ -64,19 +59,20 @@ fun BabyInfoBar(
     selectedBaby: Baby?,
     onSelectBaby: (Baby) -> Unit,
     onEditBaby: () -> Unit = {},
-    onAddBaby: (() -> Unit)? = null
+    onAddBaby: (() -> Unit)? = null,
+    babyViewModel: BabyViewModel = hiltViewModel(),
+    eventViewModel: EventViewModel = hiltViewModel(),
 ) {
     val backgroundColor = BackgroundColor
     val contentColor = DarkGrey
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
 
+    val babyIsLoading by babyViewModel.isLoading.collectAsState()
+    val eventIsLoading by eventViewModel.isLoading.collectAsState()
+    val isLoading = babyIsLoading || eventIsLoading
+
     var isExpanded by remember { mutableStateOf(false) }
-    val expandRotation by animateFloatAsState(
-        targetValue = if (isExpanded) 180f else 0f,
-        animationSpec = tween(durationMillis = 300, easing = EaseInOutCubic),
-        label = "expandRotation"
-    )
 
     val currentBaby = selectedBaby ?: babies.firstOrNull()
 
@@ -85,134 +81,123 @@ fun BabyInfoBar(
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        Surface(
-            color = Color.Transparent,
-            tonalElevation = 0.dp,
-            shape = cornerShape,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-                .clickable(
-                    onClick = { if (babies.size > 1) isExpanded = !isExpanded },
-                    enabled = babies.size > 1
+        ExpandablePanel(
+            headerContent = { isExpandedState ->
+                // Left section: Baby info
+                BabyInfoHeaderContent(
+                    baby = currentBaby,
+                    modifier = Modifier.weight(1f)
                 )
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                backgroundColor.copy(alpha = 0.75f),
-                                backgroundColor.copy(alpha = 0.35f)
-                            )
-                        ),
-                        shape = cornerShape
-                    )
-            ) {
+
+                // Right section: Action buttons
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(start = 12.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
+                    // Edit button
+                    IconButton(
+                        onClick = {
+                            onAddBaby?.invoke()
+                            isExpanded = false
+                        },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.Transparent)
                     ) {
-                        // Gender-based baby emoji
-                        Text(
-                            text = currentBaby?.gender?.emoji ?: "👶",
-                            style = MaterialTheme.typography.headlineMedium,
-                            modifier = Modifier
-                                .padding(end = 12.dp)
-                                .scaleAnimation(
-                                    targetScale = 1f,
-                                    animationDuration = 300
-                                )
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Baby",
+                            tint = tint
                         )
-
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(
-                                text = currentBaby?.name ?: "Unnamed Baby",
-                                style = MaterialTheme.typography.titleLarge,
-                                color = contentColor,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-
-                            if (currentBaby?.gender != Gender.UNKNOWN) {
-                                Text(
-                                    text = currentBaby?.gender?.displayName ?: "",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = contentColor.copy(alpha = 0.85f),
-                                    maxLines = 1
-                                )
-                            }
-                        }
                     }
 
-                    // Right action buttons
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(start = 12.dp)
-                    ) {
-                        // Edit button
+                    // Expand/Collapse indicator (visible when multiple babies)
+                    if (babies.size > 1) {
                         IconButton(
-                            onClick = onEditBaby,
+                            onClick = { isExpanded = !isExpanded },
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
-                                .background(Color.DarkGray.copy(alpha = 0.25f))
+                                .background(Color.Transparent)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit Baby",
-                                tint = backgroundColor
+                                imageVector = if (isExpanded) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
+                                contentDescription = "Toggle baby selector",
+                                tint = tint,
                             )
-                        }
-
-                        // Expand/Collapse indicator (visible when multiple babies)
-                        if (babies.size > 1) {
-                            IconButton(
-                                onClick = { isExpanded = !isExpanded },
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.DarkGray.copy(alpha = 0.25f))
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.KeyboardArrowDown,
-                                    contentDescription = "Toggle baby selector",
-                                    tint = backgroundColor,
-                                    modifier = Modifier.rotate(expandRotation)
-                                )
-                            }
                         }
                     }
                 }
+            },
+            expandedContent = {
+                // Baby selector dropdown
+                DropdownBabySelectorPanel(
+                    babies = babies,
+                    selectedBaby = currentBaby,
+                    onSelectBaby = { baby ->
+                        onSelectBaby(baby)
+                        isExpanded = false
+                    },
+                    onAddBaby = {
+                        onAddBaby?.invoke()
+                        isExpanded = false
+                    },
+                    onDismiss = { isExpanded = false }
+                )
+            },
+            isExpanded = isExpanded,
+            onExpandToggle = { if (babies.size > 1) isExpanded = !isExpanded },
+            modifier = Modifier,
+            isLoading = isLoading
+        )
+    }
+}
+
+@Composable
+private fun BabyInfoHeaderContent(
+    baby: Baby?,
+    modifier: Modifier = Modifier
+) {
+
+    val contentColor = DarkGrey
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+    ) {
+        // Gender-based baby emoji
+        Text(
+            text = baby?.gender?.emoji ?: "👶",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier
+                .padding(end = 12.dp)
+                .scaleAnimation(
+                    targetScale = 1f,
+                    animationDuration = 300
+                )
+        )
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = baby?.name ?: "Unnamed Baby",
+                style = MaterialTheme.typography.titleLarge,
+                color = contentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            if (baby?.gender != Gender.UNKNOWN) {
+                Text(
+                    text = baby?.gender?.displayName ?: "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = contentColor.copy(alpha = 0.85f),
+                    maxLines = 1
+                )
             }
         }
-
-        // Dropdown selector with smooth animation
-        DropdownBabySelectorPanel(
-            babies = babies,
-            selectedBaby = currentBaby,
-            isExpanded = isExpanded,
-            onSelectBaby = { baby ->
-                onSelectBaby(baby)
-                isExpanded = false
-            },
-            onAddBaby = onAddBaby,
-            onDismiss = { isExpanded = false },
-            cornerShape = cornerShape ,
-            baseColor = backgroundColor,
-            contentColor = contentColor
-        )
     }
 }
 
@@ -223,87 +208,41 @@ fun BabyInfoBar(
 private fun DropdownBabySelectorPanel(
     babies: List<Baby>,
     selectedBaby: Baby?,
-    isExpanded: Boolean,
     onSelectBaby: (Baby) -> Unit,
     onAddBaby: (() -> Unit)?,
     onDismiss: () -> Unit,
-    cornerShape: CornerBasedShape,
-    baseColor: Color,
-    contentColor: Color
+    modifier: Modifier = Modifier
 ) {
-    val expandedHeight by animateDpAsState(
-        targetValue = if (isExpanded) {
-            val itemCount = babies.size + (if (onAddBaby != null) 1 else 0)
-            val maxVisible = 4
-            val visibleCount = minOf(itemCount, maxVisible)
-            (60.dp * visibleCount) + 16.dp
-        } else {
-            0.dp
-        },
-        animationSpec = tween(durationMillis = 300, easing = EaseInOutCubic),
-        label = "panelHeight"
-    )
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
 
-    val alpha by animateFloatAsState(
-        targetValue = if (isExpanded) 1f else 0f,
-        animationSpec = tween(durationMillis = 200, easing = EaseInOutCubic),
-        label = "panelAlpha"
-    )
-
-    Box(
-        modifier = Modifier
+    Column(
+        modifier = modifier
             .fillMaxWidth()
-            .height(expandedHeight)
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .padding(horizontal = 12.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        if (expandedHeight > 0.dp) {
-            Surface(
-                color = baseColor,
-                tonalElevation = 8.dp,
-                shape = cornerShape,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 280.dp)
-                    .alpha(alpha)
-            ) {
-                LazyColumn(
-                    modifier = Modifier.padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(babies) { baby ->
-                        BabySelectorItem(
-                            baby = baby,
-                            isSelected = baby == selectedBaby,
-                            onSelect = { onSelectBaby(baby) },
-                            contentColor = contentColor
-                        )
-                    }
 
-                    if (onAddBaby != null) {
-                        item {
-                            AddBabySelectorItem(
-                                onAddBaby = onAddBaby,
-                                contentColor = contentColor
-                            )
-                        }
-                    }
-                }
-            }
+        for (baby in babies) {
+            BabySelectorItem(
+                baby = baby,
+                isSelected = baby == selectedBaby,
+                onSelect = { onSelectBaby(baby) }
+            )
 
-            // Scrim for dismissal
-            if (isExpanded) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Transparent)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onDismiss
-                        )
-                        .zIndex(-1f)
-                )
+            if (baby != babies.last() || onAddBaby != null) {
+                Divider(color = contentColor.copy(alpha = 0.1f), thickness = 1.dp)
             }
+        }
+
+        // Add Baby Button
+        if (onAddBaby != null) {
+            AddBabySelectorItem(
+                onAddBaby = onAddBaby,
+                contentColor = contentColor
+            )
         }
     }
 }
@@ -315,9 +254,11 @@ private fun DropdownBabySelectorPanel(
 private fun BabySelectorItem(
     baby: Baby,
     isSelected: Boolean,
-    onSelect: () -> Unit,
-    contentColor: Color
+    onSelect: () -> Unit
 ) {
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
     var isHovered by remember { mutableStateOf(false) }
 
     val backgroundColor by animateColorAsState(
@@ -332,11 +273,11 @@ private fun BabySelectorItem(
 
     Surface(
         color = backgroundColor,
-        shape = MaterialTheme.shapes.large,
+        shape = cornerShape,
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
-            .clip(MaterialTheme.shapes.large)
+            .clip(cornerShape)
             .clickable(onClick = onSelect)
             .onPointerEvent(PointerEventType.Enter) { isHovered = true }
             .onPointerEvent(PointerEventType.Exit) { isHovered = false }
@@ -470,5 +411,6 @@ fun Modifier.onPointerEvent(
         }
     }
 }
+
 
 
