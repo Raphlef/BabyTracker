@@ -364,55 +364,35 @@ fun HomeScreen(
                             verticalArrangement = Arrangement.spacedBy(spacing)
                         ) {
                             items(sortedEventTypes) { type ->
-                                if (type == EventType.SLEEP && activeSleepEvent != null) {
-                                    EventTypeCard(
-                                        type = type,
-                                        summary = summaries[type]!!,
-                                        isFavorite = type in favoriteEventTypes,
-                                        onFavoriteToggle = { eventViewModel.toggleFavorite(type) },
-                                        onClick = {
-                                            selectedType = type
-                                            showTypeDialog = true
-                                        },
-                                        onLongClick = {
-                                            selectedType = type
-                                            showEventDialog = true
-                                        },
-                                        width = cardWidth,
-                                        height = cardHeight,
-                                        overlayContent = {
+                                EventTypeCard(
+                                    type = type,
+                                    summary = summaries[type]!!,
+                                    isFavorite = type in favoriteEventTypes,
+                                    onFavoriteToggle = { eventViewModel.toggleFavorite(type) },
+                                    onClick = {
+                                        selectedType = type
+                                        showTypeDialog = true
+                                    },
+                                    onLongClick = {
+                                        selectedType = type
+                                        showEventDialog = true
+                                    },
+                                    width = cardWidth,
+                                    height = cardHeight,
+                                    overlayContent = if (type == EventType.SLEEP && activeSleepEvent != null) {
+                                        {
                                             SleepTimer(
                                                 sleepEvent = activeSleepEvent,
                                                 onClick = {
                                                     editingEvent = activeSleepEvent
-                                                    eventViewModel.loadEventIntoForm(
-                                                        activeSleepEvent
-                                                    )
+                                                    eventViewModel.loadEventIntoForm(activeSleepEvent)
                                                     showEventDialog = true
                                                 },
-                                                modifier = Modifier
-                                                    .align(Alignment.CenterStart)
+                                                modifier = Modifier.align(Alignment.CenterStart)
                                             )
                                         }
-                                    )
-                                } else {
-                                    EventTypeCard(
-                                        type = type,
-                                        summary = summaries[type]!!,
-                                        isFavorite = type in favoriteEventTypes,
-                                        onFavoriteToggle = { eventViewModel.toggleFavorite(type) },
-                                        onClick = {
-                                            selectedType = type
-                                            showTypeDialog = true
-                                        },
-                                        onLongClick = {
-                                            selectedType = type
-                                            showEventDialog = true
-                                        },
-                                        width = cardWidth,
-                                        height = cardHeight,
-                                    )
-                                }
+                                    } else null
+                                )
                             }
                         }
                     }
