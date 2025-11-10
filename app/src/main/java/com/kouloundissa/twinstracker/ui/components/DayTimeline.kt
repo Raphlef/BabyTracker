@@ -1,5 +1,7 @@
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -13,7 +15,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,18 +26,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
-import androidx.compose.ui.zIndex
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.data.FeedingEvent
+import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
-import com.kouloundissa.twinstracker.ui.theme.*
-import java.time.Instant
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
+import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -52,205 +53,449 @@ fun DayTimeline(
     val backgroundColor = BackgroundColor.copy(alpha = 0.2f)
     val cornerShape = MaterialTheme.shapes.large
 
-    val eventTypes = EventType.entries
-    // Break multi-day events into per-day spans
-    val spans = remember(date, events) {
-        events.flatMap { evt ->
-            val startZ = evt.timestamp.toInstant().atZone(systemZone)
-            val endInstant = (evt as? SleepEvent)?.endTime
-                ?.toInstant() ?: startZ.toInstant().plusSeconds(30 * 60)
-            val endZ = endInstant.atZone(systemZone)
-
-            // If spans into next day, split
-            if (endZ.toLocalDate().isAfter(startZ.toLocalDate())) {
-                listOf(
-                    // First-day span
-                    DaySpan(evt, startZ, startZ.toLocalDate().atTime(23,59).atZone(systemZone)),
-                    // Next-day span
-                    DaySpan(evt, endZ.toLocalDate().atStartOfDay(systemZone), endZ)
-                )
-            } else {
-                listOf(DaySpan(evt, startZ, endZ))
-            }
-        }
-            .filter { it.start.toLocalDate() == date }  // keep only spans for this day
+    // Process events into day spans
+    val daySpans = remember(date, events) {
+        computeDaySpans(date, events)
     }
-
-    Column() {
-        repeat(24) { hour ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(hourRowHeight),
-                verticalAlignment = Alignment.Top
-            ) {
-                BoxWithConstraints(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(hourRowHeight - 4.dp)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    backgroundColor.copy(alpha = 0.85f),
-                                    backgroundColor.copy(alpha = 0.55f)
-                                )
-                            ),
-                            shape = cornerShape,
-                        )
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(84.dp)
-                            .fillMaxHeight()
-                            .align(Alignment.Center)
-                            .zIndex(1f),
-                    ) {
-                        Text(
-                            text = "%02d:00".format(hour),
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.Bold        // Bold text
-                            ),
-                            color = contentColor
-                        )
-                    }
-                    val covering = spans.filter { it.coversHour(hour) }
-                    covering
-                        .sortedByDescending { it.evt is SleepEvent }
-                        .forEach { span ->
-                            EventSegment(
-                                span = span,
-                                onEdit = onEdit,
-                                parentWidth = maxWidth,
-                                currentHour = hour,
-                                hourRowHeight = hourRowHeight - 4.dp
-                            )
-                        }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun EventSegment(
-    span: DaySpan,
-    onEdit: (Event) -> Unit,
-    parentWidth: Dp,
-    currentHour: Int,
-    hourRowHeight: Dp
-) {
-    val cornerShape = MaterialTheme.shapes.large
-    val type = EventType.forClass(span.evt::class)
-
-    // Compute fraction of hour before start
-    val startFrac = if (currentHour == span.startHour)
-        span.start.minute / 60f
-    else 0f
-
-    // Compute fraction of hour after end
-    val endFrac = if (currentHour == span.end.hour)
-        span.end.minute / 60f
-    else 1f
-
-    // Duration fraction within this hour
-    val durationFrac = (endFrac - startFrac).coerceAtLeast(MIN_INSTANT_FRAC)
-
-    // Layout calculations
-    val (slotWidth, xOffset) = computeLayoutParams(span.evt, EventType.entries, parentWidth)
-    val yOffset = hourRowHeight * startFrac
-    val heightDp = hourRowHeight * durationFrac
 
     Box(
         modifier = Modifier
-            .offset(x = xOffset, y = yOffset)
-            .width(slotWidth)
-            .height(heightDp)
-            .clip(cornerShape)
-            .background(type.color.copy(alpha = 0.85f))
-            .clickable { onEdit(span.evt) }
-            .padding(4.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = type.icon,
-                contentDescription = type.displayName,
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(16.dp)
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        backgroundColor.copy(alpha = 0.9f),
+                        backgroundColor.copy(alpha = 0.6f)
+                    )
+                ),
+                shape = cornerShape
             )
-            Spacer(Modifier.width(4.dp))
+            .padding(8.dp)
+    ) {
+        // LAYER 1: Hour labels and structure
+        Column(modifier = Modifier.fillMaxWidth()) {
+            repeat(24) { hour ->
+                HourRowLabel(
+                    hour = hour,
+                    contentColor = contentColor,
+                    hourRowHeight = hourRowHeight
+                )
+            }
+        }
+
+        // LAYER 2: Events overlay (drawn on top, with absolute positioning)
+        Box(modifier = Modifier.fillMaxWidth()) {
+            repeat(24) { hour ->
+                DrawEventsForHour(
+                    hour = hour,
+                    daySpans = daySpans,
+                    onEdit = onEdit,
+                    hourRowHeight = hourRowHeight
+                )
+            }
+        }
+    }
+}
+@Composable
+private fun HourRowLabel(
+    hour: Int,
+    contentColor: Color,
+    hourRowHeight: Dp
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(hourRowHeight)
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Box(
+            modifier = Modifier
+                .width(50.dp)
+                .fillMaxHeight(),
+            contentAlignment = Alignment.TopCenter
+        ) {
             Text(
-                text = span.evt.notes.takeIf { !it.isNullOrBlank() } ?: type.displayName,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                text = "%02d:00".format(hour),
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                ),
+                color = contentColor,
+                modifier = Modifier.padding(top = 2.dp)
             )
         }
     }
 }
-public data class DaySpan(
+@Composable
+private fun DrawEventsForHour(
+    hour: Int,
+    daySpans: List<DaySpan>,
+    onEdit: (Event) -> Unit,
+    hourRowHeight: Dp
+) {
+    // Only get events that START in this hour
+    val eventsStartingInHour = daySpans.filter { it.startHour == hour }
+
+    if (eventsStartingInHour.isEmpty()) return
+
+    // Absolute positioning at the hour's vertical position
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .offset(y = hourRowHeight * hour)  // Position at start of this hour
+            //.height(hourRowHeight)  // Only anchors the starting point
+            .padding(start = 60.dp, end = 8.dp, top = 2.dp)
+    ) {
+        val sleepEvents = eventsStartingInHour.filter { it.evt is SleepEvent }
+        val otherEvents = eventsStartingInHour.filter { it.evt !is SleepEvent }
+
+        // Render sleep events (full width, stacked)
+        sleepEvents.forEachIndexed { index, span ->
+            EventOverlay(
+                span = span,
+                onEdit = onEdit,
+                widthFraction = 1f,
+                xOffsetFraction = 0f,
+                stackIndex = index,
+                hourRowHeight = hourRowHeight
+            )
+        }
+
+        // Render other events (side-by-side)
+        val numOtherEvents = otherEvents.size
+        otherEvents.forEachIndexed { index, span ->
+            EventOverlay(
+                span = span,
+                onEdit = onEdit,
+                widthFraction = 1f / numOtherEvents,
+                xOffsetFraction = index.toFloat() / numOtherEvents,
+                stackIndex = sleepEvents.size,
+                hourRowHeight = hourRowHeight
+            )
+        }
+    }
+}
+@Composable
+private fun EventOverlay(
+    span: DaySpan,
+    onEdit: (Event) -> Unit,
+    widthFraction: Float,
+    xOffsetFraction: Float,
+    stackIndex: Int,
+    hourRowHeight: Dp
+) {
+    val cornerShape = MaterialTheme.shapes.medium
+    val type = EventType.forClass(span.evt::class)
+
+    // Calculate total height for entire event duration
+    val totalHeightFraction = calculateTotalHeightFraction(span, hourRowHeight)
+    // ✅ NEW: Differentiate between punctual and duration events
+    val hasDuration = when (span.evt) {
+        is SleepEvent -> span.evt.endTime != null
+        is FeedingEvent -> (span.evt.durationMinutes ?: 0) > 0
+        is PumpingEvent -> (span.evt.durationMinutes ?: 0) > 0
+        else -> false  // Punctual events: diaper, growth, drugs
+    }
+
+    val minFraction = if (hasDuration) 0.5f else MIN_INSTANT_FRAC  // 30 min or 6 min
+
+    val heightFraction = totalHeightFraction.coerceAtLeast(minFraction)
+
+    // Offset from start minute within first hour
+    val topOffsetFraction = span.startMinute / 60f
+
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        val parentWidth = maxWidth
+        val eventWidth = parentWidth * widthFraction - 2.dp
+        val eventOffset = parentWidth * xOffsetFraction
+        val eventHeight = hourRowHeight * heightFraction  // Can be 2.0, 3.5, etc.
+        val topOffset = hourRowHeight * topOffsetFraction
+        val verticalSpacing = stackIndex * 2.dp
+
+        // This Box is NOT constrained by parent - it can overflow
+        Box(
+            modifier = Modifier
+                .offset(x = eventOffset, y = topOffset + verticalSpacing)
+                .width(eventWidth)
+                .height(eventHeight)  // e.g., 120.dp for 2-hour event
+                .clip(cornerShape)
+                .background(type.color.copy(alpha = 0.85f))
+                .clickable { onEdit(span.evt) }
+                .padding(4.dp)
+        ) {
+            EventContent(span = span, type = type)
+        }
+    }
+}
+
+@SuppressLint("UnusedBoxWithConstraintsScope")
+@Composable
+private fun HourRow(
+    hour: Int,
+    daySpans: List<DaySpan>,
+    onEdit: (Event) -> Unit,
+    contentColor: Color,
+    hourRowHeight: Dp
+) {
+
+    val eventsStartingInHour = daySpans.filter { it.startHour == hour }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.Top  // Top-align for proper hour label alignment
+    ) {
+        // Time label - fixed width, top-aligned
+        Box(
+            modifier = Modifier
+                .width(50.dp)
+                .fillMaxHeight(),
+            contentAlignment = Alignment.TopCenter  // Align at top
+        ) {
+            Text(
+                text = "%02d:00".format(hour),
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                ),
+                color = contentColor,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+        }
+
+        // Events area
+        if (eventsStartingInHour.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth()
+                    .padding(start = 8.dp, end = 8.dp)
+            ) {
+                val sleepEvents = eventsStartingInHour.filter { it.evt is SleepEvent }
+                val otherEvents = eventsStartingInHour.filter { it.evt !is SleepEvent }
+
+                sleepEvents.forEachIndexed { index, span ->
+                    ContinuousEventBox(
+                        span = span,
+                        onEdit = onEdit,
+                        widthFraction = 1f,
+                        xOffsetFraction = 0f,
+                        stackIndex = index,
+                        hourRowHeight = hourRowHeight
+                    )
+                }
+
+                val numOtherEvents = otherEvents.size
+                otherEvents.forEachIndexed { index, span ->
+                    ContinuousEventBox(
+                        span = span,
+                        onEdit = onEdit,
+                        widthFraction = 1f / numOtherEvents,
+                        xOffsetFraction = index.toFloat() / numOtherEvents,
+                        stackIndex = sleepEvents.size,
+                        hourRowHeight = hourRowHeight
+                    )
+                }
+            }
+        } else {
+            Spacer(modifier = Modifier.weight(1f))
+        }
+    }
+}
+@Composable
+private fun ContinuousEventBox(
+    span: DaySpan,
+    onEdit: (Event) -> Unit,
+    widthFraction: Float,
+    xOffsetFraction: Float,
+    stackIndex: Int,
+    hourRowHeight: Dp
+) {
+    val cornerShape = MaterialTheme.shapes.medium
+    val type = EventType.forClass(span.evt::class)
+
+    // FIXED: Calculate total height for entire event, not per-hour
+    val totalHeightFraction = calculateTotalHeightFraction(span, hourRowHeight)
+    val heightFraction = totalHeightFraction.coerceAtLeast(MIN_INSTANT_FRAC)
+
+    // Top offset based on start minute within first hour
+    val topOffsetFraction = span.startMinute / 60f
+
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        val parentWidth = maxWidth
+        val eventWidth = parentWidth * widthFraction - 2.dp
+        val eventOffset = parentWidth * xOffsetFraction
+        val eventHeight = hourRowHeight * heightFraction
+        val topOffset = hourRowHeight * topOffsetFraction
+        val verticalSpacing = stackIndex * 2.dp
+
+        Box(
+            modifier = Modifier
+                .offset(x = eventOffset, y = topOffset + verticalSpacing)
+                .width(eventWidth)
+                .height(eventHeight)
+                .clip(cornerShape)
+                .background(type.color.copy(alpha = 0.85f))
+                .clickable { onEdit(span.evt) }
+                .padding(4.dp)
+        ) {
+            EventContent(span = span, type = type)
+        }
+    }
+}
+
+
+@Composable
+private fun EventContent(span: DaySpan, type: EventType) {
+    Row(
+        modifier = Modifier.fillMaxSize(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Start
+    ) {
+        Icon(
+            imageVector = type.icon,
+            contentDescription = type.displayName,
+            tint = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier.size(14.dp)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = span.evt.notes.takeIf { !it.isNullOrBlank() } ?: type.displayName,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+data class DaySpan(
     val evt: Event,
     val start: ZonedDateTime,
     val end: ZonedDateTime
 ) {
     val startHour = start.hour
+    val endHour = end.hour
+    val startMinute = start.minute
+    val endMinute = end.minute
+    val spansMultipleHours = endHour > startHour
+
     fun coversHour(hour: Int): Boolean =
         when {
+            hour == startHour && hour == endHour -> true
             hour == startHour -> true
-            hour in (startHour + 1) until end.hour -> true
-            hour == end.hour && end.minute > 0 -> true
+            hour in (startHour + 1) until endHour -> true
+            hour == endHour && endMinute > 0 -> true
             else -> false
         }
-}
-data class Span(val evt: Event, val startHour: Int, val endHour: Int)
 
-private val systemZone get() = ZoneId.systemDefault()
-
-private fun Date.toZoned() =
-    Instant.ofEpochMilli(time).atZone(systemZone)
-
-fun Event.toSpan(): Span? {
-    val startDate = (this as? SleepEvent)?.beginTime ?: timestamp
-    val endDate = when (this) {
-        is SleepEvent -> endTime ?: startDate
-        else -> Date(startDate.time + 30 * 60_000)
+    fun getHeightFraction(hour: Int): Float {
+        return when {
+            hour == startHour && hour == endHour -> {
+                // Event is completely within this hour
+                (endMinute - startMinute) / 60f
+            }
+            hour == startHour -> {
+                // Event starts in this hour and continues
+                (60 - startMinute) / 60f
+            }
+            hour == endHour -> {
+                // Event ends in this hour
+                endMinute / 60f
+            }
+            else -> {
+                // Event completely fills this hour
+                1f
+            }
+        }
     }
-    val zs = startDate.toZoned()
-    val ze = endDate.toZoned()
-    val startH = zs.hour
-    val endH = ze.hour + if (ze.minute > 0) 1 else 0
-    return Span(this, startH, endH)
 }
+private fun computeDaySpans(date: LocalDate, events: List<Event>): List<DaySpan> {
+    val systemZone = ZoneId.systemDefault()
 
-val ZonedDateTime.minuteFraction: Float
-    get() = minute / 60f
+    return events.flatMap { evt ->
+        val startInstant = evt.timestamp.toInstant()
+        val startZ = startInstant.atZone(systemZone)
 
-fun Span.coversHour(hour: Int): Boolean =
-    if (evt.isSleep()) {
-        startHour <= hour && hour < endHour
-    } else {
-        hour == startHour
+        // Calculate end time based on event type
+        val endInstant = when (evt) {
+            is SleepEvent -> evt.endTime?.toInstant() ?: startInstant.plusSeconds(30 * 60)
+            is FeedingEvent -> if ((evt.durationMinutes ?: 0) > 0) {
+                startInstant.plusSeconds((evt.durationMinutes!! * 60).toLong())
+            } else {
+                startInstant.plusSeconds(30 * 60)
+            }
+            is PumpingEvent -> if ((evt.durationMinutes ?: 0) > 0) {
+                startInstant.plusSeconds((evt.durationMinutes!! * 60).toLong())
+            } else {
+                startInstant.plusSeconds(30 * 60)
+            }
+            else -> startInstant.plusSeconds(30 * 60)
+        }
+        val endZ = endInstant.atZone(systemZone)
+
+        // Split multi-day events
+        if (endZ.toLocalDate().isAfter(startZ.toLocalDate())) {
+            // Multi-day event - split into spans for each day
+            val spans = mutableListOf<DaySpan>()
+            var currentDate = startZ.toLocalDate()
+            var currentStart = startZ
+
+            while (currentDate < endZ.toLocalDate()) {
+                // Span until end of current day
+                val currentEnd = currentDate.atTime(23, 59, 59).atZone(systemZone)
+                spans.add(DaySpan(evt, currentStart, currentEnd))
+
+                // Move to next day
+                currentDate = currentDate.plusDays(1)
+                currentStart = currentDate.atStartOfDay(systemZone)
+            }
+
+            // Add final day span
+            spans.add(DaySpan(evt, currentStart, endZ))
+            spans
+        } else {
+            // Single day event
+            listOf(DaySpan(evt, startZ, endZ))
+        }
     }
+        .filter { it.start.toLocalDate() == date }  // Keep only spans for requested day
+}
+private fun calculateTotalHeightFraction(span: DaySpan, hourRowHeight: Dp): Float {
+    val startHour = span.startHour
+    val endHour = span.endHour
+    val startMinute = span.startMinute
+    val endMinute = span.endMinute
 
-// Minimum visible fraction (e.g. 10% of an hour row)
+    return when {
+        startHour == endHour -> {
+            (endMinute - startMinute) / 60f
+        }
+        else -> {
+            var totalMinutes = 0
+            totalMinutes += (60 - startMinute)
+
+            for (h in (startHour + 1) until endHour) {
+                totalMinutes += 60
+            }
+
+            totalMinutes += endMinute
+            totalMinutes / 60f
+        }
+    }
+}
+private val systemZone: ZoneId
+    get() = ZoneId.systemDefault()
+
+private fun Date.toInstant() = java.time.Instant.ofEpochMilli(time)
+
+private fun Date.toZoned() = toInstant().atZone(systemZone)
+
+// Minimum visible height for punctual events (10% of hour)
 private val MIN_INSTANT_FRAC = 0.1f
 
-fun Event.isSleep() = this is SleepEvent
-
-data class LayoutParams(val slotWidth: Dp, val xOffset: Dp)
-
-fun computeLayoutParams(
-    evt: Event,
-    eventTypes: List<EventType>,
-    parentWidth: Dp
-): LayoutParams {
-    if (evt is SleepEvent) {
-        return LayoutParams(parentWidth, 0.dp)
-    }
-    val nonSleep = eventTypes.filterNot { it.eventClass == SleepEvent::class }
-    val columns = nonSleep.size.coerceAtLeast(1)
-    val index = nonSleep.indexOf(EventType.forClass(evt::class))
-        .coerceIn(0, columns - 1)
-    val w = parentWidth / columns
-    return LayoutParams(w, w * index)
-}

@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
@@ -81,13 +82,17 @@ fun CalendarScreen(
     LaunchedEffect(isVisible, selectedDate, selectedBaby?.id) {
         if (isVisible) {
             selectedBaby?.id?.let {
-                val startOfDay = selectedDate.atStartOfDay(ZoneId.systemDefault()).toInstant()
-                val endOfDay = selectedDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
+                val startDate = selectedDate.minusDays(1)
+                    .atStartOfDay(ZoneId.systemDefault())
+                    .toInstant()
+                val endDate = selectedDate.plusDays(1)
+                    .atStartOfDay(ZoneId.systemDefault())
+                    .toInstant()
 
                 eventViewModel.refreshWithCustomRange(
                     it,
-                    Date.from(startOfDay),
-                    Date.from(endOfDay)
+                    Date.from(startDate),
+                    Date.from(endDate)
                 )
             }
         }
@@ -178,6 +183,25 @@ fun CalendarScreen(
 
                 val dailyEvents = allEvents
                     .filter { filterTypes.contains(EventType.forClass(it::class)) }
+                    .filter { event ->
+                        val systemZone = ZoneId.systemDefault()
+
+                        // Get event start date
+                        val eventStartDate = event.timestamp.toInstant()
+                            .atZone(systemZone)
+                            .toLocalDate()
+
+                        // Get event end date (handles duration for SleepEvent)
+                        val eventEndDate = when (event) {
+                            is SleepEvent -> event.endTime?.toInstant()
+                                ?.atZone(systemZone)
+                                ?.toLocalDate() ?: eventStartDate
+                            else -> eventStartDate  // Punctual events
+                        }
+
+                        // Event occurs on selectedDate if selectedDate is between start and end
+                        !selectedDate.isBefore(eventStartDate) && !selectedDate.isAfter(eventEndDate)
+                    }
                 item {
                     Text(
                         "Events on ${selectedDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy"))} " +
