@@ -244,9 +244,9 @@ fun AnalysisScreen(
                 if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
                     filters.value.eventTypeFilter.selectedTypes.contains(EventType.GROWTH)
                 ) {
-                    val weights = analysisSnapshot.dailyAnalysis.mapNotNull { it.growthMeasurements?.weightKg }
-                    val heights = analysisSnapshot.dailyAnalysis.mapNotNull { it.growthMeasurements?.heightCm }
-                    val heads = analysisSnapshot.dailyAnalysis.mapNotNull { it.growthMeasurements?.headCircumferenceCm }
+                    val weights = alignGrowthData(dateList, analysisSnapshot.dailyAnalysis)  { it.growthMeasurements?.weightKg  }
+                    val heights = alignGrowthData(dateList, analysisSnapshot.dailyAnalysis)  { it.growthMeasurements?.heightCm }
+                    val heads =  alignGrowthData(dateList, analysisSnapshot.dailyAnalysis) { it.growthMeasurements?.headCircumferenceCm }
                     item {
                         val birthDate = selectedBaby?.birthDate
                             ?.let {
@@ -427,3 +427,22 @@ fun getDateRange(
 
     return dateList to (startAge to endAge)
 }
+fun alignGrowthData(
+    dateList: List<LocalDate>,
+    dailyAnalysis: List<DailyAnalysis>,
+    selector: (DailyAnalysis) -> Float?
+): List<Float> {
+    val measurementByDate = dailyAnalysis.associateBy { it.date }
+
+    val alignedValues = mutableListOf<Float>()
+    var lastKnownValue: Float? = null
+
+    dateList.forEach { date ->
+        val value = measurementByDate[date]?.let(selector)?.toFloat()
+        val finalValue = value ?: lastKnownValue ?: Float.NaN
+        alignedValues.add(finalValue)
+        if (value != null) lastKnownValue = value
+    }
+    return alignedValues
+}
+
