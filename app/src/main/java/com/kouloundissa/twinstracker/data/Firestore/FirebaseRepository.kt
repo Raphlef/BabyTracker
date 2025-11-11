@@ -424,7 +424,7 @@ class FirebaseRepository @Inject constructor(
             .await()
     }
 
-    suspend fun getEventById(eventId: String): Result<Event?> {
+    suspend fun getEvent(eventId: String): Result<Event?> {
         return try {
             val doc = db.collection(FirestoreConstants.Collections.EVENTS)
                 .document(eventId)

@@ -329,7 +329,7 @@ class EventViewModel @Inject constructor(
         viewModelScope.launch {
             // Try to find in current events cache
             val found = _events.value.firstOrNull { it.id == eventId }
-                ?: repository.getEventById(eventId) // implement this if needed
+                ?: repository.getEvent(eventId) // implement this if needed
 
             _notificationEvent.value = found as Event
         }
@@ -867,7 +867,7 @@ class EventViewModel @Inject constructor(
                 }
 
                 // 2. Fetch current event from repository to get latest data
-                val currentEvent = repository.getEventById(eventId).getOrThrow()
+                val currentEvent = repository.getEvent(eventId).getOrThrow()
 
                 // 3. Create updated Event without photo
                 val updatedEvent = currentEvent!!.setPhotoUrl(photoUrl = null)
@@ -921,7 +921,7 @@ class EventViewModel @Inject constructor(
                 }
 
                 // 2. Fetch current event to clear its photoUrl
-                val currentEvent = repository.getEventById(eventId).getOrThrow()
+                val currentEvent = repository.getEvent(eventId).getOrThrow()
                     ?: throw IllegalStateException("Event not found")
 
                 val eventWithoutPhoto = currentEvent.setPhotoUrl(photoUrl = null)
