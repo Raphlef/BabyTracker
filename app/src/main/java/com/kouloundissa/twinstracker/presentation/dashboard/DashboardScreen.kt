@@ -1,10 +1,6 @@
 package com.kouloundissa.twinstracker.presentation.dashboard
 
 import android.util.Log
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,27 +10,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -47,32 +29,34 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
-import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DashboardTab
 import com.kouloundissa.twinstracker.data.EventFormState
-import com.kouloundissa.twinstracker.data.EventFormState.*
+import com.kouloundissa.twinstracker.data.EventFormState.Diaper
+import com.kouloundissa.twinstracker.data.EventFormState.Drugs
+import com.kouloundissa.twinstracker.data.EventFormState.Feeding
+import com.kouloundissa.twinstracker.data.EventFormState.Growth
+import com.kouloundissa.twinstracker.data.EventFormState.Pumping
+import com.kouloundissa.twinstracker.data.EventFormState.Sleep
 import com.kouloundissa.twinstracker.data.EventType
-import com.kouloundissa.twinstracker.presentation.calendar.CalendarScreen
-import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
-import com.kouloundissa.twinstracker.presentation.viewmodel.AuthViewModel
 import com.kouloundissa.twinstracker.presentation.analysis.AnalysisScreen
 import com.kouloundissa.twinstracker.presentation.baby.BabyFormDialog
+import com.kouloundissa.twinstracker.presentation.calendar.CalendarScreen
+import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.home.HomeScreen
 import com.kouloundissa.twinstracker.presentation.settings.SettingsScreen
+import com.kouloundissa.twinstracker.presentation.viewmodel.AuthViewModel
+import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.BabyInfoBar
-import com.kouloundissa.twinstracker.ui.components.BabySelectorRow
 import com.kouloundissa.twinstracker.ui.components.BackgroundContainer
 import com.kouloundissa.twinstracker.ui.components.BottomNavBar
-import com.kouloundissa.twinstracker.ui.theme.*
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -149,7 +133,6 @@ fun DashboardScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    // Apply the Scaffold’s insets (status bar + nav bar):
                     .padding(paddingValues)
             ) {
                 Column() {

@@ -1,27 +1,37 @@
 package com.kouloundissa.twinstracker.presentation.analysis
 
 import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.kouloundissa.twinstracker.data.*
+import com.kouloundissa.twinstracker.data.Baby
+import com.kouloundissa.twinstracker.data.DailyAnalysis
+import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.data.Gender
+import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.WhoLms.WhoLmsRepository
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
-import java.time.LocalDate
-import java.time.ZoneId
 import com.kouloundissa.twinstracker.ui.components.AnalysisCard
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilterPanel
@@ -33,6 +43,8 @@ import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
@@ -143,24 +155,16 @@ fun AnalysisScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Surface(
-                    shape = cornerShape,
-                    color = backgroundcolor.copy(alpha = 0.85f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    AnalysisFilterPanel(
-                        filters = filters.value,
-                        onFiltersChanged = { newFilters ->
-                            filters.value = newFilters
-                            // Apply filters to data
-                            //applyFiltersToData(newFilters)
-                        },
-                    )
-                }
-            }
+
+            AnalysisFilterPanel(
+                filters = filters.value,
+                onFiltersChanged = { newFilters ->
+                    filters.value = newFilters
+                    // Apply filters to data
+                    //applyFiltersToData(newFilters)
+                },
+            )
+
 
             LazyColumn(
                 contentPadding = contentPadding,
@@ -174,7 +178,8 @@ fun AnalysisScreen(
                     filters.value.eventTypeFilter.selectedTypes.contains(EventType.FEEDING)
                 ) {
                     item {
-                        val mealCounts = analysisSnapshot.dailyAnalysis.map { it.mealCount.toFloat() }
+                        val mealCounts =
+                            analysisSnapshot.dailyAnalysis.map { it.mealCount.toFloat() }
                         val mealVolumes = analysisSnapshot.dailyAnalysis.map { it.mealVolume }
 
                         AnalysisCard(title = "Meals") {
@@ -193,8 +198,9 @@ fun AnalysisScreen(
                     filters.value.eventTypeFilter.selectedTypes.contains(EventType.PUMPING)
                 ) {
                     item {
-                        val pumpingVolumes = analysisSnapshot.dailyAnalysis.map { it.pumpingCount.toFloat() }
-                        val pumpingCounts = analysisSnapshot.dailyAnalysis.map { it.pumpingVolume  }
+                        val pumpingVolumes =
+                            analysisSnapshot.dailyAnalysis.map { it.pumpingCount.toFloat() }
+                        val pumpingCounts = analysisSnapshot.dailyAnalysis.map { it.pumpingVolume }
 
 
                         AnalysisCard(title = "Pumping") {
@@ -213,7 +219,8 @@ fun AnalysisScreen(
                     filters.value.eventTypeFilter.selectedTypes.contains(EventType.DIAPER)
                 ) {
                     item {
-                        val poopCounts = analysisSnapshot.dailyAnalysis.map { it.poopCount.toFloat() }
+                        val poopCounts =
+                            analysisSnapshot.dailyAnalysis.map { it.poopCount.toFloat() }
                         val wetCounts = analysisSnapshot.dailyAnalysis.map { it.wetCount.toFloat() }
 
                         AnalysisCard(title = "Poop") {
@@ -231,7 +238,8 @@ fun AnalysisScreen(
                     filters.value.eventTypeFilter.selectedTypes.contains(EventType.SLEEP)
                 ) {
                     item {
-                        val sleepMinutes = analysisSnapshot.dailyAnalysis.map { it.sleepMinutes.toFloat() }
+                        val sleepMinutes =
+                            analysisSnapshot.dailyAnalysis.map { it.sleepMinutes.toFloat() }
                         AnalysisCard(title = "Daily Sleep (min)") {
                             LineChartView(
                                 labels = chartLabels,
@@ -244,9 +252,18 @@ fun AnalysisScreen(
                 if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
                     filters.value.eventTypeFilter.selectedTypes.contains(EventType.GROWTH)
                 ) {
-                    val weights = alignGrowthData(dateList, analysisSnapshot.dailyAnalysis)  { it.growthMeasurements?.weightKg  }
-                    val heights = alignGrowthData(dateList, analysisSnapshot.dailyAnalysis)  { it.growthMeasurements?.heightCm }
-                    val heads =  alignGrowthData(dateList, analysisSnapshot.dailyAnalysis) { it.growthMeasurements?.headCircumferenceCm }
+                    val weights = alignGrowthData(
+                        dateList,
+                        analysisSnapshot.dailyAnalysis
+                    ) { it.growthMeasurements?.weightKg }
+                    val heights = alignGrowthData(
+                        dateList,
+                        analysisSnapshot.dailyAnalysis
+                    ) { it.growthMeasurements?.heightCm }
+                    val heads = alignGrowthData(
+                        dateList,
+                        analysisSnapshot.dailyAnalysis
+                    ) { it.growthMeasurements?.headCircumferenceCm }
                     item {
                         val birthDate = selectedBaby?.birthDate
                             ?.let {
@@ -427,6 +444,7 @@ fun getDateRange(
 
     return dateList to (startAge to endAge)
 }
+
 fun alignGrowthData(
     dateList: List<LocalDate>,
     dailyAnalysis: List<DailyAnalysis>,

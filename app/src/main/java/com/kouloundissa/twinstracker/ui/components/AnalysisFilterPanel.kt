@@ -2,6 +2,7 @@ package com.kouloundissa.twinstracker.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -60,44 +61,50 @@ fun AnalysisFilterPanel(
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
 
-    ExpandablePanel(
-        headerContent = { isExpandedState ->
-            FilterPanelHeader(
-                filters = filters,
-                modifier = Modifier.weight(1f)
-            )
-            // Right section: Action buttons
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(start = 12.dp)
-            ) {
-                IconButton(
-                    onClick = { isExpanded = !isExpanded },
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(Color.Transparent)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        ExpandablePanel(
+            headerContent = { isExpandedState ->
+                FilterPanelHeader(
+                    filters = filters,
+                    modifier = Modifier.weight(1f)
+                )
+                // Right section: Action buttons
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(start = 12.dp)
                 ) {
-                    Icon(
-                        imageVector = if (isExpanded) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
-                        contentDescription = "Toggle filter selector",
-                        tint = tint,
-                    )
+                    IconButton(
+                        onClick = { isExpanded = !isExpanded },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.Transparent)
+                    ) {
+                        Icon(
+                            imageVector = if (isExpanded) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
+                            contentDescription = "Toggle filter selector",
+                            tint = tint,
+                        )
+                    }
                 }
-            }
-        },
-        expandedContent = {
-            FilterPanelContent(
-                filters = filters,
-                onFiltersChanged = onFiltersChanged,
-            )
-        },
-        isExpanded = isExpanded,
-        onExpandToggle = { isExpanded = !isExpanded },
-        modifier = Modifier,
-        isLoading = isLoading,
-    )
+            },
+            expandedContent = {
+                FilterPanelContent(
+                    filters = filters,
+                    onFiltersChanged = onFiltersChanged,
+                )
+            },
+            isExpanded = isExpanded,
+            onExpandToggle = { isExpanded = !isExpanded },
+            modifier = Modifier,
+            isLoading = isLoading,
+        )
+    }
 }
 
 @Composable
@@ -114,7 +121,7 @@ private fun FilterPanelHeader(
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-    ){
+    ) {
         Icon(
             imageVector = Icons.Default.FilterList,
             contentDescription = "Filters",
