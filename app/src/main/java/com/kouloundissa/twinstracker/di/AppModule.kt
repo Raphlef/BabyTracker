@@ -1,9 +1,9 @@
 package com.kouloundissa.twinstracker.di
 
 import android.content.Context
-import com.kouloundissa.twinstracker.data.FirebaseRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.kouloundissa.twinstracker.data.Firestore.FirebaseRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

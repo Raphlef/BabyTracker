@@ -1,26 +1,26 @@
 package com.kouloundissa.twinstracker.presentation.viewmodel
 
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.storage.StorageException
 import com.kouloundissa.twinstracker.data.Baby
-import com.kouloundissa.twinstracker.data.FirebaseRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import javax.inject.Inject
-import android.util.Log // For logging errors
 import com.kouloundissa.twinstracker.data.BloodType
+import com.kouloundissa.twinstracker.data.Firestore.FirebaseRepository
 import com.kouloundissa.twinstracker.data.Gender
 import com.kouloundissa.twinstracker.data.User
-import com.google.firebase.storage.StorageException
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @HiltViewModel
 class BabyViewModel @Inject constructor(

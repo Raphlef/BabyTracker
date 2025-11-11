@@ -1,19 +1,15 @@
 package com.kouloundissa.twinstracker.presentation.feeding // Or your ViewModel package
 
+// Assuming FeedingEvent is in com.example.babytracker.data.event
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.kouloundissa.twinstracker.data.BreastSide
 import com.kouloundissa.twinstracker.data.FeedType
-// Assuming FeedingEvent is in com.example.babytracker.data.event
+import com.kouloundissa.twinstracker.data.Firestore.FirebaseRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import javax.inject.Inject
-import android.util.Log
-import com.kouloundissa.twinstracker.data.FeedingEvent
-import com.kouloundissa.twinstracker.data.FirebaseRepository
 
 @HiltViewModel
 class FeedingViewModel @Inject constructor(

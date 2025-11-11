@@ -1,22 +1,19 @@
 package com.kouloundissa.twinstracker.presentation.viewmodel
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.kouloundissa.twinstracker.data.Family
 import com.kouloundissa.twinstracker.data.FamilyRole
-import com.kouloundissa.twinstracker.data.FirebaseRepository
-import com.kouloundissa.twinstracker.data.addMemberToFamily
-import com.kouloundissa.twinstracker.data.addOrUpdateFamily
-import com.kouloundissa.twinstracker.data.deleteFamily
-import com.kouloundissa.twinstracker.data.getFamilies
-import com.kouloundissa.twinstracker.data.joinFamilyByCode
-import com.kouloundissa.twinstracker.data.regenerateInviteCode
-import com.kouloundissa.twinstracker.data.removeMemberFromFamily
-import com.kouloundissa.twinstracker.data.streamFamilies
+import com.kouloundissa.twinstracker.data.Firestore.FirebaseRepository
+import com.kouloundissa.twinstracker.data.Firestore.addMemberToFamily
+import com.kouloundissa.twinstracker.data.Firestore.addOrUpdateFamily
+import com.kouloundissa.twinstracker.data.Firestore.deleteFamily
+import com.kouloundissa.twinstracker.data.Firestore.joinFamilyByCode
+import com.kouloundissa.twinstracker.data.Firestore.regenerateInviteCode
+import com.kouloundissa.twinstracker.data.Firestore.removeMemberFromFamily
+import com.kouloundissa.twinstracker.data.Firestore.streamFamilies
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.awaitClose
@@ -95,18 +92,20 @@ class FamilyViewModel @Inject constructor(
     fun loadFamilyUsers(family: Family) {
         viewModelScope.launch {
             repository.runCatching {
-                family.memberIds.mapNotNull { uid ->
-                    repository.getUserById(uid)?.let { user ->
-                        FamilyUser(
-                            userId = uid,
-                            displayName = user.displayName,
-                            role = when {
-                                family.adminIds.contains(uid) -> FamilyRole.ADMIN
-                                else -> FamilyRole.MEMBER
-                            }
-                        )
+                // Get List<User?> by family member IDs using the refactored query helper
+                repository.getUsersByIds(family.memberIds)
+                    .mapNotNull { user ->
+                        user?.let { u ->
+                            FamilyUser(
+                                userId = u.id,
+                                displayName = u.displayName,
+                                role = when {
+                                    family.adminIds.contains(u.id) -> FamilyRole.ADMIN
+                                    else -> FamilyRole.MEMBER
+                                }
+                            )
+                        }
                     }
-                }
             }.onSuccess { users ->
                 _familyUsers.value = users
             }.onFailure { e ->

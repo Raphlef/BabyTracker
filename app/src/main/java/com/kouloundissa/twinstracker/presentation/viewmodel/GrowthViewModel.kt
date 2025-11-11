@@ -1,27 +1,15 @@
 package com.kouloundissa.twinstracker.presentation.viewmodel
 
-import android.util.Log
-import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.kouloundissa.twinstracker.data.FirebaseRepository
-import com.kouloundissa.twinstracker.data.GrowthEvent
-import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
-import com.github.mikephil.charting.data.LineDataSet
-import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+import com.kouloundissa.twinstracker.data.Firestore.FirebaseRepository
+import com.kouloundissa.twinstracker.data.GrowthEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Date
-import java.util.Locale
-import java.util.UUID
 import javax.inject.Inject
-import androidx.compose.ui.graphics.Color as ComposeColor
 
 @HiltViewModel
 class GrowthViewModel @Inject constructor(

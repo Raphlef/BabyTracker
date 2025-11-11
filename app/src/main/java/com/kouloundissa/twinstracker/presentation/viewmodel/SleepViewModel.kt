@@ -1,16 +1,13 @@
 package com.kouloundissa.twinstracker.presentation.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.kouloundissa.twinstracker.data.FirebaseRepository
-import com.kouloundissa.twinstracker.data.SleepEvent
+import com.kouloundissa.twinstracker.data.Firestore.FirebaseRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import java.util.*
+import java.util.Date
+import java.util.Timer
 import javax.inject.Inject
 import kotlin.concurrent.timer
 

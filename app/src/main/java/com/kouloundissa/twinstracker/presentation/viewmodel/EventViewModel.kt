@@ -19,7 +19,7 @@ import com.kouloundissa.twinstracker.data.EventFormState.Pumping
 import com.kouloundissa.twinstracker.data.EventFormState.Sleep
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.FeedingEvent
-import com.kouloundissa.twinstracker.data.FirebaseRepository
+import com.kouloundissa.twinstracker.data.Firestore.FirebaseRepository
 import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
