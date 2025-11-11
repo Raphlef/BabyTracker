@@ -125,6 +125,7 @@ fun HomeScreen(
     var showEventDialog by remember { mutableStateOf(false) }
     var showBabyDialog by remember { mutableStateOf(false) }
 
+    val allEvents by eventViewModel.events.collectAsState()
     val eventsByDay by eventViewModel.eventsByDay.collectAsState()
     val eventsByType by eventViewModel.eventsByType.collectAsState()
     val isLoading by eventViewModel.isLoading.collectAsState()
@@ -243,34 +244,43 @@ fun HomeScreen(
         todayEvents.groupBy { EventType.forClass(it::class) }
     }
 
-    val activeSleepEvent: SleepEvent? = todayEvents
+    val activeSleepEvent: SleepEvent? = allEvents
         .filterIsInstance<SleepEvent>()
+        .sortedByDescending { it.timestamp }
         .firstOrNull { it.endTime == null && it.beginTime != null }
 
-    val activeFeedingEvent: FeedingEvent? = todayEvents
-        .filterIsInstance<FeedingEvent>()
-        ?.maxByOrNull { it.timestamp }
-
     val nextFeedingTimeMs: Long? = run {
-        if (activeFeedingEvent == null) return@run null
+        val lastFeeding = allEvents
+            .filterIsInstance<FeedingEvent>().maxByOrNull { it.timestamp } ?: return@run null
 
-        // Get last 5 feeding events from eventsByDay to calculate average interval
-        val recentFeedings = eventsByDay
-            .values
-            .flatten()
+        val recentFeedings = allEvents
             .filterIsInstance<FeedingEvent>()
+            .filter { it.feedType == lastFeeding.feedType } // Same feed type only
             .sortedByDescending { it.timestamp }
-            .take(5)
+            .take(10)
 
         if (recentFeedings.size < 2) return@run null
 
-        val intervals = recentFeedings.zipWithNext { a, b ->
-            Duration.between(b.timestamp.toInstant(), a.timestamp.toInstant()).toMillis()
-        }
+        val intervals = recentFeedings
+            .zipWithNext { a, b ->
+                Duration.between(b.timestamp.toInstant(), a.timestamp.toInstant()).toMillis()
+            }
+            .sorted()
 
-        val averageIntervalMs = intervals.average().toLong()
-        activeFeedingEvent.timestamp.time + averageIntervalMs
+        val medianIntervalMs = intervals[intervals.size / 2]
+
+        val filteredIntervals = intervals
+            .drop(intervals.size / 5)
+            .dropLast(intervals.size / 5)
+            .ifEmpty { intervals }
+
+        val predictedIntervalMs = filteredIntervals.average().toLong()
+        val minIntervalMs = 90 * 60 * 1000L
+        val medianPredictionMs = maxOf(medianIntervalMs, minIntervalMs)
+        val weightPredictionMs = maxOf(predictedIntervalMs, minIntervalMs)
+        lastFeeding.timestamp.time + weightPredictionMs
     }
+
     val summaries = remember(todaysByType, lastGrowthEvent) {
         EventType.entries.associateWith { type ->
             val todayList = todaysByType[type].orEmpty()
