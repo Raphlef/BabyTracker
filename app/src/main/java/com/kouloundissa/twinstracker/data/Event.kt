@@ -4,11 +4,12 @@ import android.net.Uri
 import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.MedicalServices
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.outlined.BabyChangingStation
-import androidx.compose.material.icons.outlined.PregnantWoman
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.google.firebase.firestore.DocumentSnapshot
@@ -23,6 +24,7 @@ import kotlin.reflect.full.memberProperties
  * EventType enum associates a display name and a color for each event kind.
  */
 enum class EventType(
+    val Key: String,
     val displayName: String,
     val color: Color,
     val icon: ImageVector,
@@ -30,6 +32,7 @@ enum class EventType(
     val eventClass: KClass<out Event>
 ) {
     DIAPER(
+        "DIAPER",
         "Diaper",
         Color(0xFFFFC107),
         Icons.Outlined.BabyChangingStation,
@@ -37,14 +40,19 @@ enum class EventType(
         DiaperEvent::class
     ),
     FEEDING(
+        "FEEDING",
         "Feeding",
         Color(0xFF4CAF50),
         Icons.Filled.Restaurant,
         R.drawable.feed,
         FeedingEvent::class
     ),
-    SLEEP("Sleep", Color(0xFF2196F3), Icons.Filled.Bedtime, R.drawable.sleep, SleepEvent::class),
+    SLEEP(
+        "SLEEP",
+        "Sleep", Color(0xFF2196F3), Icons.Filled.Bedtime, R.drawable.sleep, SleepEvent::class
+    ),
     GROWTH(
+        "GROWTH",
         "Growth",
         Color(0xFF9C27B0),
         Icons.Filled.BarChart,
@@ -52,6 +60,7 @@ enum class EventType(
         GrowthEvent::class
     ),
     PUMPING(
+        "PUMPING",
         "Pumping",
         Color(0xFFFF5722),
         Icons.Filled.WaterDrop,
@@ -59,6 +68,7 @@ enum class EventType(
         PumpingEvent::class
     ),
     DRUGS(
+        "DRUGS",
         "Drugs",
         Color(0xFF3F51B5),
         Icons.Filled.MedicalServices,
