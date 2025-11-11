@@ -449,7 +449,6 @@ class FirebaseRepository @Inject constructor(
             Result.failure(e)
         }
     }
-    private val eventCache = FirebaseCache()
     
     fun streamEventsForBaby(
         babyId: String,
