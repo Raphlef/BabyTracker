@@ -1,52 +1,59 @@
 package com.kouloundissa.twinstracker.presentation.viewmodel
 
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kouloundissa.twinstracker.data.FirebaseRepository
-import com.kouloundissa.twinstracker.data.Event
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import java.util.*
-import javax.inject.Inject
-import android.util.Log
-import com.kouloundissa.twinstracker.data.DiaperEvent
-import com.kouloundissa.twinstracker.data.EventFormState
-import com.kouloundissa.twinstracker.data.FeedingEvent
-import com.kouloundissa.twinstracker.data.GrowthEvent
-import com.kouloundissa.twinstracker.data.SleepEvent
-import com.kouloundissa.twinstracker.data.setPhotoUrl
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.update
-import java.time.LocalDate
-import java.time.ZoneId
-import kotlin.reflect.KClass
 import com.google.firebase.storage.StorageException
 import com.kouloundissa.twinstracker.Service.NotificationService
 import com.kouloundissa.twinstracker.data.AnalysisSnapshot
+import com.kouloundissa.twinstracker.data.DiaperEvent
 import com.kouloundissa.twinstracker.data.DrugsEvent
-import com.kouloundissa.twinstracker.data.EventFormState.*
+import com.kouloundissa.twinstracker.data.Event
+import com.kouloundissa.twinstracker.data.EventFormState
+import com.kouloundissa.twinstracker.data.EventFormState.Diaper
+import com.kouloundissa.twinstracker.data.EventFormState.Drugs
+import com.kouloundissa.twinstracker.data.EventFormState.Feeding
+import com.kouloundissa.twinstracker.data.EventFormState.Growth
+import com.kouloundissa.twinstracker.data.EventFormState.Pumping
+import com.kouloundissa.twinstracker.data.EventFormState.Sleep
 import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.data.FeedingEvent
+import com.kouloundissa.twinstracker.data.FirebaseRepository
+import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
+import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.data.User
+import com.kouloundissa.twinstracker.data.setPhotoUrl
 import com.kouloundissa.twinstracker.presentation.analysis.AnalysisRange
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.ZoneId
 import java.time.temporal.ChronoUnit
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import javax.inject.Inject
+import kotlin.reflect.KClass
 
 @HiltViewModel
 class EventViewModel @Inject constructor(
@@ -166,7 +173,7 @@ class EventViewModel @Inject constructor(
 
     sealed class DateRangeStrategy {
         data class LastDays(val days: Long) : DateRangeStrategy()
-        data class Custom(val dateRange: DateRangeParams) : DateRangeStrategy()
+        data class Custom(val params: DateRangeParams) : DateRangeStrategy()
     }
 
     fun calculateRange(
@@ -192,17 +199,18 @@ class EventViewModel @Inject constructor(
 
             is DateRangeStrategy.Custom -> {
                 val daysBetween = ChronoUnit.DAYS.between(
-                    strategy.dateRange.startDate.toInstant(),
-                    strategy.dateRange.endDate.toInstant()
+                    strategy.params.startDate.toInstant(),
+                    strategy.params.endDate.toInstant()
                 ) + 1 // +1 to include both start and end dates
                 Log.d(
                     "DateRange",
-                    "Custom range: ${strategy.dateRange.startDate} → ${strategy.dateRange.endDate} ($daysBetween days)"
+                    "Custom range: ${strategy.params.startDate} → ${strategy.params.endDate} ($daysBetween days)"
                 )
-                strategy.dateRange
+                strategy.params
             }
         }
     }
+
     fun AnalysisRange.toDateRangeStrategy(
         customStartDate: LocalDate? = null,
         customEndDate: LocalDate? = null
@@ -217,11 +225,13 @@ class EventViewModel @Inject constructor(
         AnalysisRange.CUSTOM -> DateRangeStrategy.Custom(
             DateRangeParams(
                 startDate = customStartDate?.toDate() ?: Date(),
-                endDate =  customEndDate?.toDate() ?: Date()
+                endDate = customEndDate?.toDate() ?: Date()
             )
         )
     }
-    fun LocalDate.toDate(): Date = this.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli().let { Date(it) }
+
+    fun LocalDate.toDate(): Date =
+        this.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli().let { Date(it) }
 
     data class EventStreamRequest(
         val babyId: String,
@@ -251,15 +261,18 @@ class EventViewModel @Inject constructor(
      * Convenience method for last N days
      */
     fun refreshWithLastDays(babyId: String, days: Long = 1L) {
+        val strategy = DateRangeStrategy.LastDays(days)
         resetDateRangeAndHistory()
-        startStreaming(babyId, DateRangeStrategy.LastDays(days))
+        startStreaming(babyId, strategy)
     }
 
     /**
      * Convenience method for custom range
      */
     fun refreshWithCustomRange(babyId: String, startDate: Date, endDate: Date) {
-        startStreaming(babyId, DateRangeStrategy.Custom(DateRangeParams(startDate, endDate)))
+        val strategy = DateRangeStrategy.Custom(DateRangeParams(startDate, endDate))
+        resetDateRangeAndHistory()
+        startStreaming(babyId, strategy)
     }
 
     fun refreshCountWithLastDays(babyId: String, days: Long = 1L) {
@@ -276,7 +289,26 @@ class EventViewModel @Inject constructor(
     private var streamJob: Job? = null
     private var countsStreamJob: Job? = null
     private var analysisStreamJob: Job? = null
-    private var currentDaysWindow = 1L
+    private val currentDaysWindow: Long
+        get() {
+            val request = _streamRequest.value ?: return 1L
+            val strategy = request.dateRange
+
+            // For LastDays strategy, extract the days directly
+            if (strategy is DateRangeStrategy.LastDays) {
+                return strategy.days
+            }
+
+            // For Custom range, calculate the days difference
+            if (strategy is DateRangeStrategy.Custom) {
+                val params = strategy.params
+                val daysDifference =
+                    ((params.endDate.time - params.startDate.time) / (1000 * 60 * 60 * 24)).toLong() + 1
+                return daysDifference.coerceAtMost(maxDaysWindow)
+            }
+
+            return 1L
+        }
     private val maxDaysWindow = 30L // Maximum 1 month of history
 
     fun updateEventTimestamp(date: Date) {
@@ -317,25 +349,27 @@ class EventViewModel @Inject constructor(
         _isLoadingMore.value = true
 
         val currentRequest = _streamRequest.value ?: run {
+            Log.d("LoadMore", "No current request, aborting")
             _isLoadingMore.value = false
             return
         }
 
         val additionalDays = 1L
-        val newDaysWindow = (currentDaysWindow + additionalDays).coerceAtMost(maxDaysWindow)
 
-        if (newDaysWindow >= maxDaysWindow) {
+        // Simply extend startDate backwards by 1 day
+        val newStartDate = Calendar.getInstance().apply {
+            time = currentRequest.dateRange.startDate
+            add(Calendar.DAY_OF_MONTH, (-1 * additionalDays).toInt())
+        }.time
+
+        Log.d("LoadMore", "Extending from ${currentRequest.dateRange.startDate} to $newStartDate")
+
+        if (newStartDate.time <= currentRequest.dateRange.startDate.time - (maxDaysWindow * 86400000)) {
+            Log.d("LoadMore", "Reached max limit, no more history")
             _hasMoreHistory.value = false
         }
 
-        currentDaysWindow = newDaysWindow
-
-        // Recalculate range based on new window
-        val newStrategy = DateRangeStrategy.LastDays(newDaysWindow)
-        Log.d("CalculateRange", "from load more")
-        val newDateRange = calculateRange(newStrategy)
-
-        // Update stream request atomically
+        val newDateRange = DateRangeParams(newStartDate, currentRequest.dateRange.endDate)
         _streamRequest.value = EventStreamRequest(currentRequest.babyId, newDateRange)
     }
 
@@ -561,11 +595,9 @@ class EventViewModel @Inject constructor(
         }
     }
 
-    fun resetDateRangeAndHistory() {
-        currentDaysWindow = 1L
+    private fun resetDateRangeAndHistory() {
         _hasMoreHistory.value = true
         _isLoadingMore.value = false
-        // setDateRangeForLastDays(currentDaysWindow)
     }
 
     /** Stops any active real-time listener. */
