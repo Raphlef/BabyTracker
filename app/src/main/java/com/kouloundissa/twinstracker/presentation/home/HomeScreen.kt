@@ -255,7 +255,6 @@ fun HomeScreen(
 
         val recentFeedings = allEvents
             .filterIsInstance<FeedingEvent>()
-            .filter { it.feedType == lastFeeding.feedType } // Same feed type only
             .sortedByDescending { it.timestamp }
             .take(10)
 
