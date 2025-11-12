@@ -397,8 +397,12 @@ class FirebaseRepository @Inject constructor(
             }
         }.await()
     }
+
     // ===== EVENT OPERATIONS =====
-    suspend fun addEvent(event: Event): Result<Unit> {
+    suspend fun addEvent(
+        event: Event,
+        firebaseCache: FirebaseCache = FirebaseCache(context, db),
+    ): Result<Unit> {
         return try {
             val userId = authHelper.getCurrentUserId()
             val data = event.toMap()
@@ -408,6 +412,7 @@ class FirebaseRepository @Inject constructor(
                 .document(event.id)
                 .set(data)
                 .await()
+            firebaseCache.invalidateCacheFromEventTimestamp(event.babyId, event.timestamp)
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error adding event", e)
@@ -415,7 +420,10 @@ class FirebaseRepository @Inject constructor(
         }
     }
 
-    suspend fun updateEvent(eventId: String, event: Event): Result<Unit> = runCatching {
+    suspend fun updateEvent(
+        eventId: String, event: Event,
+        firebaseCache: FirebaseCache = FirebaseCache(context, db),
+    ): Result<Unit> = runCatching {
         authHelper.getCurrentUserId()
         val data = event.toMap()
             .withUpdatedAt()
@@ -424,6 +432,7 @@ class FirebaseRepository @Inject constructor(
             .document(eventId)
             .set(data, SetOptions.merge())
             .await()
+        firebaseCache.invalidateCacheFromEventTimestamp(event.babyId, event.timestamp)
     }
 
     suspend fun getEvent(eventId: String): Result<Event?> {
@@ -439,19 +448,23 @@ class FirebaseRepository @Inject constructor(
         }
     }
 
-    suspend fun deleteEvent(eventId: String): Result<Unit> {
+    suspend fun deleteEvent(
+        event: Event,
+        firebaseCache: FirebaseCache = FirebaseCache(context, db),
+    ): Result<Unit> {
         return try {
             db.collection(FirestoreConstants.Collections.EVENTS)
-                .document(eventId)
+                .document(event.id)
                 .delete()
                 .await()
+
+            firebaseCache.invalidateCacheFromEventTimestamp(event.babyId, event.timestamp)
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Error deleting event: $eventId", e)
+            Log.e(TAG, "Error deleting event: $event.id", e)
             Result.failure(e)
         }
     }
-
     /**
      * Optimized event streaming with intelligent caching
      *
@@ -472,7 +485,7 @@ class FirebaseRepository @Inject constructor(
         babyId: String,
         startDate: Date,
         endDate: Date,
-        firebaseCache: FirebaseCache= FirebaseCache(context,db),
+        firebaseCache: FirebaseCache = FirebaseCache(context, db),
     ): Flow<List<Event>> = flow {
         // Validation
         FirebaseValidators.validateBabyId(babyId)
@@ -485,8 +498,11 @@ class FirebaseRepository @Inject constructor(
         if (cacheValidation.useCachedData) {
             // Emit cached data immediately for better UX
             emit(cacheValidation.cachedEvents)
-            Log.d(TAG, "Emitted ${cacheValidation.cachedEvents.size} cached events for baby=$babyId " +
-                    "(Read ops saved: ${cacheValidation.readOperationsSaved})")
+            Log.d(
+                TAG,
+                "Emitted ${cacheValidation.cachedEvents.size} cached events for baby=$babyId " +
+                        "(Read ops saved: ${cacheValidation.readOperationsSaved})"
+            )
         }
 
         // Fetch missing ranges from DB
@@ -504,11 +520,16 @@ class FirebaseRepository @Inject constructor(
                 freshEvents.addAll(rangeEvents)
                 totalDbReadOps += rangeEvents.size
 
-                Log.d(TAG, "Fetched ${rangeEvents.size} fresh events for range [${queryRange.startDate.time}, " +
-                        "${queryRange.endDate.time}], baby=$babyId (DB read ops: ${rangeEvents.size})")
+                Log.d(
+                    TAG,
+                    "Fetched ${rangeEvents.size} fresh events for range [${queryRange.startDate.time}, " +
+                            "${queryRange.endDate.time}], baby=$babyId (DB read ops: ${rangeEvents.size})"
+                )
             } catch (e: Exception) {
-                Log.e(TAG, "Error fetching events for range [${queryRange.startDate.time}, " +
-                        "${queryRange.endDate.time}], baby=$babyId", e)
+                Log.e(
+                    TAG, "Error fetching events for range [${queryRange.startDate.time}, " +
+                            "${queryRange.endDate.time}], baby=$babyId", e
+                )
                 throw e
             }
         }
@@ -521,7 +542,12 @@ class FirebaseRepository @Inject constructor(
                     it.timestamp >= queryRange.startDate && it.timestamp < queryRange.endDate
                 }
                 if (rangeEvents.isNotEmpty()) {
-                    firebaseCache.cacheEvents(babyId, queryRange.startDate, queryRange.endDate, rangeEvents)
+                    firebaseCache.cacheEvents(
+                        babyId,
+                        queryRange.startDate,
+                        queryRange.endDate,
+                        rangeEvents
+                    )
                 }
             }
 
@@ -532,9 +558,12 @@ class FirebaseRepository @Inject constructor(
 
             emit(combinedEvents)
 
-            Log.d(TAG, "Emitted ${combinedEvents.size} combined events (cached=${cacheValidation.cachedEvents.size}, " +
-                    "fresh=${freshEvents.size}) for baby=$babyId (Total DB read ops: $totalDbReadOps, " +
-                    "Saved by cache: ${cacheValidation.readOperationsSaved})")
+            Log.d(
+                TAG,
+                "Emitted ${combinedEvents.size} combined events (cached=${cacheValidation.cachedEvents.size}, " +
+                        "fresh=${freshEvents.size}) for baby=$babyId (Total DB read ops: $totalDbReadOps, " +
+                        "Saved by cache: ${cacheValidation.readOperationsSaved})"
+            )
         } else if (!cacheValidation.useCachedData) {
             // No cache, no fresh data needed (shouldn't happen, but handle gracefully)
             Log.w(TAG, "No cache and no query ranges for baby=$babyId, emitting empty list")

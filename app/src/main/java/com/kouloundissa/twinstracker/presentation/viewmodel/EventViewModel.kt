@@ -632,6 +632,7 @@ class EventViewModel @Inject constructor(
 
         val state: EventFormState = when (event) {
             is DiaperEvent -> Diaper(
+                event = event,
                 eventId = id,
                 eventTimestamp = timestamp,
                 diaperType = event.diaperType,
@@ -642,6 +643,7 @@ class EventViewModel @Inject constructor(
             )
 
             is SleepEvent -> Sleep(
+                event = event,
                 eventId = id,
                 eventTimestamp = timestamp,
                 beginTime = event.beginTime,
@@ -653,6 +655,7 @@ class EventViewModel @Inject constructor(
             )
 
             is FeedingEvent -> Feeding(
+                event = event,
                 eventId = id,
                 eventTimestamp = timestamp,
                 feedType = event.feedType,
@@ -664,6 +667,7 @@ class EventViewModel @Inject constructor(
             )
 
             is GrowthEvent -> Growth(
+                event = event,
                 eventId = id,
                 eventTimestamp = timestamp,
                 weightKg = event.weightKg?.toString().orEmpty(),
@@ -674,6 +678,7 @@ class EventViewModel @Inject constructor(
             )
 
             is DrugsEvent -> Drugs(
+                event = event,
                 eventId = id,
                 eventTimestamp = timestamp,
                 drugType = event.drugType,
@@ -685,6 +690,7 @@ class EventViewModel @Inject constructor(
             )
 
             is PumpingEvent -> Pumping(
+                event = event,
                 eventId = id,
                 eventTimestamp = timestamp,
                 amountMl = event.amountMl?.toString().orEmpty(),
@@ -903,7 +909,7 @@ class EventViewModel @Inject constructor(
      * Updates isDeleting, deleteSuccess, and deleteError accordingly.
      * After successful deletion, refreshes the current event stream.
      */
-    fun deleteEvent(eventId: String, babyId: String) {
+    fun deleteEvent(event: Event) {
         _isDeleting.value = true
         _deleteError.value = null
 
@@ -911,7 +917,7 @@ class EventViewModel @Inject constructor(
             try {
                 // 1. Delete photo from Storage & clear Firestore field
                 try {
-                    repository.deletePhotoFromEntity("events", eventId)
+                    repository.deletePhotoFromEntity("events", event.id)
                 } catch (e: Exception) {
                     if (e is StorageException && e.errorCode == StorageException.ERROR_OBJECT_NOT_FOUND) {
                         // Photo didn’t exist—ignore
@@ -921,16 +927,16 @@ class EventViewModel @Inject constructor(
                 }
 
                 // 2. Fetch current event to clear its photoUrl
-                val currentEvent = repository.getEvent(eventId).getOrThrow()
+                val currentEvent = repository.getEvent(event.id).getOrThrow()
                     ?: throw IllegalStateException("Event not found")
 
                 val eventWithoutPhoto = currentEvent.setPhotoUrl(photoUrl = null)
 
                 // 3. Persist Firestore update (remove photoUrl)
-                repository.updateEvent(eventId, eventWithoutPhoto).getOrThrow()
+                repository.updateEvent(event.id, eventWithoutPhoto).getOrThrow()
 
                 // 4. Now delete the event document itself
-                repository.deleteEvent(eventId).fold(
+                repository.deleteEvent(event).fold(
                     onSuccess = {
                         _deleteSuccess.value = true
                     },

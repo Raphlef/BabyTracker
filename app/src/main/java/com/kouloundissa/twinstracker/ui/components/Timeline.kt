@@ -63,7 +63,6 @@ import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.time.Duration
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import kotlin.collections.forEach
 import kotlin.math.roundToInt
 
 
@@ -84,7 +83,7 @@ fun TimelineList(
                 event = event,
                 onEdit = { onEdit(event) },
                 onDelete = {
-                    eventViewModel.deleteEvent(event.id, baby.id)
+                    eventViewModel.deleteEvent(event)
                 }
             )
         }

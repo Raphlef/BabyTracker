@@ -488,7 +488,7 @@ fun HomeScreen(
                                 eventViewModel.loadEventIntoForm(event)
                                 showEventDialog = true
                             },
-                            onDelete = { eventViewModel.deleteEvent(event.id, selectedBaby!!.id) }
+                            onDelete = { eventViewModel.deleteEvent(event) }
                         )
                     }
                     // Discrete “load more” indicator at bottom
@@ -916,8 +916,7 @@ private fun EventTypeDialog(
                                     onDelete = {
                                         selectedBaby?.let {
                                             eventViewModel.deleteEvent(
-                                                event.id,
-                                                it.id
+                                                event
                                             )
                                         }
                                     }

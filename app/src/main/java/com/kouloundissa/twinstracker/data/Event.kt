@@ -79,6 +79,7 @@ enum class EventType(
         fun forClass(clazz: KClass<out Event>): EventType =
             entries.firstOrNull { it.eventClass == clazz }
                 ?: DIAPER
+
         fun forClass(eventClass: Any): EventType {
             return when (eventClass) {
                 is DiaperEvent -> DIAPER
@@ -87,15 +88,32 @@ enum class EventType(
                 is GrowthEvent -> GROWTH
                 is PumpingEvent -> PUMPING
                 is DrugsEvent -> DRUGS
-                eventClass::class.java.simpleName.contains("DiaperEvent", ignoreCase = true) -> DIAPER
-                eventClass::class.java.simpleName.contains("FeedingEvent", ignoreCase = true) -> FEEDING
+                eventClass::class.java.simpleName.contains(
+                    "DiaperEvent",
+                    ignoreCase = true
+                ) -> DIAPER
+
+                eventClass::class.java.simpleName.contains(
+                    "FeedingEvent",
+                    ignoreCase = true
+                ) -> FEEDING
+
                 eventClass::class.java.simpleName.contains("SleepEvent", ignoreCase = true) -> SLEEP
-                eventClass::class.java.simpleName.contains("GrowthEvent", ignoreCase = true) -> GROWTH
-                eventClass::class.java.simpleName.contains("PumpingEvent", ignoreCase = true) -> PUMPING
+                eventClass::class.java.simpleName.contains(
+                    "GrowthEvent",
+                    ignoreCase = true
+                ) -> GROWTH
+
+                eventClass::class.java.simpleName.contains(
+                    "PumpingEvent",
+                    ignoreCase = true
+                ) -> PUMPING
+
                 eventClass::class.java.simpleName.contains("DrugsEvent", ignoreCase = true) -> DRUGS
                 else -> DIAPER  // default
             }
         }
+
         fun getEventClass(eventType: EventType): kotlin.reflect.KClass<out Event> {
             return when (eventType) {
                 DIAPER -> DiaperEvent::class
@@ -284,6 +302,7 @@ data class DrugsEvent(
     // no-arg constructor for Firestore
     constructor() : this("", "", "", Date(), null, null, DrugType.PARACETAMOL, null, "mg", null)
 }
+
 /**
  * Extension function on Event companion to deserialize from Map
  * No changes to existing API - seamlessly integrated with Firestore
@@ -337,10 +356,12 @@ fun Map<String, Any?>.toEvent(): Event? {
 operator fun EventType.Companion.invoke(map: Map<String, Any?>): Event? {
     return fromMap(map)
 }
+
 /**
  * UI form state representing the in-memory values while editing or creating an event.
  */
 sealed class EventFormState {
+    abstract val event: Event?
     abstract val eventId: String?
     abstract val eventType: EventType
     abstract val eventTimestamp: Date
@@ -514,6 +535,7 @@ sealed class EventFormState {
     }
 
     data class Diaper(
+        override val event: Event? = null,
         override val eventId: String? = null,
         override val eventType: EventType = EventType.DIAPER,
         override val eventTimestamp: Date = Date(),
@@ -527,6 +549,7 @@ sealed class EventFormState {
     ) : EventFormState()
 
     data class Sleep(
+        override val event: Event? = null,
         override val eventId: String? = null,
         override val eventType: EventType = EventType.SLEEP,
         override val eventTimestamp: Date = Date(),
@@ -541,6 +564,7 @@ sealed class EventFormState {
     ) : EventFormState()
 
     data class Feeding(
+        override val event: Event? = null,
         override val eventId: String? = null,
         override val eventType: EventType = EventType.FEEDING,
         override val eventTimestamp: Date = Date(),
@@ -555,6 +579,7 @@ sealed class EventFormState {
     ) : EventFormState()
 
     data class Growth(
+        override val event: Event? = null,
         override val eventId: String? = null,
         override val eventType: EventType = EventType.GROWTH,
         override val eventTimestamp: Date = Date(),
@@ -568,6 +593,7 @@ sealed class EventFormState {
     ) : EventFormState()
 
     data class Pumping(
+        override val event: Event? = null,
         override val eventId: String? = null,
         override val eventType: EventType = EventType.PUMPING,
         override val eventTimestamp: Date = Date(),
@@ -581,6 +607,7 @@ sealed class EventFormState {
     ) : EventFormState()
 
     data class Drugs(
+        override val event: Event? = null,
         override val eventId: String? = null,
         override val eventType: EventType = EventType.DRUGS,
         override val eventTimestamp: Date = Date(),

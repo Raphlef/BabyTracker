@@ -452,7 +452,68 @@ class FirebaseCache(
         // By using cache, we avoid N read operations where N = number of cached events
         return cachedEventCount
     }
+    /**
+     * Invalidate cache entries that contain events on or after the given date
+     * Call this when an event is CREATED, UPDATED, or DELETED
+     *
+     * @param babyId: The baby whose cache should be invalidated
+     * @param eventTimestamp: The timestamp of the event that changed
+     *
+     * Example usage:
+     *   - Event created: invalidateCacheFromEventTimestamp(babyId, newEvent.timestamp)
+     *   - Event updated: invalidateCacheFromEventTimestamp(babyId, updatedEvent.timestamp)
+     *   - Event deleted: invalidateCacheFromEventTimestamp(babyId, deletedEvent.timestamp)
+     */
+    suspend fun invalidateCacheFromEventTimestamp(
+        babyId: String,
+        eventTimestamp: Date
+    ) {
+        try {
+            val preferences = context.cacheDataStore.data.first()
+            val eventTimeMs = eventTimestamp.time
 
+            // Find all cache keys that contain this event's date
+            val keysToInvalidate = preferences.asMap()
+                .keys
+                .filter { key ->
+                    // Cache key format: "events_${babyId}_${startDate}_${endDate}"
+                    val keyName = key.name
+                    if (!keyName.startsWith("events_${babyId}_")) return@filter false
+
+                    // Parse the key to get startDate and endDate
+                    val parts = keyName.substringAfter("events_${babyId}_").split("_")
+                    if (parts.size < 2) return@filter false
+
+                    try {
+                        val cacheStartDate = parts[0].toLong()
+                        val cacheEndDate = parts[1].toLong()
+
+                        // Invalidate if event timestamp falls within this cache range
+                        // OR if event is after this cache range (might affect today's data)
+                        eventTimeMs >= cacheStartDate && eventTimeMs <= cacheEndDate + 86400000 // +1 day
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Error parsing cache key: ${key.name}")
+                        false
+                    }
+                }
+
+            // Remove all affected cache entries
+            if (keysToInvalidate.isNotEmpty()) {
+                context.cacheDataStore.edit { preferences ->
+                    keysToInvalidate.forEach { key ->
+                        preferences.remove(key)
+                        Log.d(TAG, "✗ Invalidated cache: ${key.name}")
+                    }
+                }
+                Log.d(TAG, "✓ Invalidated ${keysToInvalidate.size} cache entries for baby=$babyId " +
+                        "affected by event at ${Date(eventTimeMs)}")
+            } else {
+                Log.d(TAG, "ℹ No cache entries to invalidate for event at ${Date(eventTimeMs)}")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "✗ Error invalidating cache: ${e.message}", e)
+        }
+    }
     /**
      * Serialize CachedEventData to JSON string for storage in DataStore
      * Uses Gson for reliable JSON serialization
