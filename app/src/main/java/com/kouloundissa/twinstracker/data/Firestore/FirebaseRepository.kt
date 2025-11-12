@@ -15,7 +15,6 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
-import com.google.firebase.firestore.snapshots
 import com.google.firebase.storage.FirebaseStorage
 import com.kouloundissa.twinstracker.data.AnalysisSnapshot
 import com.kouloundissa.twinstracker.data.Baby
@@ -599,69 +598,224 @@ class FirebaseRepository @Inject constructor(
     fun streamEventCountsByDayTyped(
         babyId: String,
         startDate: Date,
-        endDate: Date
-    ): Flow<Map<String, EventDayCount>> {
+        endDate: Date,
+        firebaseCache: FirebaseCache = FirebaseCache(context, db),
+    ): Flow<Map<String, EventDayCount>> = flow {
         FirebaseValidators.validateBabyId(babyId)
         FirebaseValidators.validateDateRange(startDate, endDate)
         authHelper.getCurrentUserId()
 
         val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
-        return db.collection(FirestoreConstants.Collections.EVENTS)
-            .whereEqualTo(FirestoreConstants.Fields.BABY_ID, babyId)
-            .whereGreaterThanOrEqualTo(FirestoreConstants.Fields.TIMESTAMP, startDate)
-            .whereLessThan(FirestoreConstants.Fields.TIMESTAMP, endDate)
-            .snapshots()
-            .map { snapshot ->
-                snapshot.documents.mapNotNull { it.toEvent() }
-                    .groupingBy { event ->
-                        dateFormatter.formatDateForGrouping(event.timestamp)
-                    }
-                    .eachCount()
-                    .mapValues { (_, count) -> EventDayCount(count = count) }
-            }
-            .catch { e ->
-                Log.e(TAG, "Error streaming event counts", e)
+        // Check cache and plan queries
+        val cacheValidation = firebaseCache.validateAndPlanQueries(babyId, startDate, endDate)
+
+        var cachedCounts = mutableMapOf<String, EventDayCount>()
+
+        // Part 1: Get cached counts for old dates
+        if (cacheValidation.useCachedData) {
+            Log.d(
+                "EventCounts",
+                "Using cache for old dates, ${cacheValidation.cachedEvents.size} cached events"
+            )
+
+            cachedCounts = cacheValidation.cachedEvents
+                .groupingBy { event -> dateFormatter.formatDateForGrouping(event.timestamp) }
+                .eachCount()
+                .mapValues { (_, count) -> EventDayCount(count = count) }
+                .toMutableMap()
+
+            // Emit cached counts immediately
+            emit(cachedCounts)
+            Log.d("EventCounts", "Emitted ${cachedCounts.size} cached day counts for baby=$babyId")
+        }
+
+        // Part 2: Fetch fresh counts for missing ranges
+        val freshEvents = mutableListOf<Event>()
+        var totalDbReadOps = 0
+
+        for (queryRange in cacheValidation.queryRanges) {
+            try {
+                val rangeEvents = queryEventsForRange(
+                    babyId = babyId,
+                    startDate = queryRange.startDate,
+                    endDate = queryRange.endDate,
+                    db = db
+                )
+                freshEvents.addAll(rangeEvents)
+                totalDbReadOps += rangeEvents.size
+
+                Log.d(
+                    "EventCounts",
+                    "Fetched ${rangeEvents.size} fresh events for range [${queryRange.startDate.time}, " +
+                            "${queryRange.endDate.time}]"
+                )
+            } catch (e: Exception) {
+                Log.e("EventCounts", "Error fetching events for range", e)
                 throw e
             }
-    }
+        }
+
+        // Part 3: If fresh events exist, cache them and emit combined result
+        if (freshEvents.isNotEmpty()) {
+            // Cache fresh events
+            for (queryRange in cacheValidation.queryRanges) {
+                val rangeEvents = freshEvents.filter {
+                    it.timestamp >= queryRange.startDate && it.timestamp < queryRange.endDate
+                }
+                if (rangeEvents.isNotEmpty()) {
+                    firebaseCache.cacheEvents(
+                        babyId,
+                        queryRange.startDate,
+                        queryRange.endDate,
+                        rangeEvents
+                    )
+                }
+            }
+
+            // Aggregate fresh event counts
+            val freshCounts = freshEvents
+                .groupingBy { event -> dateFormatter.formatDateForGrouping(event.timestamp) }
+                .eachCount()
+                .mapValues { (_, count) -> EventDayCount(count = count) }
+
+            // Merge: cached + fresh
+            val combinedCounts = (cachedCounts + freshCounts).toMutableMap()
+
+            emit(combinedCounts)
+
+            Log.d(
+                "EventCounts",
+                "Emitted ${combinedCounts.size} combined day counts for baby=$babyId " +
+                        "(cached=${cachedCounts.size}, fresh=${freshCounts.size}, " +
+                        "DB read ops: $totalDbReadOps, Saved by cache: ${cacheValidation.readOperationsSaved})"
+            )
+        } else if (!cacheValidation.useCachedData) {
+            Log.w(
+                "EventCounts",
+                "No cache and no fresh events for baby=$babyId, emitting empty map"
+            )
+            emit(emptyMap())
+        }
+
+    }.catch { e ->
+        Log.e("EventCounts", "Error streaming event counts for baby=$babyId", e)
+        throw e
+    }.flowOn(Dispatchers.IO)
+
 
     fun streamAnalysisMetrics(
         babyId: String,
         startDate: Date,
         endDate: Date,
-        eventTypes: Set<EventType> = EventType.entries.toSet()
-    ): Flow<AnalysisSnapshot> {
+        eventTypes: Set<EventType> = EventType.entries.toSet(),
+        firebaseCache: FirebaseCache = FirebaseCache(context, db),
+    ): Flow<AnalysisSnapshot>  = flow {
         FirebaseValidators.validateBabyId(babyId)
         FirebaseValidators.validateDateRange(startDate, endDate)
         authHelper.getCurrentUserId()
 
-        return db.collection(FirestoreConstants.Collections.EVENTS)
-            .whereEqualTo(FirestoreConstants.Fields.BABY_ID, babyId)
-            .whereGreaterThanOrEqualTo(FirestoreConstants.Fields.TIMESTAMP, startDate)
-            .whereLessThan(FirestoreConstants.Fields.TIMESTAMP, endDate)
-            .snapshots()
-            .map { snapshot ->
-                val events = snapshot.documents.mapNotNull { it.toEvent() }
-                buildAnalysisSnapshot(startDate, endDate, babyId, events)
-            }
-            .catch { e ->
-                Log.e(TAG, "Error streaming analysis metrics", e)
+        // Check cache and plan queries
+        val cacheValidation = firebaseCache.validateAndPlanQueries(babyId, startDate, endDate)
+
+        var cachedEvents = emptyList<Event>()
+
+        // Part 1: Get cached events for old dates
+        if (cacheValidation.useCachedData) {
+            Log.d("AnalysisMetrics", "Using cache for old dates, ${cacheValidation.cachedEvents.size} cached events")
+            cachedEvents = cacheValidation.cachedEvents
+
+            // Build and emit analysis from cached data
+            val cachedAnalysis = buildAnalysisSnapshot(startDate, endDate, babyId, cachedEvents, eventTypes)
+            emit(cachedAnalysis)
+
+            Log.d("AnalysisMetrics", "Emitted cached analysis for baby=$babyId (${cachedEvents.size} events)")
+        }
+
+        // Part 2: Fetch fresh events for missing ranges
+        val freshEvents = mutableListOf<Event>()
+        var totalDbReadOps = 0
+
+        for (queryRange in cacheValidation.queryRanges) {
+            try {
+                val rangeEvents = queryEventsForRange(
+                    babyId = babyId,
+                    startDate = queryRange.startDate,
+                    endDate = queryRange.endDate,
+                    db = db
+                )
+                freshEvents.addAll(rangeEvents)
+                totalDbReadOps += rangeEvents.size
+
+                Log.d(
+                    "AnalysisMetrics",
+                    "Fetched ${rangeEvents.size} fresh events for range [${queryRange.startDate.time}, " +
+                            "${queryRange.endDate.time}]"
+                )
+            } catch (e: Exception) {
+                Log.e("AnalysisMetrics", "Error fetching events for range", e)
                 throw e
             }
-    }
+        }
+
+        // Part 3: If fresh events exist, cache them and emit updated analysis
+        if (freshEvents.isNotEmpty()) {
+            // Cache fresh events
+            for (queryRange in cacheValidation.queryRanges) {
+                val rangeEvents = freshEvents.filter {
+                    it.timestamp >= queryRange.startDate && it.timestamp < queryRange.endDate
+                }
+                if (rangeEvents.isNotEmpty()) {
+                    firebaseCache.cacheEvents(
+                        babyId,
+                        queryRange.startDate,
+                        queryRange.endDate,
+                        rangeEvents
+                    )
+                }
+            }
+
+            // Combine all events (cached + fresh)
+            val combinedEvents = (cachedEvents + freshEvents)
+                .sortedByDescending { it.timestamp }
+                .distinctBy { it.id }
+
+            // Build analysis from combined events
+            val combinedAnalysis = buildAnalysisSnapshot(startDate, endDate, babyId, combinedEvents, eventTypes)
+            emit(combinedAnalysis)
+
+            Log.d(
+                "AnalysisMetrics",
+                "Emitted combined analysis for baby=$babyId (cached=${cachedEvents.size}, " +
+                        "fresh=${freshEvents.size}, total=${combinedEvents.size}, " +
+                        "DB read ops: $totalDbReadOps, Saved by cache: ${cacheValidation.readOperationsSaved})"
+            )
+        } else if (!cacheValidation.useCachedData) {
+            Log.w("AnalysisMetrics", "No cache and no fresh events for baby=$babyId, emitting empty analysis")
+            emit(buildAnalysisSnapshot(startDate, endDate, babyId, emptyList(), eventTypes))
+        }
+
+    }.catch { e ->
+        Log.e("AnalysisMetrics", "Error streaming analysis metrics for baby=$babyId", e)
+        throw e
+    }.flowOn(Dispatchers.IO)
 
 
     private fun buildAnalysisSnapshot(
         startDate: Date,
         endDate: Date,
         babyId: String,
-        events: List<Event>
+        events: List<Event>,
+        eventTypes: Set<EventType> = EventType.entries.toSet()
     ): AnalysisSnapshot {
-        val growthEvents = events
+
+        val filteredEvents = events.filter { event ->
+            EventType.forClass(event) in eventTypes
+        }
+        val growthEvents = filteredEvents
             .filterIsInstance<GrowthEvent>()
         val dateList = FirestoreTimestampUtils.generateDateRange(startDate, endDate)
-        val eventsByDay = events.groupBy { it.timestamp.toLocalDate() }
+        val eventsByDay = filteredEvents .groupBy { it.timestamp.toLocalDate() }
         val growthByDate = growthEvents.groupBy { it.timestamp.toLocalDate() }
 
         val dailyAnalysis = dateList.map { date ->
