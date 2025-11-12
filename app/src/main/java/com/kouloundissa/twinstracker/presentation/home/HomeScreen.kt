@@ -171,7 +171,7 @@ fun HomeScreen(
                     val shouldAttemptLoad = hasMoreHistory &&
                             !isLoadingMore &&
                             (lastLoadedCount == 0 || totalItems > lastLoadedCount) &&
-                            (currentTime - lastLoadAttempt > 2000)
+                            (currentTime - lastLoadAttempt > 300)
 
                     if (shouldAttemptLoad) {
                         lastLoadedCount = totalItems
@@ -836,7 +836,7 @@ private fun EventTypeDialog(
                     val shouldAttemptLoad = hasMoreHistory &&
                             !isLoadingMore &&
                             (lastLoadedCount == 0 || totalItems > lastLoadedCount) &&
-                            (currentTime - lastLoadAttempt > 2000)
+                            (currentTime - lastLoadAttempt > 300)
 
                     if (shouldAttemptLoad) {
                         lastLoadedCount = totalItems
