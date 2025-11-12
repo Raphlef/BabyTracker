@@ -45,7 +45,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -449,29 +451,120 @@ class FirebaseRepository @Inject constructor(
             Result.failure(e)
         }
     }
-    
+
+    /**
+     * Optimized event streaming with intelligent caching
+     *
+     * Strategy:
+     * 1. Validate inputs and check cache validity
+     * 2. If cache valid: immediately emit cached data, then fetch only missing ranges
+     * 3. If cache invalid: fetch full requested range from DB
+     * 4. Merge cached + fresh data and emit combined result
+     * 5. Log read operations saved
+     *
+     * Cache behavior:
+     * - Fresh data (0-6h): Always query DB, never cache
+     * - Recent data (6-24h): Cache with 15 min TTL
+     * - Moderate data (24-48h): Cache with 1 hour TTL
+     * - Old data (48h+): Cache with 1 week TTL
+     */
     fun streamEventsForBaby(
         babyId: String,
         startDate: Date,
-        endDate: Date
-    ): Flow<List<Event>> {
+        endDate: Date,
+        firebaseCache: FirebaseCache= FirebaseCache(context,db),
+    ): Flow<List<Event>> = flow {
+        // Validation
         FirebaseValidators.validateBabyId(babyId)
         FirebaseValidators.validateDateRange(startDate, endDate)
         authHelper.getCurrentUserId()
 
+        // Check cache and plan queries
+        val cacheValidation = firebaseCache.validateAndPlanQueries(babyId, startDate, endDate)
+
+        if (cacheValidation.useCachedData) {
+            // Emit cached data immediately for better UX
+            emit(cacheValidation.cachedEvents)
+            Log.d(TAG, "Emitted ${cacheValidation.cachedEvents.size} cached events for baby=$babyId " +
+                    "(Read ops saved: ${cacheValidation.readOperationsSaved})")
+        }
+
+        // Fetch missing ranges from DB
+        val freshEvents = mutableListOf<Event>()
+        var totalDbReadOps = 0
+
+        for (queryRange in cacheValidation.queryRanges) {
+            try {
+                val rangeEvents = queryEventsForRange(
+                    babyId = babyId,
+                    startDate = queryRange.startDate,
+                    endDate = queryRange.endDate,
+                    db = db
+                )
+                freshEvents.addAll(rangeEvents)
+                totalDbReadOps += rangeEvents.size
+
+                Log.d(TAG, "Fetched ${rangeEvents.size} fresh events for range [${queryRange.startDate.time}, " +
+                        "${queryRange.endDate.time}], baby=$babyId (DB read ops: ${rangeEvents.size})")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error fetching events for range [${queryRange.startDate.time}, " +
+                        "${queryRange.endDate.time}], baby=$babyId", e)
+                throw e
+            }
+        }
+
+        // If fresh events were fetched, cache them and emit combined result
+        if (freshEvents.isNotEmpty()) {
+            // Cache fresh events
+            for (queryRange in cacheValidation.queryRanges) {
+                val rangeEvents = freshEvents.filter {
+                    it.timestamp >= queryRange.startDate && it.timestamp < queryRange.endDate
+                }
+                if (rangeEvents.isNotEmpty()) {
+                    firebaseCache.cacheEvents(babyId, queryRange.startDate, queryRange.endDate, rangeEvents)
+                }
+            }
+
+            // Merge and emit
+            val combinedEvents = (cacheValidation.cachedEvents + freshEvents)
+                .sortedByDescending { it.timestamp }
+                .distinctBy { it.id }  // Remove duplicates if any
+
+            emit(combinedEvents)
+
+            Log.d(TAG, "Emitted ${combinedEvents.size} combined events (cached=${cacheValidation.cachedEvents.size}, " +
+                    "fresh=${freshEvents.size}) for baby=$babyId (Total DB read ops: $totalDbReadOps, " +
+                    "Saved by cache: ${cacheValidation.readOperationsSaved})")
+        } else if (!cacheValidation.useCachedData) {
+            // No cache, no fresh data needed (shouldn't happen, but handle gracefully)
+            Log.w(TAG, "No cache and no query ranges for baby=$babyId, emitting empty list")
+            emit(emptyList())
+        }
+
+    }.catch { e ->
+        Log.e(TAG, "Error streaming events for baby=$babyId", e)
+        throw e
+    }.flowOn(Dispatchers.IO)
+
+    /**
+     * Query a specific date range from Firestore
+     * Keeps DB query logic isolated and reusable
+     */
+    private suspend fun queryEventsForRange(
+        babyId: String,
+        startDate: Date,
+        endDate: Date,
+        db: FirebaseFirestore
+    ): List<Event> {
         return db.collection(FirestoreConstants.Collections.EVENTS)
             .whereEqualTo(FirestoreConstants.Fields.BABY_ID, babyId)
             .whereGreaterThanOrEqualTo(FirestoreConstants.Fields.TIMESTAMP, startDate)
             .whereLessThan(FirestoreConstants.Fields.TIMESTAMP, endDate)
             .orderBy(FirestoreConstants.Fields.TIMESTAMP, Query.Direction.DESCENDING)
-            .snapshots()
-            .map { snapshot ->
-                snapshot.documents.mapNotNull { it.toEvent() }
-            }
-            .catch { e ->
-                Log.e(TAG, "Error streaming events for baby=$babyId", e)
-                throw e
-            }
+            .get()
+            .await()
+            .documents
+            .mapNotNull { it.toEvent() }
     }
 
     fun streamEventCountsByDayTyped(
