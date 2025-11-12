@@ -18,7 +18,6 @@ import com.kouloundissa.twinstracker.R
 import java.util.Date
 import java.util.UUID
 import kotlin.reflect.KClass
-import kotlin.reflect.full.memberProperties
 
 /**
  * EventType enum associates a display name and a color for each event kind.
@@ -80,6 +79,33 @@ enum class EventType(
         fun forClass(clazz: KClass<out Event>): EventType =
             entries.firstOrNull { it.eventClass == clazz }
                 ?: DIAPER
+        fun forClass(eventClass: Any): EventType {
+            return when (eventClass) {
+                is DiaperEvent -> DIAPER
+                is FeedingEvent -> FEEDING
+                is SleepEvent -> SLEEP
+                is GrowthEvent -> GROWTH
+                is PumpingEvent -> PUMPING
+                is DrugsEvent -> DRUGS
+                eventClass::class.java.simpleName.contains("DiaperEvent", ignoreCase = true) -> DIAPER
+                eventClass::class.java.simpleName.contains("FeedingEvent", ignoreCase = true) -> FEEDING
+                eventClass::class.java.simpleName.contains("SleepEvent", ignoreCase = true) -> SLEEP
+                eventClass::class.java.simpleName.contains("GrowthEvent", ignoreCase = true) -> GROWTH
+                eventClass::class.java.simpleName.contains("PumpingEvent", ignoreCase = true) -> PUMPING
+                eventClass::class.java.simpleName.contains("DrugsEvent", ignoreCase = true) -> DRUGS
+                else -> DIAPER  // default
+            }
+        }
+        fun getEventClass(eventType: EventType): kotlin.reflect.KClass<out Event> {
+            return when (eventType) {
+                DIAPER -> DiaperEvent::class
+                FEEDING -> FeedingEvent::class
+                SLEEP -> SleepEvent::class
+                GROWTH -> GrowthEvent::class
+                PUMPING -> PumpingEvent::class
+                DRUGS -> DrugsEvent::class
+            }
+        }
     }
 }
 
@@ -104,22 +130,31 @@ sealed class Event {
         val result = mutableMapOf<String, Any?>()
 
         // Reflect over all Kotlin properties in this instance
-        javaClass.kotlin.memberProperties.forEach { prop ->
+        this::class.members.forEach { prop ->
             // Get the raw value
-            val value = prop.getter.call(this)
-
-            // Convert Date→Timestamp and Enum→String
-            val converted = when (value) {
-                is Date -> com.google.firebase.Timestamp(value)
-                is Enum<*> -> value.name
-                else -> value
+            val value = try {
+                when (prop) {
+                    is kotlin.reflect.KProperty<*> -> prop.getter.call(this)
+                    else -> null
+                }
+            } catch (e: Exception) {
+                null
             }
 
-            result[prop.name] = converted
+            if (value != null) {
+                // Convert special types for JSON serialization
+                val converted = when (value) {
+                    is Date -> value.time  // Store as Long timestamp
+                    is Enum<*> -> value.name
+                    else -> value
+                }
+
+                result[prop.name] = converted
+            }
         }
 
-        // Automatically add the eventTypeString from EventType enum
-        val type = EventType.forClass(javaClass.kotlin)
+        // Add eventTypeString for polymorphic deserialization
+        val type = EventType.forClass(this)
         result["eventTypeString"] = type.name
 
         return result
@@ -249,7 +284,59 @@ data class DrugsEvent(
     // no-arg constructor for Firestore
     constructor() : this("", "", "", Date(), null, null, DrugType.PARACETAMOL, null, "mg", null)
 }
+/**
+ * Extension function on Event companion to deserialize from Map
+ * No changes to existing API - seamlessly integrated with Firestore
+ *
+ * Usage: val event = Event.fromMap(eventMap)
+ */
+fun EventType.Companion.fromMap(map: Map<String, Any?>): Event? {
+    return try {
+        val typeName = map["eventTypeString"] as? String ?: return null
+        val eventType = try {
+            EventType.valueOf(typeName)
+        } catch (e: IllegalArgumentException) {
+            Log.w("Event", "Unknown eventTypeString: $typeName")
+            return null
+        }
 
+        val eventClass = eventType.eventClass.java
+
+        // Use Gson to deserialize (same as Firestore does)
+        val gson = com.google.gson.Gson()
+        val json = gson.toJson(map)
+        gson.fromJson(json, eventClass) as? Event
+    } catch (e: Exception) {
+        Log.w("Event", "Error deserializing event from map: ${e.message}", e)
+        null
+    }
+}
+
+/**
+ * Helper function: Convert Map to specific Event type
+ * Handles timestamp conversion (Long → Date)
+ */
+fun Map<String, Any?>.toEvent(): Event? {
+    // Convert timestamp Long back to Date if needed
+    val mutableMap = this.toMutableMap()
+
+    // Check if any date fields are stored as Long (from cache)
+    val dateFields = listOf("timestamp", "beginTime", "endTime", "cachedAt")
+    dateFields.forEach { field ->
+        if (mutableMap.containsKey(field) && mutableMap[field] is Long) {
+            mutableMap[field] = Date(mutableMap[field] as Long)
+        }
+    }
+
+    return EventType.fromMap(mutableMap)
+}
+
+/**
+ * Extension for Event.Companion object to add fromMap as static-like method
+ */
+operator fun EventType.Companion.invoke(map: Map<String, Any?>): Event? {
+    return fromMap(map)
+}
 /**
  * UI form state representing the in-memory values while editing or creating an event.
  */
