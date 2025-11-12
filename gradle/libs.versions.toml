@@ -4,6 +4,7 @@ coilCompose = "2.7.0"
 foundation = "1.9.1"
 foundationVersion = "1.4.3"
 gradle = "8.13.1"
+gson = "2.13.2"
 haze = "1.6.10"
 hiltAndroid = "2.57.1"
 kotlin = "2.2.20"
@@ -54,6 +55,7 @@ firebase-crashlytics-gradle = { module = "com.google.firebase:firebase-crashlyti
 google-firebase-crashlytics-ktx = { group = "com.google.firebase", name = "firebase-crashlytics-ktx",  version.ref = "firebaseCrashlyticsKtx"}
 firebase-crashlytics-ktx = { module = "com.google.firebase:firebase-crashlytics-ktx" }
 gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hiltAndroid" }

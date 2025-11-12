@@ -1,5 +1,3 @@
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.io.ByteArrayOutputStream
 
 plugins {
@@ -171,6 +169,7 @@ dependencies {
     implementation(libs.play.services.auth)
     implementation(libs.kotlinx.coroutines.play.services)
 
+    implementation(libs.gson)
 }
 
 // --- Fonctions Git Versioning ---
