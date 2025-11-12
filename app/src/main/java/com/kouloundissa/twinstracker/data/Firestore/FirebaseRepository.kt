@@ -41,7 +41,6 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -465,6 +464,7 @@ class FirebaseRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
     /**
      * Optimized event streaming with intelligent caching
      *
@@ -636,40 +636,30 @@ class FirebaseRepository @Inject constructor(
         FirebaseValidators.validateDateRange(startDate, endDate)
         authHelper.getCurrentUserId()
 
-        return combine(
-            db.collection(FirestoreConstants.Collections.EVENTS)
-                .whereEqualTo(FirestoreConstants.Fields.BABY_ID, babyId)
-                .whereGreaterThanOrEqualTo(FirestoreConstants.Fields.TIMESTAMP, startDate)
-                .whereLessThan(FirestoreConstants.Fields.TIMESTAMP, endDate)
-                .snapshots()
-                .map { snapshot ->
-                    snapshot.documents.mapNotNull { it.toEvent() }
-                },
-            db.collection(FirestoreConstants.Collections.EVENTS)
-                .whereEqualTo(FirestoreConstants.Fields.BABY_ID, babyId)
-                .whereEqualTo(FirestoreConstants.Fields.EVENT_TYPE_STRING, "GROWTH")
-                .whereGreaterThanOrEqualTo(FirestoreConstants.Fields.TIMESTAMP, startDate)
-                .whereLessThan(FirestoreConstants.Fields.TIMESTAMP, endDate)
-                .snapshots()
-                .map { snapshot ->
-                    snapshot.documents.mapNotNull { it.toEvent() as? GrowthEvent }
-                }
-        ) { events, growthEvents ->
-            buildAnalysisSnapshot(startDate, endDate, babyId, events, growthEvents)
-        }
+        return db.collection(FirestoreConstants.Collections.EVENTS)
+            .whereEqualTo(FirestoreConstants.Fields.BABY_ID, babyId)
+            .whereGreaterThanOrEqualTo(FirestoreConstants.Fields.TIMESTAMP, startDate)
+            .whereLessThan(FirestoreConstants.Fields.TIMESTAMP, endDate)
+            .snapshots()
+            .map { snapshot ->
+                val events = snapshot.documents.mapNotNull { it.toEvent() }
+                buildAnalysisSnapshot(startDate, endDate, babyId, events)
+            }
             .catch { e ->
                 Log.e(TAG, "Error streaming analysis metrics", e)
                 throw e
             }
     }
 
+
     private fun buildAnalysisSnapshot(
         startDate: Date,
         endDate: Date,
         babyId: String,
-        events: List<Event>,
-        growthEvents: List<GrowthEvent>
+        events: List<Event>
     ): AnalysisSnapshot {
+        val growthEvents = events
+            .filterIsInstance<GrowthEvent>()
         val dateList = FirestoreTimestampUtils.generateDateRange(startDate, endDate)
         val eventsByDay = events.groupBy { it.timestamp.toLocalDate() }
         val growthByDate = growthEvents.groupBy { it.timestamp.toLocalDate() }
