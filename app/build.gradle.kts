@@ -146,6 +146,7 @@ dependencies {
     implementation(libs.androidx.room.room.ktx)
     implementation(libs.androidx.core.i18n)
     implementation(libs.foundation.layout)
+    implementation(libs.androidx.compose.runtime)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
