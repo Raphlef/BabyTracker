@@ -7,7 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +44,7 @@ fun ExpandablePanel(
     expandedContent: @Composable () -> Unit,
     isExpanded: Boolean,
     onExpandToggle: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
     minHeight: Dp = 64.dp,
@@ -61,7 +62,10 @@ fun ExpandablePanel(
                     .fillMaxWidth()
                     .heightIn(min = minHeight)
                     .clip(cornerShape)
-                    .clickable(onClick = onExpandToggle)
+                    .combinedClickable(
+                        onClick = onExpandToggle,
+                        onLongClick = onLongClick ?: {}
+                    )
                     .blur(if (isLoading) 3.dp else 0.dp),
                 color = backgroundColor.copy(alpha = 0.85f),
                 shape = cornerShape,

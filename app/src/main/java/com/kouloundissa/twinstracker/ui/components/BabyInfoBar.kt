@@ -149,6 +149,9 @@ fun BabyInfoBar(
             },
             isExpanded = isExpanded,
             onExpandToggle = { if (babies.size > 1) isExpanded = !isExpanded },
+            onLongClick = {
+                selectedBaby?.let { eventViewModel.clearBabyCache(it.id) }
+            },
             modifier = Modifier,
             isLoading = isLoading
         )

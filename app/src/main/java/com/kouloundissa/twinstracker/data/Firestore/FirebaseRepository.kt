@@ -466,6 +466,14 @@ class FirebaseRepository @Inject constructor(
         }
     }
 
+    suspend fun clearBabyCache(
+        babyId: String,
+        firebaseCache: FirebaseCache = FirebaseCache(context, db),
+    ) {
+        firebaseCache.clearCacheForBaby(babyId)
+        Log.d(TAG, "Cache cleared successfully for baby: $babyId")
+    }
+
     /**
      * Optimized event streaming with intelligent caching
      *
@@ -503,7 +511,7 @@ class FirebaseRepository @Inject constructor(
             Log.d(
                 TAG,
                 "Emitted ${cachedEvents.size} cached events for baby=$babyId " +
-                        "(Read ops saved: ${cacheValidation.readOperationsSaved})"
+                        "(cached= ${cacheValidation.readOperationsSaved})"
             )
         }
 
@@ -565,7 +573,6 @@ class FirebaseRepository @Inject constructor(
         FirebaseValidators.validateBabyId(babyId)
         FirebaseValidators.validateDateRange(startDate, endDate)
         authHelper.getCurrentUserId()
-
         val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
         // Check cache and plan queries
@@ -573,10 +580,10 @@ class FirebaseRepository @Inject constructor(
 
         var cachedCounts = mutableMapOf<String, EventDayCount>()
 
-        // Part 1: Get cached counts for old dates
+        // Part 1: Emit cached counts for old dates (one-time)
         if (cacheValidation.useCachedData) {
             Log.d(
-                "EventCounts",
+                TAG,
                 "Using cache for old dates, ${cacheValidation.cachedEvents.size} cached events"
             )
 
@@ -588,79 +595,76 @@ class FirebaseRepository @Inject constructor(
 
             // Emit cached counts immediately
             emit(cachedCounts)
-            Log.d("EventCounts", "Emitted ${cachedCounts.size} cached day counts for baby=$babyId")
+            Log.d(
+                "EventCountsRealtime",
+                "Emitted ${cachedCounts.size} cached day counts for baby=$babyId"
+            )
         }
 
-        // Part 2: Fetch fresh counts for missing ranges
-        val freshEvents = mutableListOf<Event>()
-        var totalDbReadOps = 0
+        // Part 2: Set up real-time listeners for missing ranges (today)
+        if (cacheValidation.queryRanges.isNotEmpty()) {
+            Log.d(
+                "EventCountsRealtime",
+                "Setting up real-time listeners for ${cacheValidation.queryRanges.size} query ranges"
+            )
 
-        for (queryRange in cacheValidation.queryRanges) {
-            try {
-                val rangeEvents = queryEventsForRangeOnce(
+            // Create real-time flows for each query range
+            val realtimeFlows = cacheValidation.queryRanges.map { queryRange ->
+                queryEventsForRangeRealTime(
                     babyId = babyId,
                     startDate = queryRange.startDate,
                     endDate = queryRange.endDate,
-                    db = db
+                    db = db,
+                    firebaseCache = firebaseCache
                 )
-                freshEvents.addAll(rangeEvents)
-                totalDbReadOps += rangeEvents.size
-
-                Log.d(
-                    "EventCounts",
-                    "Fetched ${rangeEvents.size} fresh events for range [${queryRange.startDate.time}, " +
-                            "${queryRange.endDate.time}]"
-                )
-            } catch (e: Exception) {
-                Log.e("EventCounts", "Error fetching events for range", e)
-                throw e
-            }
-        }
-
-        // Part 3: If fresh events exist, cache them and emit combined result
-        if (freshEvents.isNotEmpty()) {
-            // Cache fresh events
-            for (queryRange in cacheValidation.queryRanges) {
-                val rangeEvents = freshEvents.filter {
-                    it.timestamp >= queryRange.startDate && it.timestamp < queryRange.endDate
-                }
-                if (rangeEvents.isNotEmpty()) {
-                    firebaseCache.cacheEvents(
-                        babyId,
-                        queryRange.startDate,
-                        queryRange.endDate,
-                        rangeEvents
-                    )
-                }
             }
 
-            // Aggregate fresh event counts
-            val freshCounts = freshEvents
-                .groupingBy { event -> dateFormatter.formatDateForGrouping(event.timestamp) }
-                .eachCount()
-                .mapValues { (_, count) -> EventDayCount(count = count) }
+            // Combine all real-time flows
+            if (realtimeFlows.isNotEmpty()) {
+                // ✅ FIXED: Use startWith(emptyMap()) to emit initial value immediately
+                // This prevents waiting for first data to emit
+                val flowsWithDefault = realtimeFlows.map { flow ->
+                    flow.flowOn(Dispatchers.IO)
+                }
 
-            // Merge: cached + fresh
-            val combinedCounts = (cachedCounts + freshCounts).toMutableMap()
+                // ✅ FIXED: Combine all flows
+                combine(*flowsWithDefault.toTypedArray()) { countArrays ->
+                    // Merge all count maps into one
+                    countArrays.filterIsInstance<Map<String, EventDayCount>>()
+                        .fold(emptyMap<String, EventDayCount>()) { acc, map ->
+                            acc + map
+                        }
+                }.collect { freshCounts ->
+                    // ✅ FIXED: Only emit if we have fresh counts or cached counts
+                    val combinedCounts = (cachedCounts + freshCounts)
 
-            emit(combinedCounts)
+                    // Only emit if there's data to show
+                    if (combinedCounts.isNotEmpty()) {
+                        emit(combinedCounts)
 
-            Log.d(
-                "EventCounts",
-                "Emitted ${combinedCounts.size} combined day counts for baby=$babyId " +
-                        "(cached=${cachedCounts.size}, fresh=${freshCounts.size}, " +
-                        "DB read ops: $totalDbReadOps, Saved by cache: ${cacheValidation.readOperationsSaved})"
-            )
+                        Log.d(
+                            "EventCountsRealtime",
+                            "Emitted ${combinedCounts.size} combined day counts for baby=$babyId " +
+                                    "(cached=${cachedCounts.size}, fresh=${freshCounts.size})"
+                        )
+                    } else {
+                        Log.d(
+                            "EventCountsRealtime",
+                            "No counts to emit (cached=${cachedCounts.size}, fresh=${freshCounts.size})"
+                        )
+                    }
+                }
+            }
         } else if (!cacheValidation.useCachedData) {
             Log.w(
-                "EventCounts",
-                "No cache and no fresh events for baby=$babyId, emitting empty map"
+                "EventCountsRealtime",
+                "No cache and no query ranges for baby=$babyId"
             )
             emit(emptyMap())
         }
 
     }.catch { e ->
-        Log.e("EventCounts", "Error streaming event counts for baby=$babyId", e)
+        Log.e("EventCountsRealtime", "Error streaming event counts for baby=$babyId", e)
         throw e
     }.flowOn(Dispatchers.IO)
 

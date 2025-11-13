@@ -148,6 +148,12 @@ class EventViewModel @Inject constructor(
         }
     }
 
+    fun clearBabyCache(babyId: String) {
+        viewModelScope.launch {
+            repository.clearBabyCache(babyId)
+        }
+    }
+
     // Helper to get sorted event types (favorites first)
     fun getSortedEventTypes(favorites: Set<EventType>): List<EventType> {
         val favoritesList = EventType.entries.filter { it in favorites }
