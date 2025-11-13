@@ -1159,6 +1159,7 @@ fun roundToNiceNumber(value: Int): Int {
     return when {
         value < 10 -> 10
         value < 15 -> 15
+        value < 20 -> 20
         value < 25 -> 25
         value < 50 -> 50
         value < 75 -> ((value / 25).toInt() * 25).coerceAtLeast(50)
