@@ -162,7 +162,7 @@ sealed class Event {
             if (value != null) {
                 // Convert special types for JSON serialization
                 val converted = when (value) {
-                    is Date -> value.time  // Store as Long timestamp
+                    is Date -> com.google.firebase.Timestamp(value)
                     is Enum<*> -> value.name
                     else -> value
                 }
