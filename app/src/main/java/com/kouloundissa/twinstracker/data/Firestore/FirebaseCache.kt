@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -618,12 +619,103 @@ class FirebaseCache(
 }
 object GsonProvider {
     val gson: Gson = GsonBuilder()
+        // : Date Serializer - handles Firebase Timestamp properly
         .registerTypeAdapter(Date::class.java, JsonSerializer<Date> { src, _, _ ->
-            JsonPrimitive(src.time)  // ← Direct Long, no scientific notation
+            // When toMap() converts Date to Timestamp, we need to handle it
+            // But we want to serialize as Long for cache storage
+            if (src != null) {
+                // Serialize as Long timestamp (not Timestamp object)
+                JsonPrimitive(src.time)
+            } else {
+                null
+            }
         })
+
+        //  Date Deserializer - handles both formats
         .registerTypeAdapter(Date::class.java, JsonDeserializer { json, _, _ ->
-            Date(json.asJsonPrimitive.asLong)  // ← Parse direct Long
+            try {
+                when {
+                    json == null || json.isJsonNull -> null
+
+                    // Format 1: Direct Long (old cache or serialized)
+                    json.isJsonPrimitive && json.asJsonPrimitive.isNumber -> {
+                        try {
+                            Date(json.asJsonPrimitive.asLong)
+                        } catch (e: Exception) {
+                            // Handle scientific notation or other formats
+                            Date(json.asJsonPrimitive.asDouble.toLong())
+                        }
+                    }
+
+                    // Format 2: Firebase Timestamp object from toMap()
+                    // {"nanoseconds": 973000000, "seconds": 1762741680}
+                    json.isJsonObject -> {
+                        val obj = json.asJsonObject
+                        val seconds = obj.get("seconds")?.asLong ?: 0L
+                        val nanoseconds = obj.get("nanoseconds")?.asLong ?: 0L
+
+                        // Convert to milliseconds: (seconds * 1000) + (nanoseconds / 1000000)
+                        val milliseconds = (seconds * 1000L) + (nanoseconds / 1_000_000L)
+                        Date(milliseconds)
+                    }
+
+                    // Format 3: String (fallback)
+                    json.isJsonPrimitive && json.asJsonPrimitive.isString -> {
+                        try {
+                            Date(json.asJsonPrimitive.asString.toLong())
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+
+                    else -> null
+                }
+            } catch (e: Exception) {
+                null
+            }
         })
+
+        // ✅ FIXED: Timestamp Serializer - convert Firestore Timestamp to Long
+        .registerTypeAdapter(Timestamp::class.java, JsonSerializer<Timestamp> { src, _, _ ->
+            if (src != null) {
+                // Convert Timestamp to milliseconds Long
+                val milliseconds = (src.seconds * 1000L) + (src.nanoseconds / 1_000_000L)
+                JsonPrimitive(milliseconds)
+            } else {
+                null
+            }
+        })
+
+        // ✅ FIXED: Timestamp Deserializer - handle both formats
+        .registerTypeAdapter(Timestamp::class.java, JsonDeserializer { json, _, _ ->
+            try {
+                when {
+                    json == null || json.isJsonNull -> null
+
+                    // Format 1: Already a Timestamp object
+                    json.isJsonObject -> {
+                        val obj = json.asJsonObject
+                        val seconds = obj.get("seconds")?.asLong ?: 0L
+                        val nanoseconds = obj.get("nanoseconds")?.asLong ?: 0L
+                        Timestamp(seconds, nanoseconds.toInt())
+                    }
+
+                    // Format 2: Long milliseconds
+                    json.isJsonPrimitive && json.asJsonPrimitive.isNumber -> {
+                        val millis = json.asJsonPrimitive.asLong
+                        val seconds = millis / 1000
+                        val nanos = ((millis % 1000) * 1_000_000).toInt()
+                        Timestamp(seconds, nanos)
+                    }
+
+                    else -> null
+                }
+            } catch (e: Exception) {
+                null
+            }
+        })
+
         .create()
 }
+
 
