@@ -328,7 +328,7 @@ class FirebaseCache(
                         cachedEvents = cachedData.events
                         readOpsSaved = calculateReadOperationsSaved(cachedData.events.size)
                     } else {
-                        Log.d(TAG, "  ✗ Cache EXPIRED, need to query old dates")
+                        Log.d(TAG, "✗ Cache expired: age=${cacheAge}ms > TTL=${cacheTTL.ttlMs}ms, need to query old dates")
                         queryRanges.add(DateRange(requestedStart, endOfYesterday))
                     }
                 } else {
