@@ -18,6 +18,7 @@ import com.google.gson.JsonSerializer
 import com.google.gson.JsonSyntaxException
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.timeout
 import java.util.Calendar
@@ -191,10 +192,11 @@ class FirebaseCache(
      * Safe way to get Preferences from DataStore Flow
      * Handles Flow cancellation and timeouts
      */
+    @OptIn(FlowPreview::class)
     private suspend fun getPreferences(): Preferences? {
         return try {
             context.cacheDataStore.data
-                .timeout(5.seconds)
+                .timeout(15.seconds)
                 .first()
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
             Log.w(TAG, "✗ DataStore timeout")
@@ -477,25 +479,14 @@ class FirebaseCache(
             val keysToInvalidate = preferences.asMap()
                 .keys
                 .filter { key ->
-                    // Cache key format: "events_${babyId}_${startDate}_${endDate}"
                     val keyName = key.name
                     if (!keyName.startsWith("events_${babyId}_")) return@filter false
 
-                    // Parse the key to get startDate and endDate
-                    val parts = keyName.substringAfter("events_${babyId}_").split("_")
-                    if (parts.size < 2) return@filter false
+                    val timestamps = parseTimestampsFromCacheKey(keyName, babyId)
+                        ?: return@filter false
 
-                    try {
-                        val cacheStartDate = parts[0].toLong()
-                        val cacheEndDate = parts[1].toLong()
-
-                        // Invalidate if event timestamp falls within this cache range
-                        // OR if event is after this cache range (might affect today's data)
-                        eventTimeMs >= cacheStartDate && eventTimeMs <= cacheEndDate + 86400000 // +1 day
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Error parsing cache key: ${key.name}")
-                        false
-                    }
+                    val (cacheStart, cacheEnd) = timestamps
+                    eventTimeMs >= cacheStart && eventTimeMs <= cacheEnd + 86400000
                 }
 
             // Remove all affected cache entries
@@ -513,6 +504,34 @@ class FirebaseCache(
             }
         } catch (e: Exception) {
             Log.e(TAG, "✗ Error invalidating cache: ${e.message}", e)
+        }
+    }
+    private fun parseTimestampsFromCacheKey(
+        keyName: String,
+        babyId: String
+    ): Pair<Long, Long>? {
+        return try {
+            val suffix = keyName.substringAfter("events_${babyId}_")
+
+            // Handle edge case: key is malformed
+            if (!suffix.contains("_")) {
+                Log.w(TAG, "Malformed cache key: $keyName - missing timestamp separator")
+                return null
+            }
+
+            val lastUnderscoreIndex = suffix.lastIndexOf("_")
+            val startTimestamp = suffix.substring(0, lastUnderscoreIndex).toLong()
+            val endTimestamp = suffix.substring(lastUnderscoreIndex + 1).toLong()
+
+            if (startTimestamp < 0 || endTimestamp < 0 || startTimestamp > endTimestamp) {
+                Log.w(TAG, "Invalid timestamps in cache key: start=$startTimestamp, end=$endTimestamp")
+                return null
+            }
+
+            startTimestamp to endTimestamp
+        } catch (e: NumberFormatException) {
+            Log.w(TAG, "Failed to parse timestamps from key: $keyName", e)
+            null
         }
     }
     /**
