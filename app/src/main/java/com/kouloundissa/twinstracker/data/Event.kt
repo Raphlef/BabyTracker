@@ -542,9 +542,9 @@ sealed class EventFormState {
         override var photoUrl: String? = null,
         override var newPhotoUrl: Uri? = null,
         override var photoRemoved: Boolean = false,
-        val diaperType: DiaperType = DiaperType.DRY,
-        val poopColor: PoopColor? = null,
-        val poopConsistency: PoopConsistency? = null,
+        val diaperType: DiaperType = DiaperType.MIXED,
+        val poopColor: PoopColor? = PoopColor.YELLOW,
+        val poopConsistency: PoopConsistency? = PoopConsistency.SEMI_SOLIDE,
         val notes: String = "",
     ) : EventFormState()
 
@@ -571,7 +571,7 @@ sealed class EventFormState {
         override var photoUrl: String? = null,
         override var newPhotoUrl: Uri? = null,
         override var photoRemoved: Boolean = false,
-        val feedType: FeedType = FeedType.BREAST_MILK,
+        val feedType: FeedType = FeedType.FORMULA,
         val amountMl: String = "",
         val durationMin: String = "",
         val breastSide: BreastSide? = null,
