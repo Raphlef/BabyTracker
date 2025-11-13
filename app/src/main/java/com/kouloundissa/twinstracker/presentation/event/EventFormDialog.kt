@@ -929,7 +929,7 @@ private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
-        presets = presets2
+        presets = listOf(15, 20, 25, 30)
     )
 
     // Breast Side
