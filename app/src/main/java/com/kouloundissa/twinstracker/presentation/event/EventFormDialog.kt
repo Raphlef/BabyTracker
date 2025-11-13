@@ -708,17 +708,38 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
         }
     )
     val allEvents by viewModel.events.collectAsState()
+    val presets1 = allEvents
+        .filterIsInstance<FeedingEvent>()
+        .filter { it.amountMl != null && it.amountMl > 0 }
+        .sortedByDescending { it.timestamp }
+        .mapNotNull { it.amountMl }
+        .take(10)
+        .calculatePresets()
+
+    val presets2 = allEvents
+        .filterIsInstance<FeedingEvent>()
+        .filter { it.durationMinutes != null && it.durationMinutes > 0 }
+        .sortedByDescending { it.timestamp }
+        .mapNotNull { it.durationMinutes }
+        .take(10)
+        .calculatePresets(listOf(5, 10, 15, 20))
+    LaunchedEffect(Unit) {
+        if (state.amountMl.isEmpty()) {
+            viewModel.updateForm {
+                (this as EventFormState.Feeding).copy(amountMl = presets1[1].toString())
+            }
+        }
+        if (state.durationMin.isEmpty()) {
+            viewModel.updateForm {
+                (this as EventFormState.Feeding).copy(durationMin = presets2[1].toString())
+            }
+        }
+    }
     // Amount (hidden for breast milk)
     FormFieldVisibility(visible = state.feedType != FeedType.BREAST_MILK) {
-        val presets1 = allEvents
-            .filterIsInstance<FeedingEvent>()
-            .filter { it.amountMl != null && it.amountMl > 0 }
-            .sortedByDescending { it.timestamp }
-            .mapNotNull { it.amountMl }
-            .take(10)
-            .calculatePresets()
+
         AmountInput(
-            value = presets1[1].toString(),
+            value = state.amountMl,
             onValueChange = { newAmount ->
                 viewModel.updateForm {
                     (this as EventFormState.Feeding).copy(amountMl = newAmount)
@@ -737,16 +758,10 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            val presets2 = allEvents
-                .filterIsInstance<FeedingEvent>()
-                .filter { it.durationMinutes != null && it.durationMinutes > 0 }
-                .sortedByDescending { it.timestamp }
-                .mapNotNull { it.durationMinutes }
-                .take(10)
-                .calculatePresets(listOf(5, 10, 15, 20))
+
             // Duration Input
             MinutesInput(
-                value = presets2[1].toString(),
+                value = state.durationMin,
                 onValueChange = { newDuration ->
                     viewModel.updateForm {
                         (this as EventFormState.Feeding).copy(durationMin = newDuration)
@@ -878,9 +893,21 @@ private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel
         .mapNotNull { it.durationMinutes }
         .take(10)
         .calculatePresets(listOf(5, 10, 15, 20))
+    LaunchedEffect(Unit) {
+        if (state.amountMl.isEmpty()) {
+            viewModel.updateForm {
+                (this as EventFormState.Pumping).copy(amountMl = presets1[1].toString())
+            }
+        }
+        if (state.durationMin.isEmpty()) {
+            viewModel.updateForm {
+                (this as EventFormState.Pumping).copy(durationMin = presets2[1].toString())
+            }
+        }
+    }
 
     AmountInput(
-        value = presets1[1].toString(),
+        value = state.amountMl,
         onValueChange = { newAmount ->
             viewModel.updateForm {
                 (this as EventFormState.Pumping).copy(amountMl = newAmount)
@@ -893,7 +920,7 @@ private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel
     )
 
     MinutesInput(
-        value =  presets2[1].toString(),
+        value = state.durationMin,
         onValueChange = { newDuration ->
             viewModel.updateForm {
                 (this as EventFormState.Pumping).copy(durationMin = newDuration)
