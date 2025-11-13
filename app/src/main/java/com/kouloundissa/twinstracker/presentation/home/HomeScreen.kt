@@ -167,7 +167,7 @@ fun HomeScreen(
                     // 1. Has more data available
                     // 2. Not currently loading
                     // 3. Items were actually loaded in last attempt (or first attempt)
-                    // 4. Prevent rapid consecutive attempts (at least 2s between attempts)
+                    // 4. Prevent rapid consecutive attempts
                     val shouldAttemptLoad = hasMoreHistory &&
                             !isLoadingMore &&
                             (lastLoadedCount == 0 || totalItems > lastLoadedCount) &&
@@ -832,7 +832,7 @@ private fun EventTypeDialog(
                     // 1. Has more data available
                     // 2. Not currently loading
                     // 3. Items were actually loaded in last attempt (or first attempt)
-                    // 4. Prevent rapid consecutive attempts (at least 2s between attempts)
+                    // 4. Prevent rapid consecutive attempts
                     val shouldAttemptLoad = hasMoreHistory &&
                             !isLoadingMore &&
                             (lastLoadedCount == 0 || totalItems > lastLoadedCount) &&
