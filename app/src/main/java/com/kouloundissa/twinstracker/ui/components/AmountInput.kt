@@ -34,6 +34,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,7 +65,9 @@ fun AmountInput(
     presets: List<Int> = listOf(50, 100, 150, 200)
 ) {
     var textValue by remember(value) { mutableStateOf(value.toString()) }
-
+    LaunchedEffect(value) {
+        textValue = value
+    }
     fun stringToInt(str: String): Int = str.toDoubleOrNull()?.toInt() ?: 0
 
     val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
