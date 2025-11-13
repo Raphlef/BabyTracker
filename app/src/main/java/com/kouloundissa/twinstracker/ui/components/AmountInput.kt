@@ -3,7 +3,6 @@ package com.kouloundissa.twinstracker.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,10 +27,8 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -63,7 +60,8 @@ fun AmountInput(
     min: Int = 0,
     max: Int = 300,
     label: String = "Amount (ml)",
-    step: Int = 5
+    step: Int = 5,
+    presets: List<Int> = listOf(50, 100, 150, 200)
 ) {
     var textValue by remember(value) { mutableStateOf(value.toString()) }
 
@@ -210,7 +208,7 @@ fun AmountInput(
                     .padding(top = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                listOf(50, 100, 150, 200).forEach { preset ->
+                presets.forEach { preset ->
                     Button(
                         onClick = {
                             textValue = preset.toString()
