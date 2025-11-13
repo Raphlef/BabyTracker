@@ -20,6 +20,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +49,11 @@ fun MinutesInput(
 
     var textValue by remember(value) { mutableStateOf(value) }
 
+    // Update local state when parent value changes
+    LaunchedEffect(value) {
+        textValue = value
+    }
+
     fun stringToInt(str: String): Int = str.toDoubleOrNull()?.toInt() ?: 0
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -71,13 +77,15 @@ fun MinutesInput(
                     style = MaterialTheme.typography.labelMedium,
                     color = contentcolor
                 )
-                // Quick preset buttons
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     presets.forEach { preset ->
                         Button(
-                            onClick = { onValueChange(preset.toString()) },
+                            onClick = {
+                                textValue = preset.toString()
+                                onValueChange(preset.toString())
+                            },
                             modifier = Modifier
                                 .size(40.dp)
                                 .border(
@@ -103,10 +111,10 @@ fun MinutesInput(
                 }
             }
 
-            // Input field for custom values
             OutlinedTextField(
                 value = textValue,
                 onValueChange = { newValue ->
+                    textValue = newValue
                     newValue.toIntOrNull()?.let { onValueChange(it.toString()) }
                 },
                 shape = RoundedCornerShape(16.dp),
@@ -116,7 +124,7 @@ fun MinutesInput(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true
             )
-
         }
     }
 }
+
