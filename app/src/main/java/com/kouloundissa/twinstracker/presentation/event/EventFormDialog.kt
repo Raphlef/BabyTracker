@@ -80,8 +80,10 @@ import com.kouloundissa.twinstracker.data.EventFormState.Pumping
 import com.kouloundissa.twinstracker.data.EventFormState.Sleep
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.FeedType
+import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.PoopColor
 import com.kouloundissa.twinstracker.data.PoopConsistency
+import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.AmountInput
@@ -168,7 +170,7 @@ fun EventFormDialog(
         if (formState.eventId == null && currentType == EventType.GROWTH) {
             selectedBaby?.let { baby ->
                 eventViewModel.loadLastGrowth(baby.id)
-                lastGrowthEvent?.let {event->
+                lastGrowthEvent?.let { event ->
                     // Only run this once—guarded by LaunchedEffect
                     eventViewModel.updateForm {
                         (this as EventFormState.Growth).copy(
@@ -229,7 +231,7 @@ fun EventFormDialog(
         ) {
 
             AsyncImage(
-                model =  R.drawable.background,
+                model = R.drawable.background,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -705,19 +707,27 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
                 .joinToString(" ") { word -> word.replaceFirstChar { c -> c.uppercase() } }
         }
     )
-
+    val allEvents by viewModel.events.collectAsState()
     // Amount (hidden for breast milk)
     FormFieldVisibility(visible = state.feedType != FeedType.BREAST_MILK) {
+        val presets1 = allEvents
+            .filterIsInstance<FeedingEvent>()
+            .filter { it.amountMl != null && it.amountMl > 0 }
+            .sortedByDescending { it.timestamp }
+            .mapNotNull { it.amountMl }
+            .take(10)
+            .calculatePresets()
         AmountInput(
-            value = state.amountMl,
+            value = presets1[1].toString(),
             onValueChange = { newAmount ->
                 viewModel.updateForm {
                     (this as EventFormState.Feeding).copy(amountMl = newAmount)
                 }
             },
             min = 0,
-            max = 300,
-            step = 5
+            max = 9999,
+            step = 5,
+            presets = presets1
         )
     }
 
@@ -727,15 +737,23 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            val presets2 = allEvents
+                .filterIsInstance<FeedingEvent>()
+                .filter { it.durationMinutes != null && it.durationMinutes > 0 }
+                .sortedByDescending { it.timestamp }
+                .mapNotNull { it.durationMinutes }
+                .take(10)
+                .calculatePresets(listOf(5, 10, 15, 20))
             // Duration Input
             MinutesInput(
-                value = state.durationMin,
+                value = presets2[1].toString(),
                 onValueChange = { newDuration ->
                     viewModel.updateForm {
                         (this as EventFormState.Feeding).copy(durationMin = newDuration)
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                presets = presets2
             )
 
 
@@ -845,20 +863,37 @@ private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel
     val contentColor = BackgroundColor
     val cornerShape = MaterialTheme.shapes.extraLarge
 
+    val allEvents by viewModel.events.collectAsState()
+    val presets1 = allEvents
+        .filterIsInstance<PumpingEvent>()
+        .filter { it.amountMl != null && it.amountMl > 0 }
+        .sortedByDescending { it.timestamp }
+        .mapNotNull { it.amountMl }
+        .take(10)
+        .calculatePresets()
+    val presets2 = allEvents
+        .filterIsInstance<PumpingEvent>()
+        .filter { it.durationMinutes != null && it.durationMinutes > 0 }
+        .sortedByDescending { it.timestamp }
+        .mapNotNull { it.durationMinutes }
+        .take(10)
+        .calculatePresets(listOf(5, 10, 15, 20))
+
     AmountInput(
-        value = state.amountMl,
+        value = presets1[1].toString(),
         onValueChange = { newAmount ->
             viewModel.updateForm {
                 (this as EventFormState.Pumping).copy(amountMl = newAmount)
             }
         },
         min = 0,
-        max = 300,
-        step = 5
+        max = 999,
+        step = 5,
+        presets = presets1
     )
 
     MinutesInput(
-        value = state.durationMin,
+        value =  presets2[1].toString(),
         onValueChange = { newDuration ->
             viewModel.updateForm {
                 (this as EventFormState.Pumping).copy(durationMin = newDuration)
@@ -866,7 +901,8 @@ private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel
         },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = 8.dp),
+        presets = presets2
     )
 
     // Breast Side
@@ -1074,4 +1110,35 @@ fun FormNumericInput(
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         singleLine = true
     )
+}
+
+fun <T : Number> List<T>.calculatePresets(
+    defaultPresets: List<Int> = listOf(50, 100, 150, 200),
+    factors: List<Double> = listOf(0.75, 1.0, 1.25)
+): List<Int> {
+    if (isEmpty()) {
+        return defaultPresets
+    }
+
+    val avg = this.map { it.toDouble() }.average()
+    val nicAvg = roundToNiceNumber(avg.toInt())
+
+    // Calculate presets
+    return factors.map { (nicAvg * it).toInt() }
+        .filter { it > 0 }
+}
+
+fun roundToNiceNumber(value: Int): Int {
+    return when {
+        value < 10 -> 10
+        value < 15 -> 15
+        value < 25 -> 25
+        value < 50 -> 50
+        value < 75 -> ((value / 25).toInt() * 25).coerceAtLeast(50)
+        value < 100 -> ((value / 10).toInt() * 10).coerceAtLeast(50)
+        value < 150 -> ((value / 25).toInt() * 25).coerceAtLeast(100)
+        value < 200 -> ((value / 50).toInt() * 50).coerceAtLeast(100)
+        value < 500 -> ((value / 100).toInt() * 100).coerceAtLeast(200)
+        else -> ((value / 250).toInt() * 250).coerceAtLeast(500)
+    }
 }
