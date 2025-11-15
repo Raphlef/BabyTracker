@@ -32,3 +32,5 @@ out/
 /.kotlin/sessions/kotlin-compiler-558181302106384583.salive
 /app/release/baselineProfiles/1/app-release.dm
 /app/release/baselineProfiles/0/app-release.dm
+/app/release/*.aab
+/.kotlin/sessions/*
