@@ -41,7 +41,6 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -412,7 +411,7 @@ class FirebaseRepository @Inject constructor(
                 .document(event.id)
                 .set(data)
                 .await()
-            firebaseCache.invalidateCacheFromEventTimestamp(event.babyId, event.timestamp)
+            firebaseCache.invalidateCacheDay(event.babyId, event.timestamp)
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error adding event", e)
@@ -432,7 +431,7 @@ class FirebaseRepository @Inject constructor(
             .document(eventId)
             .set(data, SetOptions.merge())
             .await()
-        firebaseCache.invalidateCacheFromEventTimestamp(event.babyId, event.timestamp)
+        firebaseCache.invalidateCacheDay(event.babyId, event.timestamp)
     }
 
     suspend fun getEvent(eventId: String): Result<Event?> {
@@ -458,7 +457,7 @@ class FirebaseRepository @Inject constructor(
                 .delete()
                 .await()
 
-            firebaseCache.invalidateCacheFromEventTimestamp(event.babyId, event.timestamp)
+            firebaseCache.invalidateCacheDay(event.babyId, event.timestamp)
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error deleting event: $event.id", e)
@@ -478,18 +477,20 @@ class FirebaseRepository @Inject constructor(
      * Optimized event streaming with intelligent caching
      *
      * Strategy:
-     * 1. Validate inputs and check cache validity
-     * 2. If cache valid: immediately emit cached data, then fetch only missing ranges
-     * 3. If cache invalid: fetch full requested range from DB
-     * 4. Merge cached + fresh data and emit combined result
-     * 5. Log read operations saved
+     * 1. Plan data retrieval (cached days, missing days, today)
+     * 2. Emit cached data immediately
+     * 3. Query missing days once per day, cache each day, emit merged
+     * 4. Setup real-time listener for today only, emit updates
+     * 5. Merge all sources using Map<id, Event> (overwrites stale)
      *
-     * Cache behavior:
-     * - Fresh data (0-6h): Always query DB, never cache
-     * - Recent data (6-24h): Cache with 15 min TTL
-     * - Moderate data (24-48h): Cache with 1 hour TTL
-     * - Old data (48h+): Cache with 1 week TTL
+     * Key improvements:
+     * - Only ONE real-time listener (today) instead of N overlapping listeners
+     * - Simple one-time queries for missing past days
+     * - Better cache reuse with day-based bucketing
+     * - Fixed deduplication using Map instead of distinctBy()
+     * - Proper TTL logic (FRESH data queried, not cached)
      */
+
     fun streamEventsForBaby(
         babyId: String,
         startDate: Date,
@@ -500,70 +501,134 @@ class FirebaseRepository @Inject constructor(
         FirebaseValidators.validateBabyId(babyId)
         FirebaseValidators.validateDateRange(startDate, endDate)
         authHelper.getCurrentUserId()
+        val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm:ss", Locale.getDefault())
+        Log.d(TAG, "→ streamEventsForBaby: baby=$babyId, range=[${startDate.time}, ${endDate.time}]")
 
-        // Check cache and plan queries
-        val cacheValidation = firebaseCache.validateAndPlanQueries(babyId, startDate, endDate)
-        var cachedEvents = emptyList<Event>()
-        if (cacheValidation.useCachedData) {
-            cachedEvents = cacheValidation.cachedEvents
-            // Emit cached data immediately for better UX
+        // STEP 1: Plan data retrieval using new day-based strategy
+        val plan = firebaseCache.validateAndPlanDataRetrieval(babyId, startDate, endDate)
+
+        // In-memory collection: Map<eventId, Event> for deduplication
+        // Using Map ensures:
+        // - No duplicate IDs
+        // - Updates overwrite old versions (unlike distinctBy which keeps first)
+        // - O(1) lookup for merging
+        val allEvents = mutableMapOf<String, Event>()
+
+        // STEP 2: Emit cached data immediately (fast UI feedback)
+        if (plan.hasCachedData()) {
+            Log.d(TAG, "→ Emitting ${plan.cachedDays.size} cached days")
+
+            plan.cachedDays.values.forEach { cachedDay ->
+                cachedDay.events.forEach { event ->
+                    allEvents[event.id] = event
+                }
+            }
+
+            val cachedEvents = allEvents.values.sortedByDescending { it.timestamp }
             emit(cachedEvents)
-            Log.d(
-                TAG,
-                "Emitted ${cachedEvents.size} cached events for baby=$babyId " +
-                        "(cached= ${cacheValidation.readOperationsSaved})"
-            )
+            Log.d(TAG, "✓ Emitted ${cachedEvents.size} cached events (fast feedback)")
         }
 
-        // Part 2: For today's range (or missing ranges), use real-time listener
-        // This ensures we catch all create/update/delete events
-        if (cacheValidation.queryRanges.isNotEmpty()) {
-            Log.d(
-                "StreamEventsRealtime",
-                "Setting up real-time listeners for ${cacheValidation.queryRanges.size} query ranges"
-            )
+        // STEP 3: Query missing days (one-time queries, no listeners)
+        if (plan.hasMissingDays()) {
+            Log.d(TAG, "→ Querying ${plan.missingDays.size} missing days...")
 
-            // Create real-time flows for each query range
-            val realtimeFlows = cacheValidation.queryRanges.map { queryRange ->
-                queryEventsForRangeRealTime(
-                    babyId = babyId,
-                    startDate = queryRange.startDate,
-                    endDate = queryRange.endDate,
-                    db = db,
-                    firebaseCache = firebaseCache
-                )
-            }
+            for (missingDay in plan.missingDays) {
+                try {
+                    val dayStart = getDayStart(missingDay)
+                    val dayEnd = getDayEnd(missingDay)
 
-            // Combine all real-time flows
-            if (realtimeFlows.isNotEmpty()) {
-                realtimeFlows
-                    .reduce { acc, flow -> combine(acc, flow) { a, b -> a + b } }
-                    .collect { freshEvents ->
-                        // Merge cached + fresh real-time events
-                        val combinedEvents = (cachedEvents + freshEvents)
-                            .sortedByDescending { it.timestamp }
-                            .distinctBy { it.id }
+                    // Simple one-time query for this specific day
+                    // This replaces the old real-time listener approach for past dates
+                    val queriedEvents = queryEventsForRangeOnce(
+                        babyId = babyId,
+                        startDate = dayStart,
+                        endDate = dayEnd,
+                        db = db
+                    )
 
-                        emit(combinedEvents)
-
-                        Log.d(
-                            "StreamEventsRealtime",
-                            "Emitted ${combinedEvents.size} combined events for baby=$babyId " +
-                                    "(cached=${cachedEvents.size}, fresh=${freshEvents.size})"
-                        )
+                    // Cache this day's results for next time
+                    if (queriedEvents.isNotEmpty()) {
+                        firebaseCache.cacheDayEvents(babyId, dayStart, queriedEvents)
                     }
+
+                    // Add to in-memory collection (dedup by ID)
+                    queriedEvents.forEach { event ->
+                        allEvents[event.id] = event
+                    }
+
+                    Log.d(TAG, "✓ Queried day ${dayStart.time}: ${queriedEvents.size} events")
+                } catch (e: Exception) {
+                    Log.e(TAG, "✗ Error querying day: ${e.message}", e)
+                    throw e
+                }
             }
-        } else if (!cacheValidation.useCachedData) {
-            // No cache and no query ranges - shouldn't happen
-            Log.w("StreamEventsRealtime", "No cache and no query ranges for baby=$babyId")
-            emit(emptyList())
+
+            // Emit combined data after all missing days queried
+            val combinedEvents = allEvents.values.sortedByDescending { it.timestamp }
+            emit(combinedEvents)
+            Log.d(TAG, "✓ Emitted ${combinedEvents.size} total events (cached + queried)")
+        }
+
+        // STEP 4: Setup real-time listener for TODAY ONLY
+        // This is the only real-time listener created per request
+        // Unlike the old system with multiple overlapping listeners
+        if (plan.hasRealtimeListener()) {
+            val startDate = dateFormat.format(plan.realtimeDate!!)
+            val endDate = dateFormat.format(plan.realtimeDate)
+            Log.d(TAG, "→ Setting up real-time listener for $startDate → $endDate")
+
+            val todayStart = getDayStart(plan.realtimeDate!!)
+            val todayEnd = getDayEnd(plan.realtimeDate)
+
+            db.collection(FirestoreConstants.Collections.EVENTS)
+                .whereEqualTo(FirestoreConstants.Fields.BABY_ID, babyId)
+                .whereGreaterThanOrEqualTo(FirestoreConstants.Fields.TIMESTAMP, todayStart)
+                .whereLessThan(FirestoreConstants.Fields.TIMESTAMP, todayEnd)
+                .orderBy(FirestoreConstants.Fields.TIMESTAMP, Query.Direction.DESCENDING)
+                .snapshots()
+                .collect { snapshot ->
+                    val streamEventCount = snapshot.documents.size
+                    val todayEvents = snapshot.documents.mapNotNull { it.toEvent() }
+
+                    Log.d(TAG, "↓ Received $streamEventCount events from stream ($startDate → $endDate)")
+                    // Update in-memory collection with today's fresh data
+                    todayEvents.forEach { event ->
+                        allEvents[event.id] = event  // Overwrites stale cached version
+                    }
+
+                    // Cache today's events for next app launch
+                    if (todayEvents.isNotEmpty()) {
+                        try {
+                            firebaseCache.cacheDayEvents(babyId, todayStart, todayEvents)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "✗ Failed to cache today's events: ${e.message}")
+                        }
+                    }
+
+                    val finalEvents = allEvents.values.sortedByDescending { it.timestamp }
+                    emit(finalEvents)
+
+                    Log.d(TAG, "✓ Real-time update: ${finalEvents.size} total events")
+                }
         }
 
     }.catch { e ->
-        Log.e("StreamEventsRealtime", "Error streaming events for baby=$babyId", e)
+        Log.e(TAG, "✗ Stream error for baby=$babyId: ${e.message}", e)
         throw e
     }.flowOn(Dispatchers.IO)
 
+    /**
+     * REFACTORED streamEventCountsByDayTyped() with new day-based caching
+     *
+     * Improvements:
+     * - Uses new validateAndPlanDataRetrieval() for day-based planning
+     * - Single real-time listener (today only)
+     * - Simple grouping logic
+     * - Better cache integration
+     *
+     * Signature UNCHANGED - fully backward compatible
+     */
     fun streamEventCountsByDayTyped(
         babyId: String,
         startDate: Date,
@@ -573,98 +638,129 @@ class FirebaseRepository @Inject constructor(
         FirebaseValidators.validateBabyId(babyId)
         FirebaseValidators.validateDateRange(startDate, endDate)
         authHelper.getCurrentUserId()
+
         val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm:ss", Locale.getDefault())
 
-        // Check cache and plan queries
-        val cacheValidation = firebaseCache.validateAndPlanQueries(babyId, startDate, endDate)
+        Log.d(TAG, "→ streamEventCountsByDayTyped: baby=$babyId, range=[${startDate.time}, ${endDate.time}]")
 
-        var cachedCounts = mutableMapOf<String, EventDayCount>()
+        // STEP 1: Plan data retrieval using new day-based strategy
+        val plan = firebaseCache.validateAndPlanDataRetrieval(babyId, startDate, endDate)
 
-        // Part 1: Emit cached counts for old dates (one-time)
-        if (cacheValidation.useCachedData) {
-            Log.d(
-                TAG,
-                "Using cache for old dates, ${cacheValidation.cachedEvents.size} cached events"
-            )
+        // In-memory collection for merging counts
+        val allEvents = mutableMapOf<String, Event>()
 
-            cachedCounts = cacheValidation.cachedEvents
+        // STEP 2: Process cached days immediately
+        if (plan.hasCachedData()) {
+            Log.d(TAG, "→ Processing ${plan.cachedDays.size} cached days")
+
+            plan.cachedDays.values.forEach { cachedDay ->
+                cachedDay.events.forEach { event ->
+                    allEvents[event.id] = event
+                }
+            }
+
+            // Group cached events by day and emit counts
+            val cachedCounts = allEvents.values
                 .groupingBy { event -> dateFormatter.formatDateForGrouping(event.timestamp) }
                 .eachCount()
                 .mapValues { (_, count) -> EventDayCount(count = count) }
-                .toMutableMap()
 
-            // Emit cached counts immediately
             emit(cachedCounts)
-            Log.d(
-                "EventCountsRealtime",
-                "Emitted ${cachedCounts.size} cached day counts for baby=$babyId"
-            )
+            Log.d(TAG, "✓ Emitted ${cachedCounts.size} cached day counts (fast feedback)")
         }
 
-        // Part 2: Set up real-time listeners for missing ranges (today)
-        if (cacheValidation.queryRanges.isNotEmpty()) {
-            Log.d(
-                "EventCountsRealtime",
-                "Setting up real-time listeners for ${cacheValidation.queryRanges.size} query ranges"
-            )
+        // STEP 3: Query missing days (one-time queries, no listeners)
+        if (plan.hasMissingDays()) {
+            Log.d(TAG, "→ Querying ${plan.missingDays.size} missing days...")
 
-            // Create real-time flows for each query range
-            val realtimeFlows = cacheValidation.queryRanges.map { queryRange ->
-                queryEventsForRangeRealTime(
-                    babyId = babyId,
-                    startDate = queryRange.startDate,
-                    endDate = queryRange.endDate,
-                    db = db,
-                    firebaseCache = firebaseCache
-                )
-            }
+            for (missingDay in plan.missingDays) {
+                try {
+                    val dayStart = getDayStart(missingDay)
+                    val dayEnd = getDayEnd(missingDay)
 
-            // Combine all real-time flows
-            if (realtimeFlows.isNotEmpty()) {
-                // ✅ FIXED: Use startWith(emptyMap()) to emit initial value immediately
-                // This prevents waiting for first data to emit
-                val flowsWithDefault = realtimeFlows.map { flow ->
-                    flow.flowOn(Dispatchers.IO)
-                }
+                    // Simple one-time query for this day
+                    val queriedEvents = queryEventsForRangeOnce(
+                        babyId = babyId,
+                        startDate = dayStart,
+                        endDate = dayEnd,
+                        db = db
+                    )
 
-                // ✅ FIXED: Combine all flows
-                combine(*flowsWithDefault.toTypedArray()) { countArrays ->
-                    // Merge all count maps into one
-                    countArrays.filterIsInstance<Map<String, EventDayCount>>()
-                        .fold(emptyMap<String, EventDayCount>()) { acc, map ->
-                            acc + map
-                        }
-                }.collect { freshCounts ->
-                    // ✅ FIXED: Only emit if we have fresh counts or cached counts
-                    val combinedCounts = (cachedCounts + freshCounts)
-
-                    // Only emit if there's data to show
-                    if (combinedCounts.isNotEmpty()) {
-                        emit(combinedCounts)
-
-                        Log.d(
-                            "EventCountsRealtime",
-                            "Emitted ${combinedCounts.size} combined day counts for baby=$babyId " +
-                                    "(cached=${cachedCounts.size}, fresh=${freshCounts.size})"
-                        )
-                    } else {
-                        Log.d(
-                            "EventCountsRealtime",
-                            "No counts to emit (cached=${cachedCounts.size}, fresh=${freshCounts.size})"
-                        )
+                    // Cache this day's results
+                    if (queriedEvents.isNotEmpty()) {
+                        firebaseCache.cacheDayEvents(babyId, dayStart, queriedEvents)
                     }
+
+                    // Add to in-memory collection (dedup by ID)
+                    queriedEvents.forEach { event ->
+                        allEvents[event.id] = event
+                    }
+
+                    Log.d(TAG, "✓ Queried day ${dayStart.time}: ${queriedEvents.size} events")
+                } catch (e: Exception) {
+                    Log.e(TAG, "✗ Error querying day: ${e.message}", e)
+                    throw e
                 }
             }
-        } else if (!cacheValidation.useCachedData) {
-            Log.w(
-                "EventCountsRealtime",
-                "No cache and no query ranges for baby=$babyId"
-            )
-            emit(emptyMap())
+
+            // Group all events and emit combined counts
+            val combinedCounts = allEvents.values
+                .groupingBy { event -> dateFormatter.formatDateForGrouping(event.timestamp) }
+                .eachCount()
+                .mapValues { (_, count) -> EventDayCount(count = count) }
+
+            emit(combinedCounts)
+            Log.d(TAG, "✓ Emitted ${combinedCounts.size} combined day counts (cached + queried)")
+        }
+
+        // STEP 4: Setup real-time listener for TODAY ONLY
+        if (plan.hasRealtimeListener()) {
+            val startDate = dateFormat.format(plan.realtimeDate!!)
+            val endDate = dateFormat.format(plan.realtimeDate)
+            Log.d(TAG, "→ Setting up real-time listener for $startDate → $endDate")
+
+            val todayStart = getDayStart(plan.realtimeDate!!)
+            val todayEnd = getDayEnd(plan.realtimeDate)
+
+            db.collection(FirestoreConstants.Collections.EVENTS)
+                .whereEqualTo(FirestoreConstants.Fields.BABY_ID, babyId)
+                .whereGreaterThanOrEqualTo(FirestoreConstants.Fields.TIMESTAMP, todayStart)
+                .whereLessThan(FirestoreConstants.Fields.TIMESTAMP, todayEnd)
+                .orderBy(FirestoreConstants.Fields.TIMESTAMP, Query.Direction.DESCENDING)
+                .snapshots()
+                .collect { snapshot ->
+                    val streamEventCount = snapshot.documents.size
+                    val todayEvents = snapshot.documents.mapNotNull { it.toEvent() }
+                    Log.d(TAG, "↓ Received $streamEventCount events from stream ($startDate → $endDate)")
+                    // Update in-memory collection with today's fresh data
+                    todayEvents.forEach { event ->
+                        allEvents[event.id] = event  // Overwrites stale version
+                    }
+
+                    // Cache today's events
+                    if (todayEvents.isNotEmpty()) {
+                        try {
+                            firebaseCache.cacheDayEvents(babyId, todayStart, todayEvents)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "✗ Failed to cache today's events: ${e.message}")
+                        }
+                    }
+
+                    // Group all events (cached + queried + today's real-time)
+                    val finalCounts = allEvents.values
+                        .groupingBy { event -> dateFormatter.formatDateForGrouping(event.timestamp) }
+                        .eachCount()
+                        .mapValues { (_, count) -> EventDayCount(count = count) }
+
+                    emit(finalCounts)
+
+                    Log.d(TAG, "✓ Real-time update: ${finalCounts.size} day counts")
+                }
         }
 
     }.catch { e ->
-        Log.e("EventCountsRealtime", "Error streaming event counts for baby=$babyId", e)
+        Log.e(TAG, "✗ Stream error for baby=$babyId: ${e.message}", e)
         throw e
     }.flowOn(Dispatchers.IO)
 
@@ -680,144 +776,124 @@ class FirebaseRepository @Inject constructor(
         FirebaseValidators.validateDateRange(startDate, endDate)
         authHelper.getCurrentUserId()
 
-        // Check cache and plan queries
-        val cacheValidation = firebaseCache.validateAndPlanQueries(babyId, startDate, endDate)
+        Log.d(TAG, "→ streamAnalysisMetrics: baby=$babyId, range=[${startDate.time}, ${endDate.time}]")
 
-        var cachedEvents = emptyList<Event>()
+        // STEP 1: Plan data retrieval using new day-based strategy
+        val plan = firebaseCache.validateAndPlanDataRetrieval(babyId, startDate, endDate)
 
-        // Part 1: Get cached events for old dates
-        if (cacheValidation.useCachedData) {
-            Log.d(
-                "AnalysisMetrics",
-                "Using cache for old dates, ${cacheValidation.cachedEvents.size} cached events"
-            )
-            cachedEvents = cacheValidation.cachedEvents
+        // In-memory collection for merging all events
+        val allEvents = mutableMapOf<String, Event>()
+
+        // STEP 2: Process cached days immediately (incremental analysis)
+        if (plan.hasCachedData()) {
+            Log.d(TAG, "→ Processing ${plan.cachedDays.size} cached days")
+
+            plan.cachedDays.values.forEach { cachedDay ->
+                cachedDay.events.forEach { event ->
+                    allEvents[event.id] = event
+                }
+            }
 
             // Build and emit analysis from cached data
-            val cachedAnalysis =
-                buildAnalysisSnapshot(startDate, endDate, babyId, cachedEvents, eventTypes)
+            val cachedAnalysis = buildAnalysisSnapshot(
+                startDate, endDate, babyId, allEvents.values.toList(), eventTypes
+            )
             emit(cachedAnalysis)
 
-            Log.d(
-                "AnalysisMetrics",
-                "Emitted cached analysis for baby=$babyId (${cachedEvents.size} events)"
-            )
+            Log.d(TAG, "✓ Emitted cached analysis (${allEvents.size} events, fast feedback)")
         }
 
-        // Part 2: Fetch fresh events for missing ranges
-        val freshEvents = mutableListOf<Event>()
-        var totalDbReadOps = 0
+        // STEP 3: Query missing days (one-time queries, no listeners)
+        if (plan.hasMissingDays()) {
+            Log.d(TAG, "→ Querying ${plan.missingDays.size} missing days for analysis...")
 
-        for (queryRange in cacheValidation.queryRanges) {
-            try {
-                val rangeEvents = queryEventsForRangeOnce(
-                    babyId = babyId,
-                    startDate = queryRange.startDate,
-                    endDate = queryRange.endDate,
-                    db = db
-                )
-                freshEvents.addAll(rangeEvents)
-                totalDbReadOps += rangeEvents.size
+            for (missingDay in plan.missingDays) {
+                try {
+                    val dayStart = getDayStart(missingDay)
+                    val dayEnd = getDayEnd(missingDay)
 
-                Log.d(
-                    "AnalysisMetrics",
-                    "Fetched ${rangeEvents.size} fresh events for range [${queryRange.startDate.time}, " +
-                            "${queryRange.endDate.time}]"
-                )
-            } catch (e: Exception) {
-                Log.e("AnalysisMetrics", "Error fetching events for range", e)
-                throw e
-            }
-        }
-
-        // Part 3: If fresh events exist, cache them and emit updated analysis
-        if (freshEvents.isNotEmpty()) {
-            // Cache fresh events
-            for (queryRange in cacheValidation.queryRanges) {
-                val rangeEvents = freshEvents.filter {
-                    it.timestamp >= queryRange.startDate && it.timestamp < queryRange.endDate
-                }
-                if (rangeEvents.isNotEmpty()) {
-                    firebaseCache.cacheEvents(
-                        babyId,
-                        queryRange.startDate,
-                        queryRange.endDate,
-                        rangeEvents
+                    // Simple one-time query for this day
+                    val queriedEvents = queryEventsForRangeOnce(
+                        babyId = babyId,
+                        startDate = dayStart,
+                        endDate = dayEnd,
+                        db = db
                     )
+
+                    // Cache this day's results
+                    if (queriedEvents.isNotEmpty()) {
+                        firebaseCache.cacheDayEvents(babyId, dayStart, queriedEvents)
+                    }
+
+                    // Add to in-memory collection (dedup by ID)
+                    queriedEvents.forEach { event ->
+                        allEvents[event.id] = event
+                    }
+
+                    Log.d(TAG, "✓ Queried day ${dayStart.time}: ${queriedEvents.size} events")
+                } catch (e: Exception) {
+                    Log.e(TAG, "✗ Error querying day: ${e.message}", e)
+                    throw e
                 }
             }
 
-            // Combine all events (cached + fresh)
-            val combinedEvents = (cachedEvents + freshEvents)
-                .sortedByDescending { it.timestamp }
-                .distinctBy { it.id }
-
-            // Build analysis from combined events
-            val combinedAnalysis =
-                buildAnalysisSnapshot(startDate, endDate, babyId, combinedEvents, eventTypes)
+            // Build analysis from combined data (cached + queried)
+            val combinedAnalysis = buildAnalysisSnapshot(
+                startDate, endDate, babyId, allEvents.values.toList(), eventTypes
+            )
             emit(combinedAnalysis)
 
-            Log.d(
-                "AnalysisMetrics",
-                "Emitted combined analysis for baby=$babyId (cached=${cachedEvents.size}, " +
-                        "fresh=${freshEvents.size}, total=${combinedEvents.size}, " +
-                        "DB read ops: $totalDbReadOps, Saved by cache: ${cacheValidation.readOperationsSaved})"
-            )
-        } else if (!cacheValidation.useCachedData) {
-            Log.w(
-                "AnalysisMetrics",
-                "No cache and no fresh events for baby=$babyId, emitting empty analysis"
-            )
-            emit(buildAnalysisSnapshot(startDate, endDate, babyId, emptyList(), eventTypes))
+            Log.d(TAG, "✓ Emitted combined analysis (${allEvents.size} total events)")
+        }
+
+        // STEP 4: Setup real-time listener for TODAY ONLY
+        if (plan.hasRealtimeListener()) {
+            Log.d(TAG, "→ Setting up real-time listener for today's analysis")
+
+            val todayStart = getDayStart(plan.realtimeDate!!)
+            val todayEnd = getDayEnd(plan.realtimeDate)
+
+            db.collection(FirestoreConstants.Collections.EVENTS)
+                .whereEqualTo(FirestoreConstants.Fields.BABY_ID, babyId)
+                .whereGreaterThanOrEqualTo(FirestoreConstants.Fields.TIMESTAMP, todayStart)
+                .whereLessThan(FirestoreConstants.Fields.TIMESTAMP, todayEnd)
+                .orderBy(FirestoreConstants.Fields.TIMESTAMP, Query.Direction.DESCENDING)
+                .snapshots()
+                .collect { snapshot ->
+                    val streamEventCount = snapshot.documents.size
+                    val todayEvents = snapshot.documents.mapNotNull { it.toEvent() }
+
+                    Log.d(TAG, "↓ Received $streamEventCount events from stream ($startDate → $endDate)")
+                    // Update in-memory collection with today's fresh data
+                    todayEvents.forEach { event ->
+                        allEvents[event.id] = event  // Overwrites stale version
+                    }
+
+                    // Cache today's events
+                    if (todayEvents.isNotEmpty()) {
+                        try {
+                            firebaseCache.cacheDayEvents(babyId, todayStart, todayEvents)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "✗ Failed to cache today's events: ${e.message}")
+                        }
+                    }
+
+                    // Build analysis from all events (cached + queried + today's real-time)
+                    val finalAnalysis = buildAnalysisSnapshot(
+                        startDate, endDate, babyId, allEvents.values.toList(), eventTypes
+                    )
+                    emit(finalAnalysis)
+
+                    Log.d(TAG, "✓ Real-time analysis update (${allEvents.size} total events)")
+                }
         }
 
     }.catch { e ->
-        Log.e("AnalysisMetrics", "Error streaming analysis metrics for baby=$babyId", e)
+        Log.e(TAG, "✗ Stream error for baby=$babyId: ${e.message}", e)
         throw e
     }.flowOn(Dispatchers.IO)
 
-    /**
-     * Query a specific date range with REAL-TIME updates
-     * This listens to Firestore and emits whenever data changes
-     */
-    private fun queryEventsForRangeRealTime(
-        babyId: String,
-        startDate: Date,
-        endDate: Date,
-        db: FirebaseFirestore,
-        firebaseCache: FirebaseCache
-    ): Flow<List<Event>> = flow {
-        Log.d(
-            "StreamEventsRealtime",
-            "Setting up real-time listener for range [${startDate.time}, ${endDate.time}]"
-        )
 
-        db.collection(FirestoreConstants.Collections.EVENTS)
-            .whereEqualTo(FirestoreConstants.Fields.BABY_ID, babyId)
-            .whereGreaterThanOrEqualTo(FirestoreConstants.Fields.TIMESTAMP, startDate)
-            .whereLessThan(FirestoreConstants.Fields.TIMESTAMP, endDate)
-            .orderBy(FirestoreConstants.Fields.TIMESTAMP, Query.Direction.DESCENDING)
-            .snapshots()  // ← Real-time listener
-            .collect { snapshot ->
-                val events = snapshot.documents.mapNotNull { it.toEvent() }
-
-                // Cache the fresh events
-                if (events.isNotEmpty()) {
-                    firebaseCache.cacheEvents(
-                        babyId,
-                        startDate,
-                        endDate,
-                        events
-                    )
-                }
-
-                emit(events)
-            }
-
-    }.catch { e ->
-        Log.e("StreamEventsRealtime", "Error in real-time listener", e)
-        throw e
-    }
 
     /**
      * Query a specific date range from Firestore
