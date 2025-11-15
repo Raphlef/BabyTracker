@@ -707,6 +707,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
                 .joinToString(" ") { word -> word.replaceFirstChar { c -> c.uppercase() } }
         }
     )
+    val previousFeedType = remember { mutableStateOf(state.feedType) }
     val allEvents by viewModel.events.collectAsState()
     val presets1 = allEvents
         .filterIsInstance<FeedingEvent>()
@@ -729,20 +730,10 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
             viewModel.updateForm {
                 (this as EventFormState.Feeding).copy(amountMl = presets1[1].toString())
             }
-        } else {
-            viewModel.updateForm {
-                (this as EventFormState.Feeding).copy(amountMl = "")
-            }
         }
-    }
-    LaunchedEffect(state.feedType) {
         if (state.feedType == FeedType.BREAST_MILK && state.durationMin.isEmpty() && presets2.size > 1) {
             viewModel.updateForm {
                 (this as EventFormState.Feeding).copy(durationMin = presets2[1].toString())
-            }
-        } else {
-            viewModel.updateForm {
-                (this as EventFormState.Feeding).copy(durationMin = "")
             }
         }
     }
@@ -780,7 +771,6 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
                 modifier = Modifier.fillMaxWidth(),
                 presets = presets2
             )
-
 
             // Breast Side Selection
             IconSelector(
