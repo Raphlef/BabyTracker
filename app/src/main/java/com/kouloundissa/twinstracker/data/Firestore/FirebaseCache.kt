@@ -23,55 +23,54 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.timeout
 import java.util.Calendar
 import java.util.Date
+import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.seconds
 
 private const val CACHE_PREFERENCE_NAME = "baby_events_cache"
 private val Context.cacheDataStore: DataStore<Preferences> by preferencesDataStore(name = CACHE_PREFERENCE_NAME)
 
-/**
- * Data class representing cached event data with metadata
- */
-data class CachedEventData(
+data class CachedDayData(
+    val babyId: String,
+    val dayStartTimestamp: Long,  // Midnight of the day in UTC
     val events: List<Event>,
     val cachedAt: Long,
-    val startDate: Long,
-    val endDate: Long
+    val isComplete: Boolean = true  // true = full day queried, false = partial
 )
-
 /**
- * Serializable wrapper for CachedEventData (for JSON serialization)
+ * Serializable wrapper for CachedDayData (for JSON serialization)
  * Converts Event objects using their toMap() method for flexible serialization
  */
-data class SerializableCachedEventData(
+data class SerializableCachedDayData(
+    val babyId: String,
+    val dayStartTimestamp: Long,
     val events: List<Map<String, Any?>>,
     val cachedAt: Long,
-    val startDate: Long,
-    val endDate: Long
+    val isComplete: Boolean = true
 ) {
     companion object {
-        fun fromCachedEventData(data: CachedEventData): SerializableCachedEventData {
-            return SerializableCachedEventData(
+        fun fromCachedDayData(data: CachedDayData): SerializableCachedDayData {
+            return SerializableCachedDayData(
+                babyId = data.babyId,
+                dayStartTimestamp = data.dayStartTimestamp,
                 events = data.events.map { it.toMap() },
                 cachedAt = data.cachedAt,
-                startDate = data.startDate,
-                endDate = data.endDate
+                isComplete = data.isComplete
             )
         }
 
-        fun toCachedEventData(
-            serializable: SerializableCachedEventData,
+        fun toCachedDayData(
+            serializable: SerializableCachedDayData,
             context: Context
-        ): CachedEventData {
-            return CachedEventData(
+        ): CachedDayData {
+            return CachedDayData(
+                babyId = serializable.babyId,
+                dayStartTimestamp = serializable.dayStartTimestamp,
                 events = serializable.events.mapNotNull { eventMap ->
-                    // Use Firestore's deserialization through the Event companion
-                    // This leverages your existing DocumentSnapshot.toEvent() logic
                     mapToEvent(eventMap, context)
                 },
                 cachedAt = serializable.cachedAt,
-                startDate = serializable.startDate,
-                endDate = serializable.endDate
+                isComplete = serializable.isComplete
             )
         }
 
@@ -96,13 +95,15 @@ data class SerializableCachedEventData(
     }
 }
 
+
+
 /**
  * Enum defining cache TTL based on data age
  * Age is calculated from the event's oldest timestamp in the cached range
  */
 enum class CacheTTL(val ageThresholdMs: Long, val ttlMs: Long) {
     // 0-6 hours old: no cache (always fresh)
-    FRESH(TimeUnit.HOURS.toMillis(6), 0),
+    FRESH(TimeUnit.HOURS.toMillis(6), -1L),
 
     // 6-24 hours old: 15 min TTL
     RECENT(TimeUnit.HOURS.toMillis(24), TimeUnit.MINUTES.toMillis(15)),
@@ -124,16 +125,19 @@ enum class CacheTTL(val ageThresholdMs: Long, val ttlMs: Long) {
         }
     }
 }
-
 /**
- * Result of cache validation determining whether to use cache and what DB queries are needed
+ * Result of data retrieval planning
+ * Returned by validateAndPlanDataRetrieval()
  */
-data class CacheValidationResult(
-    val useCachedData: Boolean,
-    val cachedEvents: List<Event> = emptyList(),
-    val queryRanges: List<DateRange> = emptyList(),
-    val readOperationsSaved: Int = 0
-)
+data class DataRetrievalPlan(
+    val cachedDays: Map<Long, CachedDayData> = emptyMap(),  // dayStart (ms) -> events
+    val missingDays: List<Date> = emptyList(),  // dates needing fresh query
+    val realtimeDate: Date? = null  // today's date for real-time listener (or null)
+) {
+    fun hasCachedData(): Boolean = cachedDays.isNotEmpty()
+    fun hasMissingDays(): Boolean = missingDays.isNotEmpty()
+    fun hasRealtimeListener(): Boolean = realtimeDate != null
+}
 
 /**
  * Represents a date range for database queries
@@ -142,28 +146,39 @@ data class DateRange(
     val startDate: Date,
     val endDate: Date
 )
+
 /**
- * Helper to get start of today (midnight)
+ * Helper to get start of day (midnight UTC)
  */
-fun getStartOfToday(): Date {
-    val calendar = Calendar.getInstance()
-    calendar.set(Calendar.HOUR_OF_DAY, 0)
-    calendar.set(Calendar.MINUTE, 0)
-    calendar.set(Calendar.SECOND, 0)
-    calendar.set(Calendar.MILLISECOND, 0)
+fun getDayStart(date: Date): Date {
+    val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+        time = date
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+    return calendar.time
+}
+
+/**
+ * Helper to get end of day (23:59:59.999 UTC)
+ */
+fun getDayEnd(date: Date): Date {
+    val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+        time = date
+        set(Calendar.HOUR_OF_DAY, 23)
+        set(Calendar.MINUTE, 59)
+        set(Calendar.SECOND, 59)
+        set(Calendar.MILLISECOND, 999)
+    }
     return calendar.time
 }
 /**
- * Helper to get end of yesterday (23:59:59)
+ * Helper to get today's date in UTC (midnight)
  */
-fun getEndOfYesterday(): Date {
-    val calendar = Calendar.getInstance()
-    calendar.add(Calendar.DAY_OF_MONTH, -1)
-    calendar.set(Calendar.HOUR_OF_DAY, 23)
-    calendar.set(Calendar.MINUTE, 59)
-    calendar.set(Calendar.SECOND, 59)
-    calendar.set(Calendar.MILLISECOND, 999)
-    return calendar.time
+private fun getTodayUTC(): Date {
+    return getDayStart(Date())
 }
 /**
  * FirebaseCache handles persistent caching of Firestore events with intelligent TTL management
@@ -185,6 +200,9 @@ class FirebaseCache(
     /**
      * Generate cache key for a baby's events within a date range
      */
+    private fun generateDayCacheKey(babyId: String, dayStart: Long): String {
+        return "events_${babyId}_day_${dayStart}"
+    }
     private fun generateCacheKey(babyId: String, startDate: Date, endDate: Date): String {
         return "events_${babyId}_${startDate.time}_${endDate.time}"
     }
@@ -207,370 +225,238 @@ class FirebaseCache(
         }
     }
     /**
-     * Store events in persistent cache with metadata
+     * Store events for a specific day in persistent cache
      * Uses Event.toMap() for serialization
+     *
+     * @param babyId The baby whose events to cache
+     * @param dayStart The start of day (midnight) to cache for
+     * @param events The events to cache
      */
-    suspend fun cacheEvents(
+    suspend fun cacheDayEvents(
         babyId: String,
-        startDate: Date,
-        endDate: Date,
+        dayStart: Date,
         events: List<Event>
     ) {
-        val cacheKey = generateCacheKey(babyId, startDate, endDate)
-        val cachedData = CachedEventData(
+        val cacheKey = generateDayCacheKey(babyId, dayStart.time)
+        val cachedData = CachedDayData(
+            babyId = babyId,
+            dayStartTimestamp = dayStart.time,
             events = events,
             cachedAt = System.currentTimeMillis(),
-            startDate = startDate.time,
-            endDate = endDate.time
+            isComplete = true
         )
 
         try {
             context.cacheDataStore.edit { preferences ->
-                val json = serializeCachedEventData(cachedData)
+                val json = serializeCachedDayData(cachedData)
                 if (json.isBlank()) {
-                    Log.e(TAG, "✗ Serialization produced empty JSON for baby=$babyId")
+                    Log.e(TAG, "✗ Serialization failed for baby=$babyId, day=${dayStart.time}")
                     return@edit
                 }
                 preferences[stringPreferencesKey(cacheKey)] = json
             }
-            Log.d(
-                TAG,
-                "Cached ${events.size} events for baby=$babyId, range=[${startDate.time}, ${endDate.time}]"
-            )
+            Log.d(TAG, "✓ Cached ${events.size} events for baby=$babyId on day=${dayStart.time}")
         } catch (e: Exception) {
-            Log.e(TAG, "Error caching events for baby=$babyId", e)
+            Log.e(TAG, "✗ Error caching day events: ${e.message}", e)
         }
     }
-
     /**
-     * Retrieve cached events if valid, otherwise null
+     * Retrieve cached events for a specific day if cache is still valid
+     * Validates TTL before returning
+     *
+     * @param babyId The baby whose events to retrieve
+     * @param dayStart The start of day (midnight) to retrieve for
+     * @return CachedDayData if valid cache exists, null otherwise
      */
-    suspend fun getCachedEvents(
+    suspend fun getCachedDayEvents(
         babyId: String,
-        startDate: Date,
-        endDate: Date
-    ): CachedEventData? {
-        val cacheKey = generateCacheKey(babyId, startDate, endDate)
+        dayStart: Date
+    ): CachedDayData? {
+        val cacheKey = generateDayCacheKey(babyId, dayStart.time)
 
         return try {
-            val preferences =
-                getPreferences()?: return null.also {
-                    Log.d(TAG, "✗ Failed to get preferences for baby=$babyId")
-                }
+            val preferences = getPreferences() ?: return null.also {
+                Log.d(TAG, "✗ DataStore unavailable for baby=$babyId")
+            }
 
-            val json = preferences[stringPreferencesKey(cacheKey)]
-            if (json == null) {
-                Log.d(TAG, "✗ No cached data found for baby=$babyId")
-                return null
+            val json = preferences[stringPreferencesKey(cacheKey)] ?: return null.also {
+                Log.d(TAG, "ℹ No cached data for baby=$babyId on day=${dayStart.time}")
             }
 
             if (json.isBlank()) {
-                Log.w(TAG, "✗ Cached JSON is blank for baby=$babyId")
+                Log.w(TAG, "✗ Cached JSON is blank")
                 return null
             }
 
-            val result = deserializeCachedEventData(json)
-            if (result != null) {
-                Log.d(TAG, "✓ Retrieved ${result.events.size} cached events for baby=$babyId")
-            } else {
-                Log.w(TAG, "✗ Deserialization returned null for baby=$babyId")
+            val cachedData = deserializeCachedDayData(json) ?: return null
+
+            // Validate cache TTL
+            val cacheAge = System.currentTimeMillis() - cachedData.cachedAt
+            val oldestEventTime = cachedData.events.minOfOrNull { it.timestamp.time }
+                ?: System.currentTimeMillis()
+            val dataAge = System.currentTimeMillis() - oldestEventTime
+            val cacheTTL = CacheTTL.getTTL(dataAge)
+
+            // FIXED: Check TTL validity correctly
+            // FRESH data (ttlMs == -1) should NOT be cached
+            if (cacheTTL == CacheTTL.FRESH && cacheTTL.ttlMs == -1L) {
+                Log.d(TAG, "✗ Data is FRESH (0-6h old) - must re-query from DB")
+                return null
             }
-            result
+
+            // For other TTLs, check if cache has expired
+            if (cacheTTL.ttlMs > 0 && cacheAge > cacheTTL.ttlMs) {
+                Log.d(TAG, "✗ Cache expired: age=${cacheAge}ms > TTL=${cacheTTL.ttlMs}ms")
+                return null
+            }
+
+            Log.d(TAG, "✓ Cache valid for baby=$babyId: ${cachedData.events.size} events, dataAge=${dataAge}ms, TTL=$cacheTTL")
+            cachedData
         } catch (e: Exception) {
-            Log.e(TAG, "✗ Error retrieving cached events for baby=$babyId: ${e.message}", e)
+            Log.e(TAG, "✗ Error retrieving cached day: ${e.message}", e)
             null
         }
     }
-
     /**
-     * Validate cache and determine query strategy
-     * Returns which cached data is still valid and which date ranges need fresh DB queries
+     * NEW STRATEGY: Validate and plan data retrieval for date range
+     *
+     * This replaces the old validateAndPlanQueries() with a cleaner day-based approach.
+     *
+     * Process:
+     * 1. Iterate through each day in the requested range
+     * 2. For past days: check cache → add to cachedDays or missingDays
+     * 3. For today: mark for real-time listener (never cache today)
+     * 4. Return plan with all three categories
+     *
+     * Returns DataRetrievalPlan containing:
+     * - cachedDays: Map of days with valid cached data (ready to emit immediately)
+     * - missingDays: List of days needing fresh queries (query once, cache result)
+     * - realtimeDate: Today's date if included in range (setup real-time listener)
      */
-    suspend fun validateAndPlanQueries(
+    suspend fun validateAndPlanDataRetrieval(
         babyId: String,
         requestedStart: Date,
         requestedEnd: Date
-    ): CacheValidationResult {
+    ): DataRetrievalPlan {
+        val today = getTodayUTC()
         val now = Date()
-        val startOfToday = getStartOfToday()
-        val endOfYesterday = getEndOfYesterday()
 
-        val rangeIncludesToday = requestedStart <= startOfToday && requestedEnd >= now
+        val rangeIncludesToday = requestedStart <= today && requestedEnd > today
 
-        Log.d(TAG, "→ Validation: requested=[${requestedStart.time}, ${requestedEnd.time}], " +
-                "today=[${startOfToday.time}, ${now.time}], includestoday=$rangeIncludesToday")
+        Log.d(
+            TAG,
+            "→ Planning retrieval for baby=$babyId: range=[${requestedStart.time}, ${requestedEnd.time}], " +
+                    "today=${today.time}, includestoday=$rangeIncludesToday"
+        )
 
-        // ✅ SMART FIX: If range includes today, split the strategy
+        val cachedDays = mutableMapOf<Long, CachedDayData>()  // dayStart -> events
+        val missingDays = mutableListOf<Date>()  // dates to query
+
+        var realtimeDate: Date? = null
         if (rangeIncludesToday) {
-            Log.d(TAG, "✓ Range includes TODAY → Hybrid strategy: cache old + query today")
+            realtimeDate = today  // ← Set ONCE: today's date
+            Log.d(TAG, "  ✓ Range includes today - will setup real-time listener for $today")
+        }
 
-            val queryRanges = mutableListOf<DateRange>()
-            var cachedEvents = emptyList<Event>()
-            var readOpsSaved = 0
+        // Iterate through each day in the requested range
+        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+            time = getDayStart(requestedStart)
+        }
+        val endCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+            time = getDayStart(requestedEnd)
+        }
 
-            // Part 1: Try to use cache for dates BEFORE today
-            if (requestedStart < startOfToday) {
-                Log.d(TAG, "  → Checking cache for old dates: [${requestedStart.time}, ${endOfYesterday.time}]")
+        while (calendar.timeInMillis <= endCalendar.timeInMillis) {
+            val currentDay = calendar.time
+            val currentDayStart = getDayStart(currentDay).time
 
-                val cachedData = getCachedEvents(babyId, requestedStart, endOfYesterday)
-
-                if (cachedData != null) {
-                    // Validate cache is still good
-                    val cacheAge = System.currentTimeMillis() - cachedData.cachedAt
-                    val oldestEventTime = cachedData.events.minOfOrNull { it.timestamp.time }
-                        ?: System.currentTimeMillis()
-                    val dataAge = System.currentTimeMillis() - oldestEventTime
-                    val cacheTTL = CacheTTL.getTTL(dataAge)
-
-                    Log.d(TAG, "  → Cache found: age=${cacheAge}ms, dataAge=${dataAge}ms, TTL=$cacheTTL")
-
-                    // Use cache only if not expired and not fresh
-                    if (cacheTTL != CacheTTL.FRESH && (cacheAge <= cacheTTL.ttlMs || cacheTTL.ttlMs == 0L)) {
-                        Log.d(TAG, "  ✓ Cache VALID for old dates, using ${cachedData.events.size} cached events")
-                        cachedEvents = cachedData.events
-                        readOpsSaved = calculateReadOperationsSaved(cachedData.events.size)
-                    } else {
-                        Log.d(TAG, "✗ Cache expired: age=${cacheAge}ms > TTL=${cacheTTL.ttlMs}ms, need to query old dates")
-                        queryRanges.add(DateRange(requestedStart, endOfYesterday))
-                    }
-                } else {
-                    Log.d(TAG, "  ✗ No cache found for old dates, will query DB")
-                    queryRanges.add(DateRange(requestedStart, endOfYesterday))
-                }
+            if (realtimeDate != null && currentDay >= realtimeDate) {
+                // Today and beyond: skip cache, will use real-time listener
+                Log.d(TAG, "  → Day ${currentDay.time}: >= today, will use real-time listener")
+                calendar.add(Calendar.DAY_OF_MONTH, 1)
+                continue
             }
 
-            // Part 2: Always query for TODAY to catch new events
-            Log.d(TAG, "  → Always querying today: [${startOfToday.time}, ${requestedEnd.time}]")
-            queryRanges.add(DateRange(startOfToday, requestedEnd))
+            // PAST DATES: Try cache first
+            val cachedDay = getCachedDayEvents(babyId, currentDay)
 
-            return CacheValidationResult(
-                useCachedData = cachedEvents.isNotEmpty(),
-                cachedEvents = cachedEvents,
-                queryRanges = queryRanges,
-                readOperationsSaved = readOpsSaved
-            )
-        }
-
-        // For OLD dates (not including today), can fully use cache
-        Log.d(TAG, "✓ Range is all PAST dates → Can use cache fully")
-
-        val cachedData = getCachedEvents(babyId, requestedStart, requestedEnd)
-
-        if (cachedData == null) {
-            Log.d(TAG, "✗ No cache found → Query full range from DB")
-            return CacheValidationResult(
-                useCachedData = false,
-                queryRanges = listOf(DateRange(requestedStart, requestedEnd)),
-                readOperationsSaved = 0
-            )
-        }
-
-        // Check if cached data is still valid
-        val cacheAge = System.currentTimeMillis() - cachedData.cachedAt
-        val oldestEventTime = cachedData.events.minOfOrNull { it.timestamp.time }
-            ?: System.currentTimeMillis()
-        val dataAge = System.currentTimeMillis() - oldestEventTime
-        val cacheTTL = CacheTTL.getTTL(dataAge)
-
-        Log.d(TAG, "Cache analysis: dataAge=${dataAge}ms, cacheAge=${cacheAge}ms, TTL=$cacheTTL")
-
-        if (cacheTTL == CacheTTL.FRESH) {
-            Log.d(TAG, "✗ Data is FRESH → Query DB for latest")
-            return CacheValidationResult(
-                useCachedData = false,
-                queryRanges = listOf(DateRange(requestedStart, requestedEnd)),
-                readOperationsSaved = 0
-            )
-        }
-
-        if (cacheAge > cacheTTL.ttlMs && cacheTTL.ttlMs > 0) {
-            Log.d(TAG, "✗ Cache expired: age=${cacheAge}ms > TTL=${cacheTTL.ttlMs}ms")
-            return CacheValidationResult(
-                useCachedData = false,
-                queryRanges = listOf(DateRange(requestedStart, requestedEnd)),
-                readOperationsSaved = 0
-            )
-        }
-
-        val queryRanges = splitQueryRanges(
-            requestedStart,
-            requestedEnd,
-            cachedData.startDate,
-            cachedData.endDate
-        )
-
-        val readOpsSaved = calculateReadOperationsSaved(cachedData.events.size)
-
-        Log.d(TAG, "✓ Cache VALID for past dates: ${cachedData.events.size} events, readOpsSaved=$readOpsSaved")
-
-        return CacheValidationResult(
-            useCachedData = true,
-            cachedEvents = cachedData.events,
-            queryRanges = queryRanges,
-            readOperationsSaved = readOpsSaved
-        )
-    }
-    /**
-     * Split requested date range into missing ranges that need DB queries
-     * Handles gaps and misalignments between requested and cached ranges
-     */
-    private fun splitQueryRanges(
-        requestedStart: Date,
-        requestedEnd: Date,
-        cachedStart: Long,
-        cachedEnd: Long
-    ): List<DateRange> {
-        val ranges = mutableListOf<DateRange>()
-
-        // Before cached range
-        if (requestedStart.time < cachedStart) {
-            ranges.add(
-                DateRange(
-                    startDate = requestedStart,
-                    endDate = Date(cachedStart)
-                )
-            )
-        }
-
-        // After cached range
-        if (requestedEnd.time > cachedEnd) {
-            ranges.add(
-                DateRange(
-                    startDate = Date(cachedEnd),
-                    endDate = requestedEnd
-                )
-            )
-        }
-
-        return ranges
-    }
-
-    /**
-     * Calculate approximate Firestore read operations saved by using cache
-     * Each document read from Firestore = 1 read operation that is charged
-     * Cached documents save their corresponding read operations
-     */
-    private fun calculateReadOperationsSaved(cachedEventCount: Int): Int {
-        // Firestore billing model: 1 read operation per document read
-        // By using cache, we avoid N read operations where N = number of cached events
-        return cachedEventCount
-    }
-    /**
-     * Invalidate cache entries that contain events on or after the given date
-     * Call this when an event is CREATED, UPDATED, or DELETED
-     *
-     * @param babyId: The baby whose cache should be invalidated
-     * @param eventTimestamp: The timestamp of the event that changed
-     *
-     * Example usage:
-     *   - Event created: invalidateCacheFromEventTimestamp(babyId, newEvent.timestamp)
-     *   - Event updated: invalidateCacheFromEventTimestamp(babyId, updatedEvent.timestamp)
-     *   - Event deleted: invalidateCacheFromEventTimestamp(babyId, deletedEvent.timestamp)
-     */
-    suspend fun invalidateCacheFromEventTimestamp(
-        babyId: String,
-        eventTimestamp: Date
-    ) {
-        try {
-            val preferences = context.cacheDataStore.data.first()
-            val eventTimeMs = eventTimestamp.time
-
-            // Find all cache keys that contain this event's date
-            val keysToInvalidate = preferences.asMap()
-                .keys
-                .filter { key ->
-                    val keyName = key.name
-                    if (!keyName.startsWith("events_${babyId}_")) return@filter false
-
-                    val timestamps = parseTimestampsFromCacheKey(keyName, babyId)
-                        ?: return@filter false
-
-                    val (cacheStart, cacheEnd) = timestamps
-                    eventTimeMs >= cacheStart && eventTimeMs <= cacheEnd + 86400000
-                }
-
-            // Remove all affected cache entries
-            if (keysToInvalidate.isNotEmpty()) {
-                context.cacheDataStore.edit { preferences ->
-                    keysToInvalidate.forEach { key ->
-                        preferences.remove(key)
-                        Log.d(TAG, "✗ Invalidated cache: ${key.name}")
-                    }
-                }
-                Log.d(TAG, "✓ Invalidated ${keysToInvalidate.size} cache entries for baby=$babyId " +
-                        "affected by event at ${Date(eventTimeMs)}")
+            if (cachedDay != null) {
+                cachedDays[currentDayStart] = cachedDay
+                Log.d(TAG, "  ✓ Using cache for day ${currentDay.time}: ${cachedDay.events.size} events")
             } else {
-                Log.d(TAG, "ℹ No cache entries to invalidate for event at ${Date(eventTimeMs)}")
+                missingDays.add(currentDay)
+                Log.d(TAG, "  ✗ Missing cache for day ${currentDay.time}: will query DB")
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "✗ Error invalidating cache: ${e.message}", e)
+
+            calendar.add(Calendar.DAY_OF_MONTH, 1)
         }
-    }
-    private fun parseTimestampsFromCacheKey(
-        keyName: String,
-        babyId: String
-    ): Pair<Long, Long>? {
-        return try {
-            val suffix = keyName.substringAfter("events_${babyId}_")
 
-            // Handle edge case: key is malformed
-            if (!suffix.contains("_")) {
-                Log.w(TAG, "Malformed cache key: $keyName - missing timestamp separator")
-                return null
-            }
+        Log.d(
+            TAG,
+            "✓ Plan ready: ${cachedDays.size} cached days, ${missingDays.size} missing days, " +
+                    "realtimeToday=${realtimeDate != null}"
+        )
 
-            val lastUnderscoreIndex = suffix.lastIndexOf("_")
-            val startTimestamp = suffix.substring(0, lastUnderscoreIndex).toLong()
-            val endTimestamp = suffix.substring(lastUnderscoreIndex + 1).toLong()
-
-            if (startTimestamp < 0 || endTimestamp < 0 || startTimestamp > endTimestamp) {
-                Log.w(TAG, "Invalid timestamps in cache key: start=$startTimestamp, end=$endTimestamp")
-                return null
-            }
-
-            startTimestamp to endTimestamp
-        } catch (e: NumberFormatException) {
-            Log.w(TAG, "Failed to parse timestamps from key: $keyName", e)
-            null
-        }
+        return DataRetrievalPlan(
+            cachedDays = cachedDays,
+            missingDays = missingDays,
+            realtimeDate = realtimeDate
+        )
     }
     /**
-     * Serialize CachedEventData to JSON string for storage in DataStore
+     * Serialize CachedDayData to JSON string for storage in DataStore
      * Uses Gson for reliable JSON serialization
      * Leverages Event.toMap() method for consistent serialization
      */
-    private fun serializeCachedEventData(data: CachedEventData): String {
+    private fun serializeCachedDayData(data: CachedDayData): String {
         return try {
-            val serializable = SerializableCachedEventData.fromCachedEventData(data)
+            val serializable = SerializableCachedDayData.fromCachedDayData(data)
             GsonProvider.gson.toJson(serializable)
         } catch (e: Exception) {
-            Log.e(TAG, "Error serializing cache data", e)
+            Log.e(TAG, "✗ Error serializing cache data: ${e.message}", e)
             ""
         }
     }
 
     /**
-     * Deserialize JSON string back to CachedEventData
+     * Deserialize JSON string back to CachedDayData
      * Uses Gson for reliable JSON deserialization
      * Handles deserialization errors gracefully
      */
-    private fun deserializeCachedEventData(json: String): CachedEventData? {
+    private fun deserializeCachedDayData(json: String): CachedDayData? {
         return try {
-            if (json.isBlank()) {
-                Log.w(TAG, "Attempted to deserialize empty JSON")
-                return null
-            }
+            if (json.isBlank()) return null
 
-            val serializable = GsonProvider.gson.fromJson(json, SerializableCachedEventData::class.java)
-                ?: return null.also { Log.w(TAG, "Gson returned null for valid JSON") }
+            val serializable = GsonProvider.gson.fromJson(json, SerializableCachedDayData::class.java)
+                ?: return null.also { Log.w(TAG, "✗ Gson returned null") }
 
-            SerializableCachedEventData.toCachedEventData(serializable, context)
+            SerializableCachedDayData.toCachedDayData(serializable, context)
         } catch (e: JsonSyntaxException) {
-            Log.w(TAG, "Invalid JSON in cache (data may be corrupted): ${e.message}", e)
+            Log.w(TAG, "✗ Invalid JSON in cache (data may be corrupted): ${e.message}", e)
             null
         } catch (e: Exception) {
-            Log.e(TAG, "Unexpected error deserializing cache data: ${e.message}", e)
+            Log.e(TAG, "✗ Unexpected error deserializing cache: ${e.message}", e)
             null
+        }
+    }
+    /**
+     * Invalidate cache for a specific day (call after mutations)
+     * Use this after creating, updating, or deleting an event
+     *
+     * @param babyId The baby whose cache to invalidate
+     * @param eventDate The date of the event that changed
+     */
+    suspend fun invalidateCacheDay(babyId: String, eventDate: Date) {
+        try {
+            val dayStart = getDayStart(eventDate)
+            val cacheKey = generateDayCacheKey(babyId, dayStart.time)
+
+            context.cacheDataStore.edit { preferences ->
+                preferences.remove(stringPreferencesKey(cacheKey))
+            }
+            Log.d(TAG, "✓ Invalidated cache for baby=$babyId on day=${dayStart.time}")
+        } catch (e: Exception) {
+            Log.e(TAG, "✗ Error invalidating cache: ${e.message}", e)
         }
     }
 
@@ -619,20 +505,6 @@ class FirebaseCache(
         } catch (e: Exception) {
             Log.e(TAG, "Error calculating cache size", e)
             0L
-        }
-    }
-
-    /**
-     * Get number of cached event ranges
-     * Useful for monitoring cache effectiveness
-     */
-    suspend fun getCachedRangesCount(): Int {
-        return try {
-            val preferences = context.cacheDataStore.data.first() as? Preferences ?: return 0
-            preferences.asMap().keys.count { it.name.startsWith("events_") }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error counting cached ranges", e)
-            0
         }
     }
 }
