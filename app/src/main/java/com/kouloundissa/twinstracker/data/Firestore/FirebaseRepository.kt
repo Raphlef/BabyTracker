@@ -576,6 +576,11 @@ class FirebaseRepository @Inject constructor(
 
                     Log.d(TAG, "↓ Received $streamEventCount events from stream ($startDateStr → $endDateStr)")
 
+                    // Remove ALL today's events first, then add fresh ones
+                    allEvents.values.removeAll { event ->
+                        event.timestamp >= todayStart && event.timestamp < todayEnd
+                    }
+
                     todayEvents.forEach { event ->
                         allEvents[event.id] = event
                     }
