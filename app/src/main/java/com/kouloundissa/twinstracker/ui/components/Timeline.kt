@@ -357,8 +357,8 @@ private fun buildEventTitle(event: Event, eventType: EventType): String {
         is FeedingEvent -> {
             val details = buildString {
                 append(eventType.displayName)
-                event.amountMl?.let { append(" - ${it.toInt()}ml") }
-                event.durationMinutes?.let { append(" (${it}min)") }
+                event.amountMl?.takeIf { it > 0 }?.let { append(" - ${it.toInt()}ml") }
+                event.durationMinutes?.takeIf { it > 0 }?.let { append(" (${it}min)") }
                 event.breastSide?.let {
                     append(
                         " - ${
