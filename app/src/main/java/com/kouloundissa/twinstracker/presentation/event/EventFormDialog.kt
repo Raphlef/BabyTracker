@@ -723,21 +723,31 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
         .mapNotNull { it.durationMinutes }
         .take(10)
         .calculatePresets(listOf(5, 10, 15, 20))
-    LaunchedEffect(Unit) {
-        if (state.amountMl.isEmpty()) {
+
+    LaunchedEffect(state.feedType) {
+        if (state.feedType != FeedType.BREAST_MILK && state.amountMl.isEmpty() && presets1.size > 1) {
             viewModel.updateForm {
                 (this as EventFormState.Feeding).copy(amountMl = presets1[1].toString())
             }
+        } else {
+            viewModel.updateForm {
+                (this as EventFormState.Feeding).copy(amountMl = "")
+            }
         }
-        if (state.durationMin.isEmpty()) {
+    }
+    LaunchedEffect(state.feedType) {
+        if (state.feedType == FeedType.BREAST_MILK && state.durationMin.isEmpty() && presets2.size > 1) {
             viewModel.updateForm {
                 (this as EventFormState.Feeding).copy(durationMin = presets2[1].toString())
+            }
+        } else {
+            viewModel.updateForm {
+                (this as EventFormState.Feeding).copy(durationMin = "")
             }
         }
     }
     // Amount (hidden for breast milk)
     FormFieldVisibility(visible = state.feedType != FeedType.BREAST_MILK) {
-
         AmountInput(
             value = state.amountMl,
             onValueChange = { newAmount ->
@@ -893,6 +903,7 @@ private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel
         .mapNotNull { it.durationMinutes }
         .take(10)
         .calculatePresets(listOf(5, 10, 15, 20))
+
     LaunchedEffect(Unit) {
         if (state.amountMl.isEmpty()) {
             viewModel.updateForm {
