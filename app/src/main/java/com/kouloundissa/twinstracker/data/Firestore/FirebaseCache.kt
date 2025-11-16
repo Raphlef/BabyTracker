@@ -106,22 +106,23 @@ enum class CacheTTL(val ageThresholdMs: Long, val ttlMs: Long) {
     FRESH(TimeUnit.HOURS.toMillis(6), -1L),
 
     // 6-24 hours old: 30 min TTL
-    RECENT(TimeUnit.HOURS.toMillis(24), TimeUnit.MINUTES.toMillis(30)),
+    RECENT(TimeUnit.HOURS.toMillis(24), TimeUnit.MINUTES.toMillis(60)),
 
     // 24-48 hours old: 6 hour TTL
-    MODERATE(TimeUnit.HOURS.toMillis(48), TimeUnit.HOURS.toMillis(6)),
+    MODERATE(TimeUnit.HOURS.toMillis(48), TimeUnit.HOURS.toMillis(12)),
 
-    // 48+ hours old: 1 week TTL
-    OLD(Long.MAX_VALUE, TimeUnit.DAYS.toMillis(7));
+    // 48 hours-7 days hours old: 2 days TTL
+    OLD(TimeUnit.DAYS.toMillis(7), TimeUnit.DAYS.toMillis(2)),
+    // 7 days + old: 1 week TTL
+    VERYOLD(Long.MAX_VALUE, TimeUnit.DAYS.toMillis(7));
 
     companion object {
+        private val sortedThresholds by lazy {
+            entries.sortedBy { it.ageThresholdMs }
+        }
+
         fun getTTL(ageMs: Long): CacheTTL {
-            return when {
-                ageMs < FRESH.ageThresholdMs -> FRESH
-                ageMs < RECENT.ageThresholdMs -> RECENT
-                ageMs < MODERATE.ageThresholdMs -> MODERATE
-                else -> OLD
-            }
+            return sortedThresholds.firstOrNull { ageMs < it.ageThresholdMs } ?: VERYOLD
         }
     }
 }
