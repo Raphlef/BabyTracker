@@ -1,0 +1,237 @@
+package com.kouloundissa.twinstracker.ui.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.kouloundissa.twinstracker.data.Baby
+import com.kouloundissa.twinstracker.data.Event
+import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.distinctUntilChanged
+
+@OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
+@Composable
+fun EventTypeDialog(
+    type: EventType,
+    events: List<Event>,
+    onDismiss: () -> Unit,
+    onEdit: (Event) -> Unit,
+    onAdd: (EventType) -> Unit,
+    eventViewModel: EventViewModel = hiltViewModel(),
+    selectedBaby: Baby?
+) {
+    val contentColor = Color.White
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
+    val isLoadingMore by eventViewModel.isLoadingMore.collectAsState()
+    val hasMoreHistory by eventViewModel.hasMoreHistory.collectAsState()
+
+    val lazyListState = rememberLazyListState()
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,  // skips intermediate state to start fully expanded
+    )
+    LaunchedEffect(lazyListState) {
+        var lastLoadedCount = 0
+        var lastLoadAttempt = 0L
+
+        snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .distinctUntilChanged()
+            .collect { lastVisibleIndex ->
+                val totalItems = lazyListState.layoutInfo.totalItemsCount
+                val currentTime = System.currentTimeMillis()
+
+                // Trigger when user is within last 3 items
+                if (lastVisibleIndex != null && lastVisibleIndex >= totalItems - 3) {
+                    // Only attempt to load if:
+                    // 1. Has more data available
+                    // 2. Not currently loading
+                    // 3. Items were actually loaded in last attempt (or first attempt)
+                    // 4. Prevent rapid consecutive attempts
+                    val shouldAttemptLoad = hasMoreHistory &&
+                            !isLoadingMore &&
+                            (lastLoadedCount == 0 || totalItems > lastLoadedCount) &&
+                            (currentTime - lastLoadAttempt > 300)
+
+                    if (shouldAttemptLoad) {
+                        lastLoadedCount = totalItems
+                        lastLoadAttempt = currentTime
+                        eventViewModel.loadMoreHistoricalEvents()
+                    }
+                }
+            }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = Color.Transparent,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.9f)
+                .clip(cornerShape)
+        ) {
+            val blurRadius = if (events.size > 5) 5.dp else 0.dp
+            //  Background image sized to the dialog
+            AsyncImage(
+                model = type.drawableRes,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(blurRadius)
+            )
+
+            //  Semi-transparent overlay tint
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                type.color.copy(alpha = 0.35f),
+                                type.color.copy(alpha = 0.15f)
+                            )
+                        ),
+                        shape = cornerShape,
+                    )
+            )
+
+            Column(
+                modifier = Modifier
+                    .matchParentSize()
+                    .padding(16.dp)               // uniform padding inside edges
+            ) {
+                Text(
+                    text = type.displayName,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = contentColor
+                )
+                Spacer(Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
+                    if (events.isEmpty()) {
+                        Text("No ${type.displayName.lowercase()} events yet")
+                    } else {
+                        LazyColumn(
+                            state = lazyListState,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                        ) {
+                            items(events) { event ->
+                                EventCard(
+                                    event = event,
+                                    onEdit = { onEdit(event) },
+                                    onDelete = {
+                                        selectedBaby?.let {
+                                            eventViewModel.deleteEvent(
+                                                event
+                                            )
+                                        }
+                                    }
+                                )
+                            }
+                            if (isLoadingMore && hasMoreHistory) {
+                                item {
+                                    Box(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Card(
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+                                                    alpha = 0.8f
+                                                )
+                                            ),
+                                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                        ) {
+                                            Row(
+                                                Modifier.padding(
+                                                    horizontal = 16.dp,
+                                                    vertical = 12.dp
+                                                ),
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                CircularProgressIndicator(
+                                                    Modifier.size(16.dp),
+                                                    strokeWidth = 2.dp,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                                Text(
+                                                    "Loading older events…",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    TextButton(
+                        onClick = { onAdd(type) }
+                    ) {
+                        Text("Add New Event", color = contentColor)
+                    }
+
+                    TextButton(onClick = onDismiss) {
+                        Text("Close", color = contentColor)
+                    }
+                }
+            }
+        }
+
+    }
+}
