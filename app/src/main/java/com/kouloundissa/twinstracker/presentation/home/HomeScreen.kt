@@ -56,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -375,7 +376,7 @@ fun HomeScreen(
                             items(sortedEventTypes) { type ->
                                 EventTypeCard(
                                     type = type,
-                                    summary = summaries[type]!!,
+                                   // summary = summaries[type]!!,
                                     isFavorite = type in favoriteEventTypes,
                                     onFavoriteToggle = { eventViewModel.toggleFavorite(type) },
                                     onClick = {
@@ -596,7 +597,7 @@ fun HomeScreen(
 @Composable
 fun EventTypeCard(
     type: EventType,
-    summary: String,
+    //summary: String,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     width: Dp,
@@ -640,8 +641,14 @@ fun EventTypeCard(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    color = type.color.copy(alpha = 0.2f),
-                    shape = cornerShape
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            type.color.copy(alpha = 0.75f),
+                            type.color.copy(alpha = 0.15f),
+                            backgroundColor.copy(alpha = 0.45f)
+                        )
+                    ),
+                    shape = cornerShape,
                 )
         ) {
             // Event name at top-left
@@ -689,20 +696,20 @@ fun EventTypeCard(
                         // Overlay at top
                         this@Box.overlayContent()
 
-                        // Summary directly below overlay
-                        Text(
-                            text = summary,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = backgroundColor.copy(alpha = 0.7f)
-                        )
+//                        // Summary directly below overlay
+//                        Text(
+//                            text = summary,
+//                            style = MaterialTheme.typography.bodySmall,
+//                            color = backgroundColor.copy(alpha = 0.7f)
+//                        )
                     }
                 } else {
-                    // Default summary text centered
-                    Text(
-                        text = summary,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = backgroundColor.copy(alpha = 0.85f)
-                    )
+//                    // Default summary text centered
+//                    Text(
+//                        text = summary,
+//                        style = MaterialTheme.typography.bodyLarge,
+//                        color = backgroundColor.copy(alpha = 0.85f)
+//                    )
                 }
             }
 
