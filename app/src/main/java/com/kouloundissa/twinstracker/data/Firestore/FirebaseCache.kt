@@ -297,7 +297,6 @@ class FirebaseCache(
             val dataAge = System.currentTimeMillis() - oldestEventTime
             val cacheTTL = CacheTTL.getTTL(dataAge)
 
-            // FIXED: Check TTL validity correctly
             // FRESH data (ttlMs == -1) should NOT be cached
             if (cacheTTL == CacheTTL.FRESH && cacheTTL.ttlMs == -1L) {
                 Log.d(TAG, "✗ Data is FRESH (0-6h old) - must re-query from DB")
