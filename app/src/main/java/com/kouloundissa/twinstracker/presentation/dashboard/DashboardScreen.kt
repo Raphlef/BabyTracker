@@ -154,10 +154,10 @@ fun DashboardScreen(
                                 showBabyDialog = true
                             }
                         )
+                        Spacer(Modifier.height(8.dp))
                     }
 
 
-                    Spacer(Modifier.height(8.dp))
                     // --- MAIN CONTENT for selected tab ---
                     Box(Modifier.weight(1f)) {
                         HorizontalPager(
