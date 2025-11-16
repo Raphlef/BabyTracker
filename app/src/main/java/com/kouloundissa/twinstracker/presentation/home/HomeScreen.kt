@@ -2,6 +2,7 @@ package com.kouloundissa.twinstracker.presentation.home
 
 import android.annotation.SuppressLint
 import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -670,10 +671,13 @@ fun EventTypeCard(
     val contentColor = DarkGrey
     val tint = DarkBlue
 
+    val borderWidth = 1.dp
     val cornerShape = MaterialTheme.shapes.extraLarge
+
     Surface(
         shape = cornerShape,
         color = Color.Transparent,
+        border = BorderStroke(borderWidth, type.color),
         modifier = Modifier
             .width(width)
             .height(height)
@@ -690,21 +694,16 @@ fun EventTypeCard(
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .alpha(0.85f)
-                .blur(4.dp)
+                .alpha(0.95f)
+                .blur(2.dp)
         )
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            type.color.copy(alpha = 0.7f),
-                            type.color.copy(alpha = 0.3f)
-                        )
-                    ),
-                    shape = cornerShape,
+                    color = type.color.copy(alpha = 0.2f),
+                    shape = cornerShape
                 )
         ) {
             // Event name at top-left
@@ -715,7 +714,7 @@ fun EventTypeCard(
                 modifier = Modifier
                     .zIndex(3f)
                     .align(Alignment.TopStart)
-                    .padding(start = 20.dp, top = 20.dp)
+                    .padding(start = 24.dp, top = 20.dp)
             )
 
             // Favorite star icon at top-right
