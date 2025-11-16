@@ -258,6 +258,7 @@ private fun BabySelectorItem(
     isSelected: Boolean,
     onSelect: () -> Unit
 ) {
+
     val contentColor = DarkGrey
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
@@ -266,7 +267,7 @@ private fun BabySelectorItem(
     val backgroundColor by animateColorAsState(
         targetValue = when {
             isSelected -> contentColor.copy(alpha = 0.2f)
-            isHovered -> contentColor.copy(alpha = 0.08f)
+            isHovered -> BackgroundColor
             else -> Color.Transparent
         },
         animationSpec = tween(durationMillis = 200),
@@ -300,7 +301,7 @@ private fun BabySelectorItem(
                 Text(
                     text = baby.name.ifEmpty { "Unnamed Baby" },
                     style = MaterialTheme.typography.bodyLarge,
-                    color = contentColor,
+                    color = tint,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -308,7 +309,7 @@ private fun BabySelectorItem(
                 Text(
                     text = baby.gender.displayName,
                     style = MaterialTheme.typography.bodySmall,
-                    color = contentColor.copy(alpha = 0.65f),
+                    color = tint.copy(alpha = 0.65f),
                     maxLines = 1
                 )
             }
@@ -317,7 +318,7 @@ private fun BabySelectorItem(
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = "Selected",
-                    tint = contentColor,
+                    tint = tint,
                     modifier = Modifier
                         .size(20.dp)
                         .padding(start = 8.dp)
