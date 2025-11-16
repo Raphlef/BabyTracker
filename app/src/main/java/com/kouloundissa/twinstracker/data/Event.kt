@@ -3,6 +3,7 @@ package com.kouloundissa.twinstracker.data
 import android.net.Uri
 import android.util.Log
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Bedtime
@@ -10,11 +11,17 @@ import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.outlined.BabyChangingStation
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.IgnoreExtraProperties
 import com.kouloundissa.twinstracker.R
+import com.kouloundissa.twinstracker.ui.components.EventOverlayInfo
+import com.kouloundissa.twinstracker.ui.components.FeedingTimer
+import com.kouloundissa.twinstracker.ui.components.SleepTimer
 import java.util.Date
 import java.util.UUID
 import kotlin.reflect.KClass
@@ -28,7 +35,9 @@ enum class EventType(
     val color: Color,
     val icon: ImageVector,
     @DrawableRes val drawableRes: Int,
-    val eventClass: KClass<out Event>
+    val eventClass: KClass<out Event>,
+    val overlayBuilder: (EventTypeOverlayContext) -> (@Composable BoxScope.() -> Unit)?,
+    val overlayDescription: String? = null
 ) {
     DIAPER(
         "DIAPER",
@@ -36,7 +45,9 @@ enum class EventType(
         Color(0xFFFFC107),
         Icons.Outlined.BabyChangingStation,
         R.drawable.diaper,
-        DiaperEvent::class
+        DiaperEvent::class,
+        overlayBuilder = { null },
+        overlayDescription = null
     ){
         override fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String {
             val count = todayList.size
@@ -49,7 +60,19 @@ enum class EventType(
         Color(0xFF4CAF50),
         Icons.Filled.Restaurant,
         R.drawable.feed,
-        FeedingEvent::class
+        FeedingEvent::class,
+        overlayBuilder = { context ->
+            context.nextFeedingTimeMs?.let { nextTime ->
+                {
+                    FeedingTimer(
+                        nextFeedingTimeMs = nextTime,
+                        onClick = context.onTimerClick,
+                        modifier = Modifier.align(Alignment.CenterStart)
+                    )
+                }
+            }
+        } ,
+        overlayDescription = "Next feeding is: "
     ){
         override fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String {
             if (todayList.isEmpty()) return "No feeding"
@@ -61,7 +84,23 @@ enum class EventType(
     },
     SLEEP(
         "SLEEP",
-        "Sleep", Color(0xFF2196F3), Icons.Filled.Bedtime, R.drawable.sleep, SleepEvent::class
+        "Sleep",
+        Color(0xFF2196F3),
+        Icons.Filled.Bedtime,
+        R.drawable.sleep,
+        SleepEvent::class,
+        overlayBuilder = { context ->
+            context.activeSleepEvent?.let { sleepEvent ->
+                {
+                    SleepTimer(
+                        sleepEvent = sleepEvent,
+                        onClick = context.onTimerClick,
+                        modifier = Modifier.align(Alignment.CenterStart)
+                    )
+                }
+            }
+        },
+        overlayDescription = "Baby is sleeping since: "
     ){
         override fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String {
             val totalMin = todayList.sumOf { (it as SleepEvent).durationMinutes ?: 0L }
@@ -79,7 +118,9 @@ enum class EventType(
         Color(0xFF9C27B0),
         Icons.Filled.BarChart,
         R.drawable.growth,
-        GrowthEvent::class
+        GrowthEvent::class,
+        overlayBuilder = { null },
+        overlayDescription = null
     ){
         override fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String {
             return lastGrowthEvent?.let {
@@ -93,7 +134,9 @@ enum class EventType(
         Color(0xFFFF5722),
         Icons.Filled.WaterDrop,
         R.drawable.pumping,
-        PumpingEvent::class
+        PumpingEvent::class,
+        overlayBuilder = { null },
+        overlayDescription = null
     ){
         override fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String {
             if (todayList.isEmpty()) return "No pumping today"
@@ -109,7 +152,9 @@ enum class EventType(
         Color(0xFF3F51B5),
         Icons.Filled.MedicalServices,
         R.drawable.drugs,
-        DrugsEvent::class
+        DrugsEvent::class,
+        overlayBuilder = { null },
+        overlayDescription = null
     ){
         override fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String {
             if (todayList.isEmpty()) return "No drugs today"
@@ -129,6 +174,12 @@ enum class EventType(
      * @return Formatted summary string
      */
     abstract fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String
+    fun createOverlay(context: EventTypeOverlayContext): EventOverlayInfo {
+        return EventOverlayInfo(
+            description = overlayDescription,
+            content = overlayBuilder(context)
+        )
+    }
     companion object {
         fun forClass(clazz: KClass<out Event>): EventType =
             entries.firstOrNull { it.eventClass == clazz }
@@ -178,6 +229,7 @@ enum class EventType(
                 DRUGS -> DrugsEvent::class
             }
         }
+
     }
 }
 
@@ -677,3 +729,11 @@ sealed class EventFormState {
     ) : EventFormState()
 
 }
+/**
+ * Context object passed to overlay builders containing runtime state
+ */
+data class EventTypeOverlayContext(
+    val activeSleepEvent: SleepEvent?,
+    val nextFeedingTimeMs: Long?,
+    val onTimerClick: () -> Unit
+)
