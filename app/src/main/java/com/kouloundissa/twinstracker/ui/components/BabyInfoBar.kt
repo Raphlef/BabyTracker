@@ -163,8 +163,8 @@ private fun BabyInfoHeaderContent(
     baby: Baby?,
     modifier: Modifier = Modifier
 ) {
-
-    val contentColor = DarkGrey
+    val backgroundColor = BackgroundColor
+    val tint = DarkBlue
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -187,7 +187,7 @@ private fun BabyInfoHeaderContent(
             Text(
                 text = baby?.name ?: "Unnamed Baby",
                 style = MaterialTheme.typography.titleLarge,
-                color = contentColor,
+                color = tint,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -196,7 +196,7 @@ private fun BabyInfoHeaderContent(
                 Text(
                     text = baby?.gender?.displayName ?: "",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = contentColor.copy(alpha = 0.85f),
+                    color = tint.copy(alpha = 0.85f),
                     maxLines = 1
                 )
             }
@@ -243,8 +243,7 @@ private fun DropdownBabySelectorPanel(
         // Add Baby Button
         if (onAddBaby != null) {
             AddBabySelectorItem(
-                onAddBaby = onAddBaby,
-                contentColor = contentColor
+                onAddBaby = onAddBaby
             )
         }
     }
@@ -334,17 +333,15 @@ private fun BabySelectorItem(
  */
 @Composable
 private fun AddBabySelectorItem(
-    onAddBaby: () -> Unit,
-    contentColor: Color
+    onAddBaby: () -> Unit
 ) {
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
     var isHovered by remember { mutableStateOf(false) }
 
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isHovered) contentColor.copy(alpha = 0.08f)
-        else Color.Transparent,
-        animationSpec = tween(durationMillis = 200),
-        label = "addItemBg"
-    )
+
 
     Surface(
         color = backgroundColor,
@@ -365,14 +362,14 @@ private fun AddBabySelectorItem(
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = "Add Baby",
-                tint = contentColor.copy(alpha = 0.85f),
+                tint = tint.copy(alpha = 0.85f),
                 modifier = Modifier.size(20.dp)
             )
 
             Text(
                 text = "Add New Baby",
                 style = MaterialTheme.typography.bodyMedium,
-                color = contentColor.copy(alpha = 0.85f),
+                color = tint.copy(alpha = 0.85f),
                 modifier = Modifier.padding(start = 8.dp)
             )
         }
