@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
-import kotlin.text.ifEmpty
+import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 
 @Composable
 fun BabySelectorRow(
@@ -39,8 +39,9 @@ fun BabySelectorRow(
     onSelectBaby: (Baby) -> Unit,
     onAddBaby: (() -> Unit)? = null
 ) {
-    val baseColor = BackgroundColor
-    val contentColor = DarkBlue
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
 
     val cornerShape = MaterialTheme.shapes.extraLarge
 
@@ -59,7 +60,7 @@ fun BabySelectorRow(
                 onClick = { onSelectBaby(baby) },
                 label = {
                     Text(
-                        text = baby.name.ifEmpty { "Sans nom" },
+                        text = (baby.gender.emoji) + " " + baby.name.ifEmpty { "Sans nom" },
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -68,16 +69,16 @@ fun BabySelectorRow(
                 modifier = Modifier.height(40.dp),
                 shape = cornerShape,
                 colors = FilterChipDefaults.filterChipColors(
-                    containerColor = baseColor.copy(alpha = 0.15f),
-                    labelColor = contentColor.copy(alpha = 0.85f),
-                    selectedContainerColor = baseColor.copy(alpha = 0.85f),
-                    selectedLabelColor = contentColor
+                    containerColor = backgroundColor.copy(alpha = 0.25f),
+                    labelColor = tint.copy(alpha = 0.85f),
+                    selectedContainerColor = backgroundColor.copy(alpha = 0.85f),
+                    selectedLabelColor = tint
                 ),
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true,
                     selected = isSelected,
-                    borderColor = contentColor.copy(alpha = 0.55f),
-                    selectedBorderColor = contentColor.copy(alpha = 0.55f),
+                    borderColor = tint.copy(alpha = 0.55f),
+                    selectedBorderColor = tint.copy(alpha = 0.55f),
                     borderWidth = 0.5.dp,
                     selectedBorderWidth = 1.dp
                 ),
@@ -103,10 +104,10 @@ fun BabySelectorRow(
                             interactionSource = remember { MutableInteractionSource() }
                         ),
                     shape = CircleShape,
-                    color = baseColor.copy(alpha = 0.12f),
+                    color = backgroundColor.copy(alpha = 0.12f),
                     border = BorderStroke(
                         1.dp,
-                        contentColor.copy(alpha = 0.55f)
+                        tint.copy(alpha = 0.55f)
                     ),
                     tonalElevation = 0.dp
                 ) {
@@ -114,7 +115,7 @@ fun BabySelectorRow(
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = "Add Baby",
-                            tint = contentColor.copy(alpha = 0.85f)
+                            tint = tint.copy(alpha = 0.85f)
                         )
                     }
                 }
