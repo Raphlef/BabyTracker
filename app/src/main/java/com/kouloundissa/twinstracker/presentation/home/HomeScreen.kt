@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -36,21 +35,18 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,8 +56,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -71,9 +65,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.data.EventTypeOverlayContext
 import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.presentation.baby.BabyFormDialog
@@ -81,9 +75,8 @@ import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.EventCard
+import com.kouloundissa.twinstracker.ui.components.EventOverlayInfo
 import com.kouloundissa.twinstracker.ui.components.EventTypeDialog
-import com.kouloundissa.twinstracker.ui.components.FeedingTimer
-import com.kouloundissa.twinstracker.ui.components.SleepTimer
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
@@ -147,6 +140,7 @@ fun HomeScreen(
     val isDeleting by eventViewModel.isDeleting.collectAsState()
 
     val lazyListState = rememberLazyListState()
+
 
     LaunchedEffect(lazyListState) {
         var lastLoadedCount = 0
@@ -276,6 +270,27 @@ fun HomeScreen(
         val weightPredictionMs = maxOf(predictedIntervalMs, minIntervalMs)
         lastFeeding.timestamp.time + weightPredictionMs
     }
+    val currentOverlay by remember(selectedType, activeSleepEvent, nextFeedingTimeMs) {
+        derivedStateOf {
+            selectedType?.let { type ->
+                type.createOverlay(
+                    EventTypeOverlayContext(
+                        activeSleepEvent = activeSleepEvent,
+                        nextFeedingTimeMs = nextFeedingTimeMs,
+                        onTimerClick = {
+                            editingEvent =
+                                if (selectedType == EventType.SLEEP) activeSleepEvent else null
+                            editingEvent?.let { event ->
+                                // Load event into form
+                            }
+                            showEventDialog = true
+                        }
+                    )
+                )
+            } ?: EventOverlayInfo()
+        }
+    }
+
     val summaries = remember(todaysByType, lastGrowthEvent) {
         EventType.entries.associateWith { type ->
             val todayList = todaysByType[type].orEmpty()
@@ -373,36 +388,19 @@ fun HomeScreen(
                                     },
                                     width = cardWidth,
                                     height = cardHeight,
-                                    overlayContent = when (type) {
-                                        EventType.SLEEP -> if (activeSleepEvent != null) {
-                                            {
-                                                SleepTimer(
-                                                    sleepEvent = activeSleepEvent,
-                                                    onClick = {
-                                                        editingEvent = activeSleepEvent
-                                                        eventViewModel.loadEventIntoForm(activeSleepEvent)
-                                                        showEventDialog = true
-                                                    },
-                                                    modifier = Modifier.align(Alignment.CenterStart)
-                                                )
+                                    overlayContent = type.overlayBuilder(
+                                        EventTypeOverlayContext(
+                                            activeSleepEvent = activeSleepEvent,
+                                            nextFeedingTimeMs = nextFeedingTimeMs,
+                                            onTimerClick = {
+                                                selectedType = type
+                                                editingEvent =
+                                                    if (type == EventType.SLEEP) activeSleepEvent else null
+                                                editingEvent?.let { event -> eventViewModel.loadEventIntoForm(event) }
+                                                showEventDialog = true
                                             }
-                                        } else null
-
-                                        EventType.FEEDING -> if (nextFeedingTimeMs != null) {
-                                            {
-                                                FeedingTimer(
-                                                    nextFeedingTimeMs = nextFeedingTimeMs,
-                                                    onClick = {
-                                                        selectedType = EventType.FEEDING
-                                                        showEventDialog = true
-                                                    },
-                                                    modifier = Modifier.align(Alignment.CenterStart)
-                                                )
-                                            }
-                                        } else null
-
-                                        else -> null
-                                    }
+                                        )
+                                    )
                                 )
                             }
                         }
@@ -574,7 +572,8 @@ fun HomeScreen(
                     onAdd = { type ->
                         selectedType = type
                         showEventDialog = true
-                    }
+                    },
+                    overlay = currentOverlay
                 )
             }
             if (showBabyDialog) {
