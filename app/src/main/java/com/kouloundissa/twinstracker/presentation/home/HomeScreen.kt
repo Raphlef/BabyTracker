@@ -72,12 +72,9 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.kouloundissa.twinstracker.data.Baby
-import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
-import com.kouloundissa.twinstracker.data.FeedType
 import com.kouloundissa.twinstracker.data.FeedingEvent
-import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.presentation.baby.BabyFormDialog
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
@@ -147,8 +144,6 @@ fun HomeScreen(
     val deleteSuccess by eventViewModel.deleteSuccess.collectAsState()
     val deleteError by eventViewModel.deleteError.collectAsState()
     val isDeleting by eventViewModel.isDeleting.collectAsState()
-
-
 
     val lazyListState = rememberLazyListState()
 
@@ -280,69 +275,12 @@ fun HomeScreen(
         val weightPredictionMs = maxOf(predictedIntervalMs, minIntervalMs)
         lastFeeding.timestamp.time + weightPredictionMs
     }
-
     val summaries = remember(todaysByType, lastGrowthEvent) {
         EventType.entries.associateWith { type ->
             val todayList = todaysByType[type].orEmpty()
-            when (type) {
-                EventType.DIAPER -> {
-                    val count = todayList.size
-                    if (count > 0) "$count today" else "No diaper today"
-                }
-
-                EventType.FEEDING -> {
-                    if (todayList.isEmpty()) "No feeding"
-                    else {
-                        val totalMl =
-                            todayList.sumOf { (it as FeedingEvent).amountMl ?: 0.0 }.toInt()
-                        val breastCount =
-                            todayList.count { (it as FeedingEvent).feedType == FeedType.BREAST_MILK }
-                        "${totalMl}ml • $breastCount breast"
-                    }
-                }
-
-                EventType.SLEEP -> {
-                    val totalMin = todayList.sumOf { (it as SleepEvent).durationMinutes ?: 0L }
-                    if (totalMin > 0) {
-                        val h = totalMin / 60
-                        val m = totalMin % 60
-                        "Today: ${h}h ${m}m"
-                    } else "No sleep today"
-                }
-
-                EventType.GROWTH -> {
-                    // Use last growth event from ViewModel
-                    lastGrowthEvent?.let {
-                        "${it.weightKg ?: "-"}kg • ${it.heightCm ?: "-"}cm"
-                    } ?: "No growth data"
-                }
-
-                EventType.PUMPING -> {
-                    if (todayList.isEmpty()) "No pumping today"
-                    else {
-                        val totalMl =
-                            todayList.sumOf { (it as PumpingEvent).amountMl ?: 0.0 }.toInt()
-                        val count = todayList.size
-                        "${totalMl}ml • $count session${if (count > 1) "s" else ""}"
-                    }
-                }
-
-                EventType.DRUGS -> {
-                    if (todayList.isEmpty()) {
-                        "No drugs today"
-                    } else {
-                        val doses = todayList.size
-                        val last = todayList
-                            .filterIsInstance<DrugsEvent>()
-                            .maxByOrNull { it.timestamp }!!
-                        val doseValue = last.dosage?.toInt() ?: "-"
-                        "${doses} today • ${last.drugType.displayName} ${doseValue}${last.unit}"
-                    }
-                }
-            }
+            type.generateSummary(todayList, lastGrowthEvent)
         }
     }
-
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = Color.Transparent,

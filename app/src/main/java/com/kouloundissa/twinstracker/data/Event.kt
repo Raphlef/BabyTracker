@@ -37,7 +37,12 @@ enum class EventType(
         Icons.Outlined.BabyChangingStation,
         R.drawable.diaper,
         DiaperEvent::class
-    ),
+    ){
+        override fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String {
+            val count = todayList.size
+            return if (count > 0) "$count today" else "No diaper today"
+        }
+    },
     FEEDING(
         "FEEDING",
         "Feeding",
@@ -45,11 +50,29 @@ enum class EventType(
         Icons.Filled.Restaurant,
         R.drawable.feed,
         FeedingEvent::class
-    ),
+    ){
+        override fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String {
+            if (todayList.isEmpty()) return "No feeding"
+
+            val totalMl = todayList.sumOf { (it as FeedingEvent).amountMl ?: 0.0 }.toInt()
+            val breastCount = todayList.count { (it as FeedingEvent).feedType == FeedType.BREAST_MILK }
+            return "${totalMl}ml • $breastCount breast"
+        }
+    },
     SLEEP(
         "SLEEP",
         "Sleep", Color(0xFF2196F3), Icons.Filled.Bedtime, R.drawable.sleep, SleepEvent::class
-    ),
+    ){
+        override fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String {
+            val totalMin = todayList.sumOf { (it as SleepEvent).durationMinutes ?: 0L }
+            if (totalMin > 0) {
+                val h = totalMin / 60
+                val m = totalMin % 60
+                return "Today: ${h}h ${m}m"
+            }
+            return "No sleep today"
+        }
+    },
     GROWTH(
         "GROWTH",
         "Growth",
@@ -57,7 +80,13 @@ enum class EventType(
         Icons.Filled.BarChart,
         R.drawable.growth,
         GrowthEvent::class
-    ),
+    ){
+        override fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String {
+            return lastGrowthEvent?.let {
+                "${it.weightKg ?: "-"}kg • ${it.heightCm ?: "-"}cm"
+            } ?: "No growth data"
+        }
+    },
     PUMPING(
         "PUMPING",
         "Pumping",
@@ -65,7 +94,15 @@ enum class EventType(
         Icons.Filled.WaterDrop,
         R.drawable.pumping,
         PumpingEvent::class
-    ),
+    ){
+        override fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String {
+            if (todayList.isEmpty()) return "No pumping today"
+
+            val totalMl = todayList.sumOf { (it as PumpingEvent).amountMl ?: 0.0 }.toInt()
+            val count = todayList.size
+            return "${totalMl}ml • $count session${if (count > 1) "s" else ""}"
+        }
+    },
     DRUGS(
         "DRUGS",
         "Drugs",
@@ -73,8 +110,25 @@ enum class EventType(
         Icons.Filled.MedicalServices,
         R.drawable.drugs,
         DrugsEvent::class
-    );
+    ){
+        override fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String {
+            if (todayList.isEmpty()) return "No drugs today"
 
+            val doses = todayList.size
+            val last = todayList
+                .filterIsInstance<DrugsEvent>()
+                .maxByOrNull { it.timestamp }!!
+            val doseValue = last.dosage?.toInt() ?: "-"
+            return "${doses} today • ${last.drugType.displayName} ${doseValue}${last.unit}"
+        }
+    };
+    /**
+     * Abstract method for generating summary text for each event type.
+     * @param todayList List of events that occurred today for this type
+     * @param lastGrowthEvent Optional last growth event (used for GROWTH type)
+     * @return Formatted summary string
+     */
+    abstract fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String
     companion object {
         fun forClass(clazz: KClass<out Event>): EventType =
             entries.firstOrNull { it.eventClass == clazz }
