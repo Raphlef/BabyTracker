@@ -52,11 +52,15 @@ fun <T> IconSelector(
         color = backgroundcolor,
         modifier = modifier,
     ) {
-        Column(modifier = modifier.padding(12.dp).fillMaxWidth()) {
+        Column(modifier = modifier
+            .padding(12.dp)
+            .fillMaxWidth()) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelMedium,
-                color = contentcolor
+                color = contentcolor,
+                modifier = Modifier
+                    .padding(start = 4.dp)
             )
             Spacer(Modifier.height(12.dp))
             LazyRow(
