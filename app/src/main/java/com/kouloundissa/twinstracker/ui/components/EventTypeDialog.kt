@@ -1,8 +1,11 @@
 package com.kouloundissa.twinstracker.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +22,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -28,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,8 +48,12 @@ import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
+import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.distinctUntilChanged
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
@@ -55,18 +64,33 @@ fun EventTypeDialog(
     onEdit: (Event) -> Unit,
     onAdd: (EventType) -> Unit,
     eventViewModel: EventViewModel = hiltViewModel(),
-    selectedBaby: Baby?
+    selectedBaby: Baby?,
+    overlay: EventOverlayInfo = EventOverlayInfo()
 ) {
-    val contentColor = Color.White
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     val isLoadingMore by eventViewModel.isLoadingMore.collectAsState()
     val hasMoreHistory by eventViewModel.hasMoreHistory.collectAsState()
+    val eventsByDay by eventViewModel.eventsByDay.collectAsState()
+    val lastGrowthEvent by eventViewModel.lastGrowthEvent.collectAsState()
 
+    val today = LocalDate.now()
+    val todayEvents = eventsByDay[today].orEmpty().filter { event ->
+        EventType.forClass(event::class) == type
+    }
     val lazyListState = rememberLazyListState()
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,  // skips intermediate state to start fully expanded
     )
+
+    // Generate summary using the new refactored method
+    val summary = remember(todayEvents) {
+        type.generateSummary(todayEvents, lastGrowthEvent)
+    }
+
     LaunchedEffect(lazyListState) {
         var lastLoadedCount = 0
         var lastLoadAttempt = 0L
@@ -110,6 +134,7 @@ fun EventTypeDialog(
                 .clip(cornerShape)
         ) {
             val blurRadius = if (events.size > 5) 5.dp else 0.dp
+
             //  Background image sized to the dialog
             AsyncImage(
                 model = type.drawableRes,
@@ -138,14 +163,15 @@ fun EventTypeDialog(
             Column(
                 modifier = Modifier
                     .matchParentSize()
-                    .padding(16.dp)               // uniform padding inside edges
+                    .padding(12.dp)               // uniform padding inside edges
             ) {
-                Text(
-                    text = type.displayName,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = contentColor
+                EventTypeHeaderPanel(
+                    type = type,
+                    summary = summary,
+                    eventCount = events.size,
+                    overlay = overlay
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -175,41 +201,7 @@ fun EventTypeDialog(
                             }
                             if (isLoadingMore && hasMoreHistory) {
                                 item {
-                                    Box(
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 16.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Card(
-                                            colors = CardDefaults.cardColors(
-                                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
-                                                    alpha = 0.8f
-                                                )
-                                            ),
-                                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                                        ) {
-                                            Row(
-                                                Modifier.padding(
-                                                    horizontal = 16.dp,
-                                                    vertical = 12.dp
-                                                ),
-                                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                CircularProgressIndicator(
-                                                    Modifier.size(16.dp),
-                                                    strokeWidth = 2.dp,
-                                                    color = MaterialTheme.colorScheme.primary
-                                                )
-                                                Text(
-                                                    "Loading older events…",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
-                                        }
-                                    }
+                                    LoadingMoreIndicator()
                                 }
                             }
                         }
@@ -223,15 +215,210 @@ fun EventTypeDialog(
                     TextButton(
                         onClick = { onAdd(type) }
                     ) {
-                        Text("Add New Event", color = contentColor)
+                        Text("Add New Event", color = backgroundColor)
                     }
 
                     TextButton(onClick = onDismiss) {
-                        Text("Close", color = contentColor)
+                        Text("Close", color = backgroundColor)
                     }
                 }
             }
         }
-
     }
+}
+/**
+ * Reusable header panel showing event type title and summary information.
+ * Keeps related UI logic together and improves code organization.
+ */
+@Composable
+private fun EventTypeHeaderPanel(
+    type: EventType,
+    summary: String,
+    eventCount: Int,
+    overlay: EventOverlayInfo = EventOverlayInfo(),
+    modifier: Modifier = Modifier
+) {
+
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
+    Column(modifier = modifier) {
+        Spacer(Modifier.height(10.dp))
+        // Title with icon
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = type.icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(24.dp)
+            )
+            Text(
+                text = type.displayName,
+                style = MaterialTheme.typography.titleLarge,
+                color = contentColor
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+        // ============================================
+        // UNIFIED OVERLAY SECTION
+        // Description and content together in one cohesive block
+        // ============================================
+        if (overlay.hasContent()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(contentColor.copy(alpha = 0.12f))
+                    .border(1.dp, contentColor.copy(alpha = 0.3f), MaterialTheme.shapes.medium)
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Description and content side by side when both exist
+                if (!overlay.description.isNullOrBlank() && overlay.content != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        // Description on left
+                        Text(
+                            text = overlay.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = contentColor.copy(alpha = 0.8f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .align(Alignment.Top)
+                        )
+
+                        // Content on right
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .align(Alignment.CenterVertically)
+                        ) {
+                            overlay.content!!()
+                        }
+                    }
+                }
+                // Description only
+                else if (!overlay.description.isNullOrBlank()) {
+                    Text(
+                        text = overlay.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = contentColor.copy(alpha = 0.8f),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                // Content only
+                else if (overlay.content != null) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        overlay.content!!()
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(10.dp))
+        }
+
+        // ============================================
+        // SUMMARY CARD
+        // ============================================
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.medium),
+            colors = CardDefaults.cardColors(
+                containerColor = contentColor.copy(alpha = 0.15f)
+            ),
+            border = BorderStroke(1.dp, contentColor.copy(alpha = 0.3f))
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp)
+            ) {
+                Text(
+                    text = "Today's Summary",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = contentColor.copy(alpha = 0.8f)
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = contentColor
+                )
+                if (eventCount > 0) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = "$eventCount event${if (eventCount > 1) "s" else ""} total",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = contentColor.copy(alpha = 0.7f)
+                    )
+                }
+            }
+        }
+    }
+}
+@Composable
+private fun LoadingMoreIndicator(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Row(
+                Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CircularProgressIndicator(
+                    Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    "Loading older events…",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+/**
+ * Data class to hold overlay content and description together.
+ * Simplifies parameter passing and makes the API cleaner.
+ */
+/**
+ * Data class to hold overlay content and description together.
+ * Simplifies parameter passing and makes the API cleaner.
+ */
+data class EventOverlayInfo(
+    val description: String? = null,
+    val content: (@Composable BoxScope.() -> Unit)? = null
+) {
+    companion object {
+        fun description(text: String) = EventOverlayInfo(description = text)
+        fun content(block: @Composable BoxScope.() -> Unit) = EventOverlayInfo(content = block)
+        fun full(
+            description: String,
+            block: @Composable BoxScope.() -> Unit
+        ) = EventOverlayInfo(description = description, content = block)
+        fun empty() = EventOverlayInfo()
+    }
+
+    fun hasContent(): Boolean = !description.isNullOrBlank() || content != null
 }
