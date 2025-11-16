@@ -558,36 +558,101 @@ class FirebaseRepository @Inject constructor(
         if (plan.hasRealtimeListener()) {
             val todayStart = getDayStart(plan.realtimeDate!!)
             val todayEnd = getDayEnd(plan.realtimeDate)
+            val listenerStart = plan.realtime6hBeforeTimestamp?.let { Date(it) } ?: todayStart
+
             val dateFormatter = SimpleDateFormat("MMM dd, yyyy HH:mm:ss", Locale.getDefault())
             val startDateStr = dateFormatter.format(todayStart)
             val endDateStr = dateFormatter.format(todayEnd)
 
-            Log.d(TAG, "→ Setting up real-time listener for $startDateStr → $endDateStr")
+            Log.d(TAG, "→ Checking cache for pre-listener period: $todayStart → $todayEnd")
+
+            var todaysCachedData = firebaseCache.getCachedDayEvents(babyId, todayStart)
+            var hasEmittedTodaysData = false
+
+            if (todaysCachedData != null) {
+                // ✓ Cache hit for today
+                Log.d(TAG, "✓ Using today's cache: ${todaysCachedData.events.size} events")
+
+                // Add only events BEFORE listener starts (6h+ old = safe to cache)
+                todaysCachedData.events.forEach { event ->
+                    if (event.timestamp.time < listenerStart.time) {
+                        allEvents[event.id] = event
+                    }
+                }
+
+                val transformed = transform(allEvents)
+                if (transformed != null) {
+                    emit(transformed)
+                    Log.d(TAG, "✓ Emitted cached pre-listener data (fast feedback)")
+                    hasEmittedTodaysData = true
+                }
+            } else {
+                // ✗ No valid cache for today - must query pre-listener period
+                try {
+                    Log.d(TAG, "→ No cache for pre-listener period - querying from $todayStart to $listenerStart")
+
+                    val queriedEvents = queryEventsForRangeOnce(
+                        babyId,
+                        todayStart,
+                        listenerStart,
+                        db
+                    )
+
+                    if (queriedEvents.isNotEmpty()) {
+                        queriedEvents.forEach { event ->
+                            allEvents[event.id] = event
+                        }
+
+                        val transformed = transform(allEvents)
+                        if (transformed != null) {
+                            emit(transformed)
+                            Log.d(TAG, "✓ Emitted queried pre-listener data: ${queriedEvents.size} events")
+                            hasEmittedTodaysData = true
+                        }
+
+                        // Cache the queried data (it's 6h+ old = cacheable)
+                        try {
+                            firebaseCache.cacheDayEvents(babyId, todayStart, queriedEvents)
+                            Log.d(TAG, "✓ Cached pre-listener events")
+                        } catch (e: Exception) {
+                            Log.w(TAG, "⚠ Failed to cache: ${e.message}")
+                        }
+                    } else {
+                        Log.d(TAG, "ℹ No events in pre-listener period")
+                        hasEmittedTodaysData = true
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "✗ Error querying pre-listener period: ${e.message}", e)
+                }
+            }
+
+            // Now setup real-time listener starting 6h ago (covers FRESH + new events)
+            Log.d(TAG, "→ Setting up real-time listener for $listenerStart → $endDateStr")
 
             db.collection(FirestoreConstants.Collections.EVENTS)
                 .whereEqualTo(FirestoreConstants.Fields.BABY_ID, babyId)
-                .whereGreaterThanOrEqualTo(FirestoreConstants.Fields.TIMESTAMP, todayStart)
+                .whereGreaterThanOrEqualTo(FirestoreConstants.Fields.TIMESTAMP, listenerStart)  // ← 6h ago
                 .whereLessThan(FirestoreConstants.Fields.TIMESTAMP, todayEnd)
                 .orderBy(FirestoreConstants.Fields.TIMESTAMP, Query.Direction.DESCENDING)
                 .snapshots()
                 .collect { snapshot ->
                     val streamEventCount = snapshot.documents.size
-                    val todayEvents = snapshot.documents.mapNotNull { it.toEvent() }
+                    val listenerEvents = snapshot.documents.mapNotNull { it.toEvent() }
 
-                    Log.d(TAG, "↓ Received $streamEventCount events from stream ($startDateStr → $endDateStr)")
+                    Log.d(TAG, "↓ Received $streamEventCount events from stream ($listenerStart → $endDateStr)")
 
                     // Remove ALL today's events first, then add fresh ones
                     allEvents.values.removeAll { event ->
-                        event.timestamp >= todayStart && event.timestamp < todayEnd
+                        event.timestamp >= listenerStart  && event.timestamp < todayEnd
                     }
 
-                    todayEvents.forEach { event ->
+                    listenerEvents.forEach { event ->
                         allEvents[event.id] = event
                     }
 
-                    if (todayEvents.isNotEmpty()) {
+                    if (listenerEvents.isNotEmpty()) {
                         try {
-                            firebaseCache.cacheDayEvents(babyId, todayStart, todayEvents)
+                            firebaseCache.cacheDayEvents(babyId, todayStart, listenerEvents)
                         } catch (e: Exception) {
                             Log.e(TAG, "✗ Failed to cache today's events: ${e.message}")
                         }
