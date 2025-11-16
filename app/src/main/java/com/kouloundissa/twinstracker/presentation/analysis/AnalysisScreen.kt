@@ -155,16 +155,12 @@ fun AnalysisScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-
             AnalysisFilterPanel(
                 filters = filters.value,
                 onFiltersChanged = { newFilters ->
                     filters.value = newFilters
-                    // Apply filters to data
-                    //applyFiltersToData(newFilters)
                 },
             )
-
 
             LazyColumn(
                 contentPadding = contentPadding,
