@@ -252,12 +252,12 @@ fun EventFormDialog(
                         ),
                         shape = cornerShape,
                     )
-                    .padding(horizontal = 12.dp, vertical = 12.dp)
+                    .padding(horizontal = 8.dp, vertical = 12.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 20.dp)
+                        .padding(horizontal = 8.dp, vertical = 20.dp)
                         .padding(bottom = footerHeight)
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
