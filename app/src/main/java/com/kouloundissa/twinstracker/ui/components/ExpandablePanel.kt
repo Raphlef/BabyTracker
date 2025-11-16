@@ -67,7 +67,7 @@ fun ExpandablePanel(
                         onLongClick = onLongClick ?: {}
                     )
                     .blur(if (isLoading) 3.dp else 0.dp),
-                color = backgroundColor.copy(alpha = 0.85f),
+                color = backgroundColor.copy(alpha = 0.95f),
                 shape = cornerShape,
                 border = BorderStroke(1.dp, contentColor.copy(alpha = 0.55f))
             ) {
