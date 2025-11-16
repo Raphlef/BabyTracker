@@ -113,8 +113,9 @@ enum class CacheTTL(val ageThresholdMs: Long, val ttlMs: Long) {
 
     // 48 hours-7 days hours old: 2 days TTL
     OLD(TimeUnit.DAYS.toMillis(7), TimeUnit.DAYS.toMillis(2)),
-    // 7 days + old: 1 week TTL
-    VERYOLD(Long.MAX_VALUE, TimeUnit.DAYS.toMillis(7));
+
+    // 7 days + old: 1 month TTL
+    VERYOLD(Long.MAX_VALUE, TimeUnit.DAYS.toMillis(30));
 
     companion object {
         private val sortedThresholds by lazy {
