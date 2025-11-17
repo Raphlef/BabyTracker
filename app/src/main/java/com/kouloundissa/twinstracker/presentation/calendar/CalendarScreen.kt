@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -210,6 +211,21 @@ fun CalendarScreen(
                         color = BackgroundColor
                     )
                 }
+                if (isLoading) {
+                    item {
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(32.dp),
+                                strokeWidth = 3.dp
+                            )
+                        }
+                    }
+                }
                 item {
                     if (dailyEvents.isEmpty()) {
                         Text("No events", style = MaterialTheme.typography.bodyMedium)
@@ -233,16 +249,6 @@ fun CalendarScreen(
                         eventViewModel.resetFormState()
                     }
                 )
-            }
-
-            // Loading Overlay
-            if (isLoading) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                ) {
-                    CircularProgressIndicator(Modifier.align(Alignment.Center))
-                }
             }
         }
     }
