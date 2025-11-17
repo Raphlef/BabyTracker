@@ -90,7 +90,7 @@ fun DashboardScreen(
     // Initialize selectedBaby on first composition
     LaunchedEffect(babies, initialBabyId) {
         if (babies.isNotEmpty() && selectedBaby == null) {
-            val toSelect = initialBabyId?.let { id ->
+            val toSelect = initialBabyId.let { id ->
                 babies.find { it.id == id }
             } ?: babies.first()
             babyViewModel.selectBaby(toSelect)
