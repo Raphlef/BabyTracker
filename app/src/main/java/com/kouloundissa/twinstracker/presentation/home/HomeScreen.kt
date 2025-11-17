@@ -95,6 +95,7 @@ fun HomeScreen(
     val backgroundColor = BackgroundColor
     val contentColor = DarkGrey
     val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
 
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
@@ -327,8 +328,10 @@ fun HomeScreen(
                             "Aujourd'hui",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.headlineMedium,
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            color = backgroundColor,
+                            modifier = Modifier.padding(vertical = 8.dp )
+                                .background(backgroundColor.copy(alpha = 0.95f),shape = cornerShape)
+                                .padding(vertical = 8.dp, horizontal = 12.dp),
+                            color = tint,
                         )
                     }
                     if (isLoading && !isLoadingMore) {
@@ -393,12 +396,14 @@ fun HomeScreen(
 
                     item {
                         Spacer(Modifier.height(24.dp))
-                        Text(
+                            Text(
                             "Recent Events",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.headlineMedium,
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            color = backgroundColor,
+                            modifier = Modifier.padding(vertical = 8.dp )
+                                .background(backgroundColor.copy(alpha = 0.95f),shape = cornerShape)
+                                .padding(vertical = 8.dp, horizontal = 12.dp),
+                            color = tint,
                         )
                     }
                     timelineItemsContent(
