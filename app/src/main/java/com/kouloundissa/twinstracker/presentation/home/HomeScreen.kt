@@ -323,17 +323,6 @@ fun HomeScreen(
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    item {
-                        Text(
-                            "Aujourd'hui",
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.headlineMedium,
-                            modifier = Modifier.padding(vertical = 8.dp )
-                                .background(backgroundColor.copy(alpha = 0.95f),shape = cornerShape)
-                                .padding(vertical = 8.dp, horizontal = 12.dp),
-                            color = tint,
-                        )
-                    }
                     if (isLoading && !isLoadingMore) {
                         item {
                             Box(
