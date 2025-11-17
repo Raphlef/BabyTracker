@@ -361,7 +361,21 @@ fun HomeScreen(
                             color = backgroundColor,
                         )
                     }
-
+                    if (isLoading && !isLoadingMore) {
+                        item {
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(32.dp),
+                                    strokeWidth = 3.dp
+                                )
+                            }
+                        }
+                    }
                     // 2 x N Cards for each EventType
                     item {
                         LazyVerticalGrid(
@@ -499,38 +513,7 @@ fun HomeScreen(
                     item { Spacer(Modifier.height(24.dp)) }
                 }
             }
-            // Loading overlay
-            if (isLoading && !isLoadingMore) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(Color.Transparent),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(32.dp),
-                                strokeWidth = 3.dp
-                            )
-                            Text(
-                                text = "Loading baby events...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
-            }
+
             // dialog handling:
             if (showEventDialog && editingEvent != null) {
                 EventFormDialog(
