@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.ui.components
 
+
 import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -10,29 +11,44 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,8 +60,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DiaperEvent
 import com.kouloundissa.twinstracker.data.DiaperType
 import com.kouloundissa.twinstracker.data.DrugType
@@ -53,40 +67,223 @@ import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.FeedingEvent
+import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.toLocalDate
 import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
-import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
+import kotlinx.coroutines.flow.distinctUntilChanged
 import java.time.Duration
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
-
-@Composable
-fun TimelineList(
-    events: List<Event>,
-    modifier: Modifier = Modifier,
+fun LazyListScope.timelineItemsContent(
+    eventsByDate: Map<LocalDate, List<Event>>,
     onEdit: (Event) -> Unit,
-    eventViewModel: EventViewModel = hiltViewModel(),
-    baby: Baby,
+    onDelete: (Event) -> Unit,
+    isLoadingMore: Boolean,
+    hasMoreHistory: Boolean,
+    eventCard: @Composable (Event, () -> Unit, () -> Unit) -> Unit = { event, onEdit, onDelete ->
+        EventCard(event, onEdit, onDelete)
+    }
 ) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        events.forEach { event ->
-            EventCard(
-                event = event,
-                onEdit = { onEdit(event) },
-                onDelete = {
-                    eventViewModel.deleteEvent(event)
-                }
+    if (eventsByDate.isEmpty()) {
+        item {
+            Text(
+                "No events yet",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp),
+                style = MaterialTheme.typography.bodyMedium,
             )
         }
+    } else {
+        eventsByDate.forEach { (date, dayEvents) ->
+            item { DayHeader(date,dayEvents) }
+            items(dayEvents, key = { it.id }) { event ->
+                eventCard(event, { onEdit(event) }, { onDelete(event) })
+            }
+            if (date != eventsByDate.keys.last()) {
+                item {
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+            }
+        }
+    }
+
+    if (isLoadingMore && hasMoreHistory) {
+        item { LoadingMoreIndicator() }
+    }
+}
+/**
+ * Standalone Timeline component for use in regular Column layouts.
+ * Creates its own LazyColumn for scrolling.
+ */
+@Composable
+fun Timeline(
+    events: List<Event>,
+    onEdit: (Event) -> Unit,
+    onDelete: (Event) -> Unit,
+    onLoadMore: () -> Unit,
+    isLoadingMore: Boolean,
+    hasMoreHistory: Boolean,
+    modifier: Modifier = Modifier,
+    lazyListState: LazyListState = rememberLazyListState()
+) {
+    // Group events by date
+    val eventsByDate = remember(events) {
+        events.groupBy { event ->
+            event.timestamp.toLocalDate()
+        }.toSortedMap(reverseOrder())  // Most recent first
+    }
+
+    // Setup infinite scroll
+    InfiniteScrollEffect(
+        lazyListState = lazyListState,
+        isLoading = isLoadingMore,
+        hasMore = hasMoreHistory,
+        onLoadMore = onLoadMore,
+        threshold = 3
+    )
+    LazyColumn(
+        modifier = modifier,
+        state = lazyListState,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        timelineItemsContent(
+            eventsByDate = eventsByDate,
+            onEdit = onEdit,
+            onDelete = onDelete,
+            isLoadingMore = isLoadingMore,
+            hasMoreHistory = hasMoreHistory
+        )
+    }
+}
+
+/**
+ * Composable that renders a day header with formatted date.
+ * Customize the appearance as needed.
+ */
+@Composable
+private fun DayHeader(
+    date: LocalDate,
+    events: List<Event>,
+    modifier: Modifier = Modifier
+) {
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+    val formatter = DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy")
+    val formattedDate = date.format(formatter)
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(backgroundColor.copy(alpha = 0.12f))
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = formattedDate + " (${events.size} events)",
+            style = MaterialTheme.typography.labelMedium,
+            color = tint
+        )
+
+        Divider(
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 12.dp),
+            color = tint.copy(alpha = 0.5f),
+            thickness = 1.dp
+        )
+    }
+}
+
+/**
+ * Loading indicator shown when fetching older events.
+ */
+@Composable
+private fun LoadingMoreIndicator(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Row(
+                Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CircularProgressIndicator(
+                    Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    "Loading older events…",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Effect that handles infinite scroll logic.
+ * Triggers when user scrolls near the end of the list.
+ *
+ * @param lazyListState State of the LazyColumn
+ * @param isLoading Whether data is currently being loaded
+ * @param hasMore Whether more data is available
+ * @param onLoadMore Callback to trigger loading
+ * @param threshold Number of items from end to trigger load
+ * @param debounceMs Milliseconds to wait between load attempts
+ */
+@Composable
+fun InfiniteScrollEffect(
+    lazyListState: LazyListState,
+    isLoading: Boolean,
+    hasMore: Boolean,
+    onLoadMore: () -> Unit,
+    threshold: Int = 3,
+    debounceMs: Long = 300
+) {
+    var lastLoadAttempt by remember { mutableLongStateOf(0L) }
+    var lastLoadedCount by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(lazyListState) {
+        snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .distinctUntilChanged()
+            .collect { lastVisibleIndex ->
+                val totalItems = lazyListState.layoutInfo.totalItemsCount
+                val currentTime = System.currentTimeMillis()
+
+                if (lastVisibleIndex != null && lastVisibleIndex >= totalItems - threshold) {
+                    val shouldAttemptLoad = hasMore &&
+                            !isLoading &&
+                            (lastLoadedCount == 0 || totalItems > lastLoadedCount) &&
+                            (currentTime - lastLoadAttempt > debounceMs)
+
+                    if (shouldAttemptLoad) {
+                        lastLoadedCount = totalItems
+                        lastLoadAttempt = currentTime
+                        onLoadMore()
+                    }
+                }
+            }
     }
 }
 

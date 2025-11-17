@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -180,31 +178,21 @@ fun EventTypeDialog(
                     if (events.isEmpty()) {
                         Text("No ${type.displayName.lowercase()} events yet")
                     } else {
-                        LazyColumn(
-                            state = lazyListState,
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                        ) {
-                            items(events) { event ->
-                                EventCard(
-                                    event = event,
-                                    onEdit = { onEdit(event) },
-                                    onDelete = {
-                                        selectedBaby?.let {
-                                            eventViewModel.deleteEvent(
-                                                event
-                                            )
-                                        }
-                                    }
-                                )
-                            }
-                            if (isLoadingMore && hasMoreHistory) {
-                                item {
-                                    LoadingMoreIndicator()
+                        Timeline(
+                            events = events,
+                            onEdit = onEdit,
+                            onDelete = { event ->
+                                selectedBaby?.let {
+                                    eventViewModel.deleteEvent(event)
                                 }
-                            }
-                        }
+                            },
+                            onLoadMore = {
+                                eventViewModel.loadMoreHistoricalEvents()
+                            },
+                            isLoadingMore = isLoadingMore,
+                            hasMoreHistory = hasMoreHistory,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
                 }
                 Spacer(Modifier.height(8.dp))
@@ -226,6 +214,7 @@ fun EventTypeDialog(
         }
     }
 }
+
 /**
  * Reusable header panel showing event type title and summary information.
  * Keeps related UI logic together and improves code organization.
@@ -365,6 +354,7 @@ private fun EventTypeHeaderPanel(
         }
     }
 }
+
 @Composable
 private fun LoadingMoreIndicator(modifier: Modifier = Modifier) {
     Box(
@@ -417,6 +407,7 @@ data class EventOverlayInfo(
             description: String,
             block: @Composable BoxScope.() -> Unit
         ) = EventOverlayInfo(description = description, content = block)
+
         fun empty() = EventOverlayInfo()
     }
 

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,17 +22,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,7 +46,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -70,19 +64,20 @@ import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventTypeOverlayContext
 import com.kouloundissa.twinstracker.data.FeedingEvent
+import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.toLocalDate
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.presentation.baby.BabyFormDialog
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
-import com.kouloundissa.twinstracker.ui.components.EventCard
 import com.kouloundissa.twinstracker.ui.components.EventOverlayInfo
 import com.kouloundissa.twinstracker.ui.components.EventTypeDialog
+import com.kouloundissa.twinstracker.ui.components.InfiniteScrollEffect
+import com.kouloundissa.twinstracker.ui.components.timelineItemsContent
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.distinctUntilChanged
 import java.time.Duration
 import java.time.LocalDate
 import java.util.Calendar
@@ -142,39 +137,14 @@ fun HomeScreen(
 
     val lazyListState = rememberLazyListState()
 
-
-    LaunchedEffect(lazyListState) {
-        var lastLoadedCount = 0
-        var lastLoadAttempt = 0L
-
-        snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
-            .distinctUntilChanged()
-            .collect { lastVisibleIndex ->
-                val totalItems = lazyListState.layoutInfo.totalItemsCount
-                val currentTime = System.currentTimeMillis()
-
-                // Trigger when user is within last 3 items
-                if (lastVisibleIndex != null && lastVisibleIndex >= totalItems - 3) {
-                    // Only attempt to load if:
-                    // 1. Has more data available
-                    // 2. Not currently loading
-                    // 3. Items were actually loaded in last attempt (or first attempt)
-                    // 4. Prevent rapid consecutive attempts
-                    val shouldAttemptLoad = hasMoreHistory &&
-                            !isLoadingMore &&
-                            (lastLoadedCount == 0 || totalItems > lastLoadedCount) &&
-                            (currentTime - lastLoadAttempt > 300)
-
-                    if (shouldAttemptLoad) {
-                        lastLoadedCount = totalItems
-                        lastLoadAttempt = currentTime
-                        eventViewModel.loadMoreHistoricalEvents()
-                    }
-                }
-            }
-    }
-
-
+    // Set up infinite scroll effect here:
+    InfiniteScrollEffect(
+        lazyListState = lazyListState,
+        isLoading = isLoadingMore,
+        hasMore = hasMoreHistory,
+        onLoadMore = { eventViewModel.loadMoreHistoricalEvents() },
+        threshold = 3
+    )
     LaunchedEffect(editingEvent) {
         editingEvent?.let {
             eventViewModel.loadEventIntoForm(it)
@@ -431,86 +401,17 @@ fun HomeScreen(
                             color = backgroundColor,
                         )
                     }
-
-                    // Timeline of recent events
-                    items(babyEvents, key = { it.id }) { event ->
-                        EventCard(
-                            event = event,
-                            onEdit = {
-                                editingEvent = event;
-                                eventViewModel.loadEventIntoForm(event)
-                                showEventDialog = true
-                            },
-                            onDelete = { eventViewModel.deleteEvent(event) }
-                        )
-                    }
-                    // Discrete “load more” indicator at bottom
-                    if (isLoadingMore && hasMoreHistory) {
-                        item {
-                            Box(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Card(
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
-                                            alpha = 0.8f
-                                        )
-                                    ),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                                ) {
-                                    Row(
-                                        Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        CircularProgressIndicator(
-                                            Modifier.size(16.dp),
-                                            strokeWidth = 2.dp,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        Text(
-                                            "Loading older events…",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // End-of-history footer
-                    if (!hasMoreHistory && babyEvents.isNotEmpty()) {
-                        item {
-                            Box(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.History,
-                                        contentDescription = "No more history",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                    Text(
-                                        "Beginning reached",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    item { Spacer(Modifier.height(24.dp)) }
+                    timelineItemsContent(
+                        eventsByDate = babyEvents.groupBy { it.timestamp.toLocalDate() },
+                        onEdit = { event ->
+                            editingEvent = event
+                            eventViewModel.loadEventIntoForm(event)
+                            showEventDialog = true
+                        },
+                        onDelete = { eventViewModel.deleteEvent(it) },
+                        isLoadingMore = isLoadingMore,
+                        hasMoreHistory = hasMoreHistory,
+                    )
                 }
             }
 
