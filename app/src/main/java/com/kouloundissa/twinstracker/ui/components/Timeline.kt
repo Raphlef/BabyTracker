@@ -177,13 +177,15 @@ private fun DayHeader(
     val backgroundColor = BackgroundColor
     val contentColor = DarkGrey
     val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
     val formatter = DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy")
     val formattedDate = date.format(formatter)
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(backgroundColor.copy(alpha = 0.12f))
+            .background(backgroundColor.copy(alpha = 0.95f),shape = cornerShape)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -319,7 +321,7 @@ fun EventCard(
 
         // Foreground card
         Surface(
-            color = grey.copy(alpha = 0.3f),
+            color = backgroundColor.copy(alpha = 0.3f),
             shape = cornerShape,
             modifier = Modifier
                 .fillMaxWidth()
@@ -384,14 +386,14 @@ fun EventCard(
                     Text(
                         buildEventTitle(event, eventType),
                         style = MaterialTheme.typography.titleMedium,
-                        color = backgroundColor
+                        color = tint
                     )
                     TimeDisplay(event)
                     event.notes?.takeIf(String::isNotBlank)?.let {
                         Text(
                             it,
                             style = MaterialTheme.typography.bodySmall,
-                            color = backgroundColor.copy(alpha = 0.85f),
+                            color = tint.copy(alpha = 0.85f),
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -402,14 +404,14 @@ fun EventCard(
                     Icon(
                         Icons.Default.PhotoCamera,
                         contentDescription = "Photo attached",
-                        tint = backgroundColor,
+                        tint = tint,
                         modifier = Modifier.size(20.dp)
                     )
                 }
                 Icon(
                     Icons.Default.Edit,
                     contentDescription = "Edit",
-                    tint = backgroundColor,
+                    tint = tint,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -479,7 +481,7 @@ private fun EventTypeIndicator(eventType: EventType) {
 @Composable
 private fun TimeDisplay(event: Event) {
     val formatter = DateTimeFormatter.ofPattern("MMM dd, HH:mm")  // e.g. "Sep 30, 14:45"
-    val contentColor = BackgroundColor
+    val contentColor = DarkBlue
     val timeText = when (event) {
         is SleepEvent -> {
             val startTime = event.beginTime?.toInstant()
