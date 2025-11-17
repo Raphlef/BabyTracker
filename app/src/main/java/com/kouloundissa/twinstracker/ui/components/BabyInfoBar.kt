@@ -98,7 +98,7 @@ fun BabyInfoBar(
                     // Edit button
                     IconButton(
                         onClick = {
-                            onAddBaby?.invoke()
+                            onEditBaby.invoke()
                             isExpanded = false
                         },
                         modifier = Modifier
