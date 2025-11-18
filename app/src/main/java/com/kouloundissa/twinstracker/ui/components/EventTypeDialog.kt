@@ -45,7 +45,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -65,7 +64,6 @@ import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -179,37 +177,13 @@ private fun EventTypeDialogContent(
         type.generateSummary(todayEvents, lastGrowthEvent)
     }
 
-    LaunchedEffect(lazyListState) {
-        var lastLoadedCount = 0
-        var lastLoadAttempt = 0L
-
-        snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
-            .distinctUntilChanged()
-            .collect { lastVisibleIndex ->
-                val totalItems = lazyListState.layoutInfo.totalItemsCount
-                val currentTime = System.currentTimeMillis()
-
-                // Trigger when user is within last 3 items
-                if (lastVisibleIndex != null && lastVisibleIndex >= totalItems - 3) {
-                    // Only attempt to load if:
-                    // 1. Has more data available
-                    // 2. Not currently loading
-                    // 3. Items were actually loaded in last attempt (or first attempt)
-                    // 4. Prevent rapid consecutive attempts
-                    val shouldAttemptLoad = hasMoreHistory &&
-                            !isLoadingMore &&
-                            (lastLoadedCount == 0 || totalItems > lastLoadedCount) &&
-                            (currentTime - lastLoadAttempt > 300)
-
-                    if (shouldAttemptLoad) {
-                        lastLoadedCount = totalItems
-                        lastLoadAttempt = currentTime
-                        eventViewModel.loadMoreHistoricalEvents()
-                    }
-                }
-            }
-    }
-
+    InfiniteScrollEffect(
+        lazyListState = lazyListState,
+        isLoading = isLoadingMore,
+        hasMore = hasMoreHistory,
+        onLoadMore = { eventViewModel.loadMoreHistoricalEvents() },
+        threshold = 3
+    )
     BackHandler(onBack = onDismiss)
 
     Box(
