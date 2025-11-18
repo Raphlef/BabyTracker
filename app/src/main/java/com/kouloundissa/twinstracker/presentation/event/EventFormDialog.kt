@@ -455,11 +455,11 @@ fun EventFormDialogContent(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
-                .background(color = backgroundcolor.copy(alpha = 0.2f), shape = cornerShape)
                 .padding(12.dp)
         ) {
+            Spacer(Modifier.height(8.dp))
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = DarkBlue)
+                Text("Cancel", color = Color.Red)
             }
             // Show "Delete" only in edit mode
             if (formState.eventId != null) {
@@ -501,6 +501,7 @@ fun EventFormDialogContent(
                     )
                 }
             }
+            Spacer(Modifier.height(8.dp))
         }
     }
 }
