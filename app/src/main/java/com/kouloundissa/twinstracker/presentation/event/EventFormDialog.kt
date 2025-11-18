@@ -3,11 +3,15 @@ package com.kouloundissa.twinstracker.presentation.event
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -96,9 +100,11 @@ import com.kouloundissa.twinstracker.ui.components.PhotoPicker
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.launch
 import java.util.Date
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, DelicateCoroutinesApi::class)
 @Composable
 fun EventFormDialog(
     initialBabyId: String,
@@ -107,23 +113,63 @@ fun EventFormDialog(
     eventViewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel(),
 ) {
+    // Animated visibility state
+    var isVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
     // Wrap everything in a Dialog to make it truly full-screen
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            isVisible = false
+            kotlinx.coroutines.GlobalScope.launch {
+                kotlinx.coroutines.delay(300)
+                onDismiss()
+            }
+        },
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
             decorFitsSystemWindows = false
         )
     ) {
-        EventFormDialogContent(
-            initialBabyId = initialBabyId,
-            onDismiss = onDismiss,
-            initialEventType = initialEventType,
-            eventViewModel = eventViewModel,
-            babyViewModel = babyViewModel
-        )
+        // Animated content with slide and fade
+        AnimatedVisibility(
+            visible = isVisible,
+            enter = slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ) + fadeIn(
+                animationSpec = tween(300)
+            ),
+            exit = slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = tween(250)
+            ) + fadeOut(
+                animationSpec = tween(250)
+            )
+        ) {
+            EventFormDialogContent(
+                initialBabyId = initialBabyId,
+                onDismiss = {
+                    isVisible = false
+                    kotlinx.coroutines.GlobalScope.launch {
+                        kotlinx.coroutines.delay(300)
+                        onDismiss()
+                    }
+                },
+                initialEventType = initialEventType,
+                eventViewModel = eventViewModel,
+                babyViewModel = babyViewModel
+            )
+        }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

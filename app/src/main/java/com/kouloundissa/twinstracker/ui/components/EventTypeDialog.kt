@@ -1,6 +1,14 @@
 package com.kouloundissa.twinstracker.ui.components
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,7 +42,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,6 +66,7 @@ import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
@@ -70,26 +81,67 @@ fun EventTypeDialog(
     selectedBaby: Baby?,
     overlay: EventOverlayInfo = EventOverlayInfo()
 ) {
+    // Animated visibility state
+    var isVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
     // Wrap in Dialog for full-screen behavior
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            isVisible = false
+            // Delay dismiss to allow exit animation
+            kotlinx.coroutines.GlobalScope.launch {
+                kotlinx.coroutines.delay(300)
+                onDismiss()
+            }
+        },
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
             decorFitsSystemWindows = false
         )
     ) {
-        EventTypeDialogContent(
-            type = type,
-            events = events,
-            onDismiss = onDismiss,
-            onEdit = onEdit,
-            onAdd = onAdd,
-            eventViewModel = eventViewModel,
-            selectedBaby = selectedBaby,
-            overlay = overlay
-        )
+        // Animated content with slide and fade
+        AnimatedVisibility(
+            visible = isVisible,
+            enter = slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ) + fadeIn(
+                animationSpec = tween(300)
+            ),
+            exit = slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = tween(250)
+            ) + fadeOut(
+                animationSpec = tween(250)
+            )
+        ) {
+            EventTypeDialogContent(
+                type = type,
+                events = events,
+                onDismiss = {
+                    isVisible = false
+                    kotlinx.coroutines.GlobalScope.launch {
+                        kotlinx.coroutines.delay(300)
+                        onDismiss()
+                    }
+                },
+                onEdit = onEdit,
+                onAdd = onAdd,
+                eventViewModel = eventViewModel,
+                selectedBaby = selectedBaby,
+                overlay = overlay
+            )
+        }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
