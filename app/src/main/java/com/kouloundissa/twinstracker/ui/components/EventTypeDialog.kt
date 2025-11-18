@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.ui.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -9,20 +10,23 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -37,9 +41,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.kouloundissa.twinstracker.data.Baby
@@ -56,6 +61,39 @@ import java.time.LocalDate
 @OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
 fun EventTypeDialog(
+    type: EventType,
+    events: List<Event>,
+    onDismiss: () -> Unit,
+    onEdit: (Event) -> Unit,
+    onAdd: (EventType) -> Unit,
+    eventViewModel: EventViewModel = hiltViewModel(),
+    selectedBaby: Baby?,
+    overlay: EventOverlayInfo = EventOverlayInfo()
+) {
+    // Wrap in Dialog for full-screen behavior
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        EventTypeDialogContent(
+            type = type,
+            events = events,
+            onDismiss = onDismiss,
+            onEdit = onEdit,
+            onAdd = onAdd,
+            eventViewModel = eventViewModel,
+            selectedBaby = selectedBaby,
+            overlay = overlay
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
+@Composable
+private fun EventTypeDialogContent(
     type: EventType,
     events: List<Event>,
     onDismiss: () -> Unit,
@@ -120,95 +158,90 @@ fun EventTypeDialog(
             }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = Color.Transparent,
+    BackHandler(onBack = onDismiss)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .systemBarsPadding()
     ) {
+        val blurRadius = if (events.size > 5) 5.dp else 2.dp
+
+        //  Background image sized to the dialog
+        AsyncImage(
+            model = type.drawableRes,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .blur(blurRadius)
+        )
+
+        //  Semi-transparent overlay tint
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.9f)
-                .clip(cornerShape)
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            type.color.copy(alpha = 0.35f),
+                            type.color.copy(alpha = 0.15f)
+                        )
+                    ),
+                )
+        )
+
+        Column(
+            modifier = Modifier
+                .matchParentSize()
+                .padding(12.dp)               // uniform padding inside edges
         ) {
-            val blurRadius = if (events.size > 5) 5.dp else 0.dp
-
-            //  Background image sized to the dialog
-            AsyncImage(
-                model = type.drawableRes,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .blur(blurRadius)
+            EventTypeHeaderPanel(
+                type = type,
+                summary = summary,
+                eventCount = events.size,
+                onDismiss = onDismiss,
+                overlay = overlay
             )
-
-            //  Semi-transparent overlay tint
+            Spacer(Modifier.height(12.dp))
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                type.color.copy(alpha = 0.35f),
-                                type.color.copy(alpha = 0.15f)
-                            )
-                        ),
-                        shape = cornerShape,
-                    )
-            )
-
-            Column(
-                modifier = Modifier
-                    .matchParentSize()
-                    .padding(12.dp)               // uniform padding inside edges
+                    .weight(1f)
+                    .fillMaxWidth()
             ) {
-                EventTypeHeaderPanel(
-                    type = type,
-                    summary = summary,
-                    eventCount = events.size,
-                    overlay = overlay
-                )
-                Spacer(Modifier.height(12.dp))
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                ) {
-                    if (events.isEmpty()) {
-                        Text("No ${type.displayName.lowercase()} events yet")
-                    } else {
-                        Timeline(
-                            events = events,
-                            onEdit = onEdit,
-                            onDelete = { event ->
-                                selectedBaby?.let {
-                                    eventViewModel.deleteEvent(event)
-                                }
-                            },
-                            onLoadMore = {
-                                eventViewModel.loadMoreHistoricalEvents()
-                            },
-                            isLoadingMore = isLoadingMore,
-                            hasMoreHistory = hasMoreHistory,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
+                if (events.isEmpty()) {
+                    Text("No ${type.displayName.lowercase()} events yet")
+                } else {
+                    Timeline(
+                        events = events,
+                        onEdit = onEdit,
+                        onDelete = { event ->
+                            selectedBaby?.let {
+                                eventViewModel.deleteEvent(event)
+                            }
+                        },
+                        onLoadMore = {
+                            eventViewModel.loadMoreHistoricalEvents()
+                        },
+                        isLoadingMore = isLoadingMore,
+                        hasMoreHistory = hasMoreHistory,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
-                Spacer(Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                TextButton(
+                    onClick = { onAdd(type) }
                 ) {
-                    TextButton(
-                        onClick = { onAdd(type) }
-                    ) {
-                        Text("Add New Event", color = backgroundColor)
-                    }
+                    Text("Add New Event", color = backgroundColor)
+                }
 
-                    TextButton(onClick = onDismiss) {
-                        Text("Close", color = backgroundColor)
-                    }
+                TextButton(onClick = onDismiss) {
+                    Text("Close", color = backgroundColor)
                 }
             }
         }
@@ -224,6 +257,7 @@ private fun EventTypeHeaderPanel(
     type: EventType,
     summary: String,
     eventCount: Int,
+    onDismiss: () -> Unit,
     overlay: EventOverlayInfo = EventOverlayInfo(),
     modifier: Modifier = Modifier
 ) {
@@ -239,8 +273,23 @@ private fun EventTypeHeaderPanel(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant,
+                        CircleShape
+                    )
+                    .size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back"
+                )
+            }
+
             Icon(
                 imageVector = type.icon,
                 contentDescription = null,
