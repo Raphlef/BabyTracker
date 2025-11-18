@@ -108,7 +108,6 @@ fun EventFormDialog(
     babyViewModel: BabyViewModel = hiltViewModel(),
 ) {
     val focusManager = LocalFocusManager.current
-    val isFocusedOnDateField = remember { mutableStateOf(false) }
 
     val formState by eventViewModel.formState.collectAsState()
     val lastGrowthEvent by eventViewModel.lastGrowthEvent.collectAsState()
