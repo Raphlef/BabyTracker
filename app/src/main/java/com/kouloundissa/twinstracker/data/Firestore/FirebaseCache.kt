@@ -37,6 +37,7 @@ data class CachedDayData(
     val cachedAt: Long,
     val isComplete: Boolean = true  // true = full day queried, false = partial
 )
+
 /**
  * Serializable wrapper for CachedDayData (for JSON serialization)
  * Converts Event objects using their toMap() method for flexible serialization
@@ -96,19 +97,18 @@ data class SerializableCachedDayData(
 }
 
 
-
 /**
  * Enum defining cache TTL based on data age
  * Age is calculated from the event's oldest timestamp in the cached range
  */
 enum class CacheTTL(val ageThresholdMs: Long, val ttlMs: Long) {
     // 0-6 hours old: no cache (always fresh)
-    FRESH(TimeUnit.HOURS.toMillis(6), -1L),
+    FRESH(TimeUnit.HOURS.toMillis(6), 0L),
 
-    // 6-24 hours old: 30 min TTL
+    // 6-24 hours old: 60 min TTL
     RECENT(TimeUnit.HOURS.toMillis(24), TimeUnit.MINUTES.toMillis(60)),
 
-    // 24-48 hours old: 6 hour TTL
+    // 24-48 hours old: 12 hour TTL
     MODERATE(TimeUnit.HOURS.toMillis(48), TimeUnit.HOURS.toMillis(12)),
 
     // 48 hours-7 days hours old: 2 days TTL
@@ -127,6 +127,7 @@ enum class CacheTTL(val ageThresholdMs: Long, val ttlMs: Long) {
         }
     }
 }
+
 /**
  * Result of data retrieval planning
  * Returned by validateAndPlanDataRetrieval()
@@ -135,7 +136,7 @@ data class DataRetrievalPlan(
     val cachedDays: Map<Long, CachedDayData> = emptyMap(),  // dayStart (ms) -> events
     val missingDays: List<Date> = emptyList(),  // dates needing fresh query
     val realtimeDate: Date? = null,  // today's date for real-time listener (or null)
-    val realtimeFromTimestamp: Long? = null ,
+    val realtimeFromTimestamp: Long? = null,
     val realtime6hBeforeTimestamp: Long? = null // moment to start listening from
 ) {
     fun hasCachedData(): Boolean = cachedDays.isNotEmpty()
@@ -178,12 +179,14 @@ fun getDayEnd(date: Date): Date {
     }
     return calendar.time
 }
+
 /**
  * Helper to get today's date in UTC (midnight)
  */
 private fun getTodayUTC(): Date {
     return getDayStart(Date())
 }
+
 /**
  * FirebaseCache handles persistent caching of Firestore events with intelligent TTL management
  * Reduces Firestore read operations by:
@@ -207,9 +210,11 @@ class FirebaseCache(
     private fun generateDayCacheKey(babyId: String, dayStart: Long): String {
         return "events_${babyId}_day_${dayStart}"
     }
+
     private fun generateCacheKey(babyId: String, startDate: Date, endDate: Date): String {
         return "events_${babyId}_${startDate.time}_${endDate.time}"
     }
+
     /**
      * Safe way to get Preferences from DataStore Flow
      * Handles Flow cancellation and timeouts
@@ -228,6 +233,7 @@ class FirebaseCache(
             null
         }
     }
+
     /**
      * Store events for a specific day in persistent cache
      * Uses Event.toMap() for serialization
@@ -264,6 +270,7 @@ class FirebaseCache(
             Log.e(TAG, "✗ Error caching day events: ${e.message}", e)
         }
     }
+
     /**
      * Retrieve cached events for a specific day if cache is still valid
      * Validates TTL before returning
@@ -293,38 +300,45 @@ class FirebaseCache(
             }
 
             val cachedData = deserializeCachedDayData(json) ?: return null
+            val now = System.currentTimeMillis()
 
-            // Validate cache TTL
-            val cacheAge = System.currentTimeMillis() - cachedData.cachedAt
-            val oldestEventTime = cachedData.events.minOfOrNull { it.timestamp.time }
-                ?: System.currentTimeMillis()
-            val dataAge = System.currentTimeMillis() - oldestEventTime
+            // Calculate how long ago the cache was stored
+            val cacheAge = now - cachedData.cachedAt
+
+            // Calculate how old the actual data is (based on oldest event)
+            val oldestEventTime = cachedData.events.minOfOrNull { it.timestamp.time } ?: now
+            val dataAge = now - oldestEventTime
+
             val cacheTTL = CacheTTL.getTTL(dataAge)
 
+            Log.d(TAG, "Cache analysis: dataAge=${dataAge}ms (${TimeUnit.MILLISECONDS.toHours(dataAge)}h), " +
+                    "cacheAge=${cacheAge}ms (${TimeUnit.MILLISECONDS.toMinutes(cacheAge)}min), " +
+                    "TTL stage=${cacheTTL.name}, TTL=${cacheTTL.ttlMs}ms")
+
             // FRESH data (ttlMs == -1) should NOT be cached
-            if (cacheTTL == CacheTTL.FRESH && cacheTTL.ttlMs == -1L) {
+            if (cacheTTL == CacheTTL.FRESH) {
                 Log.d(TAG, "✗ Data is FRESH (0-6h old) - must re-query from DB")
                 return null
             }
 
             // For other TTLs, check if cache has expired
-            if (cacheTTL.ttlMs > 0 && cacheAge > cacheTTL.ttlMs) {
+            if (cacheAge > cacheTTL.ttlMs) {
                 Log.d(TAG, "✗ Cache expired: age=${cacheAge}ms > TTL=${cacheTTL.ttlMs}ms")
                 return null
             }
 
-            Log.d(TAG, "✓ Cache valid for baby=$babyId: ${cachedData.events.size} events, dataAge=${dataAge}ms, TTL=$cacheTTL")
+            Log.d(
+                TAG,
+                "✓ Cache valid for baby=$babyId: ${cachedData.events.size} events, dataAge=${dataAge}ms, TTL=$cacheTTL"
+            )
             cachedData
         } catch (e: Exception) {
             Log.e(TAG, "✗ Error retrieving cached day: ${e.message}", e)
             null
         }
     }
+
     /**
-     * NEW STRATEGY: Validate and plan data retrieval for date range
-     *
-     * This replaces the old validateAndPlanQueries() with a cleaner day-based approach.
-     *
      * Process:
      * 1. Iterate through each day in the requested range
      * 2. For past days: check cache → add to cachedDays or missingDays
@@ -361,7 +375,7 @@ class FirebaseCache(
         if (rangeIncludesToday) {
             realtimeDate = today  // ← Set ONCE: today's date
             realtimeFromTimestamp = now.time
-            val sixHoursAgo = now.time - (CacheTTL.FRESH.ageThresholdMs )  // 6 hours in milliseconds
+            val sixHoursAgo = now.time - (CacheTTL.FRESH.ageThresholdMs)  // 6 hours in milliseconds
             val todayStart = getDayStart(Date())
             val listenerStartTime = maxOf(sixHoursAgo, todayStart.time)  // Don't go before today
             realtime6hBeforeTimestamp = listenerStartTime
@@ -392,7 +406,10 @@ class FirebaseCache(
 
             if (cachedDay != null) {
                 cachedDays[currentDayStart] = cachedDay
-                Log.d(TAG, "  ✓ Using cache for day ${currentDay.time}: ${cachedDay.events.size} events")
+                Log.d(
+                    TAG,
+                    "  ✓ Using cache for day ${currentDay.time}: ${cachedDay.events.size} events"
+                )
             } else {
                 missingDays.add(currentDay)
                 Log.d(TAG, "  ✗ Missing cache for day ${currentDay.time}: will query DB")
@@ -415,6 +432,7 @@ class FirebaseCache(
             realtime6hBeforeTimestamp = realtime6hBeforeTimestamp
         )
     }
+
     /**
      * Serialize CachedDayData to JSON string for storage in DataStore
      * Uses Gson for reliable JSON serialization
@@ -439,8 +457,9 @@ class FirebaseCache(
         return try {
             if (json.isBlank()) return null
 
-            val serializable = GsonProvider.gson.fromJson(json, SerializableCachedDayData::class.java)
-                ?: return null.also { Log.w(TAG, "✗ Gson returned null") }
+            val serializable =
+                GsonProvider.gson.fromJson(json, SerializableCachedDayData::class.java)
+                    ?: return null.also { Log.w(TAG, "✗ Gson returned null") }
 
             SerializableCachedDayData.toCachedDayData(serializable, context)
         } catch (e: JsonSyntaxException) {
@@ -451,6 +470,7 @@ class FirebaseCache(
             null
         }
     }
+
     /**
      * Invalidate cache for a specific day (call after mutations)
      * Use this after creating, updating, or deleting an event
@@ -520,6 +540,7 @@ class FirebaseCache(
         }
     }
 }
+
 object GsonProvider {
     val gson: Gson = GsonBuilder()
         // : Date Serializer - handles Firebase Timestamp properly
