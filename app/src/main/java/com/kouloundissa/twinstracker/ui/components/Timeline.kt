@@ -1,6 +1,7 @@
 package com.kouloundissa.twinstracker.ui.components
 
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -265,6 +266,33 @@ fun InfiniteScrollEffect(
 ) {
     var lastLoadAttempt by remember { mutableLongStateOf(0L) }
     var lastLoadedCount by remember { mutableIntStateOf(0) }
+    var previousLoadWasEmpty by remember { mutableStateOf(false) }
+    var loadingStartCount by remember { mutableIntStateOf(0) }
+
+    // Track when loading starts and ends to detect if items were added
+    LaunchedEffect(isLoading) {
+        if (isLoading) {
+            // Loading started - capture current count
+            loadingStartCount = lazyListState.layoutInfo.totalItemsCount
+        } else if (loadingStartCount > 0) {
+            // Loading finished - check if any items were added
+            val currentCount = lazyListState.layoutInfo.totalItemsCount
+            val itemsAdded = currentCount - loadingStartCount
+
+            if (itemsAdded == 0) {
+                // No items were added - stop future attempts
+                previousLoadWasEmpty = true
+                Log.d("InfiniteScroll", "Load returned 0 items. Stopping future attempts.")
+            } else {
+                // Items were added - can continue loading
+                previousLoadWasEmpty = false
+                lastLoadedCount = currentCount
+                Log.d("InfiniteScroll", "Load returned $itemsAdded items. Total: $currentCount")
+            }
+
+            loadingStartCount = 0
+        }
+    }
 
     LaunchedEffect(lazyListState) {
         snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
@@ -276,13 +304,16 @@ fun InfiniteScrollEffect(
                 if (lastVisibleIndex != null && lastVisibleIndex >= totalItems - threshold) {
                     val shouldAttemptLoad = hasMore &&
                             !isLoading &&
+                            !previousLoadWasEmpty && // ⭐ NEW: Don't load if previous attempt was empty
                             (lastLoadedCount == 0 || totalItems > lastLoadedCount) &&
                             (currentTime - lastLoadAttempt > debounceMs)
 
                     if (shouldAttemptLoad) {
-                        lastLoadedCount = totalItems
                         lastLoadAttempt = currentTime
+                        Log.d("InfiniteScroll", "Triggering load. Current items: $totalItems")
                         onLoadMore()
+                    } else if (previousLoadWasEmpty) {
+                        Log.d("InfiniteScroll", "Skipping load - previous attempt returned no items")
                     }
                 }
             }
