@@ -1,6 +1,7 @@
 package com.kouloundissa.twinstracker.presentation.event
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -14,13 +15,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -29,7 +30,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
@@ -40,12 +41,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -65,6 +64,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.kouloundissa.twinstracker.R
@@ -97,10 +98,36 @@ import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.util.Date
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventFormDialog(
+    initialBabyId: String,
+    onDismiss: () -> Unit,
+    initialEventType: EventType? = null,
+    eventViewModel: EventViewModel = hiltViewModel(),
+    babyViewModel: BabyViewModel = hiltViewModel(),
+) {
+    // Wrap everything in a Dialog to make it truly full-screen
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        EventFormDialogContent(
+            initialBabyId = initialBabyId,
+            onDismiss = onDismiss,
+            initialEventType = initialEventType,
+            eventViewModel = eventViewModel,
+            babyViewModel = babyViewModel
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EventFormDialogContent(
     initialBabyId: String,
     onDismiss: () -> Unit,
     initialEventType: EventType? = null,
@@ -125,7 +152,8 @@ fun EventFormDialog(
     val initialPhotoUri = formState.photoUrl?.let { Uri.parse(it) }
     var selectedUri by rememberSaveable { mutableStateOf<Uri?>(initialPhotoUri) }
 
-    val footerHeight = 72.dp
+    val headerHeight = 64.dp
+    val footerHeight = 80.dp
 
     var selectedDate by remember(formState.eventTimestamp) {
         mutableStateOf(formState.eventTimestamp)
@@ -212,274 +240,265 @@ fun EventFormDialog(
             }
         )
     }
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,  // skips intermediate state to start fully expanded
-    )
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = Color.Transparent,
+
+    BackHandler(onBack = onDismiss)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize().systemBarsPadding()
     ) {
-        Surface(
-            shape = cornerShape,
-            tonalElevation = 8.dp,
-            color = Color.Transparent,// MaterialTheme.colorScheme.surface,
+        AsyncImage(
+            model = R.drawable.background,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
             modifier = Modifier
-                .fillMaxWidth()          // use full width
-                .fillMaxHeight(0.9f)
+                .fillMaxSize()
+                .blur(8.dp)
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            currentType.color.copy(alpha = 0.35f),
+                            currentType.color.copy(alpha = 0.15f)
+                        )
+                    ),
+                )
         ) {
-
-            AsyncImage(
-                model = R.drawable.background,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .blur(8.dp)
-            )
-
-            Box(
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                currentType.color.copy(alpha = 0.35f),
-                                currentType.color.copy(alpha = 0.15f)
-                            )
-                        ),
-                        shape = cornerShape,
-                    )
                     .padding(horizontal = 8.dp, vertical = 12.dp)
             ) {
-                Column(
+                IconButton(
+                    onClick = onDismiss,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 20.dp)
-                        .padding(bottom = footerHeight)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            CircleShape
+                        )
+                        .size(40.dp)
                 ) {
-                    // Header
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back"
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = if (formState.eventId == null) "Add Event" else "Edit Event",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = backgroundcolor,
+                )
+
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = headerHeight, bottom = footerHeight)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                val displayMessage = errorMessage ?: deleteError
+                if (displayMessage != null) {
+                    Surface(
+                        color = Color.Transparent,
+                        shape = cornerShape
                     ) {
                         Text(
-                            text = if (formState.eventId == null) "Add Event" else "Edit Event",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = backgroundcolor,
+                            errorMessage!!,
+                            color = Color.Red,
+                            modifier = Modifier.padding(12.dp)
                         )
-                        IconButton(
-                            onClick = onDismiss,
-                            modifier = Modifier
-                                .background(
-                                    MaterialTheme.colorScheme.surfaceVariant,
-                                    CircleShape
-                                )
-                                .size(40.dp)
-                        ) {
-                            Icon(Icons.Default.Close, contentDescription = "Close")
-                        }
                     }
-                    val displayMessage = errorMessage ?: deleteError
-                    if (displayMessage != null) {
-                        Surface(
-                            color = Color.Transparent,
-                            shape = cornerShape
+                }
+
+                BabySelectorRow(
+                    babies = babies,
+                    selectedBaby = selectedBaby,
+                    onSelectBaby = {
+                        babyViewModel.selectBaby(it)
+                    },
+                    onAddBaby = null
+                )
+                // Event Type Selector (only for new events)
+                val isEditMode = formState.eventId != null
+                if (isEditMode) {
+                    // Edit mode: show only the selected icon (no list)
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = backgroundcolor.copy(0.5f),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .padding(12.dp)
+                                .fillMaxWidth()
                         ) {
                             Text(
-                                errorMessage!!,
-                                color = Color.Red,
-                                modifier = Modifier.padding(12.dp)
+                                text = "Event Type",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(bottom = 12.dp),
+                                color = contentcolor,
                             )
-                        }
-                    }
-
-                    BabySelectorRow(
-                        babies = babies,
-                        selectedBaby = selectedBaby,
-                        onSelectBaby = {
-                            babyViewModel.selectBaby(it)
-                        },
-                        onAddBaby = null
-                    )
-                    // Event Type Selector (only for new events)
-                    val isEditMode = formState.eventId != null
-                    if (isEditMode) {
-                        // Edit mode: show only the selected icon (no list)
-                        Surface(
-                            shape = RoundedCornerShape(16.dp),
-                            color = backgroundcolor.copy(0.5f),
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .padding(12.dp)
-                                    .fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = "Event Type",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    modifier = Modifier.padding(bottom = 12.dp),
-                                    color = contentcolor,
-                                )
-                                Row {
-                                    currentType.let { type ->
-                                        Surface(
-                                            shape = RoundedCornerShape(16.dp),
-                                            color = type.color.copy(alpha = 0.5f),
-                                            border = BorderStroke(2.dp, type.color),
-                                            modifier = Modifier
-                                                .size(80.dp, 88.dp)
+                            Row {
+                                currentType.let { type ->
+                                    Surface(
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = type.color.copy(alpha = 0.5f),
+                                        border = BorderStroke(2.dp, type.color),
+                                        modifier = Modifier
+                                            .size(80.dp, 88.dp)
+                                    ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center,
+                                            modifier = Modifier.padding(8.dp)
                                         ) {
-                                            Column(
-                                                horizontalAlignment = Alignment.CenterHorizontally,
-                                                verticalArrangement = Arrangement.Center,
-                                                modifier = Modifier.padding(8.dp)
-                                            ) {
-                                                Icon(
-                                                    imageVector = type.icon,
-                                                    contentDescription = type.displayName,
-                                                    tint = BackgroundColor,
-                                                    modifier = Modifier.size(32.dp)
-                                                )
-                                                Spacer(Modifier.height(6.dp))
-                                                Text(
-                                                    text = type.displayName,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    textAlign = TextAlign.Center,
-                                                    color = BackgroundColor,
-                                                    maxLines = 2
-                                                )
-                                            }
+                                            Icon(
+                                                imageVector = type.icon,
+                                                contentDescription = type.displayName,
+                                                tint = BackgroundColor,
+                                                modifier = Modifier.size(32.dp)
+                                            )
+                                            Spacer(Modifier.height(6.dp))
+                                            Text(
+                                                text = type.displayName,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                textAlign = TextAlign.Center,
+                                                color = BackgroundColor,
+                                                maxLines = 2
+                                            )
                                         }
                                     }
                                 }
                             }
                         }
-                    } else {
-                        IconSelector(
-                            title = "Event Type",
-                            options = EventType.entries,
-                            selected = currentType,
-                            onSelect = { type ->
-                                val newState = when (type) {
-                                    EventType.DIAPER -> Diaper()
-                                    EventType.FEEDING -> Feeding()
-                                    EventType.SLEEP -> Sleep()
-                                    EventType.GROWTH -> Growth()
-                                    EventType.PUMPING -> Pumping()
-                                    EventType.DRUGS -> Drugs()
-                                }
-                                eventViewModel.updateForm { newState }
-                            },
-                            getIcon = { it.icon },
-                            getLabel = { it.displayName },
-                            getColor = { it.color }
-                        )
                     }
-
-                    // Date Selector
-                    // Then render the specific form
-                    when (val s = formState) {
-                        is Sleep -> {
-                            // No top-level date selector for Sleep
-                            SleepForm(s, eventViewModel)
-                        }
-
-                        else -> {
-                            // For all other events, render the date selector
-                            ModernDateSelector(
-                                selectedDate = selectedDate,
-                                onDateSelected = {
-                                    selectedDate = it
-                                    eventViewModel.updateEventTimestamp(it)
-                                }
-                            )
-                            when (s) {
-                                is Diaper -> DiaperForm(s, eventViewModel)
-                                is Feeding -> FeedingForm(s, eventViewModel)
-                                is Growth -> GrowthForm(s, eventViewModel)
-                                is Pumping -> PumpingForm(s, eventViewModel)
-                                is Drugs -> DrugsForm(s, eventViewModel)
-                                else -> {}
+                } else {
+                    IconSelector(
+                        title = "Event Type",
+                        options = EventType.entries,
+                        selected = currentType,
+                        onSelect = { type ->
+                            val newState = when (type) {
+                                EventType.DIAPER -> Diaper()
+                                EventType.FEEDING -> Feeding()
+                                EventType.SLEEP -> Sleep()
+                                EventType.GROWTH -> Growth()
+                                EventType.PUMPING -> Pumping()
+                                EventType.DRUGS -> Drugs()
                             }
-                        }
-                    }
-                    PhotoPicker(
-                        photoUrl = selectedUri,
-                        onPhotoSelected = { uri ->
-                            // update both our local preview state AND the ViewModel form state
-                            selectedUri = uri
-                            formState.newPhotoUrl = uri
-                            formState.photoRemoved = false
+                            eventViewModel.updateForm { newState }
                         },
-                        onPhotoRemoved = {
-                            // Only remove from storage if this event already exists:
-                            if (isEditMode) {
-                                eventViewModel.deleteEventPhoto(formState.eventId!!)
-                            }
-                            formState.photoUrl = null
-                            formState.photoRemoved = true
-                        })
-                    Spacer(Modifier.height(12.dp))
+                        getIcon = { it.icon },
+                        getLabel = { it.displayName },
+                        getColor = { it.color }
+                    )
                 }
-                // Footer: Cancel / Delete (if edit) / Save
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .background(color = backgroundcolor.copy(alpha = 0.2f), shape = cornerShape)
-                        .padding(12.dp)
-                ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = DarkBlue)
+
+                // Date Selector
+                // Then render the specific form
+                when (val s = formState) {
+                    is Sleep -> {
+                        // No top-level date selector for Sleep
+                        SleepForm(s, eventViewModel)
                     }
-                    // Show "Delete" only in edit mode
-                    if (formState.eventId != null) {
-                        TextButton(
-                            onClick = { showDeleteConfirm = true },
-                            enabled = !isDeleting
-                        ) {
-                            if (isDeleting) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Text("Delete", color = Color.Red)
+
+                    else -> {
+                        // For all other events, render the date selector
+                        ModernDateSelector(
+                            selectedDate = selectedDate,
+                            onDateSelected = {
+                                selectedDate = it
+                                eventViewModel.updateEventTimestamp(it)
                             }
+                        )
+                        when (s) {
+                            is Diaper -> DiaperForm(s, eventViewModel)
+                            is Feeding -> FeedingForm(s, eventViewModel)
+                            is Growth -> GrowthForm(s, eventViewModel)
+                            is Pumping -> PumpingForm(s, eventViewModel)
+                            is Drugs -> DrugsForm(s, eventViewModel)
+                            else -> {}
                         }
                     }
-                    Spacer(Modifier.weight(1f))
-                    Button(
-                        onClick = { selectedBaby?.let { eventViewModel.SaveEvent(it.id) } },
-                        enabled = !isSaving,
-                        shape = cornerShape,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                    ) {
-                        if (isSaving) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text("Saving…")
-                        } else {
-                            Text(
-                                if (formState.eventId == null) "Create Event" else "Update Event",
-                                style = MaterialTheme.typography.titleMedium
-                            )
+                }
+                PhotoPicker(
+                    photoUrl = selectedUri,
+                    onPhotoSelected = { uri ->
+                        // update both our local preview state AND the ViewModel form state
+                        selectedUri = uri
+                        formState.newPhotoUrl = uri
+                        formState.photoRemoved = false
+                    },
+                    onPhotoRemoved = {
+                        // Only remove from storage if this event already exists:
+                        if (isEditMode) {
+                            eventViewModel.deleteEventPhoto(formState.eventId!!)
                         }
+                        formState.photoUrl = null
+                        formState.photoRemoved = true
+                    })
+                Spacer(Modifier.height(12.dp))
+            }
+        }
+        // Footer: Cancel / Delete (if edit) / Save
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .background(color = backgroundcolor.copy(alpha = 0.2f), shape = cornerShape)
+                .padding(12.dp)
+        ) {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = DarkBlue)
+            }
+            // Show "Delete" only in edit mode
+            if (formState.eventId != null) {
+                TextButton(
+                    onClick = { showDeleteConfirm = true },
+                    enabled = !isDeleting
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Delete", color = Color.Red)
                     }
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            Button(
+                onClick = { selectedBaby?.let { eventViewModel.SaveEvent(it.id) } },
+                enabled = !isSaving,
+                shape = cornerShape,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("Saving…")
+                } else {
+                    Text(
+                        if (formState.eventId == null) "Create Event" else "Update Event",
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 }
             }
         }
