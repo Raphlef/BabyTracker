@@ -1,6 +1,7 @@
 package com.kouloundissa.twinstracker.presentation.dashboard
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -82,6 +84,7 @@ fun DashboardScreen(
     val hazeState = remember { HazeState() }
 
     val density = LocalDensity.current
+    val context = LocalContext.current
 
     // State for measured height in Dp
     var bottomBarHeightDp by remember { mutableStateOf(0.dp) }
@@ -347,6 +350,34 @@ fun DashboardScreen(
                                     EventType.DRUGS -> Drugs()
                                 }
                                 showEventForm = true
+                            }
+                        },
+                        onTabDoubleClick = { tab ->
+                            when (tab) {
+                                DashboardTab.Baby -> {
+                                    val babyName = babyViewModel.selectNextBaby()
+                                    Toast.makeText(
+                                        context,
+                                        if (babyName != null) "👶 $babyName" else "No babies available",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                                else -> {
+                                    // Handle other tabs if needed
+                                }
+                            }
+                        },
+                        onTabLongPress = { tab ->
+                            when (tab) {
+                                DashboardTab.Baby -> {
+                                    val babyName = babyViewModel.selectNextBaby()
+                                    if (babyName != null) {
+                                        Toast.makeText(context, "👶 $babyName", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                                else -> {
+                                    // Handle other tabs if needed
+                                }
                             }
                         }
                     )

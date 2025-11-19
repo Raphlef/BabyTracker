@@ -3,24 +3,20 @@ package com.kouloundissa.twinstracker.ui.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -34,22 +30,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.dp
 import com.kouloundissa.twinstracker.data.DashboardTab
-import com.kouloundissa.twinstracker.ui.theme.*
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
+import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.hazeEffect
 import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.sin
@@ -64,7 +59,9 @@ fun BottomNavBar(
     navItems: List<DashboardTab>,
     hazeState: HazeState,
     eventTypes: List<Pair<String, @Composable () -> Unit>>,
-    onEventTypeSelected: (String) -> Unit
+    onEventTypeSelected: (String) -> Unit,
+    onTabDoubleClick: ((DashboardTab) -> Unit)? = null,
+    onTabLongPress: ((DashboardTab) -> Unit)? = null
 ) {
 
     Box(
@@ -78,6 +75,8 @@ fun BottomNavBar(
             onTabSelected = onTabSelected,
             navItems = navItems,
             hazeState = hazeState,
+            onTabDoubleClick = onTabDoubleClick,
+            onTabLongPress = onTabLongPress,
             modifier = Modifier.wrapContentWidth()
         )
         IslandFAB(
@@ -97,13 +96,19 @@ fun GlassIslandNavBar(
     onTabSelected: (DashboardTab) -> Unit,
     navItems: List<DashboardTab>,
     hazeState: HazeState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onTabDoubleClick: ((DashboardTab) -> Unit)? = null,
+    onTabLongPress: ((DashboardTab) -> Unit)? = null
 ) {
     val baseColor = BackgroundColor
     val contentColor = DarkGrey
     val tint = DarkBlue
 
     val cornerShape = MaterialTheme.shapes.extraLarge
+
+    var lastClickTime by remember { mutableStateOf(0L) }
+    val haptic = LocalHapticFeedback.current
+
     Surface(
         modifier = modifier.height(64.dp),
         color = baseColor.copy(alpha = 0.95f),
@@ -134,21 +139,47 @@ fun GlassIslandNavBar(
                                 .graphicsLayer {
                                     scaleX = animatedScale
                                     scaleY = animatedScale
-                                },
+                                }
+                                .then(
+                                    if (onTabDoubleClick != null || onTabLongPress != null) {
+                                        Modifier.combinedClickable(
+                                            onClick = {
+                                                val currentTime = System.currentTimeMillis()
+                                                if (onTabDoubleClick != null && currentTime - lastClickTime < 300) {
+                                                    // Double click detected
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    onTabDoubleClick(tab)
+                                                    lastClickTime = 0L // Reset to avoid triple click
+                                                } else {
+                                                    lastClickTime = currentTime
+                                                    onTabSelected(tab)
+                                                }
+                                            },
+                                            onLongClick = onTabLongPress?.let {
+                                                {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    it(tab)
+                                                }
+                                            },
+                                            indication = null, // Remove ripple to avoid conflict with NavigationBarItem
+                                            interactionSource = remember { MutableInteractionSource() }
+                                        )
+                                    } else {
+                                        Modifier
+                                    }
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             tab.icon()
                         }
                     },
-//                    label = {
-//                        Text(
-//                            tab.label,
-//                            style = MaterialTheme.typography.labelSmall,
-//                            color = contentColor.copy(alpha = animatedAlpha)
-//                        )
-//                    },
                     selected = selectedTab == tab,
-                    onClick = { onTabSelected(tab) },
+                    onClick = {
+                        // This handles the base navigation when no enhanced gestures are set
+                        if (onTabDoubleClick == null && onTabLongPress == null) {
+                            onTabSelected(tab)
+                        }
+                    },
                     alwaysShowLabel = true,
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = tint,

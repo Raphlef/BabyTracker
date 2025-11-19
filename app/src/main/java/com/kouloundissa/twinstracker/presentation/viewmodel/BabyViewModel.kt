@@ -51,7 +51,24 @@ class BabyViewModel @Inject constructor(
 
     private val _selectedBaby = MutableStateFlow<Baby?>(null)
     val selectedBaby: StateFlow<Baby?> = _selectedBaby.asStateFlow()
+    fun selectNextBaby(): String? {
+        val currentBabies = babies.value
+        if (currentBabies.isEmpty()) return null
 
+        val currentBaby = _selectedBaby.value
+        val currentIndex = currentBabies.indexOfFirst { it.id == currentBaby?.id }
+
+        val nextIndex = if (currentIndex == -1 || currentIndex >= currentBabies.size - 1) {
+            0 // Go to first baby if no selection or at the end
+        } else {
+            currentIndex + 1
+        }
+
+        val nextBaby = currentBabies[nextIndex]
+        _selectedBaby.value = nextBaby
+
+        return nextBaby.name
+    }
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
