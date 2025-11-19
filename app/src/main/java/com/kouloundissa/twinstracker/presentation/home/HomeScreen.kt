@@ -66,7 +66,7 @@ import com.kouloundissa.twinstracker.data.EventTypeOverlayContext
 import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.toLocalDate
 import com.kouloundissa.twinstracker.data.SleepEvent
-import com.kouloundissa.twinstracker.presentation.baby.BabyFormDialog
+import com.kouloundissa.twinstracker.presentation.baby.BabyCreateDialog
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
@@ -456,14 +456,12 @@ fun HomeScreen(
                 )
             }
             if (showBabyDialog) {
-                BabyFormDialog(
-                    babyToEdit = null,
-                    onBabyUpdated = { savedOrDeletedBaby ->
+                BabyCreateDialog(
+                    onBabyCreated = { savedOrDeletedBaby ->
                         showBabyDialog = false
-                        savedOrDeletedBaby?.let { babyViewModel.selectBaby(it) }
+                        savedOrDeletedBaby.let { babyViewModel.selectBaby(it) }
                     },
                     onCancel = { showBabyDialog = false },
-                    babyViewModel = babyViewModel
                 )
             }
 
