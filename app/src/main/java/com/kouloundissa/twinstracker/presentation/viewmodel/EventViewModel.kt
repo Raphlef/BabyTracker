@@ -95,9 +95,11 @@ class EventViewModel @Inject constructor(
 
     val eventsByDay: StateFlow<Map<LocalDate, List<Event>>> = _events
         .map { events ->
-            events.groupBy { it.timestamp.toInstant()
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate() }
+            events.groupBy {
+                it.timestamp.toInstant()
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+            }
         }
         .stateIn(
             scope = viewModelScope,
@@ -810,7 +812,21 @@ class EventViewModel @Inject constructor(
             // 2. Create the event with photoUrl (if available)
             val eventWithPhoto = event.setPhotoUrl(photoUrl)
             repository.addEvent(eventWithPhoto).fold(
-                onSuccess = { _saveSuccess.value = true },
+                onSuccess = {
+                    _saveSuccess.value = true
+
+                    // Mise à jour immédiate : ajoute ou met à jour l'event
+                    val existingIndex = _events.value.indexOfFirst { it.id == eventWithPhoto.id }
+                    _events.value = if (existingIndex >= 0) {
+                        // Update si l'event existe déjà (cas rare mais possible)
+                        _events.value.toMutableList().apply {
+                            set(existingIndex, eventWithPhoto)
+                        }
+                    } else {
+                        // Ajoute en tête si nouvel event (triée par timestamp DESC)
+                        listOf(eventWithPhoto) + _events.value
+                    }
+                },
                 onFailure = { _errorMessage.value = it.message }
             )
         } catch (e: Exception) {
@@ -835,7 +851,12 @@ class EventViewModel @Inject constructor(
             // 2. Update the event with new photoUrl
             val eventWithPhoto = event.setPhotoUrl(photoUrl)
             repository.updateEvent(event.id, eventWithPhoto).fold(
-                onSuccess = { _saveSuccess.value = true },
+                onSuccess = {
+                    _saveSuccess.value = true
+                    _events.value = _events.value.map {
+                        if (it.id == event.id) event else it
+                    }
+                },
                 onFailure = { _errorMessage.value = it.message }
             )
         } catch (e: Exception) {
@@ -938,6 +959,7 @@ class EventViewModel @Inject constructor(
                 repository.deleteEvent(event).fold(
                     onSuccess = {
                         _deleteSuccess.value = true
+                        _events.value = _events.value.filterNot { it.id == event.id }
                     },
                     onFailure = { throwable ->
                         throw throwable
