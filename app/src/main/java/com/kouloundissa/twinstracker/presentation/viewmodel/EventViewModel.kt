@@ -272,25 +272,12 @@ class EventViewModel @Inject constructor(
     }
 
     /**
-     * Convenience method for last N days
-     */
-    fun refreshWithLastDays(babyId: String, days: Long = 1L) {
-        val strategy = DateRangeStrategy.LastDays(days)
-        resetDateRangeAndHistory()
-        startStreaming(babyId, strategy)
-    }
-
-    /**
      * Convenience method for custom range
      */
     fun refreshWithCustomRange(babyId: String, startDate: Date, endDate: Date) {
         val strategy = DateRangeStrategy.Custom(DateRangeParams(startDate, endDate))
         resetDateRangeAndHistory()
         startStreaming(babyId, strategy)
-    }
-
-    fun refreshCountWithLastDays(babyId: String, days: Long = 1L) {
-        startCountStreaming(babyId, DateRangeStrategy.LastDays(days))
     }
 
     fun refreshCountWithCustomRange(babyId: String, startDate: Date, endDate: Date) {
