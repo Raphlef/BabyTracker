@@ -1,32 +1,81 @@
 package com.kouloundissa.twinstracker.presentation.settings
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.FamilyRestroom
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.kouloundissa.twinstracker.data.Theme
+import coil.compose.AsyncImage
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.presentation.viewmodel.AuthViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
@@ -34,14 +83,70 @@ import com.kouloundissa.twinstracker.ui.components.FamilyManagementCard
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, DelicateCoroutinesApi::class)
 @Composable
 fun SettingsScreen(
     navController: NavController,
-    contentPadding: PaddingValues = PaddingValues(),
+    onDismiss: () -> Unit,
+) {
+    // Animated visibility state
+    var isVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
+    // Wrap everything in a Dialog to make it truly full-screen
+    Dialog(
+        onDismissRequest = {
+            isVisible = false
+            kotlinx.coroutines.GlobalScope.launch {
+                kotlinx.coroutines.delay(300)
+                onDismiss()
+            }
+        },
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        // Animated content with slide and fade
+        AnimatedVisibility(
+            visible = isVisible,
+            enter = slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ) + fadeIn(
+                animationSpec = tween(300)
+            ),
+            exit = slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = tween(250)
+            ) + fadeOut(
+                animationSpec = tween(250)
+            )
+        ) {
+            SettingsScreenContent(
+                navController = navController,
+                onDismiss = onDismiss,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreenContent(
+    navController: NavController,
+    onDismiss: () -> Unit,
     authViewModel: AuthViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel(),
     familyViewModel: FamilyViewModel = hiltViewModel()
@@ -61,181 +166,222 @@ fun SettingsScreen(
     var displayName by remember { mutableStateOf(profile?.displayName.orEmpty()) }
     var notificationsEnabled by remember { mutableStateOf(profile?.notificationsEnabled == true) }
 
-
-    val cornerShape = MaterialTheme.shapes.extraLarge
-    val baseColor = Color.White
+    val backgroundColor = BackgroundColor
     val contentColor = DarkGrey
-    Scaffold(
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        containerColor = Color.Transparent,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        modifier = Modifier.fillMaxSize()
-    ) { padding ->
-        LazyColumn(
-            contentPadding = contentPadding,
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+    val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
+    BackHandler(onBack = onDismiss)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .systemBarsPadding()
+    ) {
+        AsyncImage(
+            model = R.drawable.background,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .blur(8.dp)
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(vertical = 12.dp, horizontal = 8.dp)
         ) {
-            // — Family Management Section —
-            item {
-                SectionCard(
-                    "Gestion de la famille",
-                    icon = Icons.Default.FamilyRestroom
-                )
-                {
-                    FamilyManagementCard(families, familyViewModel, isFamilyLoading)
-                }
-            }
-            // — Profile Section —
-            item {
-                SectionCard(
-                    "Mon profil",
-                    icon = Icons.Default.Person
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 12.dp)
+            ) {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            CircleShape
+                        )
+                        .size(40.dp)
                 ) {
-                    GlassCard(
-                        loading = isAuthLoading
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            ReadOnlyField("Email", profile?.email.orEmpty(), color = contentColor)
-                            OutlinedTextField(
-                                value = displayName,
-                                onValueChange = { newValue ->
-                                    displayName = newValue
-                                },
-                                textStyle = LocalTextStyle.current.copy(color = contentColor),
-                                label = {
-                                    Text(
-                                        "Nom affiché",
-                                        color = contentColor,
-                                    )
-                                },
-                                singleLine = true,
-                                enabled = !isAuthLoading,
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = cornerShape,
-                                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                            )
-
-                            // Save button for profile edits
-                            Button(
-                                onClick = {
-                                    authViewModel.updateUserProfile(
-                                        mapOf("displayName" to displayName)
-                                    )
-                                },
-                                enabled = !isAuthLoading,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Enregistrer le nom")
-                            }
-
-                            // Logout button with confirmation
-                            OutlinedButton(
-                                onClick = {
-                                    showLogoutDialog = true
-                                },
-                                enabled = !isAuthLoading,
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = Color.Red
-                                ),
-                                border = BorderStroke(
-                                    1.dp,
-                                    Color.Red
-                                )
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Se déconnecter")
-                            }
-                        }
-                    }
-                }
-
-                // Logout confirmation dialog
-                if (showLogoutDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showLogoutDialog = false },
-                        title = {
-                            Text("Confirmation de déconnexion")
-                        },
-                        text = {
-                            Text("Êtes-vous sûr de vouloir vous déconnecter ?")
-                        },
-                        confirmButton = {
-                            TextButton(
-                                onClick = {
-                                    authViewModel.logout()
-                                    showLogoutDialog = false
-                                    navController.navigate("auth") {
-                                        popUpTo(navController.graph.startDestinationId) {
-                                            inclusive = true
-                                        }
-                                    }
-                                }
-                            ) {
-                                Text(
-                                    "Se déconnecter",
-                                    color = Color.Red// MaterialTheme.colorScheme.error
-                                )
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(
-                                onClick = { showLogoutDialog = false }
-                            ) {
-                                Text("Annuler")
-                            }
-                        }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back"
                     )
                 }
-            }
-
-            // — Notifications & Default Baby Section —
-            item {
-                SectionCard(
-                    "Notifications",
-                    icon = Icons.Default.Notifications
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = "Settings",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor,
                 )
-                {
-                    GlassCard(
-                        loading = isAuthLoading
+            }
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                // — Family Management Section —
+                item {
+                    SectionCard(
+                        "Gestion de la famille",
+                        icon = Icons.Default.FamilyRestroom
+                    )
+                    {
+                        FamilyManagementCard(families, familyViewModel, isFamilyLoading)
+                    }
+                }
+                // — Profile Section —
+                item {
+                    SectionCard(
+                        "Mon profil",
+                        icon = Icons.Default.Person
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            ToggleSetting(
-                                label = "Notifications activées",
-                                checked = notificationsEnabled,
-                                enabled = !isAuthLoading
-                            ) { notificationsEnabled = it }
-
-                            Button(
-                                onClick = {
-                                    authViewModel.updateUserProfile(
-                                        mapOf(
-                                            "notificationsEnabled" to notificationsEnabled,
+                        GlassCard(
+                            loading = isAuthLoading
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                ReadOnlyField(
+                                    "Email",
+                                    profile?.email.orEmpty(),
+                                    color = contentColor
+                                )
+                                OutlinedTextField(
+                                    value = displayName,
+                                    onValueChange = { newValue ->
+                                        displayName = newValue
+                                    },
+                                    textStyle = LocalTextStyle.current.copy(color = contentColor),
+                                    label = {
+                                        Text(
+                                            "Nom affiché",
+                                            color = contentColor,
                                         )
+                                    },
+                                    singleLine = true,
+                                    enabled = !isAuthLoading,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = cornerShape,
+                                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                                )
+
+                                // Save button for profile edits
+                                Button(
+                                    onClick = {
+                                        authViewModel.updateUserProfile(
+                                            mapOf("displayName" to displayName)
+                                        )
+                                    },
+                                    enabled = !isAuthLoading,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Enregistrer le nom")
+                                }
+
+                                // Logout button with confirmation
+                                OutlinedButton(
+                                    onClick = {
+                                        showLogoutDialog = true
+                                    },
+                                    enabled = !isAuthLoading,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = Color.Red
+                                    ),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        Color.Red
                                     )
-                                },
-                                enabled = !isAuthLoading,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Enregistrer les réglages")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Se déconnecter")
+                                }
+                            }
+                        }
+                    }
+
+                    // Logout confirmation dialog
+                    if (showLogoutDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showLogoutDialog = false },
+                            title = {
+                                Text("Confirmation de déconnexion")
+                            },
+                            text = {
+                                Text("Êtes-vous sûr de vouloir vous déconnecter ?")
+                            },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        authViewModel.logout()
+                                        showLogoutDialog = false
+                                        navController.navigate("auth") {
+                                            popUpTo(navController.graph.startDestinationId) {
+                                                inclusive = true
+                                            }
+                                        }
+                                    }
+                                ) {
+                                    Text(
+                                        "Se déconnecter",
+                                        color = Color.Red// MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(
+                                    onClick = { showLogoutDialog = false }
+                                ) {
+                                    Text("Annuler")
+                                }
+                            }
+                        )
+                    }
+                }
+
+                // — Notifications & Default Baby Section —
+                item {
+                    SectionCard(
+                        "Notifications",
+                        icon = Icons.Default.Notifications
+                    )
+                    {
+                        GlassCard(
+                            loading = isAuthLoading
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                ToggleSetting(
+                                    label = "Notifications activées",
+                                    checked = notificationsEnabled,
+                                    enabled = !isAuthLoading
+                                ) { notificationsEnabled = it }
+
+                                Button(
+                                    onClick = {
+                                        authViewModel.updateUserProfile(
+                                            mapOf(
+                                                "notificationsEnabled" to notificationsEnabled,
+                                            )
+                                        )
+                                    },
+                                    enabled = !isAuthLoading,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Enregistrer les réglages")
+                                }
                             }
                         }
                     }
                 }
             }
-
-
         }
-
-
     }
 }
 //————————————————————————————————————————————————————————————————————————————————
