@@ -2,11 +2,32 @@ package com.kouloundissa.twinstracker.data
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.BabyChangingStation
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ChildCare
+import androidx.compose.material.icons.filled.Circle
+import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Grain
+import androidx.compose.material.icons.filled.Healing
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.InvertColorsOff
+import androidx.compose.material.icons.filled.LocalDrink
+import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.Merge
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.Opacity
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.WbTwilight
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 
 
 // Enum for different Diaper event types
@@ -83,5 +104,6 @@ enum class DashboardTab(val label: String, val icon: @Composable () -> Unit) {
     Analysis(
         "Analysis",
         { Icon(Icons.AutoMirrored.Filled.ShowChart, contentDescription = "Analysis") }),
-    Settings("Settings", { Icon(Icons.Default.Settings, contentDescription = "Settings") }),
+   // Settings("Settings", { Icon(Icons.Default.Settings, contentDescription = "Settings") }),
+    Baby("Baby", { Icon(Icons.Default.ChildCare, contentDescription = "Baby") }),
 }
