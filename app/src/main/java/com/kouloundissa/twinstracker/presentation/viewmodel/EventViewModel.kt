@@ -33,6 +33,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
@@ -43,6 +44,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -65,10 +67,6 @@ class EventViewModel @Inject constructor(
     private val _formState = MutableStateFlow<EventFormState>(EventFormState.Diaper())
     val formState: StateFlow<EventFormState> = _formState.asStateFlow()
 
-    // Loaded events for calendar
-    private val _eventsByType = MutableStateFlow<Map<KClass<out Event>, List<Event>>>(emptyMap())
-    val eventsByType: StateFlow<Map<KClass<out Event>, List<Event>>> = _eventsByType.asStateFlow()
-
     private val _eventsByDay = MutableStateFlow<Map<java.time.LocalDate, List<Event>>>(emptyMap())
     val eventsByDay: StateFlow<Map<java.time.LocalDate, List<Event>>> = _eventsByDay
 
@@ -86,8 +84,17 @@ class EventViewModel @Inject constructor(
             )
         )
     val analysisSnapshot: StateFlow<AnalysisSnapshot> = _analysisSnapshot.asStateFlow()
+
     private val _events = MutableStateFlow<List<Event>>(emptyList())
     val events: StateFlow<List<Event>> = _events
+
+    val eventsByType: StateFlow<Map<KClass<out Event>, List<Event>>> = _events
+        .map { eventList -> eventList.groupBy { it::class } }
+        .stateIn(
+            scope = viewModelScope, // ou votre CoroutineScope approprié
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyMap()
+        )
 
     private val _lastGrowthEvent = MutableStateFlow<GrowthEvent?>(null)
     val lastGrowthEvent: StateFlow<GrowthEvent?> = _lastGrowthEvent.asStateFlow()
@@ -429,7 +436,6 @@ class EventViewModel @Inject constructor(
             .onEach { filtered ->
                 Log.d("EventStream", "Received ${filtered.size} events")
                 checkForNewEvents(filtered)
-                _eventsByType.value = filtered.groupBy { it::class }
                 groupEventsByDay(filtered)
                 _events.value = filtered
                 _isLoading.value = false
@@ -972,7 +978,7 @@ class EventViewModel @Inject constructor(
      */
 
     fun <T : Event> getEventsOfTypeAsFlow(type: KClass<T>): Flow<List<T>> {
-        return _eventsByType.map { map ->
+        return eventsByType.map { map ->
             val list = map[type] ?: emptyList()
             @Suppress("UNCHECKED_CAST")
             list as List<T>
@@ -984,7 +990,7 @@ class EventViewModel @Inject constructor(
      * Useful to drive calendar badges or summary views.
      */
     fun getEventCounts(): Map<String, Int> {
-        return _eventsByType.value.mapKeys { (type, _) ->
+        return eventsByType.value.mapKeys { (type, _) ->
             // Simple human‐readable key; you could customize per type.
             type.simpleName ?: "Unknown"
         }.mapValues { (_, list) ->
@@ -1009,7 +1015,6 @@ class EventViewModel @Inject constructor(
     }
 
     private fun clearAllEvents() {
-        _eventsByType.value = emptyMap()
         _eventsByDay.value = emptyMap()
     }
 
