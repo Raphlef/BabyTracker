@@ -1,19 +1,28 @@
 package com.kouloundissa.twinstracker.presentation.dashboard
 
 import android.util.Log
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -35,7 +44,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.kouloundissa.twinstracker.R
-import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DashboardTab
 import com.kouloundissa.twinstracker.data.EventFormState
 import com.kouloundissa.twinstracker.data.EventFormState.Diaper
@@ -46,7 +54,8 @@ import com.kouloundissa.twinstracker.data.EventFormState.Pumping
 import com.kouloundissa.twinstracker.data.EventFormState.Sleep
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.presentation.analysis.AnalysisScreen
-import com.kouloundissa.twinstracker.presentation.baby.BabyFormDialog
+import com.kouloundissa.twinstracker.presentation.baby.BabyCreateDialog
+import com.kouloundissa.twinstracker.presentation.baby.BabyEditDialog
 import com.kouloundissa.twinstracker.presentation.calendar.CalendarScreen
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.home.HomeScreen
@@ -80,9 +89,9 @@ fun DashboardScreen(
     // Load all babies – ensure BabyViewModel manages this
     val babies by babyViewModel.babies.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
-    var editingBaby by remember { mutableStateOf<Baby?>(null) }
-    var showBabyDialog by remember { mutableStateOf(false) }
+    var createBabyRequest by remember { mutableStateOf(false) }
     var showEventForm by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
     var selectedEventFormState by remember { mutableStateOf<EventFormState?>(null) }
     val babyError by babyViewModel.errorMessage.collectAsState()
 
@@ -100,8 +109,8 @@ fun DashboardScreen(
     val tabs = listOf(
         DashboardTab.Home,
         DashboardTab.Calendar,
+        DashboardTab.Baby,
         DashboardTab.Analysis,
-        DashboardTab.Settings
     )
     val pagerState = rememberPagerState(
         initialPage = 0,
@@ -109,7 +118,7 @@ fun DashboardScreen(
     )
     val currentTab = tabs[pagerState.currentPage]
     val showBabyInfoBar = when (currentTab) {
-        DashboardTab.Analysis, DashboardTab.Settings -> false
+        DashboardTab.Analysis -> false
         else -> true  // Show for Home and Calendar
     }
     LaunchedEffect(pagerState.currentPage) {
@@ -139,21 +148,65 @@ fun DashboardScreen(
                     Spacer(Modifier.height(8.dp))
 
                     if (showBabyInfoBar) {
-                        BabyInfoBar(
-                            babies = babies,
-                            selectedBaby = selectedBaby,
-                            onSelectBaby = {
-                                babyViewModel.selectBaby(it)
-                            },
-                            onEditBaby = {
-                                editingBaby = selectedBaby
-                            },
-                            onAddBaby = {
-                                // Open create baby dialog
-                                editingBaby = null
-                                showBabyDialog = true
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(end = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // BabyInfoBar takes most space
+                            BabyInfoBar(
+                                babies = babies,
+                                selectedBaby = selectedBaby,
+                                onSelectBaby = {
+                                    babyViewModel.selectBaby(it)
+                                    createBabyRequest = false
+                                    val babyTabIndex = tabs.indexOf(DashboardTab.Baby)
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(babyTabIndex)
+                                    }
+                                },
+                                onEditBaby = {
+                                    createBabyRequest = false
+                                    val babyTabIndex = tabs.indexOf(DashboardTab.Baby)
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(babyTabIndex)
+                                    }
+                                },
+                                onAddBaby = {
+                                    createBabyRequest = true
+                                    val babyTabIndex = tabs.indexOf(DashboardTab.Baby)
+
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(babyTabIndex)
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            Spacer(Modifier.width(4.dp))
+
+                            // Settings button
+                            IconButton(
+                                onClick = {
+                                    showSettingsDialog = true
+                                },
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(
+                                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                                        shape = CircleShape
+                                    )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = "Settings",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
                             }
-                        )
+                        }
+
                         Spacer(Modifier.height(8.dp))
                     }
 
@@ -162,7 +215,7 @@ fun DashboardScreen(
                     Box(Modifier.weight(1f)) {
                         HorizontalPager(
                             state = pagerState,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
                         ) { page ->
                             val isCurrentPage = page == pagerState.currentPage
                             when (tabs[page]) {
@@ -181,10 +234,28 @@ fun DashboardScreen(
                                     isVisible = isCurrentPage
                                 )
 
-                                DashboardTab.Settings -> SettingsScreen(
-                                    navController,
-                                    contentPadding = contentPadding
-                                )
+//                                DashboardTab.Settings -> SettingsScreen(
+//                                    navController,
+//                                    contentPadding = contentPadding
+//                                )
+                                DashboardTab.Baby ->
+                                    if (createBabyRequest) {
+                                        BabyCreateDialog(
+                                            onBabyCreated = { savedOrDeletedBaby ->
+                                                createBabyRequest = false
+                                                savedOrDeletedBaby.let { babyViewModel.selectBaby(it) }
+                                            },
+                                            onCancel = { createBabyRequest = false },
+                                        )
+                                    } else {
+                                        babyViewModel.selectedBaby.collectAsState().value?.let {
+                                            BabyEditDialog(
+                                                babyToEdit = it,
+                                                onBabyUpdated = { },
+                                                onCancel = { }
+                                            )
+                                        }
+                                    }
                             }
                         }
                     }
@@ -203,22 +274,10 @@ fun DashboardScreen(
                             }
                         )
                     }
-                    editingBaby?.let { baby ->
-                        BabyFormDialog(
-                            babyToEdit = baby,
-                            onBabyUpdated = { editingBaby = null },
-                            onCancel = { editingBaby = null }
-                        )
-                    }
-                    if (showBabyDialog && editingBaby == null) {
-                        BabyFormDialog(
-                            babyToEdit = null,
-                            onBabyUpdated = { savedOrDeletedBaby ->
-                                showBabyDialog = false
-                                savedOrDeletedBaby?.let { babyViewModel.selectBaby(it) }
-                            },
-                            onCancel = { showBabyDialog = false },
-                            babyViewModel = babyViewModel
+                    if (showSettingsDialog) {
+                        SettingsScreen(
+                            navController = navController,
+                            onDismiss = { showSettingsDialog = false }
                         )
                     }
                     babyError?.let {
