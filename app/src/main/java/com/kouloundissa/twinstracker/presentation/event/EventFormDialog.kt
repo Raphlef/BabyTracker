@@ -39,12 +39,14 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -500,37 +502,47 @@ fun EventFormDialogContent(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(12.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Spacer(Modifier.height(8.dp))
+            // Cancel button
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = Color.Red)
+                Text("Cancel", color = DarkBlue)
             }
-            // Show "Delete" only in edit mode
+
+            // Delete button - only in edit mode
             if (formState.eventId != null) {
-                TextButton(
+                OutlinedButton(
                     onClick = { showDeleteConfirm = true },
-                    enabled = !isDeleting
+                    enabled = !isDeleting,
+                    shape = cornerShape,
+                    border = BorderStroke(1.dp, if (isDeleting) Color.Gray else Color.Red),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color.Red,
+                        disabledContentColor = Color.Gray
+                    )
                 ) {
                     if (isDeleting) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
+                            strokeWidth = 2.dp,
+                            color = Color.Gray
                         )
                     } else {
-                        Text("Delete", color = Color.Red)
+                        Text("Delete")
                     }
                 }
             }
+
             Spacer(Modifier.weight(1f))
+
+            // Save/Update button
             Button(
                 onClick = { selectedBaby?.let { eventViewModel.SaveEvent(it.id) } },
                 enabled = !isSaving,
                 shape = cornerShape,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
+                modifier = Modifier.height(56.dp)
             ) {
                 if (isSaving) {
                     CircularProgressIndicator(
@@ -542,12 +554,11 @@ fun EventFormDialogContent(
                     Text("Saving…")
                 } else {
                     Text(
-                        if (formState.eventId == null) "Create Event" else "Update Event",
+                        text = if (formState.eventId == null) "Create Event" else "Update Event",
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
             }
-            Spacer(Modifier.height(8.dp))
         }
     }
 }
