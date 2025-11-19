@@ -1,7 +1,9 @@
 package com.kouloundissa.twinstracker.presentation.baby
 
+import android.annotation.SuppressLint
 import android.net.Uri
 import android.provider.ContactsContract
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -11,7 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,11 +22,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -35,13 +35,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -54,18 +54,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
-import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.BloodType
 import com.kouloundissa.twinstracker.data.Gender
@@ -83,9 +79,40 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BabyFormDialog(
-    babyToEdit: Baby? = null,
+fun BabyCreateDialog(
+    onBabyCreated: (Baby) -> Unit,
+    onCancel: () -> Unit,
+) {
+    BabyFormDialogInternal(
+        babyToEdit = null,
+        // Creation only: no delete
+        onCompleted = { baby ->
+            baby?.let(onBabyCreated)
+        },
+        onCancel = onCancel,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BabyEditDialog(
+    babyToEdit: Baby,
     onBabyUpdated: (Baby?) -> Unit,
+    onCancel: () -> Unit,
+) {
+    BabyFormDialogInternal(
+        babyToEdit = babyToEdit,
+        onCompleted = onBabyUpdated, // Handle update or null for delete
+        onCancel = onCancel,
+    )
+}
+
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BabyFormDialogInternal(
+    babyToEdit: Baby? = null,
+    onCompleted: (Baby?) -> Unit,
     onCancel: () -> Unit,
     babyViewModel: BabyViewModel = hiltViewModel(),
     eventViewModel: EventViewModel = hiltViewModel(),
@@ -112,35 +139,26 @@ fun BabyFormDialog(
     // Form State
     val formState = rememberBabyFormState(currentBaby)
 
-    // Bottom Sheet State
-    val bottomSheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true
-    )
-
     // Side-effect for completion (save/delete)
     LaunchedEffect(isLoading, babyError) {
         if ((saveClicked || deleteClicked) && wasLoading && !isLoading && babyError == null) {
-            if (deleteClicked) {
-                onBabyUpdated(null)
-            } else {
-                savedBabyLocal?.let(onBabyUpdated)
-            }
+            // Pass null if deleted, savedBabyLocal otherwise
+            onCompleted(if (deleteClicked) null else savedBabyLocal)
         }
         wasLoading = isLoading
     }
-
-    ModalBottomSheet(
-        onDismissRequest = onCancel,
-        sheetState = bottomSheetState,
+    val snackbarHostState = remember { SnackbarHostState() }
+    Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = Color.Transparent,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        modifier = Modifier.fillMaxSize()
     ) {
         BabyFormBottomSheetContent(
             state = formState,
             isEditMode = isEditMode,
-            isLoading = isLoading,
             currentBaby = currentBaby,
             babyError = babyError,
-            onCancel = onCancel,
             onOpenDeleteDialog = { openDeleteDialog.value = true },
             onSave = { babyData, newPhotoUri, photoRemoved ->
                 savedBabyLocal = babyData
@@ -269,164 +287,155 @@ class BabyFormState(
 private fun BabyFormBottomSheetContent(
     state: BabyFormState,
     isEditMode: Boolean,
-    isLoading: Boolean,
     currentBaby: Baby?,
     babyError: String?,
-    onCancel: () -> Unit,
     onOpenDeleteDialog: () -> Unit,
     onSave: (Baby, Uri?, Boolean) -> Unit,
     babyViewModel: BabyViewModel = hiltViewModel(),
 ) {
-    val darkGrey = DarkGrey
-    val baseColor = DarkBlue
-    val contentColor = BackgroundColor
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
-    Surface(
-        shape = cornerShape,
-        tonalElevation = 8.dp,
-        color = Color.Transparent,// MaterialTheme.colorScheme.surface,
+
+    Column(
         modifier = Modifier
-            .fillMaxWidth()          // use full width
-            .fillMaxHeight(0.9f)
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .navigationBarsPadding()
     ) {
-        AsyncImage(
-            model =  R.drawable.background,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxSize()
-                .blur(radiusX = 4.dp, radiusY = 4.dp)
-        )
+        // Header
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = if (isEditMode) "Edit Baby" else "Create Baby",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = backgroundColor,
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        // Form content with scroll
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            darkGrey.copy(alpha = 0.35f),
-                            darkGrey.copy(alpha = 0.15f)
-                        )
-                    ),
-                    shape = cornerShape,
-                )
-                .padding(horizontal = 12.dp, vertical = 12.dp)
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 20.dp)
-                    .navigationBarsPadding()
-            ) {
-                // Header
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = if (isEditMode) "Edit Baby" else "Create Baby",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = contentColor,
-                    )
-                    IconButton(
-                        onClick = onCancel,
-                        modifier = Modifier
-                            .background(
-                                MaterialTheme.colorScheme.surfaceVariant,
-                                CircleShape
-                            )
-                            .size(40.dp)
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-                // Form content with scroll
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                ) {
 
-                    Column {
-                        BabyFormContent(
-                            state = state,
-                            isEditMode = isEditMode,
-                            isLoading = isLoading,
-                            existingPhotoUrl = currentBaby?.photoUrl,
-                            onRequestDeletePhoto = {
-                                if (isEditMode && currentBaby != null) {
-                                    babyViewModel.deleteBabyPhoto(currentBaby.id)
-                                }
-                            }
-                        )
-
-                        babyError?.let {
-                            Spacer(Modifier.height(16.dp))
-                            Text(
-                                it,
-                                color = Color.Red, // MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-
-                        // Add bottom padding to ensure content is not hidden behind action buttons
-                        Spacer(Modifier.height(16.dp))
-                    }
-                }
-
-                // Action buttons - fixed at bottom
-                BabyFormActionButtons(
+            Column {
+                BabyFormContent(
+                    state = state,
                     isEditMode = isEditMode,
-                    isLoading = isLoading,
-                    onCancel = onCancel,
-                    onDelete = onOpenDeleteDialog,
-                    onSave = {
-                        // Validate required fields
-                        val valid = state.validate()
-                        if (!valid) return@BabyFormActionButtons
-
-                        val (babyData, newPhotoUri, photoRemoved) = state.toBabyTriple(
-                            isEditMode,
-                            currentBaby
-                        )
-                        onSave(babyData, newPhotoUri, photoRemoved)
+                    existingPhotoUrl = currentBaby?.photoUrl,
+                    onRequestDeletePhoto = {
+                        if (isEditMode && currentBaby != null) {
+                            babyViewModel.deleteBabyPhoto(currentBaby.id)
+                        }
                     }
                 )
+
+                babyError?.let {
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        it,
+                        color = Color.Red, // MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         }
+
+        // Action buttons - fixed at bottom
+        BabyFormActionButtons(
+            isEditMode = isEditMode,
+            onDelete = onOpenDeleteDialog,
+            onSave = {
+                Log.d("BabyForm", "request to save baby")
+                // Validate required fields
+                val valid = state.validate()
+                if (!valid) return@BabyFormActionButtons
+
+                val (babyData, newPhotoUri, photoRemoved) = state.toBabyTriple(
+                    isEditMode,
+                    currentBaby
+                )
+                onSave(babyData, newPhotoUri, photoRemoved)
+            }
+        )
     }
 }
 
 @Composable
 private fun BabyFormActionButtons(
     isEditMode: Boolean,
-    isLoading: Boolean,
-    onCancel: () -> Unit,
     onDelete: () -> Unit,
-    onSave: () -> Unit
+    onSave: () -> Unit,
+    babyViewModel: BabyViewModel = hiltViewModel(),
 ) {
-
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
-    val contentColor = Color.White
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = contentColor.copy(alpha = 0.2f),
-        shape = cornerShape,
+
+    val isLoading by babyViewModel.isLoading.collectAsState()
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp, bottom = 64.dp)
+            .background(
+                color = backgroundColor.copy(alpha = 0.7f),
+                shape = cornerShape
+            )
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(24.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Primary action button
+
+            // Delete button - only in edit mode
+            if (isEditMode) {
+                OutlinedButton(
+                    onClick = onDelete,
+                    enabled = !isLoading,
+                    shape = cornerShape,
+                    border = BorderStroke(
+                        1.dp,
+                        if (isLoading) Color.Gray else Color.Red
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color.Red,
+                        disabledContentColor = Color.Gray
+                    )
+                ) {
+                    Text("Delete")
+                }
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            // Save/Create button
             Button(
                 onClick = onSave,
                 enabled = !isLoading,
+                shape = cornerShape,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
+                    .height(56.dp)
+                    .pointerInput(Unit) {
+                        // ✅ Force la capture des clics
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                event.changes.forEach { it.consume() }
+                            }
+                        }
+                    }
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
@@ -438,44 +447,6 @@ private fun BabyFormActionButtons(
                     Text(if (isEditMode) "Saving..." else "Creating...")
                 } else {
                     Text(if (isEditMode) "Save" else "Create")
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            // Secondary actions row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                // Cancel button
-                TextButton(
-                    onClick = onCancel,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                ) {
-                    Text("Cancel", color = DarkBlue)
-                }
-
-                // Delete button (only in edit mode)
-                if (isEditMode) {
-                    OutlinedButton(
-                        onClick = onDelete,
-                        enabled = !isLoading,
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color.Red,// MaterialTheme.colorScheme.error
-                        ),
-                        border = BorderStroke(
-                            1.dp,
-                            Color.Red.copy(alpha = 0.8f)
-                        ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
-                    ) {
-                        Text("Delete")
-                    }
                 }
             }
         }
@@ -537,11 +508,12 @@ fun rememberBabyFormState(initial: Baby?): BabyFormState {
 private fun BabyFormContent(
     state: BabyFormState,
     isEditMode: Boolean,
-    isLoading: Boolean,
     existingPhotoUrl: String?,
     onRequestDeletePhoto: () -> Unit,
 ) {
-    val contentColor = Color.White
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
     val context = LocalContext.current
 
@@ -566,7 +538,7 @@ private fun BabyFormContent(
             state.name = it
             if (state.nameError) state.nameError = false
         },
-        textStyle = LocalTextStyle.current.copy(color = contentColor),
+        textStyle = LocalTextStyle.current.copy(color = backgroundColor),
         label = { Text("Baby Name*", color = Color.White) },
         isError = state.nameError,
         modifier = Modifier.fillMaxWidth(),
@@ -655,8 +627,8 @@ private fun BabyFormContent(
     OutlinedTextField(
         value = state.allergies,
         onValueChange = { state.allergies = it },
-        textStyle = LocalTextStyle.current.copy(color = contentColor),
-        label = { Text("Allergies (comma separated)", color = contentColor) },
+        textStyle = LocalTextStyle.current.copy(color = backgroundColor),
+        label = { Text("Allergies (comma separated)", color = backgroundColor) },
         shape = cornerShape,
         modifier = Modifier.fillMaxWidth()
     )
@@ -665,8 +637,8 @@ private fun BabyFormContent(
     OutlinedTextField(
         value = state.conditions,
         onValueChange = { state.conditions = it },
-        textStyle = LocalTextStyle.current.copy(color = contentColor),
-        label = { Text("Medical Conditions (comma separated)", color = contentColor) },
+        textStyle = LocalTextStyle.current.copy(color = backgroundColor),
+        label = { Text("Medical Conditions (comma separated)", color = backgroundColor) },
         modifier = Modifier.fillMaxWidth(),
         shape = cornerShape,
     )
@@ -675,13 +647,17 @@ private fun BabyFormContent(
     OutlinedTextField(
         value = state.pediatricianContact,
         onValueChange = { /* read-only */ },
-        textStyle = LocalTextStyle.current.copy(color = contentColor),
-        label = { Text("Pediatrician Contact", color = contentColor) },
+        textStyle = LocalTextStyle.current.copy(color = backgroundColor),
+        label = { Text("Pediatrician Contact", color = backgroundColor) },
         readOnly = true,
         singleLine = true,
         trailingIcon = {
             IconButton(onClick = { contactLauncher.launch(null) }) {
-                Icon(Icons.Default.Person, contentDescription = "Pick Contact", tint = contentColor)
+                Icon(
+                    Icons.Default.Person,
+                    contentDescription = "Pick Contact",
+                    tint = backgroundColor
+                )
             }
         },
         shape = cornerShape,
@@ -691,8 +667,8 @@ private fun BabyFormContent(
     OutlinedTextField(
         value = state.notes,
         onValueChange = { state.notes = it },
-        textStyle = LocalTextStyle.current.copy(color = contentColor),
-        label = { Text("Notes", color = contentColor) },
+        textStyle = LocalTextStyle.current.copy(color = backgroundColor),
+        label = { Text("Notes", color = backgroundColor) },
         shape = cornerShape,
         modifier = Modifier
             .fillMaxWidth()
