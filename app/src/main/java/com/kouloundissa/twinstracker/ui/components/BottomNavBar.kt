@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.ui.components
 
+import android.view.ViewConfiguration
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -27,6 +28,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,6 +47,9 @@ import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import dev.chrisbanes.haze.HazeState
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.sin
@@ -107,7 +112,9 @@ fun GlassIslandNavBar(
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     var lastClickTime by remember { mutableStateOf(0L) }
+    var clickJob by remember { mutableStateOf<Job?>(null) }
     val haptic = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
 
     Surface(
         modifier = modifier.height(64.dp),
@@ -145,23 +152,36 @@ fun GlassIslandNavBar(
                                         Modifier.combinedClickable(
                                             onClick = {
                                                 val currentTime = System.currentTimeMillis()
-                                                if (onTabDoubleClick != null && currentTime - lastClickTime < 300) {
-                                                    // Double click detected
+                                                val timeDiff = currentTime - lastClickTime
+
+                                                if (onTabDoubleClick != null && timeDiff < ViewConfiguration.getDoubleTapTimeout()) {
+                                                    // Double click detected!
+                                                    clickJob?.cancel() // Cancel pending single click
                                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                     onTabDoubleClick(tab)
                                                     lastClickTime = 0L // Reset to avoid triple click
                                                 } else {
+                                                    // Potential first click of double click
                                                     lastClickTime = currentTime
-                                                    onTabSelected(tab)
+
+                                                    // Delay single click action to allow for double click
+                                                    clickJob?.cancel()
+                                                    clickJob = scope.launch {
+                                                        delay(ViewConfiguration.getDoubleTapTimeout().toLong()) // Wait for potential second click
+                                                        // If we reach here, it was a single click
+                                                        onTabSelected(tab)
+                                                    }
                                                 }
                                             },
                                             onLongClick = onTabLongPress?.let {
                                                 {
+                                                    clickJob?.cancel() // Cancel any pending clicks
                                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                     it(tab)
+                                                    lastClickTime = 0L // Reset click tracking
                                                 }
                                             },
-                                            indication = null, // Remove ripple to avoid conflict with NavigationBarItem
+                                            indication = null,
                                             interactionSource = remember { MutableInteractionSource() }
                                         )
                                     } else {
