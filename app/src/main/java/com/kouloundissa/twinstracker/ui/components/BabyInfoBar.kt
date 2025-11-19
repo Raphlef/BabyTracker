@@ -60,6 +60,7 @@ fun BabyInfoBar(
     onSelectBaby: (Baby) -> Unit,
     onEditBaby: () -> Unit = {},
     onAddBaby: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
     babyViewModel: BabyViewModel = hiltViewModel(),
     eventViewModel: EventViewModel = hiltViewModel(),
 ) {
@@ -77,23 +78,23 @@ fun BabyInfoBar(
     val currentBaby = selectedBaby ?: babies.firstOrNull()
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         ExpandablePanel(
             headerContent = { isExpandedState ->
                 // Left section: Baby info
                 BabyInfoHeaderContent(
                     baby = currentBaby,
-                    modifier = Modifier.weight(1f)
+                    modifier = modifier.weight(1f)
                 )
 
                 // Right section: Action buttons
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(start = 12.dp)
+                    modifier = modifier.padding(start = 12.dp)
                 ) {
                     // Edit button
                     IconButton(
@@ -101,7 +102,7 @@ fun BabyInfoBar(
                             onEditBaby.invoke()
                             isExpanded = false
                         },
-                        modifier = Modifier
+                        modifier = modifier
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(Color.Transparent)
@@ -117,7 +118,7 @@ fun BabyInfoBar(
                     if (babies.size > 1) {
                         IconButton(
                             onClick = { isExpanded = !isExpanded },
-                            modifier = Modifier
+                            modifier = modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
                                 .background(Color.Transparent)
@@ -152,7 +153,7 @@ fun BabyInfoBar(
             onLongClick = {
                 selectedBaby?.let { eventViewModel.clearBabyCache(it.id) }
             },
-            modifier = Modifier,
+            modifier = modifier,
             isLoading = isLoading
         )
     }
