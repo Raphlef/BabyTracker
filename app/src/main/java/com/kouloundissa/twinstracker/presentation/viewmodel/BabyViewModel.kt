@@ -51,7 +51,7 @@ class BabyViewModel @Inject constructor(
 
     private val _selectedBaby = MutableStateFlow<Baby?>(null)
     val selectedBaby: StateFlow<Baby?> = _selectedBaby.asStateFlow()
-    fun selectNextBaby(): String? {
+    fun selectNextBaby(): Baby? {
         val currentBabies = babies.value
         if (currentBabies.isEmpty()) return null
 
@@ -67,7 +67,7 @@ class BabyViewModel @Inject constructor(
         val nextBaby = currentBabies[nextIndex]
         _selectedBaby.value = nextBaby
 
-        return nextBaby.name
+        return nextBaby
     }
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
