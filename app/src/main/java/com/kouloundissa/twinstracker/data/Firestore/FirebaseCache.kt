@@ -136,7 +136,6 @@ data class DataRetrievalPlan(
     val cachedDays: Map<Long, CachedDayData> = emptyMap(),  // dayStart (ms) -> events
     val missingDays: List<Date> = emptyList(),  // dates needing fresh query
     val realtimeDate: Date? = null,  // today's date for real-time listener (or null)
-    val realtimeFromTimestamp: Long? = null,
     val realtime6hBeforeTimestamp: Long? = null // moment to start listening from
 ) {
     fun hasCachedData(): Boolean = cachedDays.isNotEmpty()
@@ -370,14 +369,11 @@ class FirebaseCache(
         val missingDays = mutableListOf<Date>()  // dates to query
 
         var realtimeDate: Date? = null
-        var realtimeFromTimestamp: Long? = null
         var realtime6hBeforeTimestamp: Long? = null
         if (rangeIncludesToday) {
             realtimeDate = today  // ← Set ONCE: today's date
-            realtimeFromTimestamp = now.time
             val sixHoursAgo = now.time - (CacheTTL.FRESH.ageThresholdMs)  // 6 hours in milliseconds
-            val todayStart = getDayStart(Date())
-            val listenerStartTime = maxOf(sixHoursAgo, todayStart.time)  // Don't go before today
+            val listenerStartTime = sixHoursAgo // Don't go before today
             realtime6hBeforeTimestamp = listenerStartTime
             Log.d(TAG, "  ✓ Range includes today - will setup real-time listener for $today")
         }
@@ -428,7 +424,6 @@ class FirebaseCache(
             cachedDays = cachedDays,
             missingDays = missingDays,
             realtimeDate = realtimeDate,
-            realtimeFromTimestamp = realtimeFromTimestamp,
             realtime6hBeforeTimestamp = realtime6hBeforeTimestamp
         )
     }
