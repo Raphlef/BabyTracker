@@ -105,6 +105,7 @@ import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.launch
 import java.util.Date
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class, DelicateCoroutinesApi::class)
 @Composable
@@ -1228,22 +1229,12 @@ fun <T : Number> List<T>.calculatePresets(
     val nicAvg = roundToNiceNumber(avg.toInt())
 
     // Calculate presets
-    return factors.map { (nicAvg * it).toInt() }
-        .filter { it > 0 }
+    return factors.map { factor ->
+        val scaled = (nicAvg * factor).toInt()
+        roundToNiceNumber(scaled)
+    }.filter { it > 0 }
 }
 
 fun roundToNiceNumber(value: Int): Int {
-    return when {
-        value < 10 -> 10
-        value < 15 -> 15
-        value < 20 -> 20
-        value < 25 -> 25
-        value < 50 -> 50
-        value < 75 -> ((value / 25).toInt() * 25).coerceAtLeast(50)
-        value < 100 -> ((value / 10).toInt() * 10).coerceAtLeast(50)
-        value < 150 -> ((value / 25).toInt() * 25).coerceAtLeast(100)
-        value < 200 -> ((value / 50).toInt() * 50).coerceAtLeast(100)
-        value < 500 -> ((value / 100).toInt() * 100).coerceAtLeast(200)
-        else -> ((value / 250).toInt() * 250).coerceAtLeast(500)
-    }
+    return (value / 5.0f).roundToInt() * 5
 }
