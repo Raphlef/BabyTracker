@@ -207,7 +207,7 @@ fun EventFormDialogContent(
     var selectedDate by remember(formState.eventTimestamp) {
         mutableStateOf(formState.eventTimestamp)
     }
-    val backgroundcolor = BackgroundColor
+    val backgroundColor = BackgroundColor
     val contentcolor = DarkGrey
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
@@ -294,7 +294,8 @@ fun EventFormDialogContent(
 
     Box(
         modifier = Modifier
-            .fillMaxSize().systemBarsPadding()
+            .fillMaxSize()
+            .systemBarsPadding()
     ) {
         AsyncImage(
             model = R.drawable.background,
@@ -327,14 +328,15 @@ fun EventFormDialogContent(
                     onClick = onDismiss,
                     modifier = Modifier
                         .background(
-                            MaterialTheme.colorScheme.surfaceVariant,
+                            backgroundColor,
                             CircleShape
                         )
                         .size(40.dp)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back"
+                        contentDescription = "Back",
+                        tint = tint
                     )
                 }
                 Spacer(Modifier.width(12.dp))
@@ -342,7 +344,7 @@ fun EventFormDialogContent(
                     text = if (formState.eventId == null) "Add Event" else "Edit Event",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = backgroundcolor,
+                    color = backgroundColor,
                 )
 
             }
@@ -382,7 +384,7 @@ fun EventFormDialogContent(
                     // Edit mode: show only the selected icon (no list)
                     Surface(
                         shape = RoundedCornerShape(16.dp),
-                        color = backgroundcolor.copy(0.5f),
+                        color = backgroundColor.copy(0.5f),
                     ) {
                         Column(
                             modifier = Modifier
