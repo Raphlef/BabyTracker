@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -68,6 +67,9 @@ import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.BabyInfoBar
 import com.kouloundissa.twinstracker.ui.components.BackgroundContainer
 import com.kouloundissa.twinstracker.ui.components.BottomNavBar
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
+import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -80,6 +82,10 @@ fun DashboardScreen(
     authViewModel: AuthViewModel = hiltViewModel(),
     eventViewModel: EventViewModel = androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel()
 ) {
+    val backgroundColor = BackgroundColor
+    val contentcolor = DarkGrey
+    val tint = DarkBlue
+
     // HazeState for glassmorphic blur
     val hazeState = remember { HazeState() }
 
@@ -164,11 +170,6 @@ fun DashboardScreen(
                                 selectedBaby = selectedBaby,
                                 onSelectBaby = {
                                     babyViewModel.selectBaby(it)
-//                                    createBabyRequest = false
-//                                    val babyTabIndex = tabs.indexOf(DashboardTab.Baby)
-//                                    coroutineScope.launch {
-//                                        pagerState.animateScrollToPage(babyTabIndex)
-//                                    }
                                 },
                                 onEditBaby = {
                                     createBabyRequest = false
@@ -188,7 +189,6 @@ fun DashboardScreen(
                                 modifier = Modifier.weight(1f)
                             )
 
-                            Spacer(Modifier.width(4.dp))
 
                             // Settings button
                             IconButton(
@@ -196,16 +196,16 @@ fun DashboardScreen(
                                     showSettingsDialog = true
                                 },
                                 modifier = Modifier
-                                    .size(48.dp)
                                     .background(
-                                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                                        shape = CircleShape
+                                        backgroundColor,
+                                        CircleShape
                                     )
+                                    .size(40.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Settings,
                                     contentDescription = "Settings",
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = tint
                                 )
                             }
                         }
@@ -364,6 +364,7 @@ fun DashboardScreen(
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
+
                                 else -> {
                                     // Handle other tabs if needed
                                 }
@@ -381,6 +382,7 @@ fun DashboardScreen(
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
+
                                 else -> {
                                     // Handle other tabs if needed
                                 }
