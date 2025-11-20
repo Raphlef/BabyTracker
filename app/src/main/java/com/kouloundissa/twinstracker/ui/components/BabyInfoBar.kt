@@ -93,8 +93,8 @@ fun BabyInfoBar(
                 // Right section: Action buttons
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = modifier.padding(start = 12.dp)
+                    horizontalArrangement = Arrangement.End, // Align to end
+                    modifier = Modifier.padding(start = 20.dp)
                 ) {
                     // Edit button
                     IconButton(
@@ -102,7 +102,7 @@ fun BabyInfoBar(
                             onEditBaby.invoke()
                             isExpanded = false
                         },
-                        modifier = modifier
+                        modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(Color.Transparent)
@@ -118,7 +118,7 @@ fun BabyInfoBar(
                     if (babies.size > 1) {
                         IconButton(
                             onClick = { isExpanded = !isExpanded },
-                            modifier = modifier
+                            modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
                                 .background(Color.Transparent)
@@ -183,7 +183,7 @@ private fun BabyInfoHeaderContent(
         )
 
         Column(
-            modifier = Modifier.weight(1f)
+            //  modifier = Modifier.weight(1f)
         ) {
             Text(
                 text = baby?.name ?: "Unnamed Baby",
