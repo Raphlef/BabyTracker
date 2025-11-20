@@ -164,11 +164,11 @@ fun DashboardScreen(
                                 selectedBaby = selectedBaby,
                                 onSelectBaby = {
                                     babyViewModel.selectBaby(it)
-                                    createBabyRequest = false
-                                    val babyTabIndex = tabs.indexOf(DashboardTab.Baby)
-                                    coroutineScope.launch {
-                                        pagerState.animateScrollToPage(babyTabIndex)
-                                    }
+//                                    createBabyRequest = false
+//                                    val babyTabIndex = tabs.indexOf(DashboardTab.Baby)
+//                                    coroutineScope.launch {
+//                                        pagerState.animateScrollToPage(babyTabIndex)
+//                                    }
                                 },
                                 onEditBaby = {
                                     createBabyRequest = false
@@ -355,10 +355,12 @@ fun DashboardScreen(
                         onTabDoubleClick = { tab ->
                             when (tab) {
                                 DashboardTab.Baby -> {
-                                    val babyName = babyViewModel.selectNextBaby()
+                                    val baby = babyViewModel.selectNextBaby()
+                                    val babyName = baby?.name ?: "Unnamed Baby"
+                                    val babyGender = baby?.gender?.emoji ?: "👶"
                                     Toast.makeText(
                                         context,
-                                        if (babyName != null) "👶 $babyName" else "No babies available",
+                                        "$babyGender $babyName",
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
@@ -370,10 +372,14 @@ fun DashboardScreen(
                         onTabLongPress = { tab ->
                             when (tab) {
                                 DashboardTab.Baby -> {
-                                    val babyName = babyViewModel.selectNextBaby()
-                                    if (babyName != null) {
-                                        Toast.makeText(context, "👶 $babyName", Toast.LENGTH_SHORT).show()
-                                    }
+                                    val baby = babyViewModel.selectNextBaby()
+                                    val babyName = baby?.name ?: "Unnamed Baby"
+                                    val babyGender = baby?.gender?.emoji ?: "👶"
+                                    Toast.makeText(
+                                        context,
+                                        "$babyGender $babyName",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                                 else -> {
                                     // Handle other tabs if needed
