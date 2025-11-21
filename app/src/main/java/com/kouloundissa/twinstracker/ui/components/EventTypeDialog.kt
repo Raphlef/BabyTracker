@@ -37,7 +37,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -168,9 +167,6 @@ private fun EventTypeDialogContent(
         EventType.forClass(event::class) == type
     }
     val lazyListState = rememberLazyListState()
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,  // skips intermediate state to start fully expanded
-    )
 
     // Generate summary using the new refactored method
     val summary = remember(todayEvents) {
