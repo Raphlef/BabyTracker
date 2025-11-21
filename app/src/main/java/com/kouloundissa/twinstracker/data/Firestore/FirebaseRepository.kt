@@ -572,7 +572,9 @@ class FirebaseRepository @Inject constructor(
             val todayStart = getDayStart(plan.realtimeDate!!)
             val todayEnd = getDayEnd(plan.realtimeDate)
             val listenerStart = plan.realtime6hBeforeTimestamp?.let { Date(it) } ?: todayStart
-
+            require(listenerStart >= todayStart) {
+                "listenerStart ($listenerStart) must be >= todayStart ($todayStart)"
+            }
             val dateFormatter = SimpleDateFormat("MMM dd, yyyy HH:mm:ss", Locale.getDefault())
             val endDateStr = dateFormatter.format(todayEnd)
 
