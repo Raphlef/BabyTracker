@@ -48,8 +48,11 @@ enum class EventType(
         DiaperEvent::class,
         overlayBuilder = { null },
         overlayDescription = null
-    ){
-        override fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String {
+    ) {
+        override fun generateSummary(
+            todayList: List<Event>,
+            lastGrowthEvent: GrowthEvent?
+        ): String {
             val count = todayList.size
             return if (count > 0) "$count today" else "No diaper today"
         }
@@ -71,15 +74,21 @@ enum class EventType(
                     )
                 }
             }
-        } ,
+        },
         overlayDescription = "Next feeding is: "
-    ){
-        override fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String {
+    ) {
+        override fun generateSummary(
+            todayList: List<Event>,
+            lastGrowthEvent: GrowthEvent?
+        ): String {
             if (todayList.isEmpty()) return "No feeding"
 
             val totalMl = todayList.sumOf { (it as FeedingEvent).amountMl ?: 0.0 }.toInt()
+            val count = todayList.size
+            val averageMl = if (count > 0) (totalMl / count) else 0
             val breastCount = todayList.count { (it as FeedingEvent).feedType == FeedType.BREAST_MILK }
-            return "${totalMl}ml • $breastCount breast"
+
+            return "${totalMl}ml • $count feeding${if (count > 1) "s" else ""} • avg ${averageMl}ml • $breastCount breast"
         }
     },
     SLEEP(
@@ -101,8 +110,11 @@ enum class EventType(
             }
         },
         overlayDescription = "Baby is sleeping since: "
-    ){
-        override fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String {
+    ) {
+        override fun generateSummary(
+            todayList: List<Event>,
+            lastGrowthEvent: GrowthEvent?
+        ): String {
             val totalMin = todayList.sumOf { (it as SleepEvent).durationMinutes ?: 0L }
             if (totalMin > 0) {
                 val h = totalMin / 60
@@ -121,8 +133,11 @@ enum class EventType(
         GrowthEvent::class,
         overlayBuilder = { null },
         overlayDescription = null
-    ){
-        override fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String {
+    ) {
+        override fun generateSummary(
+            todayList: List<Event>,
+            lastGrowthEvent: GrowthEvent?
+        ): String {
             return lastGrowthEvent?.let {
                 "${it.weightKg ?: "-"}kg • ${it.heightCm ?: "-"}cm"
             } ?: "No growth data"
@@ -137,8 +152,11 @@ enum class EventType(
         PumpingEvent::class,
         overlayBuilder = { null },
         overlayDescription = null
-    ){
-        override fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String {
+    ) {
+        override fun generateSummary(
+            todayList: List<Event>,
+            lastGrowthEvent: GrowthEvent?
+        ): String {
             if (todayList.isEmpty()) return "No pumping today"
 
             val totalMl = todayList.sumOf { (it as PumpingEvent).amountMl ?: 0.0 }.toInt()
@@ -157,8 +175,11 @@ enum class EventType(
         DrugsEvent::class,
         overlayBuilder = { null },
         overlayDescription = null
-    ){
-        override fun generateSummary(todayList: List<Event>, lastGrowthEvent: GrowthEvent?): String {
+    ) {
+        override fun generateSummary(
+            todayList: List<Event>,
+            lastGrowthEvent: GrowthEvent?
+        ): String {
             if (todayList.isEmpty()) return "No drugs today"
 
             val doses = todayList.size
@@ -169,6 +190,7 @@ enum class EventType(
             return "${doses} today • ${last.drugType.displayName} ${doseValue}${last.unit}"
         }
     };
+
     /**
      * Abstract method for generating summary text for each event type.
      * @param todayList List of events that occurred today for this type
@@ -182,6 +204,7 @@ enum class EventType(
             content = overlayBuilder(context)
         )
     }
+
     companion object {
         fun forClass(clazz: KClass<out Event>): EventType =
             entries.firstOrNull { it.eventClass == clazz }
@@ -731,6 +754,7 @@ sealed class EventFormState {
     ) : EventFormState()
 
 }
+
 /**
  * Context object passed to overlay builders containing runtime state
  */
