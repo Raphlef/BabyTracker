@@ -529,12 +529,13 @@ class FirebaseRepository @Inject constructor(
                 try {
                     val dayStart = getDayStart(missingDay)
                     val dayEnd = getDayEnd(missingDay)
+                    val now = System.currentTimeMillis()
 
                     val queriedEvents = queryEventsForRangeOnce(babyId, dayStart, dayEnd, db)
 
                     if (queriedEvents.isNotEmpty()) {
                         val cacheableEvents = queriedEvents.filter { event ->
-                            System.currentTimeMillis() - event.timestamp.time >= CacheTTL.FRESH.ageThresholdMs
+                            now - event.timestamp.time >= CacheTTL.FRESH.ageThresholdMs
                         }
                         if (cacheableEvents.isNotEmpty()) {
                             firebaseCache.cacheDayEvents(babyId, dayStart, cacheableEvents)
