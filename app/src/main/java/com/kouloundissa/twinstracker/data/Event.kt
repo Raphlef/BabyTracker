@@ -143,7 +143,9 @@ enum class EventType(
 
             val totalMl = todayList.sumOf { (it as PumpingEvent).amountMl ?: 0.0 }.toInt()
             val count = todayList.size
-            return "${totalMl}ml • $count session${if (count > 1) "s" else ""}"
+            val averageMl = if (count > 0) (totalMl / count) else 0
+
+            return "${totalMl}ml • $count session${if (count > 1) "s" else ""} • avg ${averageMl}ml"
         }
     },
     DRUGS(
