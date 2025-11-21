@@ -44,7 +44,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -73,6 +75,8 @@ fun AmountInput(
     val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
     val contentcolor = DarkGrey
     val tint = DarkBlue
+
+    val haptic = LocalHapticFeedback.current
 
     var isDecreasePressed by remember { mutableStateOf(false) }
     var isIncreasePressed by remember { mutableStateOf(false) }
@@ -133,6 +137,9 @@ fun AmountInput(
                                 waitForUpOrCancellation()
                                 val currentValue = stringToInt(value)
                                 val newValue = maxOf(min, currentValue - step)
+                                if (newValue != currentValue) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
                                 textValue = newValue.toString()
                                 onValueChange(textValue)
                                 isDecreasePressed = false
@@ -193,6 +200,9 @@ fun AmountInput(
                                 waitForUpOrCancellation()
                                 val currentValue = stringToInt(value)
                                 val newValue = minOf(max, currentValue + step)
+                                if (newValue != currentValue) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
                                 textValue = newValue.toString()
                                 onValueChange(textValue)
                                 isIncreasePressed = false

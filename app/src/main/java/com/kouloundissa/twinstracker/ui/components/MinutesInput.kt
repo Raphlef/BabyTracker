@@ -28,6 +28,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,6 +45,8 @@ fun MinutesInput(
     modifier: Modifier = Modifier,
     presets: List<Int> = listOf(5, 10, 15, 20)
 ) {
+    val haptic = LocalHapticFeedback.current
+
     val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
     val contentcolor = DarkGrey
     val tint = DarkBlue
@@ -83,6 +87,7 @@ fun MinutesInput(
                     presets.forEach { preset ->
                         Button(
                             onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
                                 textValue = preset.toString()
                                 onValueChange(preset.toString())
                             },
