@@ -252,11 +252,12 @@ fun InfiniteScrollEffect(
     hasMore: Boolean,
     onLoadMore: () -> Unit,
     threshold: Int = 3,
-    debounceMs: Long = 300
+    debounceMs: Long = 300,
+    maxConsecutiveEmptyLoads: Int = 3
 ) {
     var lastLoadAttempt by remember { mutableLongStateOf(0L) }
     var lastLoadedCount by remember { mutableIntStateOf(0) }
-    var previousLoadWasEmpty by remember { mutableStateOf(false) }
+    var consecutiveEmptyLoads by remember { mutableIntStateOf(0) }
     var loadingStartCount by remember { mutableIntStateOf(0) }
 
     // Track when loading starts and ends to detect if items were added
@@ -271,13 +272,15 @@ fun InfiniteScrollEffect(
 
             if (itemsAdded == 0) {
                 // No items were added - stop future attempts
-                previousLoadWasEmpty = true
-                Log.d("InfiniteScroll", "Load returned 0 items. Stopping future attempts.")
+                consecutiveEmptyLoads++
+                Log.d("InfiniteScroll",  "Load returned 0 items. Consecutive empty loads: $consecutiveEmptyLoads/$maxConsecutiveEmptyLoads")
+                if (consecutiveEmptyLoads >= maxConsecutiveEmptyLoads) {
+                    Log.d("InfiniteScroll", "Max consecutive empty loads reached. Stopping future attempts.")
+                }
             } else {
-                // Items were added - can continue loading
-                previousLoadWasEmpty = false
+                consecutiveEmptyLoads = 0
                 lastLoadedCount = currentCount
-                Log.d("InfiniteScroll", "Load returned $itemsAdded items. Total: $currentCount")
+                Log.d("InfiniteScroll", "Load returned $itemsAdded items. Total: $currentCount. Reset empty load counter.")
             }
 
             loadingStartCount = 0
@@ -294,7 +297,7 @@ fun InfiniteScrollEffect(
                 if (lastVisibleIndex != null && lastVisibleIndex >= totalItems - threshold) {
                     val shouldAttemptLoad = hasMore &&
                             !isLoading &&
-                            !previousLoadWasEmpty && // ⭐ NEW: Don't load if previous attempt was empty
+                            consecutiveEmptyLoads < maxConsecutiveEmptyLoads &&
                             (lastLoadedCount == 0 || totalItems > lastLoadedCount) &&
                             (currentTime - lastLoadAttempt > debounceMs)
 
@@ -302,8 +305,11 @@ fun InfiniteScrollEffect(
                         lastLoadAttempt = currentTime
                         Log.d("InfiniteScroll", "Triggering load. Current items: $totalItems")
                         onLoadMore()
-                    } else if (previousLoadWasEmpty) {
-                        Log.d("InfiniteScroll", "Skipping load - previous attempt returned no items")
+                    } else if (consecutiveEmptyLoads >= maxConsecutiveEmptyLoads) {
+                        Log.d(
+                            "InfiniteScroll",
+                            "Skipping load - max consecutive empty loads reached ($consecutiveEmptyLoads/$maxConsecutiveEmptyLoads)"
+                        )
                     }
                 }
             }
