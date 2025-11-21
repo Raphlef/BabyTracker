@@ -354,7 +354,7 @@ private fun EventTypeHeaderPanel(
                             color = contentColor.copy(alpha = 0.8f),
                             modifier = Modifier
                                 .weight(1f)
-                                .align(Alignment.Top)
+                                .align(Alignment.CenterVertically)
                         )
 
                         // Content on right
@@ -474,5 +474,5 @@ data class EventOverlayInfo(
         fun empty() = EventOverlayInfo()
     }
 
-    fun hasContent(): Boolean = !description.isNullOrBlank() || content != null
+    fun hasContent(): Boolean =( !description.isNullOrBlank() && content != null)
 }
