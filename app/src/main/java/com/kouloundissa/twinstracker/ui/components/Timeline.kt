@@ -25,7 +25,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -129,11 +128,10 @@ fun Timeline(
     events: List<Event>,
     onEdit: (Event) -> Unit,
     onDelete: (Event) -> Unit,
-    onLoadMore: () -> Unit,
     isLoadingMore: Boolean,
     hasMoreHistory: Boolean,
     modifier: Modifier = Modifier,
-    lazyListState: LazyListState = rememberLazyListState()
+    lazyListState: LazyListState
 ) {
     // Group events by date
     val eventsByDate = remember(events) {
@@ -142,14 +140,6 @@ fun Timeline(
         }.toSortedMap(reverseOrder())  // Most recent first
     }
 
-    // Setup infinite scroll
-    InfiniteScrollEffect(
-        lazyListState = lazyListState,
-        isLoading = isLoadingMore,
-        hasMore = hasMoreHistory,
-        onLoadMore = onLoadMore,
-        threshold = 3
-    )
     LazyColumn(
         modifier = modifier,
         state = lazyListState,

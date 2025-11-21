@@ -241,12 +241,10 @@ private fun EventTypeDialogContent(
                                 eventViewModel.deleteEvent(event)
                             }
                         },
-                        onLoadMore = {
-                            eventViewModel.loadMoreHistoricalEvents()
-                        },
                         isLoadingMore = isLoadingMore,
                         hasMoreHistory = hasMoreHistory,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        lazyListState = lazyListState
                     )
                 }
             }
