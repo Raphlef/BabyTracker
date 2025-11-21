@@ -51,8 +51,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -337,7 +339,7 @@ fun HomeScreen(
                             items(sortedEventTypes) { type ->
                                 EventTypeCard(
                                     type = type,
-                                   // summary = summaries[type]!!,
+                                    // summary = summaries[type]!!,
                                     isFavorite = type in favoriteEventTypes,
                                     onFavoriteToggle = { eventViewModel.toggleFavorite(type) },
                                     onClick = {
@@ -358,7 +360,11 @@ fun HomeScreen(
                                                 selectedType = type
                                                 editingEvent =
                                                     if (type == EventType.SLEEP) activeSleepEvent else null
-                                                editingEvent?.let { event -> eventViewModel.loadEventIntoForm(event) }
+                                                editingEvent?.let { event ->
+                                                    eventViewModel.loadEventIntoForm(
+                                                        event
+                                                    )
+                                                }
                                                 showEventDialog = true
                                             }
                                         )
@@ -370,12 +376,16 @@ fun HomeScreen(
 
                     item {
                         Spacer(Modifier.height(24.dp))
-                            Text(
+                        Text(
                             "Recent Events",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.headlineMedium,
-                            modifier = Modifier.padding(vertical = 8.dp )
-                                .background(backgroundColor.copy(alpha = 0.95f),shape = cornerShape)
+                            modifier = Modifier
+                                .padding(vertical = 8.dp)
+                                .background(
+                                    backgroundColor.copy(alpha = 0.95f),
+                                    shape = cornerShape
+                                )
                                 .padding(vertical = 8.dp, horizontal = 12.dp),
                             color = tint,
                         )
@@ -458,7 +468,6 @@ fun HomeScreen(
 @Composable
 fun EventTypeCard(
     type: EventType,
-    //summary: String,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     width: Dp,
@@ -474,6 +483,7 @@ fun EventTypeCard(
     val borderWidth = 1.dp
     val cornerShape = MaterialTheme.shapes.extraLarge
 
+    val haptic = LocalHapticFeedback.current
     Surface(
         shape = cornerShape,
         color = Color.Transparent,
@@ -483,7 +493,12 @@ fun EventTypeCard(
             .height(height)
             .combinedClickable(
                 onClick = onClick,
-                onLongClick = onLongClick ?: {}
+                onLongClick = onLongClick?.let { callback ->
+                    {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        callback()
+                    }
+                }
             )
 
     ) {
