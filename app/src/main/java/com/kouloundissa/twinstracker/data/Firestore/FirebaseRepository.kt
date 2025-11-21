@@ -534,8 +534,15 @@ class FirebaseRepository @Inject constructor(
                     val queriedEvents = queryEventsForRangeOnce(babyId, dayStart, dayEnd, db)
 
                     if (queriedEvents.isNotEmpty()) {
-                        val cacheableEvents = queriedEvents.filter { event ->
-                            now - event.timestamp.time >= CacheTTL.FRESH.ageThresholdMs
+                        val isCompletedDay = dayEnd.time < now
+                        val cacheableEvents = if (isCompletedDay) {
+                            // Jour terminé : on cache tous les événements
+                            queriedEvents
+                        } else {
+                            // Jour en cours : seulement les > 6h
+                            queriedEvents.filter { event ->
+                                now - event.timestamp.time >= CacheTTL.FRESH.ageThresholdMs
+                            }
                         }
                         if (cacheableEvents.isNotEmpty()) {
                             firebaseCache.cacheDayEvents(babyId, dayStart, cacheableEvents)
