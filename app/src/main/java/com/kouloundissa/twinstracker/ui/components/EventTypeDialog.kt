@@ -413,14 +413,6 @@ private fun EventTypeHeaderPanel(
                     style = MaterialTheme.typography.titleMedium,
                     color = contentColor
                 )
-                if (eventCount > 0) {
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        text = "$eventCount event${if (eventCount > 1) "s" else ""} total",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = contentColor.copy(alpha = 0.7f)
-                    )
-                }
             }
         }
     }
