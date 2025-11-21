@@ -64,8 +64,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -214,6 +216,8 @@ fun EventFormDialogContent(
 
     val babies by babyViewModel.babies.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
+
+    val haptic = LocalHapticFeedback.current
 
     LaunchedEffect(formState.eventType) {
         // Reset focus when event type changes
@@ -517,7 +521,10 @@ fun EventFormDialogContent(
             // Delete button - only in edit mode
             if (formState.eventId != null) {
                 OutlinedButton(
-                    onClick = { showDeleteConfirm = true },
+                    onClick = {
+                        showDeleteConfirm = true
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    },
                     enabled = !isDeleting,
                     shape = cornerShape,
                     border = BorderStroke(1.dp, if (isDeleting) Color.Gray else Color.Red),
@@ -542,7 +549,12 @@ fun EventFormDialogContent(
 
             // Save/Update button
             Button(
-                onClick = { selectedBaby?.let { eventViewModel.SaveEvent(it.id) } },
+                onClick = {
+                    selectedBaby?.let {
+                        haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                        eventViewModel.SaveEvent(it.id)
+                    }
+                },
                 enabled = !isSaving,
                 shape = cornerShape,
                 modifier = Modifier.height(56.dp)

@@ -54,9 +54,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -341,6 +343,8 @@ fun EventCard(
     val animatedOffset by animateFloatAsState(offsetX, tween(300))
 
     val density = LocalDensity.current
+    val haptic = LocalHapticFeedback.current
+
     val maxSwipePx = with(density) { 120.dp.toPx() }
     val thresholdPx = with(density) { 50.dp.toPx() }
 
@@ -459,6 +463,7 @@ fun EventCard(
                     Modifier
                         .fillMaxSize()
                         .clickable {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             deleteAction()
                             showConfirm = false
                             offsetX = 0f
