@@ -383,8 +383,18 @@ class FirebaseCache(
             val currentDayStart = getDayStart(currentDay).time
 
             if (realtimeDate != null && currentDay >= realtimeDate) {
-                // Today and beyond: skip cache, will use real-time listener
-                Log.d(TAG, "  → Day ${currentDay.time}: >= today, will use real-time listener")
+
+                val cachedDay = getCachedDayEvents(babyId, currentDay)
+                if (cachedDay != null) {
+                    cachedDays[currentDayStart] = cachedDay
+                    Log.d(TAG, "  ✓ Today cached: ${cachedDay.events.size} events")
+                } else {
+                    // ❌ Pas de cache aujourd'hui → ajouter à missingDays
+                    // Mais seulement pour la période STABLE (avant listener)
+                    missingDays.add(currentDay)
+                    Log.d(TAG, "  → Today not cached: will query stable period in PHASE 3")
+                }
+
                 calendar.add(Calendar.DAY_OF_MONTH, 1)
                 continue
             }
