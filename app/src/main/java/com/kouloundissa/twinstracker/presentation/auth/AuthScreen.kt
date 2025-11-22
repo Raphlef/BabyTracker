@@ -59,6 +59,7 @@ import com.kouloundissa.twinstracker.presentation.viewmodel.AuthViewModel
 import com.kouloundissa.twinstracker.ui.components.BackgroundContainer
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
+import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 
 @Composable
 fun AuthScreen(
@@ -70,8 +71,10 @@ fun AuthScreen(
     val scope = rememberCoroutineScope()
     var emailError by remember { mutableStateOf<String?>(null) }
 
-    val baseColor = BackgroundColor
-    val contentColor = DarkBlue
+    val backgroundColor = BackgroundColor
+    val content = DarkGrey
+    val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
 
 
     // Preconfigure GoogleSignInClient
