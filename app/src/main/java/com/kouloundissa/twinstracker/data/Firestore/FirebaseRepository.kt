@@ -530,8 +530,19 @@ class FirebaseRepository @Inject constructor(
                     val dayStart = getDayStart(missingDay)
                     val dayEnd = getDayEnd(missingDay)
                     val now = System.currentTimeMillis()
+                    val listenerStart = plan.realtime6hBeforeTimestamp?.let { Date(it) } ?: dayStart
 
-                    val queriedEvents = queryEventsForRangeOnce(babyId, dayStart, dayEnd, db)
+                    val queryEnd = if (dayStart >= getDayStart(Date(now))) {
+                        // Aujourd'hui: query jusqu'au listener start
+                        listenerStart
+                    } else {
+                        // Hier: query toute la journée
+                        getDayEnd(missingDay)
+                    }
+
+                    Log.d(TAG, "  → Querying day $dayStart → $queryEnd")
+
+                    val queriedEvents = queryEventsForRangeOnce(babyId, dayStart, queryEnd, db)
 
                     if (queriedEvents.isNotEmpty()) {
                         val isCompletedDay = dayEnd.time < now
@@ -576,6 +587,7 @@ class FirebaseRepository @Inject constructor(
 
             Log.d(TAG, "→ Real-time strategy: listener from $listenerStart (always 6h back)")
 
+            var hasStableData = false
             // ═══════════════════════════════════════════════════════════
             // PHASE 1: Charger le cache STABLE (événements > 6h)
             // ═══════════════════════════════════════════════════════════
@@ -596,35 +608,42 @@ class FirebaseRepository @Inject constructor(
                         allEvents[event.id] = event
                     }
 
-                    Log.d(TAG, "  ✓ Loaded ${relevantEvents.size} stable events from yesterday")
+                    if (relevantEvents.isNotEmpty()) {
+                        hasStableData = true
+                        Log.d(TAG, "  ✓ Loaded ${relevantEvents.size} stable events from yesterday")
+                    }
                 } else {
                     Log.d(TAG, "  ⚠ No cache for yesterday - will rely on listener")
                 }
             }
 
-            // Événements d'AUJOURD'HUI > 6h (minuit → 6h en arrière)
-            val todayCache = firebaseCache.getCachedDayEvents(babyId, todayStart)
-            if (todayCache != null) {
-                val stableEvents = todayCache.events.filter { event ->
-                    event.timestamp.time >= todayStart.time &&
-                            event.timestamp.time < listenerStart.time
-                }
+            // 🔧 OPTIMISATION: Skip reload si déjà chargé en PHASE 3
+            if (listenerStart > todayStart && !plan.missingDays.contains(todayStart)) {
+                // Cache existe et a été chargé en PHASE 2 → skip reload
+                val todayCache = firebaseCache.getCachedDayEvents(babyId, todayStart)
+                if (todayCache != null) {
+                    val stableEvents = todayCache.events.filter { event ->
+                        event.timestamp.time >= todayStart.time &&
+                                event.timestamp.time < listenerStart.time
+                    }
 
-                stableEvents.forEach { event ->
-                    allEvents[event.id] = event
-                }
+                    stableEvents.forEach { event ->
+                        allEvents[event.id] = event
+                    }
 
-                if (stableEvents.isNotEmpty()) {
-                    Log.d(TAG, "  ✓ Loaded ${stableEvents.size} stable events from today")
+                    if (stableEvents.isNotEmpty()) {
+                        hasStableData = true
+                        Log.d(TAG, "  ✓ Loaded ${stableEvents.size} stable events from today's cache")
+                    }
                 }
             }
+            // Sinon: les événements stables d'aujourd'hui sont déjà dans allEvents (PHASE 3)
 
-            // Émettre les données stables si on en a
-            if (allEvents.isNotEmpty()) {
+            if (hasStableData) {
                 val transformed = transform(allEvents)
                 if (transformed != null) {
                     emit(transformed)
-                    Log.d(TAG, "✓ Emitted stable cached data (>6h old)")
+                    Log.d(TAG, "✓ Emitted stable cached data")
                 }
             }
 
