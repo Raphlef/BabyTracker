@@ -696,6 +696,7 @@ class FirebaseRepository @Inject constructor(
         Log.e(TAG, "✗ Stream error for baby=$babyId: ${e.message}", e)
         throw e
     }.flowOn(Dispatchers.IO)
+
     fun streamEventsForBaby(
         babyId: String,
         startDate: Date,
