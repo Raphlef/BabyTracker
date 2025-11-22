@@ -572,122 +572,138 @@ class FirebaseRepository @Inject constructor(
             val todayStart = getDayStart(plan.realtimeDate!!)
             val todayEnd = getDayEnd(plan.realtimeDate)
             val listenerStart = plan.realtime6hBeforeTimestamp?.let { Date(it) } ?: todayStart
-
             val listenerStartDay = getDayStart(listenerStart)
-            val dateFormatter = SimpleDateFormat("MMM dd, yyyy HH:mm:ss", Locale.getDefault())
-            val endDateStr = dateFormatter.format(todayEnd)
 
-            Log.d(TAG, "→ Checking cache for pre-listener period: $todayStart → $todayEnd")
+            Log.d(TAG, "→ Real-time strategy: listener from $listenerStart (always 6h back)")
 
-            var todaysCachedData = firebaseCache.getCachedDayEvents(babyId, todayStart)
+            // ═══════════════════════════════════════════════════════════
+            // PHASE 1: Charger le cache STABLE (événements > 6h)
+            // ═══════════════════════════════════════════════════════════
 
-            if (todaysCachedData != null) {
-                // ✓ Cache hit for today
-                Log.d(TAG, "✓ Using today's cache: ${todaysCachedData.events.size} events")
+            // Événements d'HIER (si listener traverse minuit)
+            if (listenerStartDay < todayStart) {
+                Log.d(TAG, "  → Listener spans previous day, loading yesterday's stable cache")
 
-                val preListenerEvents = todaysCachedData.events.filter { event ->
-                    event.timestamp.time < listenerStart.time
-                }
-
-                preListenerEvents.forEach { event ->
-                    allEvents[event.id] = event
-                }
-
-                if (preListenerEvents.isNotEmpty()) {
-                    val transformed = transform(allEvents)
-                    if (transformed != null) {
-                        emit(transformed)
-                        Log.d(TAG, "✓ Emitted ${preListenerEvents.size} cached pre-listener events")
+                val yesterdayCache = firebaseCache.getCachedDayEvents(babyId, listenerStartDay)
+                if (yesterdayCache != null) {
+                    // Prendre seulement les événements dans la période du listener
+                    val relevantEvents = yesterdayCache.events.filter { event ->
+                        event.timestamp.time >= listenerStart.time &&
+                                event.timestamp.time < todayStart.time
                     }
-                }
-            } else {
-                // ✗ No valid cache for today - must query pre-listener period
-                try {
-                    Log.d(TAG, "→ No cache for pre-listener period - querying from $todayStart to $listenerStart")
 
-                    val queriedEvents = queryEventsForRangeOnce(
-                        babyId,
-                        todayStart,
-                        listenerStart,
-                        db
-                    )
-
-                    if (queriedEvents.isNotEmpty()) {
-                        queriedEvents.forEach { event ->
-                            allEvents[event.id] = event
-                        }
-
-                        val transformed = transform(allEvents)
-                        if (transformed != null) {
-                            emit(transformed)
-                            Log.d(TAG, "✓ Emitted queried pre-listener data: ${queriedEvents.size} events")
-                        }
-
-                        val cacheableEvents = queriedEvents.filter { event ->
-                            System.currentTimeMillis() - event.timestamp.time >= CacheTTL.FRESH.ageThresholdMs
-                        }
-                        if (cacheableEvents.isNotEmpty()) {
-                            try {
-                                firebaseCache.cacheDayEvents(babyId, todayStart, cacheableEvents)
-                                Log.d(TAG, "✓ Cached ${cacheableEvents.size}/${queriedEvents.size} pre-listener events")
-                            } catch (e: Exception) {
-                                Log.w(TAG, "⚠ Failed to cache: ${e.message}")
-                            }
-                        }
-                    } else {
-                        Log.d(TAG, "ℹ No events in pre-listener period")
+                    relevantEvents.forEach { event ->
+                        allEvents[event.id] = event
                     }
-                } catch (e: Exception) {
-                    Log.e(TAG, "✗ Error querying pre-listener period: ${e.message}", e)
+
+                    Log.d(TAG, "  ✓ Loaded ${relevantEvents.size} stable events from yesterday")
+                } else {
+                    Log.d(TAG, "  ⚠ No cache for yesterday - will rely on listener")
                 }
             }
 
-            // Now setup real-time listener starting 6h ago (covers FRESH + new events)
-            Log.d(TAG, "→ Setting up real-time listener for $listenerStart → $endDateStr")
+            // Événements d'AUJOURD'HUI > 6h (minuit → 6h en arrière)
+            val todayCache = firebaseCache.getCachedDayEvents(babyId, todayStart)
+            if (todayCache != null) {
+                val stableEvents = todayCache.events.filter { event ->
+                    event.timestamp.time >= todayStart.time &&
+                            event.timestamp.time < listenerStart.time
+                }
+
+                stableEvents.forEach { event ->
+                    allEvents[event.id] = event
+                }
+
+                if (stableEvents.isNotEmpty()) {
+                    Log.d(TAG, "  ✓ Loaded ${stableEvents.size} stable events from today")
+                }
+            }
+
+            // Émettre les données stables si on en a
+            if (allEvents.isNotEmpty()) {
+                val transformed = transform(allEvents)
+                if (transformed != null) {
+                    emit(transformed)
+                    Log.d(TAG, "✓ Emitted stable cached data (>6h old)")
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            // PHASE 2: Listener FRESH (6h en arrière → maintenant)
+            // ═══════════════════════════════════════════════════════════
+
+            Log.d(TAG, "→ Starting real-time listener for FRESH period: $listenerStart → $todayEnd")
 
             db.collection(FirestoreConstants.Collections.EVENTS)
                 .whereEqualTo(FirestoreConstants.Fields.BABY_ID, babyId)
-                .whereGreaterThanOrEqualTo(FirestoreConstants.Fields.TIMESTAMP, listenerStart)  // ← 6h ago
+                .whereGreaterThanOrEqualTo(FirestoreConstants.Fields.TIMESTAMP, listenerStart)
                 .whereLessThan(FirestoreConstants.Fields.TIMESTAMP, todayEnd)
                 .orderBy(FirestoreConstants.Fields.TIMESTAMP, Query.Direction.DESCENDING)
                 .snapshots()
                 .collect { snapshot ->
-                    val streamEventCount = snapshot.documents.size
                     val listenerEvents = snapshot.documents.mapNotNull { it.toEvent() }
 
-                    Log.d(TAG, "↓ Received $streamEventCount events from stream ($listenerStart → $endDateStr)")
+                    Log.d(TAG, "↓ Listener update: ${listenerEvents.size} events in FRESH window")
 
-                    // Remove ALL today's events first, then add fresh ones
-                    val beforeRemoval = allEvents.size
+                    // ────────────────────────────────────────────────────
+                    // Stratégie de mise à jour d'allEvents:
+                    // 1. Supprimer UNIQUEMENT la plage FRESH
+                    // 2. Ajouter tous les événements du listener
+                    // ────────────────────────────────────────────────────
+
+                    val beforeSize = allEvents.size
                     allEvents.values.removeAll { event ->
-                        event.timestamp.time >= todayStart.time && event.timestamp.time < todayEnd.time
+                        event.timestamp.time >= listenerStart.time &&
+                                event.timestamp.time < todayEnd.time
                     }
-                    val removed = beforeRemoval - allEvents.size
+                    val removed = beforeSize - allEvents.size
+
                     listenerEvents.forEach { event ->
                         allEvents[event.id] = event
                     }
 
+                    Log.d(TAG, "  → Replaced $removed FRESH events with ${listenerEvents.size} from listener")
+
+                    // ────────────────────────────────────────────────────
+                    // Cache management: événements qui SORTENT de FRESH
+                    // ────────────────────────────────────────────────────
+
                     if (listenerEvents.isNotEmpty()) {
                         val now = System.currentTimeMillis()
 
-                        val eventsByDay = mutableMapOf<Long, MutableList<Event>>()
-                        listenerEvents.forEach { event ->
-                            val eventDayStart = getDayStart(Date(event.timestamp.time)).time
-                            eventsByDay.getOrPut(eventDayStart) { mutableListOf() }.add(event)
+                        // Grouper par jour
+                        val eventsByDay = listenerEvents.groupBy { event ->
+                            getDayStart(Date(event.timestamp.time))
                         }
 
-                        eventsByDay.forEach { (dayStartTime, eventsForDay) ->
-                            val dayStart = Date(dayStartTime)
-                            val cacheableEvents = eventsForDay.filter { event ->
+                        eventsByDay.forEach { (dayStart, eventsForDay) ->
+                            // Cache SEULEMENT les événements qui ont dépassé 6h
+                            val nowStableEvents = eventsForDay.filter { event ->
                                 now - event.timestamp.time >= CacheTTL.FRESH.ageThresholdMs
                             }
 
-                            if (cacheableEvents.isNotEmpty()) {
+                            if (nowStableEvents.isNotEmpty()) {
                                 try {
-                                    firebaseCache.cacheDayEvents(babyId, dayStart, cacheableEvents)
-                                    Log.d(TAG, "  → Cached ${cacheableEvents.size}/${eventsForDay.size} events for day $dayStart")
+                                    // ⚠️ MERGE avec cache existant (ne pas écraser)
+                                    val existingCache = firebaseCache.getCachedDayEvents(babyId, dayStart)
+                                    val eventsToCache = if (existingCache != null) {
+                                        // Merge: garder anciens + ajouter nouveaux stables
+                                        val existingIds = existingCache.events.map { it.id }.toSet()
+                                        val merged = existingCache.events.toMutableList()
+                                        nowStableEvents.forEach { event ->
+                                            if (!existingIds.contains(event.id)) {
+                                                merged.add(event)
+                                            }
+                                        }
+                                        merged
+                                    } else {
+                                        nowStableEvents
+                                    }
+
+                                    firebaseCache.cacheDayEvents(babyId, dayStart, eventsToCache)
+                                    Log.d(TAG, "  ✓ Cached ${nowStableEvents.size} newly-stable events for $dayStart")
                                 } catch (e: Exception) {
-                                    Log.w(TAG, "⚠ Failed to cache: ${e.message}")
+                                    Log.w(TAG, "  ⚠ Failed to cache: ${e.message}")
                                 }
                             }
                         }
@@ -696,7 +712,7 @@ class FirebaseRepository @Inject constructor(
                     val transformed = transform(allEvents)
                     if (transformed != null) {
                         emit(transformed)
-                        Log.d(TAG, "✓ Real-time update")
+                        Log.d(TAG, "✓ Real-time update: ${allEvents.size} total events")
                     }
                 }
         }
