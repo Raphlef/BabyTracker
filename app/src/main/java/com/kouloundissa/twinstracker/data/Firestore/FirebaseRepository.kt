@@ -572,9 +572,8 @@ class FirebaseRepository @Inject constructor(
             val todayStart = getDayStart(plan.realtimeDate!!)
             val todayEnd = getDayEnd(plan.realtimeDate)
             val listenerStart = plan.realtime6hBeforeTimestamp?.let { Date(it) } ?: todayStart
-            require(listenerStart >= todayStart) {
-                "listenerStart ($listenerStart) must be >= todayStart ($todayStart)"
-            }
+
+            val listenerStartDay = getDayStart(listenerStart)
             val dateFormatter = SimpleDateFormat("MMM dd, yyyy HH:mm:ss", Locale.getDefault())
             val endDateStr = dateFormatter.format(todayEnd)
 
@@ -661,7 +660,7 @@ class FirebaseRepository @Inject constructor(
                     // Remove ALL today's events first, then add fresh ones
                     val beforeRemoval = allEvents.size
                     allEvents.values.removeAll { event ->
-                        event.timestamp.time >= listenerStart.time && event.timestamp.time < todayEnd.time
+                        event.timestamp.time >= todayStart.time && event.timestamp.time < todayEnd.time
                     }
                     val removed = beforeRemoval - allEvents.size
                     listenerEvents.forEach { event ->
@@ -670,16 +669,26 @@ class FirebaseRepository @Inject constructor(
 
                     if (listenerEvents.isNotEmpty()) {
                         val now = System.currentTimeMillis()
-                        val cacheableEvents = listenerEvents.filter { event ->
-                            now - event.timestamp.time >= CacheTTL.FRESH.ageThresholdMs
+
+                        val eventsByDay = mutableMapOf<Long, MutableList<Event>>()
+                        listenerEvents.forEach { event ->
+                            val eventDayStart = getDayStart(Date(event.timestamp.time)).time
+                            eventsByDay.getOrPut(eventDayStart) { mutableListOf() }.add(event)
                         }
 
-                        if (cacheableEvents.isNotEmpty()) {
-                            try {
-                                firebaseCache.cacheDayEvents(babyId, todayStart, cacheableEvents)
-                                Log.d(TAG, "  → Cached ${cacheableEvents.size}/${listenerEvents.size} events (6h+ old)")
-                            } catch (e: Exception) {
-                                Log.w(TAG, "⚠ Failed to cache real-time events: ${e.message}")
+                        eventsByDay.forEach { (dayStartTime, eventsForDay) ->
+                            val dayStart = Date(dayStartTime)
+                            val cacheableEvents = eventsForDay.filter { event ->
+                                now - event.timestamp.time >= CacheTTL.FRESH.ageThresholdMs
+                            }
+
+                            if (cacheableEvents.isNotEmpty()) {
+                                try {
+                                    firebaseCache.cacheDayEvents(babyId, dayStart, cacheableEvents)
+                                    Log.d(TAG, "  → Cached ${cacheableEvents.size}/${eventsForDay.size} events for day $dayStart")
+                                } catch (e: Exception) {
+                                    Log.w(TAG, "⚠ Failed to cache: ${e.message}")
+                                }
                             }
                         }
                     }
