@@ -282,8 +282,7 @@ fun HomeScreen(
             if (selectedBaby == null) {
                 // Empty state when no baby selected
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-
-                    if (babies.isEmpty()) {
+                    if (babies.isEmpty() && !showBabyDialog) {
                         Button(
                             onClick = {
                                 showBabyDialog = true
@@ -294,7 +293,7 @@ fun HomeScreen(
                         ) {
                             Text("Add a Baby")
                         }
-                    } else {
+                    } else if (babies.isNotEmpty()) {
                         Text(
                             "Select a baby to see data",
                             style = MaterialTheme.typography.bodyLarge,
