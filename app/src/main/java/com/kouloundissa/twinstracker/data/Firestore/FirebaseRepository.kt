@@ -662,7 +662,10 @@ class FirebaseRepository @Inject constructor(
                         allEvents[event.id] = event
                     }
 
-                    Log.d(TAG, "  → Replaced $removed FRESH events with ${listenerEvents.size} from listener")
+                    Log.d(
+                        TAG,
+                        "  → Replaced $removed FRESH events with ${listenerEvents.size} from listener"
+                    )
 
                     // ────────────────────────────────────────────────────
                     // Cache management: événements qui SORTENT de FRESH
@@ -685,7 +688,8 @@ class FirebaseRepository @Inject constructor(
                             if (nowStableEvents.isNotEmpty()) {
                                 try {
                                     // ⚠️ MERGE avec cache existant (ne pas écraser)
-                                    val existingCache = firebaseCache.getCachedDayEvents(babyId, dayStart)
+                                    val existingCache =
+                                        firebaseCache.getCachedDayEvents(babyId, dayStart)
                                     val eventsToCache = if (existingCache != null) {
                                         // Merge: garder anciens + ajouter nouveaux stables
                                         val existingIds = existingCache.events.map { it.id }.toSet()
@@ -701,7 +705,10 @@ class FirebaseRepository @Inject constructor(
                                     }
 
                                     firebaseCache.cacheDayEvents(babyId, dayStart, eventsToCache)
-                                    Log.d(TAG, "  ✓ Cached ${nowStableEvents.size} newly-stable events for $dayStart")
+                                    Log.d(
+                                        TAG,
+                                        "  ✓ Cached ${nowStableEvents.size} newly-stable events for $dayStart"
+                                    )
                                 } catch (e: Exception) {
                                     Log.w(TAG, "  ⚠ Failed to cache: ${e.message}")
                                 }
@@ -781,6 +788,7 @@ class FirebaseRepository @Inject constructor(
         },
         logPrefix = { "streamAnalysisMetrics" }
     )
+
     /**
      * Query a specific date range from Firestore
      * Keeps DB query logic isolated and reusable
