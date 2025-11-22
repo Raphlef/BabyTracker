@@ -172,7 +172,7 @@ fun DashboardScreen(
                                     babyViewModel.selectBaby(it)
                                 },
                                 onEditBaby = {
-                                    createBabyRequest = false
+                                    createBabyRequest = selectedBaby == null
                                     val babyTabIndex = tabs.indexOf(DashboardTab.Baby)
                                     coroutineScope.launch {
                                         pagerState.animateScrollToPage(babyTabIndex)
