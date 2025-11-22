@@ -186,7 +186,7 @@ private fun BabyInfoHeaderContent(
             //  modifier = Modifier.weight(1f)
         ) {
             Text(
-                text = baby?.name ?: "Unnamed Baby",
+                text = baby?.name ?: "No baby",
                 style = MaterialTheme.typography.titleLarge,
                 color = tint,
                 maxLines = 1,
