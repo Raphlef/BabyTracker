@@ -178,14 +178,6 @@ fun getDayEnd(date: Date): Date {
     }
     return calendar.time
 }
-
-/**
- * Helper to get today's date in UTC (midnight)
- */
-private fun getTodayUTC(): Date {
-    return getDayStart(Date())
-}
-
 /**
  * FirebaseCache handles persistent caching of Firestore events with intelligent TTL management
  * Reduces Firestore read operations by:
@@ -354,15 +346,15 @@ class FirebaseCache(
         requestedStart: Date,
         requestedEnd: Date
     ): DataRetrievalPlan {
-        val today = getTodayUTC()
+        val todayStart = getDayStart(Date())
         val now = Date()
 
-        val rangeIncludesToday = requestedStart <= today && requestedEnd > today
+        val rangeIncludesToday = requestedStart <= todayStart && requestedEnd > todayStart
 
         Log.d(
             TAG,
             "→ Planning retrieval for baby=$babyId: range=[${requestedStart.time}, ${requestedEnd.time}], " +
-                    "today=${today.time}, includestoday=$rangeIncludesToday"
+                    "today=${todayStart.time}, includestoday=$rangeIncludesToday"
         )
 
         val cachedDays = mutableMapOf<Long, CachedDayData>()  // dayStart -> events
@@ -371,11 +363,11 @@ class FirebaseCache(
         var realtimeDate: Date? = null
         var realtime6hBeforeTimestamp: Long? = null
         if (rangeIncludesToday) {
-            realtimeDate = today  // ← Set ONCE: today's date
+            realtimeDate = todayStart  // ← Set ONCE: today's date
             val sixHoursAgo = now.time - (CacheTTL.FRESH.ageThresholdMs)  // 6 hours in milliseconds
             val listenerStartTime = sixHoursAgo // Don't go before today
             realtime6hBeforeTimestamp = listenerStartTime
-            Log.d(TAG, "  ✓ Range includes today - will setup real-time listener for $today")
+            Log.d(TAG, "  ✓ Range includes today - will setup real-time listener for $todayStart")
         }
 
         // Iterate through each day in the requested range
