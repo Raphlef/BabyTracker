@@ -69,6 +69,7 @@ class BabyViewModel @Inject constructor(
 
         return nextBaby
     }
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
@@ -102,20 +103,6 @@ class BabyViewModel @Inject constructor(
         }
     }
 
-    fun inviteParent(babyId: String, email: String) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            _errorMessage.value = null
-            try {
-                repository.addParentToBaby(babyId, email)
-                loadParents(babyId)
-            } catch (e: Exception) {
-                _errorMessage.value = "Invitation échouée : ${e.message}"
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
 
     fun selectBaby(baby: Baby) {
         _selectedBaby.value = baby
@@ -136,47 +123,62 @@ class BabyViewModel @Inject constructor(
         pediatricianContact: String? = null,
         notes: String? = null,
         existingPhotoUrl: String?,
-        photoUrl: Uri? = null,
+        newPhotoUri: Uri? = null,
         photoRemoved: Boolean = false
     ) {
-        Log.d(TAG, "saveBaby: Starting - id=$id, name=$name, photoUrl=$photoUrl, photoRemoved=$photoRemoved")
+        val isUpdate = !id.isNullOrBlank()
+        Log.d(TAG, "saveBaby: ${if (isUpdate) "UPDATE" else "CREATE"} - id=$id, name=$name")
 
         _isLoading.value = true
         _errorMessage.value = null
 
         viewModelScope.launch {
             try {
-                val operation = if (id.isNullOrBlank()) "CREATE" else "UPDATE"
-                Log.i(TAG, "saveBaby: Operation=$operation")
+                // Step 1: Prepare the baby data
+                val babyData = prepareBabyData(
+                    id = id,
+                    name = name,
+                    birthDate = birthDate,
+                    gender = gender,
+                    birthWeightKg = birthWeightKg,
+                    birthLengthCm = birthLengthCm,
+                    birthHeadCircumferenceCm = birthHeadCircumferenceCm,
+                    birthTime = birthTime,
+                    bloodType = bloodType,
+                    allergies = allergies,
+                    medicalConditions = medicalConditions,
+                    pediatricianContact = pediatricianContact,
+                    notes = notes,
+                    existingPhotoUrl = existingPhotoUrl,
+                    photoRemoved = photoRemoved
+                )
 
-                if (id.isNullOrBlank()) {
-                    // Create new baby
-                    createNewBaby(
-                        name, birthDate, gender, birthWeightKg, birthLengthCm,
-                        birthHeadCircumferenceCm, birthTime, bloodType, allergies,
-                        medicalConditions, pediatricianContact, notes, photoUrl
-                    )
+                // Step 2: Save baby to repository
+                val savedBaby = repository.addOrUpdateBaby(babyData).getOrThrow()
+                Log.i(TAG, "saveBaby: Baby saved to repository - id=${savedBaby.id}")
+
+                // Step 3: Handle photo upload if new photo provided
+                val finalBaby = if (newPhotoUri != null) {
+                    val photoUrl = uploadBabyPhoto(savedBaby.id, newPhotoUri)
+                    if (photoUrl != null) {
+                        val babyWithPhoto = savedBaby.copy(
+                            photoUrl = photoUrl,
+                            updatedAt = System.currentTimeMillis()
+                        )
+                        repository.addOrUpdateBaby(babyWithPhoto).getOrThrow()
+                    } else {
+                        savedBaby
+                    }
                 } else {
-                    // Update existing baby
-                    updateExistingBaby(
-                        id,
-                        name,
-                        birthDate,
-                        gender,
-                        birthWeightKg,
-                        birthLengthCm,
-                        birthHeadCircumferenceCm,
-                        birthTime,
-                        bloodType,
-                        allergies,
-                        medicalConditions,
-                        pediatricianContact,
-                        notes,
-                        existingPhotoUrl,
-                        photoUrl,
-                        photoRemoved
-                    )
+                    savedBaby
                 }
+
+                Log.i(
+                    TAG,
+                    "saveBaby: Success - id=${finalBaby.id}, hasPhoto=${finalBaby.photoUrl != null}"
+                )
+                _selectedBaby.value = finalBaby
+
             } catch (e: Exception) {
                 Log.e(TAG, "Error saving baby: ${e.message}", e)
                 _errorMessage.value = "Échec de la sauvegarde: ${e.localizedMessage}"
@@ -186,82 +188,82 @@ class BabyViewModel @Inject constructor(
         }
     }
 
-    private suspend fun updateExistingBaby(
-        id: String, name: String, birthDate: Long, gender: Gender, birthWeightKg: Double?,
-        birthLengthCm: Double?, birthHeadCircumferenceCm: Double?, birthTime: String?,
-        bloodType: BloodType, allergies: List<String>, medicalConditions: List<String>,
-        pediatricianContact: String?, notes: String?, existingPhotoUrl: String?,
-        newPhotoUrl: Uri?,
-        photoRemoved: Boolean
-    ) {
-        Log.d(TAG, "updateExistingBaby: Starting - id=$id, name=$name")
-        // Get current baby to preserve existing photo if no new photo provided
-        val currentBaby = _selectedBaby.value ?: repository.getBabyById(id).getOrThrow()
 
-        val finalPhotoUrl: String? = when {
-            newPhotoUrl != null -> uploadBabyPhoto(id, newPhotoUrl)
+    /**
+     * Prepares baby data object from provided parameters.
+     * Handles both creation (new baby) and update (existing baby) scenarios.
+     */
+    private suspend fun prepareBabyData(
+        id: String?,
+        name: String,
+        birthDate: Long,
+        gender: Gender,
+        birthWeightKg: Double?,
+        birthLengthCm: Double?,
+        birthHeadCircumferenceCm: Double?,
+        birthTime: String?,
+        bloodType: BloodType,
+        allergies: List<String>,
+        medicalConditions: List<String>,
+        pediatricianContact: String?,
+        notes: String?,
+        existingPhotoUrl: String?,
+        photoRemoved: Boolean
+    ): Baby {
+        val isUpdate = !id.isNullOrBlank()
+
+        // Determine final photo URL
+        val finalPhotoUrl = when {
             photoRemoved -> null
-            else -> existingPhotoUrl
+            existingPhotoUrl != null -> existingPhotoUrl
+            else -> null
         }
 
-        // Create updated baby with new data
-        val updatedBaby = currentBaby?.copy(
-            name = name,
-            birthDate = birthDate,
-            gender = gender,
-            birthWeightKg = birthWeightKg,
-            birthLengthCm = birthLengthCm,
-            birthHeadCircumferenceCm = birthHeadCircumferenceCm,
-            birthTime = birthTime,
-            bloodType = bloodType,
-            allergies = allergies,
-            medicalConditions = medicalConditions,
-            pediatricianContact = pediatricianContact,
-            notes = notes,
-            photoUrl = finalPhotoUrl,
-            updatedAt = System.currentTimeMillis()
-        )
+        // Get current user ID for parentIds
+        val currentUserId = repository.getCurrentUserId()
 
-        Log.d(TAG, "updateExistingBaby: Saving updated baby - finalPhotoUrl=$finalPhotoUrl")
-
-        updatedBaby?.let { repository.addOrUpdateBaby(it) }?.getOrThrow()
-        Log.i(TAG, "updateExistingBaby: Successfully updated baby - id=$id")
-        _selectedBaby.value = updatedBaby
+        return if (isUpdate) {
+            // Update: Get existing baby and update fields
+            val existingBaby = _selectedBaby.value ?: repository.getBabyById(id).getOrThrow()
+            existingBaby!!.copy(
+                name = name,
+                birthDate = birthDate,
+                gender = gender,
+                birthWeightKg = birthWeightKg,
+                birthLengthCm = birthLengthCm,
+                birthHeadCircumferenceCm = birthHeadCircumferenceCm,
+                birthTime = birthTime,
+                bloodType = bloodType,
+                allergies = allergies,
+                medicalConditions = medicalConditions,
+                pediatricianContact = pediatricianContact,
+                notes = notes,
+                photoUrl = finalPhotoUrl,
+                updatedAt = System.currentTimeMillis()
+            )
+        } else {
+            // Create: New baby with generated ID
+            Baby(
+                id = id ?: "",
+                name = name,
+                birthDate = birthDate,
+                gender = gender,
+                birthWeightKg = birthWeightKg,
+                birthLengthCm = birthLengthCm,
+                birthHeadCircumferenceCm = birthHeadCircumferenceCm,
+                birthTime = birthTime,
+                bloodType = bloodType,
+                allergies = allergies,
+                medicalConditions = medicalConditions,
+                pediatricianContact = pediatricianContact,
+                notes = notes,
+                photoUrl = finalPhotoUrl,
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis()
+            )
+        }
     }
 
-    private suspend fun createNewBaby(
-        name: String, birthDate: Long, gender: Gender, birthWeightKg: Double?,
-        birthLengthCm: Double?, birthHeadCircumferenceCm: Double?, birthTime: String?,
-        bloodType: BloodType, allergies: List<String>, medicalConditions: List<String>,
-        pediatricianContact: String?, notes: String?, photoUrl: Uri?
-    ) {
-        Log.d(TAG, "createNewBaby: Starting - name=$name, hasPhoto=${photoUrl != null}")
-        // Create baby without photo first
-        val baby = Baby(
-            // id will be auto-generated by UUID in data class
-            name = name,
-            birthDate = birthDate,
-            gender = gender,
-            birthWeightKg = birthWeightKg,
-            birthLengthCm = birthLengthCm,
-            birthHeadCircumferenceCm = birthHeadCircumferenceCm,
-            birthTime = birthTime,
-            bloodType = bloodType,
-            allergies = allergies,
-            medicalConditions = medicalConditions,
-            pediatricianContact = pediatricianContact,
-            notes = notes,
-            photoUrl = null, // Will be updated after photo upload
-            updatedAt = System.currentTimeMillis()
-        )
-        Log.d(TAG, "createNewBaby: Baby object created - id=${baby.id}")
-        val createdBaby = repository.addOrUpdateBaby(baby).getOrThrow()
-        Log.i(TAG, "createNewBaby: Baby created in repository - id=${createdBaby.id}")
-        // Handle photo upload if provided
-        val finalBaby = handlePhotoUpload(createdBaby, photoUrl)
-        Log.i(TAG, "createNewBaby: Successfully created baby with photo handling - id=${finalBaby.id}")
-        _selectedBaby.value = finalBaby
-    }
 
     private suspend fun handlePhotoUpload(baby: Baby, photoUrl: Uri?): Baby {
         return if (photoUrl != null) {
@@ -279,7 +281,10 @@ class BabyViewModel @Inject constructor(
 
     private suspend fun uploadBabyPhoto(babyId: String, photoUrl: Uri): String? {
         return try {
-            repository.addPhotoToEntity("babies", babyId, photoUrl)
+            Log.d(TAG, "uploadBabyPhoto: Uploading for babyId=$babyId")
+            val url = repository.addPhotoToEntity("babies", babyId, photoUrl)
+            Log.i(TAG, "uploadBabyPhoto: Success - url=$url")
+            url
         } catch (e: Exception) {
             Log.e(TAG, "Baby Photo upload failed: ${e.message}", e)
             _errorMessage.value = "Baby Photo upload failed: ${e.localizedMessage}"

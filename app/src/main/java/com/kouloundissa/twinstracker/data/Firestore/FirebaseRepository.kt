@@ -223,18 +223,25 @@ class FirebaseRepository @Inject constructor(
     // ===== BABY OPERATIONS =====
     suspend fun addOrUpdateBaby(baby: Baby): Result<Baby> = runCatching {
         val userId = authHelper.getCurrentUserId()
+
         val families = getCurrentUserFamilies().getOrThrow()
-        val allBabyIds = families.flatMap { it.babyIds }.distinct()
+        if (families.isEmpty()) {
+            throw IllegalStateException("L'utilisateur doit appartenir à au moins une famille pour créer un bébé.")
+        }
+        val existingBabyIds = families.flatMap { it.babyIds }.distinct()
 
-        // Check for duplicate names
-        if (allBabyIds.isNotEmpty()) {
-            val existing = queryHelper.queryByIds<Baby>(
+        // Validate name uniqueness (exclude current baby if updating)
+        if (existingBabyIds.isNotEmpty()) {
+            val duplicates = queryHelper.queryByIds<Baby>(
                 FirestoreConstants.Collections.BABIES,
-                allBabyIds
-            ).filter { it.name.trim() == baby.name.trim() && it.id != baby.id }
+                existingBabyIds
+            ).filter {
+                it.name.trim().equals(baby.name.trim(), ignoreCase = true) &&
+                        it.id != baby.id
+            }
 
-            if (existing.isNotEmpty()) {
-                throw IllegalStateException("Un bébé portant ce nom existe déjà.")
+            if (duplicates.isNotEmpty()) {
+                throw IllegalStateException("Un bébé portant ce nom existe déjà dans votre famille.")
             }
         }
 
@@ -246,6 +253,7 @@ class FirebaseRepository @Inject constructor(
         }
 
         val finalBaby = baby.copy(id = docRef.id)
+
         docRef.set(finalBaby).await()
 
         // Add to families

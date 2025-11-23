@@ -182,7 +182,7 @@ fun BabyFormDialogInternal(
                     pediatricianContact = babyData.pediatricianContact,
                     notes = babyData.notes,
                     existingPhotoUrl = currentBaby?.photoUrl,
-                    photoUrl = newPhotoUri,
+                    newPhotoUri = newPhotoUri,
                     photoRemoved = photoRemoved
                 )
             }
