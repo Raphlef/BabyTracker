@@ -797,7 +797,7 @@ class EventViewModel @Inject constructor(
                 }
                 .onFailure { throwable ->
                     Log.e("EventVM", "Failed loading last growth", throwable)
-                    _errorMessage.value = throwable.message
+                    _errorMessage.value = throwable.localizedMessage
                     _lastGrowthEvent.value = null
                 }
         }
