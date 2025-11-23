@@ -102,16 +102,6 @@ suspend fun FirebaseRepository.getCurrentUserFamilies(): Result<List<Family>> = 
                 Filter.arrayContains(FirestoreConstants.Fields.ADMIN_IDS, currentUserId)
             )
         )
-        .get()
-        .await()
-        .toObjects(Family::class.java)
-}
-
-suspend fun FirebaseRepository.getFamilies(): Result<List<Family>> = runCatching {
-    val currentUserId = authHelper.getCurrentUserId()
-
-    db.collection(FirestoreConstants.Collections.FAMILIES)
-        .whereArrayContains(FirestoreConstants.Fields.MEMBER_IDS, currentUserId)
         .orderBy(FirestoreConstants.Fields.CREATED_AT, Query.Direction.DESCENDING)
         .get()
         .await()
