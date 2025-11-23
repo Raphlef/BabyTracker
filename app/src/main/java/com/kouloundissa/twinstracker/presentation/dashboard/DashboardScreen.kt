@@ -237,10 +237,6 @@ fun DashboardScreen(
                                     isVisible = isCurrentPage
                                 )
 
-//                                DashboardTab.Settings -> SettingsScreen(
-//                                    navController,
-//                                    contentPadding = contentPadding
-//                                )
                                 DashboardTab.Baby ->
                                     if (createBabyRequest) {
                                         BabyCreateDialog(
