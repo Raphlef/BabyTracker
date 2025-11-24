@@ -215,7 +215,8 @@ private fun EventTypeDialogContent(
         Column(
             modifier = Modifier
                 .matchParentSize()
-                .systemBarsPadding().padding(12.dp)               // uniform padding inside edges
+                .systemBarsPadding()
+                .padding(12.dp)               // uniform padding inside edges
         ) {
             EventTypeHeaderPanel(
                 type = type,
@@ -306,20 +307,21 @@ private fun EventTypeHeaderPanel(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back"
+                    contentDescription = "Back",
+                    tint = tint
                 )
             }
 
             Icon(
                 imageVector = type.icon,
                 contentDescription = null,
-                tint = contentColor,
+                tint = tint,
                 modifier = Modifier.size(24.dp)
             )
             Text(
                 text = type.displayName,
                 style = MaterialTheme.typography.titleLarge,
-                color = contentColor
+                color = tint
             )
         }
         Spacer(Modifier.height(12.dp))
