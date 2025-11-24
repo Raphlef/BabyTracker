@@ -125,31 +125,54 @@ fun BabyFormDialogInternal(
     val isLoading by babyViewModel.isLoading.collectAsState()
     val babyError by babyViewModel.errorMessage.collectAsState()
     val babies by babyViewModel.babies.collectAsState()
+    val selectedBaby by babyViewModel.selectedBaby.collectAsState()
 
     // Resolve latest baby reference when editing
     val currentBaby = remember(babies, babyToEdit) {
         babyToEdit?.let { b -> babies.find { it.id == b.id } ?: babyToEdit }
     }
-
-    // UI state for operations
-    var saveClicked by remember { mutableStateOf(false) }
-    var deleteClicked by remember { mutableStateOf(false) }
+    var saveRequested by remember { mutableStateOf(false) }
+    var deleteRequested by remember { mutableStateOf(false) }
     var wasLoading by remember { mutableStateOf(false) }
+
     val openDeleteDialog = remember { mutableStateOf(false) }
     var savedBabyLocal by remember { mutableStateOf<Baby?>(null) }
 
     // Form State
     val formState = rememberBabyFormState(currentBaby)
 
-    // Side-effect for completion (save/delete)
-    LaunchedEffect(isLoading, babyError) {
-        if ((saveClicked || deleteClicked) && wasLoading && !isLoading && babyError == null) {
-            // Pass null if deleted, savedBabyLocal otherwise
-            onCompleted(if (deleteClicked) null else savedBabyLocal)
+    LaunchedEffect(isLoading, selectedBaby, babyError) {
+        if (saveRequested && wasLoading && !isLoading) {
+            if (babyError == null && selectedBaby != null) {
+                // Save successful
+                onCompleted(selectedBaby)
+                saveRequested = false
+            } else if (babyError != null) {
+                // Error occurred, keep dialog open
+                saveRequested = false
+            }
         }
         wasLoading = isLoading
     }
+
+    // ✅ Listen for delete completion
+    LaunchedEffect(deleteRequested, isLoading, babies) {
+        if (deleteRequested && !isLoading) {
+            // Check if baby was actually deleted
+            val babyStillExists = currentBaby?.let { b ->
+                babies.any { it.id == b.id }
+            } ?: false
+
+            if (!babyStillExists) {
+                // Delete successful
+                onCompleted(null)
+                deleteRequested = false
+            }
+        }
+    }
+
     val snackbarHostState = remember { SnackbarHostState() }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = Color.Transparent,
@@ -163,10 +186,7 @@ fun BabyFormDialogInternal(
             babyError = babyError,
             onOpenDeleteDialog = { openDeleteDialog.value = true },
             onSave = { babyData, newPhotoUri, photoRemoved ->
-                savedBabyLocal = babyData
-                saveClicked = true
-                deleteClicked = false
-
+                saveRequested = true
                 babyViewModel.saveBaby(
                     id = babyData.id,
                     name = babyData.name,
@@ -185,6 +205,10 @@ fun BabyFormDialogInternal(
                     newPhotoUri = newPhotoUri,
                     photoRemoved = photoRemoved
                 )
+                selectedBaby?.let { it1 ->
+                    savedBabyLocal = it1
+                    onCompleted(savedBabyLocal)
+                }
             }
         )
     }
@@ -198,8 +222,7 @@ fun BabyFormDialogInternal(
                 counts.values.sum()
             },
             onConfirm = {
-                deleteClicked = true
-                saveClicked = false
+                deleteRequested = true
                 openDeleteDialog.value = false
                 babyViewModel.deleteBaby(currentBaby.id)
             },
