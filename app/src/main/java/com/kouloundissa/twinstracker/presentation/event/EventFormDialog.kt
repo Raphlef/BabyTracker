@@ -332,7 +332,7 @@ fun EventFormDialogContent(
                     onClick = onDismiss,
                     modifier = Modifier
                         .background(
-                            backgroundColor,
+                            contentcolor.copy(alpha = 0.1f),
                             CircleShape
                         )
                         .size(40.dp)
@@ -348,7 +348,7 @@ fun EventFormDialogContent(
                     text = if (formState.eventId == null) "Add Event" else "Edit Event",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = backgroundColor,
+                    color = tint,
                 )
 
             }
