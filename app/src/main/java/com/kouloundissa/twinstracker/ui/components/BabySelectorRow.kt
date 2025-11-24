@@ -70,7 +70,7 @@ fun BabySelectorRow(
                 shape = cornerShape,
                 colors = FilterChipDefaults.filterChipColors(
                     containerColor = backgroundColor.copy(alpha = 0.25f),
-                    labelColor = tint.copy(alpha = 0.85f),
+                    labelColor = contentColor.copy(alpha = 0.5f),
                     selectedContainerColor = backgroundColor.copy(alpha = 0.85f),
                     selectedLabelColor = tint
                 ),
