@@ -50,6 +50,12 @@ fun DateRangeFilterSection(
     onFilterChanged: (AnalysisFilter.DateRange) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
     var showDateRangePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
 
@@ -100,14 +106,14 @@ fun DateRangeFilterSection(
                 text = "Date Range",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = DarkBlue
+                color = tint
             )
 
             if (dateRangeText.isNotEmpty()) {
                 Text(
                     text = dateRangeText,
                     style = MaterialTheme.typography.bodySmall,
-                    color = DarkBlue.copy(alpha = 0.7f)
+                    color = tint.copy(alpha = 0.7f)
                 )
             }
         }
@@ -117,6 +123,7 @@ fun DateRangeFilterSection(
             contentPadding = PaddingValues(horizontal = 2.dp)
         ) {
             items(AnalysisRange.entries.toTypedArray()) { range ->
+                val isSelected = filter.selectedRange == range
                 FilterChip(
                     onClick = {
                         if (range == AnalysisRange.CUSTOM) {
@@ -134,25 +141,29 @@ fun DateRangeFilterSection(
                     label = {
                         Text(
                             text = range.displayName,
-                            style = MaterialTheme.typography.labelSmall
+                            style = if (isSelected) {
+                                MaterialTheme.typography.labelMedium
+                            } else {
+                                MaterialTheme.typography.labelSmall
+                            }
                         )
                     },
                     selected = filter.selectedRange == range,
                     colors = FilterChipDefaults.filterChipColors(
-                        containerColor = BackgroundColor.copy(alpha = 0.15f),
-                        labelColor = DarkGrey.copy(alpha = 0.85f),
-                        selectedContainerColor = BackgroundColor.copy(alpha = 0.95f),
-                        selectedLabelColor = DarkBlue
+                        containerColor = backgroundColor.copy(alpha = 0.25f),
+                        labelColor = contentColor.copy(alpha = 0.5f),
+                        selectedContainerColor = backgroundColor.copy(alpha = 0.85f),
+                        selectedLabelColor = tint
                     ),
                     border = FilterChipDefaults.filterChipBorder(
-                        borderColor = DarkGrey.copy(alpha = 0.25f),
-                        selectedBorderColor = DarkGrey.copy(alpha = 0.95f),
-                        borderWidth = 0.5.dp,
-                        selectedBorderWidth = 2.dp,
                         enabled = true,
                         selected = false,
+                        borderColor = contentColor.copy(alpha = 0.55f),
+                        selectedBorderColor = tint.copy(alpha = 0.55f),
+                        borderWidth = 0.5.dp,
+                        selectedBorderWidth = 1.dp
                     ),
-                    shape = MaterialTheme.shapes.extraLarge
+                    shape = cornerShape
                 )
             }
         }
@@ -215,66 +226,15 @@ fun BabyFilterSection(
     val babies by babyViewModel.babies.collectAsState()
 
 
-    Column(modifier = modifier) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Baby",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = DarkBlue,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            if (selectedBaby.value != null) {
-                Text(
-                    text = selectedBaby.value!!.name,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DarkBlue.copy(alpha = 0.7f)
-                )
-            }
-        }
-
-
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            contentPadding = PaddingValues(horizontal = 2.dp)
-        ) {
-            items(babies) { baby ->
-                FilterChip(
-                    onClick = {
-                        val newSelected = if (filter.selectedBabies.contains(baby)) {
-                            emptySet()
-                        } else {
-                            setOf(baby)  // Store Baby object directly
-                        }
-                        onFilterChanged(filter.copy(selectedBabies = newSelected))
-                    },
-                    label = { Text(baby.name, style = MaterialTheme.typography.labelSmall) },
-                    selected = filter.selectedBabies.contains(baby),
-                    colors = FilterChipDefaults.filterChipColors(
-                        containerColor = BackgroundColor.copy(alpha = 0.15f),
-                        labelColor = DarkGrey.copy(alpha = 0.85f),
-                        selectedContainerColor = BackgroundColor.copy(alpha = 0.95f),
-                        selectedLabelColor = DarkBlue
-                    ),
-                    border = FilterChipDefaults.filterChipBorder(
-                        borderColor = DarkGrey.copy(alpha = 0.25f),
-                        selectedBorderColor = DarkGrey.copy(alpha = 0.95f),
-                        borderWidth = 0.5.dp,
-                        selectedBorderWidth = 2.dp,
-                        enabled = true,
-                        selected = false,
-                    ),
-                    shape = MaterialTheme.shapes.extraLarge
-                )
-            }
-        }
-    }
+    BabySelectorRow(
+        babies = babies,
+        selectedBaby = selectedBaby.value,
+        onSelectBaby = {
+            val babySet = setOf(it)
+            onFilterChanged(filter.copy(selectedBabies = babySet))
+        },
+        onAddBaby = null
+    )
 }
 
 @Composable
@@ -285,6 +245,10 @@ fun EventTypeFilterSection(
 ) {
     val eventTypes = EventType.entries
     val selectedCount = filter.selectedTypes.size
+
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
 
     Column(modifier = modifier) {
         Row(
@@ -329,28 +293,37 @@ fun EventTypeFilterSection(
                         }
                         onFilterChanged(filter.copy(selectedTypes = newSelected))
                     },
-                    label = { Text(eventType.displayName, style = MaterialTheme.typography.labelSmall) },
+                    label = {
+                        Text(
+                            eventType.displayName,
+                            style = if (isSelected) {
+                                MaterialTheme.typography.labelMedium
+                            } else {
+                                MaterialTheme.typography.labelSmall
+                            }
+                        )
+                    },
                     selected = isSelected,
                     colors = FilterChipDefaults.filterChipColors(
-                        containerColor = BackgroundColor.copy(alpha = 0.15f),
-                        labelColor = DarkGrey.copy(alpha = 0.85f),
-                        selectedContainerColor = BackgroundColor.copy(alpha = 0.85f),
+                        containerColor = backgroundColor.copy(alpha = 0.25f),
+                        labelColor = contentColor.copy(alpha = 0.5f),
+                        selectedContainerColor = backgroundColor.copy(alpha = 0.85f),
                         selectedLabelColor = eventType.color
                     ),
                     border = FilterChipDefaults.filterChipBorder(
                         enabled = true,
                         selected = false,
-                        borderColor = DarkGrey.copy(alpha = 0.25f),
-                        selectedBorderColor = DarkGrey.copy(alpha = 0.95f),
+                        borderColor = contentColor.copy(alpha = 0.55f),
+                        selectedBorderColor = tint.copy(alpha = 0.55f),
                         borderWidth = 0.5.dp,
-                        selectedBorderWidth = 2.dp
+                        selectedBorderWidth = 1.dp
                     ),
                     leadingIcon = {
                         Icon(
                             imageVector = eventType.icon,
                             contentDescription = eventType.displayName,
                             modifier = Modifier.size(16.dp),
-                            tint = if (isSelected) eventType.color else DarkGrey.copy(alpha = 0.6f)
+                            tint = if (isSelected) eventType.color else contentColor.copy(alpha = 0.6f)
                         )
                     },
                     shape = MaterialTheme.shapes.extraLarge
