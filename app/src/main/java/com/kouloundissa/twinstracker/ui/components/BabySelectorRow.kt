@@ -61,7 +61,11 @@ fun BabySelectorRow(
                 label = {
                     Text(
                         text = (baby.gender.emoji) + " " + baby.name.ifEmpty { "Sans nom" },
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = if (isSelected) {
+                            MaterialTheme.typography.bodyMedium
+                        } else {
+                            MaterialTheme.typography.bodySmall
+                        },
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
