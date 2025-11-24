@@ -175,7 +175,6 @@ fun SettingsScreenContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .systemBarsPadding()
     ) {
         AsyncImage(
             model = R.drawable.background,
@@ -188,6 +187,7 @@ fun SettingsScreenContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .systemBarsPadding()
                 .padding(vertical = 12.dp, horizontal = 8.dp)
         ) {
             Row(
