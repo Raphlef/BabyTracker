@@ -57,6 +57,7 @@ import coil.compose.AsyncImage
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
@@ -184,7 +185,6 @@ private fun EventTypeDialogContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .systemBarsPadding()
     ) {
         val blurRadius = if (events.size > 5) 5.dp else 2.dp
 
@@ -215,7 +215,7 @@ private fun EventTypeDialogContent(
         Column(
             modifier = Modifier
                 .matchParentSize()
-                .padding(12.dp)               // uniform padding inside edges
+                .systemBarsPadding().padding(12.dp)               // uniform padding inside edges
         ) {
             EventTypeHeaderPanel(
                 type = type,
@@ -251,16 +251,13 @@ private fun EventTypeDialogContent(
             Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.End
             ) {
+
                 TextButton(
                     onClick = { onAdd(type) }
                 ) {
                     Text("Add New Event", color = backgroundColor)
-                }
-
-                TextButton(onClick = onDismiss) {
-                    Text("Close", color = backgroundColor)
                 }
             }
         }
@@ -278,13 +275,17 @@ private fun EventTypeHeaderPanel(
     eventCount: Int,
     onDismiss: () -> Unit,
     overlay: EventOverlayInfo = EventOverlayInfo(),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    babyViewModel: BabyViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
 
     val backgroundColor = BackgroundColor
     val contentColor = DarkGrey
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
+
+    val babies by babyViewModel.babies.collectAsState()
+    val selectedBaby by babyViewModel.selectedBaby.collectAsState()
 
     Column(modifier = modifier) {
         Spacer(Modifier.height(10.dp))
@@ -298,7 +299,7 @@ private fun EventTypeHeaderPanel(
                 onClick = onDismiss,
                 modifier = Modifier
                     .background(
-                        MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor.copy(alpha = 0.1f),
                         CircleShape
                     )
                     .size(40.dp)
@@ -321,6 +322,13 @@ private fun EventTypeHeaderPanel(
                 color = contentColor
             )
         }
+        Spacer(Modifier.height(12.dp))
+
+        BabySelectorRow(
+            babies = babies,
+            selectedBaby = selectedBaby,
+            onSelectBaby = { babyViewModel.selectBaby(it) }
+        )
 
         Spacer(Modifier.height(12.dp))
         // ============================================
@@ -438,5 +446,5 @@ data class EventOverlayInfo(
         fun empty() = EventOverlayInfo()
     }
 
-    fun hasContent(): Boolean =( !description.isNullOrBlank() && content != null)
+    fun hasContent(): Boolean = (!description.isNullOrBlank() && content != null)
 }
