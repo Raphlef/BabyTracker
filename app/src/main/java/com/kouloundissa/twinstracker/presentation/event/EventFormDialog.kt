@@ -299,7 +299,6 @@ fun EventFormDialogContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .systemBarsPadding()
     ) {
         AsyncImage(
             model = R.drawable.background,
@@ -321,6 +320,7 @@ fun EventFormDialogContent(
                         )
                     ),
                 )
+                .systemBarsPadding()
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -357,7 +357,7 @@ fun EventFormDialogContent(
                     .fillMaxWidth()
                     .padding(top = headerHeight, bottom = footerHeight)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                    .padding(horizontal = 12.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 val displayMessage = errorMessage ?: deleteError
