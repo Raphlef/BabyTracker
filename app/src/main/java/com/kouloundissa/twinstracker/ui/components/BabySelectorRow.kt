@@ -77,19 +77,11 @@ fun BabySelectorRow(
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true,
                     selected = isSelected,
-                    borderColor = tint.copy(alpha = 0.55f),
+                    borderColor = contentColor.copy(alpha = 0.55f),
                     selectedBorderColor = tint.copy(alpha = 0.55f),
                     borderWidth = 0.5.dp,
                     selectedBorderWidth = 1.dp
                 ),
-                elevation = FilterChipDefaults.filterChipElevation(
-                    elevation = 0.dp,
-                    pressedElevation = 4.dp,
-                    focusedElevation = 2.dp,
-                    hoveredElevation = 2.dp,
-                    draggedElevation = 0.dp,
-                    disabledElevation = 0.dp
-                )
             )
         }
         if (onAddBaby != null) {
