@@ -313,7 +313,7 @@ fun EventTypeFilterSection(
                     border = FilterChipDefaults.filterChipBorder(
                         enabled = true,
                         selected = false,
-                        borderColor = contentColor.copy(alpha = 0.55f),
+                        borderColor = eventType.color.copy(alpha = 0.55f),
                         selectedBorderColor = tint.copy(alpha = 0.55f),
                         borderWidth = 0.5.dp,
                         selectedBorderWidth = 1.dp
