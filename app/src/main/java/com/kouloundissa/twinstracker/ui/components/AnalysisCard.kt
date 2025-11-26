@@ -253,12 +253,9 @@ fun MultiLineChartView(
                         "#FFC107".toColorInt()
                     )[idx % 4]
                     lineWidth = if (isHighDensity) 1f else 2f
-                    // Draw circles only for real points
-                    setDrawCircles(true)
-                    circleRadius = when {
-                        isHighDensity -> 0.1f
-                        isMediumDensity -> 0.5f
-                        else -> 1f
+                    setDrawCircles(isHighDensity.not())
+                    if (!isHighDensity) {
+                        circleRadius = if (isMediumDensity) 2f else 3f
                     }
                     // Skip NaN values automatically, leave gaps
                     setDrawValues(showValues)
