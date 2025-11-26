@@ -215,6 +215,11 @@ fun MultiLineChartView(
     paddingPercentage: Float = 0.1f
 ) {
     val context = LocalContext.current
+    val maxPoints = remember(series) {
+        series.maxOfOrNull { it.second.size } ?: 0
+    }
+    val isHighDensity = maxPoints > 15
+    val isMediumDensity = maxPoints in 6..15
     val (axisMin, axisMax) = remember(series) {
         val allValues = series.flatMap { it.second }
         calculateAxisRange(allValues, paddingPercentage, forceIncludeZero)
@@ -233,8 +238,6 @@ fun MultiLineChartView(
             }
         },
         update = { chart ->
-            // Determine if we should draw point values
-            val maxPoints = series.maxOfOrNull { it.second.size } ?: 0
             val showValues = maxPoints <= 10
 
             // Build data sets, including NaN entries
@@ -249,10 +252,14 @@ fun MultiLineChartView(
                         "#2196F3".toColorInt(),
                         "#FFC107".toColorInt()
                     )[idx % 4]
-                    lineWidth = 2f
+                    lineWidth = if (isHighDensity) 1f else 2f
                     // Draw circles only for real points
                     setDrawCircles(true)
-                    circleRadius = 1f
+                    circleRadius = when {
+                        isHighDensity -> 0.1f
+                        isMediumDensity -> 0.5f
+                        else -> 1f
+                    }
                     // Skip NaN values automatically, leave gaps
                     setDrawValues(showValues)
                     mode = LineDataSet.Mode.LINEAR
@@ -270,13 +277,20 @@ fun MultiLineChartView(
                 setSpaceBottom(5f)
             }
 
-            // Improve X-axis labeling
+            // X-axis - adaptive label count
             chart.xAxis.apply {
                 position = XAxis.XAxisPosition.BOTTOM
                 setDrawGridLines(false)
-                labelRotationAngle = 45f
-                // Show at most 6 labels
-                val maxLabels = 6
+                labelRotationAngle = when {
+                    isHighDensity -> 45f
+                    isMediumDensity -> 30f
+                    else -> 0f
+                }
+                val maxLabels = when {
+                    isHighDensity -> 4
+                    isMediumDensity -> 6
+                    else -> labels.size
+                }
                 val step = (labels.size / maxLabels).coerceAtLeast(1)
                 granularity = step.toFloat()
                 labelCount = (labels.size + step - 1) / step
