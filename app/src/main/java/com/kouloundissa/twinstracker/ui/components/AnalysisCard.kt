@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -317,6 +318,11 @@ fun ComboChartView(
     paddingPercentage: Float = 0.1f
 ) {
     val context = LocalContext.current
+
+    val dataPointCount = labels.size
+    val isHighDensity = dataPointCount > 15
+    val isMediumDensity = dataPointCount in 6..15
+
     // Calculate separate ranges for each axis
     val (leftAxisMin, leftAxisMax) = remember(barValues) {
         calculateAxisRange(barValues, paddingPercentage, forceIncludeZeroLeft)
@@ -325,6 +331,12 @@ fun ComboChartView(
     val (rightAxisMin, rightAxisMax) = remember(lineValues) {
         calculateAxisRange(lineValues, paddingPercentage, forceIncludeZeroRight)
     }
+
+    // Check if scales are significantly different
+    val leftRange = leftAxisMax - leftAxisMin
+    val rightRange = rightAxisMax - rightAxisMin
+    val scaleRatio = if (leftRange > 0) rightRange / leftRange else 1f
+    val needsDualAxes = scaleRatio > 5f || scaleRatio < 0.2f
 
     AndroidView(
         factory = {
@@ -335,6 +347,8 @@ fun ComboChartView(
                 setScaleEnabled(true)
                 setPinchZoom(true)
                 legend.isEnabled = true
+                setDrawGridBackground(false)
+                setDrawBorders(false)
             }
         },
         update = { chart ->
@@ -343,22 +357,42 @@ fun ComboChartView(
             val barSet = BarDataSet(barEntries, barLabel).apply {
                 color = "#FF5722".toColorInt()
                 axisDependency = YAxis.AxisDependency.LEFT
-                setDrawValues(barValues.size <= 10)
+                setDrawValues(dataPointCount <= 10)
+                valueTextSize = 10f
             }
 
             val lineEntries = lineValues.mapIndexed { i, v -> Entry(i.toFloat(), v) }
             val lineSet = LineDataSet(lineEntries, lineLabel).apply {
                 color = "#009688".toColorInt()
-                lineWidth = 2f
-                setDrawCircles(true)
+                lineWidth = when {
+                    isHighDensity -> 1.5f
+                    isMediumDensity -> 1.8f
+                    else -> 2f
+                }
+                setDrawCircles(isHighDensity.not())
+                if (!isHighDensity) {
+                    circleRadius = if (isMediumDensity) 2f else 3f
+                }
                 circleRadius = 1f
-                axisDependency = YAxis.AxisDependency.RIGHT
-                setDrawValues(barValues.size <= 10)
+                axisDependency = if (needsDualAxes) {
+                    YAxis.AxisDependency.RIGHT
+                } else {
+                    YAxis.AxisDependency.LEFT
+                }
+                setDrawValues(dataPointCount <= 10)
+                valueTextSize = 10f
+                mode = LineDataSet.Mode.LINEAR
             }
 
             // 2. Set combined data
             chart.data = CombinedData().apply {
-                setData(BarData(barSet).apply { barWidth = 0.4f })
+                setData(BarData(barSet).apply {
+                    barWidth = when {
+                        isHighDensity -> 0.3f
+                        isMediumDensity -> 0.35f
+                        else -> 0.4f
+                    }
+                })
                 setData(LineData(lineSet))
             }
 
@@ -367,30 +401,66 @@ fun ComboChartView(
                 isEnabled = true
                 axisMinimum = leftAxisMin
                 axisMaximum = leftAxisMax
-                textColor = "#FF5722".toColorInt()
-                granularity = 1f
-                spaceTop = 5f
-                spaceBottom = 5f
+                setSpaceTop(5f)
+                setSpaceBottom(5f)
+                // Fewer grid lines for cleaner look
+                setDrawGridLines(true)
+                gridLineWidth = 0.5f
+                gridColor = androidx.compose.ui.graphics.Color.Gray.copy(alpha = 0.2f).toArgb()
+                textSize = when {
+                    isHighDensity -> 9f
+                    isMediumDensity -> 10f
+                    else -> 11f
+                }
+                textColor = androidx.compose.ui.graphics.Color(0xFFFF5722).toArgb()
             }
 
             chart.axisRight.apply {
-                isEnabled = true
-                axisMinimum = rightAxisMin
-                axisMaximum = rightAxisMax
-                textColor = "#009688".toColorInt()
-                granularity = 1f
-                spaceTop = 5f
-                spaceBottom = 5f
+                isEnabled = needsDualAxes  // Only enable if scales differ significantly
+
+                if (needsDualAxes) {
+                    axisMinimum = rightAxisMin
+                    axisMaximum = rightAxisMax
+                    setSpaceTop(5f)
+                    setSpaceBottom(5f)
+                    // Minimal grid
+                    setDrawGridLines(false)  // No grid on right to reduce clutter
+                    textSize = when {
+                        isHighDensity -> 9f
+                        isMediumDensity -> 10f
+                        else -> 11f
+                    }
+                    // Color code to match line dataset
+                    textColor = androidx.compose.ui.graphics.Color(0xFF009688).toArgb()
+                }
             }
 
             // 4. Update X-axis with safe formatter
             chart.xAxis.apply {
                 position = XAxis.XAxisPosition.BOTTOM
                 setDrawGridLines(false)
-                val maxLabels = 6
+
+                val maxLabels = when {
+                    isHighDensity -> 4
+                    isMediumDensity -> 6
+                    else -> labels.size
+                }
                 val step = (labels.size / maxLabels).coerceAtLeast(1)
                 granularity = step.toFloat()
                 labelCount = (labels.size + step - 1) / step
+
+                labelRotationAngle = when {
+                    isHighDensity -> 45f
+                    isMediumDensity -> 30f
+                    else -> 0f
+                }
+
+                textSize = when {
+                    isHighDensity -> 8f
+                    isMediumDensity -> 9f
+                    else -> 10f
+                }
+
                 valueFormatter = object : ValueFormatter() {
                     override fun getFormattedValue(v: Float): String {
                         val idx = v.toInt().coerceIn(0, labels.lastIndex)
