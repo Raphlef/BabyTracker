@@ -43,13 +43,10 @@ import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.components.JoinFamilyDialog
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
-import kotlinx.coroutines.flow.first
-import kotlin.collections.isNotEmpty
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FamilyCheckScreen(
-
     familyViewModel: FamilyViewModel,
     onNavigateToDashboard: (String?) -> Unit
 ) {
