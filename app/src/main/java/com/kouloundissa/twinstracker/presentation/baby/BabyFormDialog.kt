@@ -69,6 +69,7 @@ import com.kouloundissa.twinstracker.data.BloodType
 import com.kouloundissa.twinstracker.data.Gender
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
+import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.components.IconSelector
 import com.kouloundissa.twinstracker.ui.components.ModernDateSelector
 import com.kouloundissa.twinstracker.ui.components.PhotoPicker
@@ -118,6 +119,7 @@ fun BabyFormDialogInternal(
     onCancel: () -> Unit,
     babyViewModel: BabyViewModel = hiltViewModel(),
     eventViewModel: EventViewModel = hiltViewModel(),
+    familyViewModel: FamilyViewModel = hiltViewModel(),
 ) {
     val isEditMode = babyToEdit != null
 
@@ -126,6 +128,8 @@ fun BabyFormDialogInternal(
     val babyError by babyViewModel.errorMessage.collectAsState()
     val babies by babyViewModel.babies.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
+
+    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
 
     // Resolve latest baby reference when editing
     val currentBaby = remember(babies, babyToEdit) {
@@ -188,6 +192,7 @@ fun BabyFormDialogInternal(
             onSave = { babyData, newPhotoUri, photoRemoved ->
                 saveRequested = true
                 babyViewModel.saveBaby(
+                    selectedFamily,
                     id = babyData.id,
                     name = babyData.name,
                     birthDate = babyData.birthDate,
@@ -317,11 +322,14 @@ private fun BabyFormBottomSheetContent(
     onOpenDeleteDialog: () -> Unit,
     onSave: (Baby, Uri?, Boolean) -> Unit,
     babyViewModel: BabyViewModel = hiltViewModel(),
+    familyViewModel: FamilyViewModel = hiltViewModel(),
 ) {
     val backgroundColor = BackgroundColor
     val contentColor = DarkGrey
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
+
+    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
 
     Column(
         modifier = Modifier
@@ -358,7 +366,7 @@ private fun BabyFormBottomSheetContent(
                     existingPhotoUrl = currentBaby?.photoUrl,
                     onRequestDeletePhoto = {
                         if (isEditMode && currentBaby != null) {
-                            babyViewModel.deleteBabyPhoto(currentBaby.id)
+                            babyViewModel.deleteBabyPhoto(currentBaby.id, selectedFamily)
                         }
                     }
                 )
