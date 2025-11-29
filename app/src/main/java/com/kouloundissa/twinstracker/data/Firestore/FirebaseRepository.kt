@@ -24,6 +24,7 @@ import com.kouloundissa.twinstracker.data.DiaperEvent
 import com.kouloundissa.twinstracker.data.DiaperType
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.data.Family
 import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.formatDateForGrouping
 import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.toLocalDate
@@ -221,14 +222,13 @@ class FirebaseRepository @Inject constructor(
     fun getCurrentUserId(): String? = auth.currentUser?.uid
 
     // ===== BABY OPERATIONS =====
-    suspend fun addOrUpdateBaby(baby: Baby): Result<Baby> = runCatching {
+    suspend fun addOrUpdateBaby(baby: Baby, family: Family?): Result<Baby> = runCatching {
         val userId = authHelper.getCurrentUserId()
 
-        val families = getCurrentUserFamilies().getOrThrow()
-        if (families.isEmpty()) {
-            throw IllegalStateException("L'utilisateur doit appartenir à au moins une famille pour créer un bébé.")
+        if (family == null) {
+            throw IllegalStateException("L'utilisateur ne fait partie d'aucune famille")
         }
-        val existingBabyIds = families.flatMap { it.babyIds }.distinct()
+        val existingBabyIds = family.babyIds.toMutableList()
 
         // Validate name uniqueness (exclude current baby if updating)
         if (existingBabyIds.isNotEmpty()) {
@@ -256,16 +256,14 @@ class FirebaseRepository @Inject constructor(
 
         docRef.set(finalBaby).await()
 
-        // Add to families
+        // Add to family
         if (isNew) {
-            families.forEach { family ->
-                if (finalBaby.id !in family.babyIds) {
-                    val updated = family.copy(
-                        babyIds = (family.babyIds + finalBaby.id).distinct(),
-                        updatedAt = FirestoreTimestampUtils.getCurrentTimestamp()
-                    )
-                    addOrUpdateFamily(updated).getOrThrow()
-                }
+            if (finalBaby.id !in family.babyIds) {
+                val updated = family.copy(
+                    babyIds = (family.babyIds + finalBaby.id).distinct(),
+                    updatedAt = FirestoreTimestampUtils.getCurrentTimestamp()
+                )
+                addOrUpdateFamily(updated).getOrThrow()
             }
         }
 
@@ -641,7 +639,10 @@ class FirebaseRepository @Inject constructor(
 
                     if (stableEvents.isNotEmpty()) {
                         hasStableData = true
-                        Log.d(TAG, "  ✓ Loaded ${stableEvents.size} stable events from today's cache")
+                        Log.d(
+                            TAG,
+                            "  ✓ Loaded ${stableEvents.size} stable events from today's cache"
+                        )
                     }
                 }
             }
