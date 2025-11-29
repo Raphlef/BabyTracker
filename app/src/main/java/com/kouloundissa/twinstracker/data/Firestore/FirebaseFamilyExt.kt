@@ -1,7 +1,6 @@
 package com.kouloundissa.twinstracker.data.Firestore
 
 import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.kouloundissa.twinstracker.data.Family
@@ -90,32 +89,6 @@ fun FirebaseRepository.streamFamilies(): Flow<List<Family>> {
             listeners.forEach { it.remove() }
         }
     }.distinctUntilChanged()
-}
-
-suspend fun FirebaseRepository.getCurrentUserFamilies(): Result<List<Family>> = runCatching {
-    val currentUserId = authHelper.getCurrentUserId()
-
-    db.collection(FirestoreConstants.Collections.FAMILIES)
-        .where(
-            Filter.or(
-                Filter.arrayContains(FirestoreConstants.Fields.MEMBER_IDS, currentUserId),
-                Filter.arrayContains(FirestoreConstants.Fields.ADMIN_IDS, currentUserId)
-            )
-        )
-        .orderBy(FirestoreConstants.Fields.CREATED_AT, Query.Direction.DESCENDING)
-        .get()
-        .await()
-        .toObjects(Family::class.java)
-}
-
-suspend fun FirebaseRepository.getFamilyById(familyId: String): Result<Family?> = runCatching {
-    FirebaseValidators.validateFamilyId(familyId)
-
-    db.collection(FirestoreConstants.Collections.FAMILIES)
-        .document(familyId)
-        .get()
-        .await()
-        .toObjectSafely()
 }
 
 suspend fun FirebaseRepository.addMemberToFamily(
