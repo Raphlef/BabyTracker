@@ -148,7 +148,6 @@ class FamilyViewModel @Inject constructor(
         }
     }
 
-
     fun removeUserFromFamily(family: Family, userId: String) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
