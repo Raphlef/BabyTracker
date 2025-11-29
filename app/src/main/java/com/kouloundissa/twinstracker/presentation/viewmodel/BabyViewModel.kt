@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.storage.StorageException
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.BloodType
+import com.kouloundissa.twinstracker.data.Family
 import com.kouloundissa.twinstracker.data.Firestore.FirebaseRepository
 import com.kouloundissa.twinstracker.data.Gender
 import com.kouloundissa.twinstracker.data.User
@@ -24,7 +25,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class BabyViewModel @Inject constructor(
-    private val repository: FirebaseRepository
+    private val repository: FirebaseRepository,
 ) : ViewModel() {
 
     private val TAG = "BabyViewModel"
@@ -109,6 +110,7 @@ class BabyViewModel @Inject constructor(
     }
 
     fun saveBaby(
+        family: Family?,
         id: String?,
         name: String,
         birthDate: Long,
@@ -154,7 +156,7 @@ class BabyViewModel @Inject constructor(
                 )
 
                 // Step 2: Save baby to repository
-                val savedBaby = repository.addOrUpdateBaby(babyData).getOrThrow()
+                val savedBaby = repository.addOrUpdateBaby(babyData, family).getOrThrow()
                 Log.i(TAG, "saveBaby: Baby saved to repository - id=${savedBaby.id}")
 
                 // Step 3: Handle photo upload if new photo provided
@@ -165,7 +167,7 @@ class BabyViewModel @Inject constructor(
                             photoUrl = photoUrl,
                             updatedAt = System.currentTimeMillis()
                         )
-                        repository.addOrUpdateBaby(babyWithPhoto).getOrThrow()
+                        repository.addOrUpdateBaby(babyWithPhoto, family).getOrThrow()
                     } else {
                         savedBaby
                     }
@@ -264,21 +266,6 @@ class BabyViewModel @Inject constructor(
         }
     }
 
-
-    private suspend fun handlePhotoUpload(baby: Baby, photoUrl: Uri?): Baby {
-        return if (photoUrl != null) {
-            val newPhotoUrl = uploadBabyPhoto(baby.id, photoUrl)
-            val updatedBaby = baby.copy(
-                photoUrl = newPhotoUrl,
-                updatedAt = System.currentTimeMillis()
-            )
-            val finalBaby = repository.addOrUpdateBaby(updatedBaby).getOrThrow()
-            finalBaby
-        } else {
-            baby
-        }
-    }
-
     private suspend fun uploadBabyPhoto(babyId: String, photoUrl: Uri): String? {
         return try {
             Log.d(TAG, "uploadBabyPhoto: Uploading for babyId=$babyId")
@@ -318,7 +305,7 @@ class BabyViewModel @Inject constructor(
         }
     }
 
-    fun deleteBabyPhoto(babyId: String) {
+    fun deleteBabyPhoto(babyId: String, family: Family?) {
         _isLoading.value = true
         viewModelScope.launch {
             try {
@@ -345,7 +332,7 @@ class BabyViewModel @Inject constructor(
                 )
 
                 // 4. Persist the change
-                var finalBaby = repository.addOrUpdateBaby(updated).getOrThrow()
+                var finalBaby = repository.addOrUpdateBaby(updated, family).getOrThrow()
 
                 // 5. Update selected baby
                 _selectedBaby.value = finalBaby
