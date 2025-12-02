@@ -79,6 +79,20 @@ enum class PrivacyLevel {
     FAMILY_ONLY,  // All family members can see
     PUBLIC        // Can be shared outside the family
 }
+@IgnoreExtraProperties
+data class FamilyUser(
+    val user: User,
+    val role: FamilyRole = FamilyRole.MEMBER
+) {
+    // Convenience properties to access User fields
+    val userId: String get() = user.id
+    val email: String get() = user.email
+    val displayName: String get() = user.displayName
+    val photoUrl: String? get() = user.photoUrl
+
+    val displayNameOrEmail: String
+        get() = user.displayName.ifBlank { user.email }
+}
 
 /**
  * Roles within a family structure

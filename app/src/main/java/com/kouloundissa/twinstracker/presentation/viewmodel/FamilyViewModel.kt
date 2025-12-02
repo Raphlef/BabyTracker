@@ -4,9 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.firestore.IgnoreExtraProperties
 import com.kouloundissa.twinstracker.data.Family
 import com.kouloundissa.twinstracker.data.FamilyRole
+import com.kouloundissa.twinstracker.data.FamilyUser
 import com.kouloundissa.twinstracker.data.Firestore.FirebaseRepository
 import com.kouloundissa.twinstracker.data.Firestore.addMemberToFamily
 import com.kouloundissa.twinstracker.data.Firestore.addOrUpdateFamily
@@ -15,7 +15,6 @@ import com.kouloundissa.twinstracker.data.Firestore.joinFamilyByCode
 import com.kouloundissa.twinstracker.data.Firestore.regenerateInviteCode
 import com.kouloundissa.twinstracker.data.Firestore.removeMemberFromFamily
 import com.kouloundissa.twinstracker.data.Firestore.streamFamilies
-import com.kouloundissa.twinstracker.data.User
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.awaitClose
@@ -407,18 +406,3 @@ data class FamilyState(
     val isLoading: Boolean = false,
     val error: String? = null
 )
-
-@IgnoreExtraProperties
-data class FamilyUser(
-    val user: User,
-    val role: FamilyRole = FamilyRole.MEMBER
-) {
-    // Convenience properties to access User fields
-    val userId: String get() = user.id
-    val email: String get() = user.email
-    val displayName: String get() = user.displayName
-    val photoUrl: String? get() = user.photoUrl
-
-    val displayNameOrEmail: String
-        get() = user.displayName.ifBlank { user.email }
-}
