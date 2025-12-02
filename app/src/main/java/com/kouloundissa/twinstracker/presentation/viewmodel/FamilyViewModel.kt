@@ -41,11 +41,10 @@ class FamilyViewModel @Inject constructor(
     private val _families = MutableStateFlow<List<Family>>(emptyList())
     val families: StateFlow<List<Family>> = _families.asStateFlow()
 
-    private val _selectedFamily = MutableStateFlow<Family?>(null)
-    val selectedFamily: StateFlow<Family?> = _selectedFamily.asStateFlow()
+    val selectedFamily: StateFlow<Family?> = repository.selectedFamily
 
     fun selectFamily(family: Family?) {
-        _selectedFamily.value = family
+        repository.setSelectedFamily(family)
         family?.let { loadFamilyUsers(it) }
     }
     private val _state = MutableStateFlow(FamilyState())
@@ -143,7 +142,7 @@ class FamilyViewModel @Inject constructor(
                     }
                 )
                 repository.addOrUpdateFamily(updatedFamily)
-                _selectedFamily.value = updatedFamily
+                selectFamily( updatedFamily)
                 loadFamilyUsers(updatedFamily)
                 _state.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
@@ -173,9 +172,9 @@ class FamilyViewModel @Inject constructor(
                 repository.addOrUpdateFamily(updatedFamily)
                 // If current user removed, clear selection
                 if (_currentUserId.value == userId) {
-                    _selectedFamily.value = null
+                    selectFamily( null)
                 } else {
-                    _selectedFamily.value = updatedFamily
+                    selectFamily( updatedFamily)
                 }
                 loadFamilyUsers(updatedFamily)
                 _state.update { it.copy(isLoading = false) }
@@ -245,7 +244,7 @@ class FamilyViewModel @Inject constructor(
                 repository.addOrUpdateFamily(familyToSave)
                     .onSuccess { updatedFamily ->
                         // Update the selected family if it was the one being updated
-                        _selectedFamily.value = (updatedFamily ?: familyToSave) as Family?
+                        selectFamily((updatedFamily ?: familyToSave) as Family?)
                         _state.update { it.copy(isLoading = false) }
                     }
                     .onFailure { err ->
@@ -321,8 +320,8 @@ class FamilyViewModel @Inject constructor(
                 repository.removeMemberFromFamily(familyId, userId)
                     .onSuccess {
                         // Clear selection if user left the currently selected family
-                        if (_selectedFamily.value?.id == familyId) {
-                            _selectedFamily.value = null
+                        if (selectedFamily.value?.id == familyId) {
+                            selectFamily( null)
                         }
                         _state.update { it.copy(isLoading = false) }
                     }
@@ -339,17 +338,17 @@ class FamilyViewModel @Inject constructor(
     fun regenerateCode() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
-            val fam = _selectedFamily.value
+            val fam = selectedFamily.value
                 ?: return@launch _state.update { it.copy(isLoading = false, error = "No family") }
             repository.regenerateInviteCode(fam)
                 .onSuccess { code ->
                     // emit new code for UI
                     _newCode.emit(code)
                     // update selectedFamily
-                    _selectedFamily.value = fam.copy(
+                    selectFamily( fam.copy(
                         inviteCode = code,
                         updatedAt = System.currentTimeMillis()
-                    )
+                    ))
                     _state.update { it.copy(isLoading = false) }
                 }
                 .onFailure { err ->
