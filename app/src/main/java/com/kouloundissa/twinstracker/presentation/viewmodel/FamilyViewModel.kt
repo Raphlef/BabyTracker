@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -36,7 +37,7 @@ import javax.inject.Inject
 @HiltViewModel
 class FamilyViewModel @Inject constructor(
     private val repository: FirebaseRepository,
-    private val  firebaseAuth: FirebaseAuth
+    private val firebaseAuth: FirebaseAuth
 ) : ViewModel() {
 
     private val _families = MutableStateFlow<List<Family>>(emptyList())
@@ -52,6 +53,7 @@ class FamilyViewModel @Inject constructor(
             repository.saveLastSelectedFamilyId(family?.id)
         }
     }
+
     private val _state = MutableStateFlow(FamilyState())
     val state: StateFlow<FamilyState> = _state.asStateFlow()
 
@@ -78,7 +80,6 @@ class FamilyViewModel @Inject constructor(
         awaitClose { firebaseAuth.removeAuthStateListener(listener) }
     }
 
-
     init {
         authStateFlow
             .map { it != null }
@@ -90,15 +91,15 @@ class FamilyViewModel @Inject constructor(
 
                     viewModelScope.launch {
                         val lastFamilyId = repository.getLastSelectedFamilyId().first()
-                        if (lastFamilyId != null) {
-                            // Wait for families to load, then find and select it
-                            families.collect { familiesList ->
-                                val lastFamily = familiesList.find { it.id == lastFamilyId }
-                                if (lastFamily != null) {
-                                    selectFamily(lastFamily)
-                                }
+                        families
+                            .filter { it.isNotEmpty() }
+                            .first()
+                            .let { familiesList ->
+                                val familyToSelect = familiesList.find { it.id == lastFamilyId }
+                                    ?: familiesList.firstOrNull()  // ✅ Default to first
+
+                                familyToSelect?.let { selectFamily(it) }
                             }
-                        }
                     }
                 } else {
                     stopObservingFamilyUpdates()
@@ -134,6 +135,7 @@ class FamilyViewModel @Inject constructor(
             }
         }
     }
+
     fun updateUserRole(family: Family, userId: String, newRole: FamilyRole) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
@@ -160,7 +162,7 @@ class FamilyViewModel @Inject constructor(
                     }
                 )
                 repository.addOrUpdateFamily(updatedFamily)
-                selectFamily( updatedFamily)
+                selectFamily(updatedFamily)
                 loadFamilyUsers(updatedFamily)
                 _state.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
@@ -190,9 +192,9 @@ class FamilyViewModel @Inject constructor(
                 repository.addOrUpdateFamily(updatedFamily)
                 // If current user removed, clear selection
                 if (_currentUserId.value == userId) {
-                    selectFamily( null)
+                    selectFamily(null)
                 } else {
-                    selectFamily( updatedFamily)
+                    selectFamily(updatedFamily)
                 }
                 loadFamilyUsers(updatedFamily)
                 _state.update { it.copy(isLoading = false) }
@@ -227,8 +229,6 @@ class FamilyViewModel @Inject constructor(
         familiesJob?.cancel()
         familiesJob = null
     }
-
-
 
 
     fun createOrUpdateFamily(family: Family) {
@@ -339,7 +339,7 @@ class FamilyViewModel @Inject constructor(
                     .onSuccess {
                         // Clear selection if user left the currently selected family
                         if (selectedFamily.value?.id == familyId) {
-                            selectFamily( null)
+                            selectFamily(null)
                         }
                         _state.update { it.copy(isLoading = false) }
                     }
@@ -363,10 +363,12 @@ class FamilyViewModel @Inject constructor(
                     // emit new code for UI
                     _newCode.emit(code)
                     // update selectedFamily
-                    selectFamily( fam.copy(
-                        inviteCode = code,
-                        updatedAt = System.currentTimeMillis()
-                    ))
+                    selectFamily(
+                        fam.copy(
+                            inviteCode = code,
+                            updatedAt = System.currentTimeMillis()
+                        )
+                    )
                     _state.update { it.copy(isLoading = false) }
                 }
                 .onFailure { err ->
@@ -401,6 +403,7 @@ data class FamilyState(
     val isLoading: Boolean = false,
     val error: String? = null
 )
+
 data class FamilyUser(
     val userId: String,
     val displayName: String,
