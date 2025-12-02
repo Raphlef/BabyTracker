@@ -46,9 +46,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
@@ -301,20 +299,6 @@ class FirebaseRepository @Inject constructor(
             streamBabiesByIds(babyIds)
         }
     }
-    fun streamBabies(): Flow<List<Baby>> {
-        authHelper.getCurrentUserId() // Verify auth
-        return streamFamilies()
-            .flatMapLatest { families ->
-                val allBabyIds = families.flatMap { it.babyIds }.distinct()
-                if (allBabyIds.isEmpty()) {
-                    flowOf(emptyList())
-                } else {
-                    streamBabiesByIds(allBabyIds)
-                }
-            }
-            .distinctUntilChanged()
-    }
-
     private fun streamBabiesByIds(babyIds: List<String>): Flow<List<Baby>> {
         if (babyIds.isEmpty()) return flowOf(emptyList())
 
