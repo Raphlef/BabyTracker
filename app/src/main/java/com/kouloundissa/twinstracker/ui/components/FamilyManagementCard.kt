@@ -1,5 +1,9 @@
 package com.kouloundissa.twinstracker.ui.components
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FamilyRestroom
 import androidx.compose.material.icons.filled.Group
@@ -47,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -76,11 +82,21 @@ fun FamilyManagementCard(
     // Selected family from ViewModel
     val selectedFamily by familyViewModel.selectedFamily.collectAsState()
     val familyUsers by familyViewModel.familyUsers.collectAsState(emptyList())
+    val currentUserId by familyViewModel.currentUserId.collectAsState()
+    val inviteResult by familyViewModel.inviteResult.collectAsState(initial = null)
+
     val babies by babyViewModel.babies.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
-    val currentUserId by familyViewModel.currentUserId.collectAsState()
 
-    val inviteResult by familyViewModel.inviteResult.collectAsState(initial = null)
+    // Extract copy logic into a reusable function
+    fun copyToClipboard(context: Context, text: String, label: String = "text") {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText(label, text)
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(context, "Code copié", Toast.LENGTH_SHORT).show()
+    }
+
+    val context = LocalContext.current
 
     // Local editable state mirroring Family properties
     var name by remember(selectedFamily) { mutableStateOf(selectedFamily?.name.orEmpty()) }
@@ -98,12 +114,7 @@ fun FamilyManagementCard(
             familyViewModel.selectFamily(families.first())
         }
     }
-    // When family changes, load its babies
-    val familyBabies = remember(babies, selectedFamily) {
-        selectedFamily?.let { fam ->
-            babies.filter { it.id in fam.babyIds }
-        } ?: emptyList()
-    }
+
     LaunchedEffect(selectedFamily) {
         selectedFamily?.let { familyViewModel.loadFamilyUsers(it) }
     }
@@ -226,7 +237,19 @@ fun FamilyManagementCard(
                     label = { Text("Code d'invitation", color = contentColor) },
                     readOnly = true,
                     shape = cornerShape,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { copyToClipboard(context, inviteCode, "invite_code") },
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = "Copier le code",
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clickable { copyToClipboard(context, inviteCode, "invite_code") },
+                            tint = contentColor
+                        )
+                    }
                 )
                 IconButton(
                     onClick = { familyViewModel.regenerateCode() },
