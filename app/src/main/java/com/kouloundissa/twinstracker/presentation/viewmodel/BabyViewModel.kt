@@ -12,11 +12,14 @@ import com.kouloundissa.twinstracker.data.Firestore.FirebaseRepository
 import com.kouloundissa.twinstracker.data.Gender
 import com.kouloundissa.twinstracker.data.User
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
@@ -30,14 +33,26 @@ class BabyViewModel @Inject constructor(
 
     private val TAG = "BabyViewModel"
 
-    val babies: StateFlow<List<Baby>> = repository
-        .streamBabies()
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val babies: StateFlow<List<Baby>> = repository.selectedFamily
+        .flatMapLatest { selectedFamily ->
+            selectedFamily?.let { family ->
+                repository.streamBabiesByFamily(family)
+            } ?: flowOf(emptyList())
+        }
         .onStart {
             _isLoading.value = true
             _errorMessage.value = null
         }
         .onEach {
             _isLoading.value = false
+            _selectedBaby.value = null
         }
         .catch { e ->
             _isLoading.value = false
@@ -45,9 +60,9 @@ class BabyViewModel @Inject constructor(
             emit(emptyList())
         }
         .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = emptyList()
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            emptyList()
         )
 
     private val _selectedBaby = MutableStateFlow<Baby?>(null)
@@ -71,12 +86,6 @@ class BabyViewModel @Inject constructor(
         return nextBaby
     }
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    // Optional: Add a StateFlow for error messages
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     private val _parents = MutableStateFlow<List<User>>(emptyList())
     val parents: StateFlow<List<User>> = _parents.asStateFlow()
