@@ -39,52 +39,35 @@ fun FirebaseRepository.streamFamilies(): Flow<List<Family>> {
         val listeners = mutableListOf<ListenerRegistration>()
         val familiesMap = mutableMapOf<String, Family>()
 
-        // Build query with combined member/admin filter
-        val memberQuery = db.collection(FirestoreConstants.Collections.FAMILIES)
-            .whereArrayContains(FirestoreConstants.Fields.MEMBER_IDS, currentUserId)
+        // Define roles and their corresponding field names
+        val roles = listOf(
+            FirestoreConstants.Fields.MEMBER_IDS to "member",
+            FirestoreConstants.Fields.ADMIN_IDS to "admin",
+            FirestoreConstants.Fields.VIEWER_IDS to "viewer"
+        )
+
+        // Reusable listener creation function
+        fun createFamilyListener(fieldName: String) = db.collection(FirestoreConstants.Collections.FAMILIES)
+            .whereArrayContains(fieldName, currentUserId)
             .orderBy(FirestoreConstants.Fields.CREATED_AT, Query.Direction.DESCENDING)
-
-        val adminQuery = db.collection(FirestoreConstants.Collections.FAMILIES)
-            .whereArrayContains(FirestoreConstants.Fields.ADMIN_IDS, currentUserId)
-            .orderBy(FirestoreConstants.Fields.CREATED_AT, Query.Direction.DESCENDING)
-        fun emitSortedFamilies() {
-            val sortedFamilies = familiesMap.values.sortedByDescending { it.createdAt }
-            trySend(sortedFamilies)
-        }
-        // Member families listener
-        val memberListener = memberQuery.addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                close(error)
-                return@addSnapshotListener
-            }
-
-            snapshot?.documents?.forEach { doc ->
-                doc.toObjectSafely<Family>()?.let { family ->
-                    familiesMap[family.id] = family
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
                 }
-            }
-
-            emitSortedFamilies()
-        }
-
-        // Admin families listener
-        val adminListener = adminQuery.addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                close(error)
-                return@addSnapshotListener
-            }
-
-            snapshot?.documents?.forEach { doc ->
-                doc.toObjectSafely<Family>()?.let { family ->
-                    familiesMap[family.id] = family
+                snapshot?.documents?.forEach { doc ->
+                    doc.toObjectSafely<Family>()?.let { family ->
+                        familiesMap[family.id] = family
+                    }
                 }
+                val sortedFamilies = familiesMap.values.sortedByDescending { it.createdAt }
+                trySend(sortedFamilies)
             }
 
-            emitSortedFamilies()
+        // Add listeners for all roles
+        roles.forEach { (fieldName, _) ->
+            listeners.add(createFamilyListener(fieldName))
         }
-
-        listeners.add(memberListener)
-        listeners.add(adminListener)
 
         awaitClose {
             listeners.forEach { it.remove() }
@@ -92,15 +75,13 @@ fun FirebaseRepository.streamFamilies(): Flow<List<Family>> {
     }.distinctUntilChanged()
 }
 
+
 suspend fun FirebaseRepository.addMemberToFamily(
     familyId: String,
     userIdToAdd: String
 ): Result<Unit> = runCatching {
     FirebaseValidators.validateFamilyId(familyId)
     require(userIdToAdd.isNotBlank()) { "User ID cannot be empty" }
-
-    val familyRef = db.collection(FirestoreConstants.Collections.FAMILIES)
-        .document(familyId)
 
     // 1. Add member to family
     queryHelper.updateArrayField(
@@ -137,21 +118,42 @@ suspend fun FirebaseRepository.addMemberToFamily(
     batch.commit().await()
 }
 
-suspend fun FirebaseRepository.removeMemberFromFamily(
-    familyId: String,
-    userIdToRemove: String
-): Result<Unit> = runCatching {
-    FirebaseValidators.validateFamilyId(familyId)
-    require(userIdToRemove.isNotBlank()) { "User ID cannot be empty" }
+suspend fun FirebaseRepository.removeUserFromAllRoles(familyId: String, userId: String): Result<Unit> {
+    return runCatching {
+        FirebaseValidators.validateFamilyId(familyId)
+        require(userId.isNotBlank()) { "User ID cannot be empty" }
 
-    queryHelper.updateArrayField(
-        FirestoreConstants.Collections.FAMILIES,
-        familyId,
-        FirestoreConstants.Fields.MEMBER_IDS,
-        userIdToRemove,
-        ArrayOperation.Remove
-    )
+        val collection = FirestoreConstants.Collections.FAMILIES
+
+        // Remove user from MEMBER_IDS
+        queryHelper.updateArrayField(
+            collection,
+            familyId,
+            FirestoreConstants.Fields.MEMBER_IDS,
+            userId,
+            ArrayOperation.Remove
+        )
+
+        // Remove user from ADMIN_IDS
+        queryHelper.updateArrayField(
+            collection,
+            familyId,
+            FirestoreConstants.Fields.ADMIN_IDS,
+            userId,
+            ArrayOperation.Remove
+        )
+
+        // Remove user from VIEWER_IDS
+        queryHelper.updateArrayField(
+            collection,
+            familyId,
+            FirestoreConstants.Fields.VIEWER_IDS,
+            userId,
+            ArrayOperation.Remove
+        )
+    }
 }
+
 
 suspend fun FirebaseRepository.deleteFamily(familyId: String): Result<Unit> = runCatching {
     FirebaseValidators.validateFamilyId(familyId)
