@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.IgnoreExtraProperties
 import com.kouloundissa.twinstracker.data.Family
 import com.kouloundissa.twinstracker.data.FamilyRole
 import com.kouloundissa.twinstracker.data.Firestore.FirebaseRepository
@@ -14,6 +15,7 @@ import com.kouloundissa.twinstracker.data.Firestore.joinFamilyByCode
 import com.kouloundissa.twinstracker.data.Firestore.regenerateInviteCode
 import com.kouloundissa.twinstracker.data.Firestore.removeMemberFromFamily
 import com.kouloundissa.twinstracker.data.Firestore.streamFamilies
+import com.kouloundissa.twinstracker.data.User
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.awaitClose
@@ -114,16 +116,16 @@ class FamilyViewModel @Inject constructor(
     fun loadFamilyUsers(family: Family) {
         viewModelScope.launch {
             repository.runCatching {
-                // Get List<User?> by family member IDs using the refactored query helper
                 repository.getUsersByIds(family.memberIds)
                     .mapNotNull { user ->
                         user?.let { u ->
                             FamilyUser(
-                                userId = u.id,
-                                displayName = u.displayName,
+                                user = u,
                                 role = when {
                                     family.adminIds.contains(u.id) -> FamilyRole.ADMIN
-                                    else -> FamilyRole.MEMBER
+                                    family.memberIds.contains(u.id) -> FamilyRole.MEMBER
+                                    family.viewerIds.contains(u.id) -> FamilyRole.VIEWER
+                                    else -> FamilyRole.VIEWER
                                 }
                             )
                         }
@@ -404,8 +406,17 @@ data class FamilyState(
     val error: String? = null
 )
 
+@IgnoreExtraProperties
 data class FamilyUser(
-    val userId: String,
-    val displayName: String,
-    val role: FamilyRole
-)
+    val user: User,
+    val role: FamilyRole = FamilyRole.MEMBER
+) {
+    // Convenience properties to access User fields
+    val userId: String get() = user.id
+    val email: String get() = user.email
+    val displayName: String get() = user.displayName
+    val photoUrl: String? get() = user.photoUrl
+
+    val displayNameOrEmail: String
+        get() = user.displayName.ifBlank { user.email }
+}
