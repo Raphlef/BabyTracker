@@ -46,14 +46,6 @@ class FamilyViewModel @Inject constructor(
 
     val selectedFamily: StateFlow<Family?> = repository.selectedFamily
 
-    fun selectFamily(family: Family?) {
-        repository.setSelectedFamily(family)
-        family?.let { loadFamilyUsers(it) }
-
-        viewModelScope.launch {
-            repository.saveLastSelectedFamilyId(family?.id)
-        }
-    }
 
     private val _state = MutableStateFlow(FamilyState())
     val state: StateFlow<FamilyState> = _state.asStateFlow()
@@ -112,71 +104,95 @@ class FamilyViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
+    fun selectFamily(family: Family?) {
+        repository.setSelectedFamily(family)
+        family?.let { loadFamilyUsers(it) }
+
+        viewModelScope.launch {
+            repository.saveLastSelectedFamilyId(family?.id)
+        }
+    }
     fun loadFamilyUsers(family: Family) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-            repository.runCatching {
-                repository.getUsersByIds(family.memberIds)
-                    .map { user ->
-                        user.let { u ->
-                            FamilyUser(
-                                user = u,
-                                role = when {
-                                    family.adminIds.contains(u.id) -> FamilyRole.ADMIN
-                                    family.memberIds.contains(u.id) -> FamilyRole.MEMBER
-                                    family.viewerIds.contains(u.id) -> FamilyRole.VIEWER
-                                    else -> FamilyRole.VIEWER
-                                }
-                            )
+            setLoading(true)
+            try {
+                repository.runCatching {
+                    repository.getUsersByIds(family.memberIds)
+                        .map { user ->
+                            user.let { u ->
+                                FamilyUser(
+                                    user = u,
+                                    role = when {
+                                        family.adminIds.contains(u.id) -> FamilyRole.ADMIN
+                                        family.memberIds.contains(u.id) -> FamilyRole.MEMBER
+                                        family.viewerIds.contains(u.id) -> FamilyRole.VIEWER
+                                        else -> FamilyRole.VIEWER
+                                    }
+                                )
+                            }
                         }
-                    }
-            }.onSuccess { users ->
-                _familyUsers.value = users
-                _state.update { it.copy(isLoading = false) }
-            }.onFailure { e ->
-                _state.update { it.copy(isLoading = false, error = e.message) }
+                }.onSuccess { users ->
+                    _familyUsers.value = users
+                    clearError()
+                    setLoading(false)
+                }.onFailure { e ->
+                    handleError(e as Exception, "Failed to load family members")
+                }
+            } catch (e: Exception) {
+                handleError(e, "Failed to load family members")
             }
         }
     }
 
     fun updateUserRole(family: Family, userId: String, newRole: FamilyRole) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-            val currentId = _currentUserId.value
-            // Only admins can change roles
-            if (currentId == null || !family.adminIds.contains(currentId)) {
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        error = "Seuls les administrateurs peuvent modifier les rôles."
-                    )
-                }
-                return@launch
-            }
+            setLoading(true)
             try {
+                val currentId = _currentUserId.value
+                // Only admins can change roles
+                if (currentId == null || !family.adminIds.contains(currentId)) {
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            error = "Seuls les administrateurs peuvent modifier les rôles."
+                        )
+                    }
+                    return@launch
+                }
                 val updatedFamily = family.copy(
                     adminIds = when (newRole) {
                         FamilyRole.ADMIN -> (family.adminIds + userId).distinct()
                         else -> family.adminIds - userId
                     },
                     memberIds = when (newRole) {
-                        FamilyRole.VIEWER -> family.memberIds - userId
-                        else -> (family.memberIds + userId).distinct()
-                    }
+                        FamilyRole.MEMBER -> (family.memberIds + userId).distinct()
+                        else -> family.memberIds - userId
+                    },
+                    viewerIds = when (newRole) {
+                        FamilyRole.VIEWER -> (family.viewerIds + userId).distinct()
+                        else -> family.viewerIds - userId
+                    },
                 )
                 repository.addOrUpdateFamily(updatedFamily)
-                selectFamily(updatedFamily)
-                loadFamilyUsers(updatedFamily)
-                _state.update { it.copy(isLoading = false) }
+                    .onSuccess {
+                        selectFamily(updatedFamily)
+                        loadFamilyUsers(updatedFamily)
+                        clearError()
+                        setLoading(false)
+                    }
+                    .onFailure { e ->
+                        handleError(e as Exception, "Failed to update user role")
+                    }
             } catch (e: Exception) {
-                _state.update { it.copy(isLoading = false, error = e.message) }
+                handleError(e, "Failed to update user role")
             }
         }
     }
 
+
     fun removeUserFromFamily(family: Family, userId: String) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            setLoading(true)
             try {
                 // Prevent removing sole admin
                 if (family.adminIds.contains(userId) && family.adminIds.size == 1) {
@@ -193,17 +209,198 @@ class FamilyViewModel @Inject constructor(
                     memberIds = family.memberIds - userId
                 )
                 repository.addOrUpdateFamily(updatedFamily)
-                // If current user removed, clear selection
-                if (_currentUserId.value == userId) {
-                    selectFamily(null)
-                } else {
-                    selectFamily(updatedFamily)
-                }
-                loadFamilyUsers(updatedFamily)
-                _state.update { it.copy(isLoading = false) }
+                    .onSuccess {
+                        if (_currentUserId.value == userId) {
+                            selectFamily(null)
+                        } else {
+                            selectFamily(updatedFamily)
+                        }
+                        loadFamilyUsers(updatedFamily)
+                        clearError()
+                        setLoading(false)
+                    }
+                    .onFailure { e ->
+                        handleError(e as Exception, "Failed to remove user from family")
+                    }
             } catch (e: Exception) {
-                _state.update { it.copy(isLoading = false, error = e.message) }
+                handleError(e, "Failed to remove user from family")
             }
+        }
+    }
+
+    fun createOrUpdateFamily(family: Family) {
+        viewModelScope.launch {
+            setLoading(true)
+
+            try {
+                val currentUserId = repository.getCurrentUserId()
+                if (currentUserId.isNullOrBlank()) {
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            error = "User not authenticated. Please sign in again."
+                        )
+                    }
+                    return@launch
+                }
+                val existingFamily = _families.value.find { it.id == family.id }
+                val isNewFamily = existingFamily == null
+                // For new families, ensure current user is added as admin AND member
+                val familyToSave = if (isNewFamily) {
+                    family.copy(
+                        adminIds = listOf(currentUserId),
+                        memberIds = listOf(currentUserId) // Also add to members
+                    )
+                } else {
+                    family
+                }
+
+                repository.addOrUpdateFamily(familyToSave)
+                    .onSuccess { updatedFamily ->
+                        // Update the selected family if it was the one being updated
+                        selectFamily(updatedFamily as Family?)
+                        clearError()
+                        setLoading(false)
+                    }
+                    .onFailure { err ->
+                        handleError(err as Exception, "Failed to create family")
+                    }
+            } catch (e: Exception) {
+                handleError(e, "Failed to create family")
+            }
+        }
+    }
+
+    fun deleteFamily(familyId: String) {
+        viewModelScope.launch {
+            setLoading(true)
+            try {
+                repository.deleteFamily(familyId)
+                    .onSuccess {
+                        clearError()
+                        setLoading(false)
+                    }
+                    .onFailure { err ->
+                        handleError(err as Exception, "Failed to delete family")
+                    }
+            } catch (e: Exception) {
+                handleError(e, "Failed to delete family")
+            }
+        }
+    }
+
+    fun addMember(familyId: String, userId: String) {
+        viewModelScope.launch {
+            setLoading(true)
+            try {
+                repository.addMemberToFamily(familyId, userId)
+                    .onSuccess {
+                        // Reload family users if this is the selected family
+                        selectedFamily.value?.takeIf { it.id == familyId }?.let {
+                            loadFamilyUsers(it)
+                        }
+                        clearError()
+                        setLoading(false)
+                    }
+                    .onFailure { err ->
+                        handleError(err as Exception, "Failed to add member")
+                    }
+            } catch (e: Exception) {
+                handleError(e, "Failed to add member")
+            }
+        }
+    }
+
+    fun removeMember(familyId: String, userId: String) {
+        viewModelScope.launch {
+            setLoading(true)
+            try {
+                // Get current family from cached families list
+                val family = _families.value.firstOrNull { it.id == familyId }
+                    ?: return@launch handleError(
+                        Exception("Family not found"),
+                        "Family not found"
+                    )
+
+                // Safety check: prevent leaving if user is the only admin
+                if (family.adminIds.contains(userId) && family.adminIds.size == 1) {
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            error = "You cannot leave as you are the only administrator. Assign another admin first."
+                        )
+                    }
+                    return@launch
+                }
+
+                repository.removeMemberFromFamily(familyId, userId)
+                    .onSuccess {
+                        // Clear selection if user left the currently selected family
+                        if (selectedFamily.value?.id == familyId) {
+                            selectFamily(null)
+                        }
+                        clearError()
+                        setLoading(false)
+                    }
+                    .onFailure { err ->
+                        handleError(err as Exception, "Failed to remove member")
+                    }
+            } catch (e: Exception) {
+                handleError(e, "Failed to remove member")
+            }
+        }
+    }
+
+    /** Regenerates invite code for the selected family */
+    fun regenerateCode() {
+        viewModelScope.launch {
+            setLoading(true)
+            try {
+                val fam = selectedFamily.value
+                    ?: return@launch handleError(
+                        Exception("No family selected"),
+                        "No family selected"
+                    )
+                repository.regenerateInviteCode(fam)
+                    .onSuccess { code ->
+                        // emit new code for UI
+                        _newCode.emit(code)
+                        // update selectedFamily
+                        selectFamily(
+                            fam.copy(
+                                inviteCode = code,
+                                updatedAt = System.currentTimeMillis()
+                            )
+                        )
+                        clearError()
+                        setLoading(false)
+                    }
+                    .onFailure { exception ->
+                        handleError(exception as Exception, "Failed to regenerate invite code")
+                    }
+            } catch (e: Exception) {
+                handleError(e, "Failed to regenerate invite code")
+            }
+        }
+    }
+
+    /** Joins a family via invite code */
+    fun joinByCode(code: String) {
+        viewModelScope.launch {
+            val currentUserId = repository.getCurrentUserId()
+                ?: return@launch _state.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "User not authenticated"
+                    )
+                }
+            repository.joinFamilyByCode(code, currentUserId)
+                .onSuccess {
+                    _inviteResult.emit(Result.success(Unit))
+                }
+                .onFailure { ex ->
+                    _inviteResult.emit(Result.failure(ex))
+                }
         }
     }
 
@@ -233,170 +430,25 @@ class FamilyViewModel @Inject constructor(
         familiesJob = null
     }
 
-
-    fun createOrUpdateFamily(family: Family) {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-
-            try {
-                val currentUserId = repository.getCurrentUserId()
-
-                if (currentUserId.isNullOrBlank()) {
-                    _state.update {
-                        it.copy(
-                            isLoading = false,
-                            error = "User not authenticated. Please sign in again."
-                        )
-                    }
-                    return@launch
-                }
-                val existingFamily = _families.value.find { it.id == family.id }
-                val isNewFamily = existingFamily == null
-                // For new families, ensure current user is added as admin AND member
-                val familyToSave = if (isNewFamily) {
-                    family.copy(
-                        adminIds = listOf(currentUserId),
-                        memberIds = listOf(currentUserId) // Also add to members
-                    )
-                } else {
-                    family
-                }
-
-                repository.addOrUpdateFamily(familyToSave)
-                    .onSuccess { updatedFamily ->
-                        // Update the selected family if it was the one being updated
-                        selectFamily((updatedFamily ?: familyToSave) as Family?)
-                        _state.update { it.copy(isLoading = false) }
-                    }
-                    .onFailure { err ->
-                        _state.update {
-                            it.copy(
-                                isLoading = false,
-                                error = err.message ?: "Failed to create family"
-                            )
-                        }
-                    }
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        error = "Error creating family: ${e.message}"
-                    )
-                }
-            }
-        }
+    /**
+     * Utility: Set loading state
+     */
+    private fun setLoading(isLoading: Boolean) {
+        _state.update { it.copy(isLoading = isLoading) }
     }
 
-
-    fun deleteFamily(familyId: String) {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-            repository.deleteFamily(familyId)
-                .onSuccess {
-                    _state.update { it.copy(isLoading = false) }
-                }
-                .onFailure { err ->
-                    _state.update { it.copy(isLoading = false, error = err.message) }
-                }
-        }
+    /**
+     * Utility: Clear error
+     */
+    private fun clearError() {
+        _state.update { it.copy(error = null) }
     }
-
-    fun addMember(familyId: String, userId: String) {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-            repository.addMemberToFamily(familyId, userId)
-                .onSuccess {
-                    _state.update { it.copy(isLoading = false) }
-                }
-                .onFailure { err ->
-                    _state.update { it.copy(isLoading = false, error = err.message) }
-                }
-        }
-    }
-
-    fun removeMember(familyId: String, userId: String) {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-            try {
-                // Get current family from cached families list
-                val family = _families.value.firstOrNull { it.id == familyId }
-                    ?: return@launch _state.update {
-                        it.copy(
-                            isLoading = false,
-                            error = "Famille introuvable"
-                        )
-                    }
-
-                // Safety check: prevent leaving if user is the only admin
-                if (family?.adminIds?.contains(userId) == true && family.adminIds.size == 1) {
-                    _state.update {
-                        it.copy(
-                            isLoading = false,
-                            error = "Vous ne pouvez pas quitter car vous êtes le seul administrateur. Nommez d'abord un autre admin."
-                        )
-                    }
-                    return@launch
-                }
-
-                repository.removeMemberFromFamily(familyId, userId)
-                    .onSuccess {
-                        // Clear selection if user left the currently selected family
-                        if (selectedFamily.value?.id == familyId) {
-                            selectFamily(null)
-                        }
-                        _state.update { it.copy(isLoading = false) }
-                    }
-                    .onFailure { err ->
-                        _state.update { it.copy(isLoading = false, error = err.message) }
-                    }
-            } catch (e: Exception) {
-                _state.update { it.copy(isLoading = false, error = e.message) }
-            }
-        }
-    }
-
-    /** Regenerates invite code for the selected family */
-    fun regenerateCode() {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-            val fam = selectedFamily.value
-                ?: return@launch _state.update { it.copy(isLoading = false, error = "No family") }
-            repository.regenerateInviteCode(fam)
-                .onSuccess { code ->
-                    // emit new code for UI
-                    _newCode.emit(code)
-                    // update selectedFamily
-                    selectFamily(
-                        fam.copy(
-                            inviteCode = code,
-                            updatedAt = System.currentTimeMillis()
-                        )
-                    )
-                    _state.update { it.copy(isLoading = false) }
-                }
-                .onFailure { err ->
-                    _state.update { it.copy(isLoading = false, error = err.message) }
-                }
-        }
-    }
-
-    /** Joins a family via invite code */
-    fun joinByCode(code: String) {
-        viewModelScope.launch {
-            val currentUserId = repository.getCurrentUserId()
-                ?: return@launch _state.update {
-                    it.copy(
-                        isLoading = false,
-                        error = "User not authenticated"
-                    )
-                }
-            repository.joinFamilyByCode(code, currentUserId)
-                .onSuccess {
-                    _inviteResult.emit(Result.success(Unit))
-                }
-                .onFailure { ex ->
-                    _inviteResult.emit(Result.failure(ex))
-                }
+    private fun handleError(exception: Exception, defaultMessage: String = "An error occurred") {
+        _state.update {
+            it.copy(
+                isLoading = false,
+                error = exception.message ?: defaultMessage
+            )
         }
     }
 
