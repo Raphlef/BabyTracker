@@ -44,6 +44,10 @@ class FamilyViewModel @Inject constructor(
     private val _selectedFamily = MutableStateFlow<Family?>(null)
     val selectedFamily: StateFlow<Family?> = _selectedFamily.asStateFlow()
 
+    fun selectFamily(family: Family?) {
+        _selectedFamily.value = family
+        family?.let { loadFamilyUsers(it) }
+    }
     private val _state = MutableStateFlow(FamilyState())
     val state: StateFlow<FamilyState> = _state.asStateFlow()
 
@@ -208,10 +212,7 @@ class FamilyViewModel @Inject constructor(
     }
 
 
-    fun selectFamily(family: Family?) {
-        _selectedFamily.value = family
-        family?.let { loadFamilyUsers(it) }
-    }
+
 
     fun createOrUpdateFamily(family: Family) {
         viewModelScope.launch {
