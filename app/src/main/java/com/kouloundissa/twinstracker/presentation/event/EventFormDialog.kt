@@ -1078,36 +1078,38 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
         }
 
         // Dosage information section
-        FormSection(title = "Dosage Information") {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+        FormFieldVisibility(visible = state.drugType != DrugType.CREAM) {
+            FormSection(title = "Dosage Information") {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    FormNumericInput(
-                        value = state.dosage,
-                        onValueChange = { newValue ->
-                            viewModel.updateForm {
-                                (this as EventFormState.Drugs).copy(dosage = newValue)
-                            }
-                        },
-                        label = "Amount",
-                        modifier = Modifier.weight(2f),
-                        max = 1000f
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        FormNumericInput(
+                            value = state.dosage,
+                            onValueChange = { newValue ->
+                                viewModel.updateForm {
+                                    (this as EventFormState.Drugs).copy(dosage = newValue)
+                                }
+                            },
+                            label = "Amount",
+                            modifier = Modifier.weight(2f),
+                            max = 1000f
+                        )
 
-                    FormTextInput(
-                        value = state.unit,
-                        onValueChange = { newValue ->
-                            viewModel.updateForm {
-                                (this as EventFormState.Drugs).copy(unit = newValue)
-                            }
-                        },
-                        label = "Unit",
-                        modifier = Modifier.weight(1f)
-                    )
+                        FormTextInput(
+                            value = state.unit,
+                            onValueChange = { newValue ->
+                                viewModel.updateForm {
+                                    (this as EventFormState.Drugs).copy(unit = newValue)
+                                }
+                            },
+                            label = "Unit",
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }
