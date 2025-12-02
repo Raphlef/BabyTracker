@@ -341,6 +341,7 @@ class FamilyViewModel @Inject constructor(
                         }
                         clearError()
                         setLoading(false)
+                        startObservingFamilyUpdates()
                     }
                     .onFailure { err ->
                         handleError(err as Exception, "Failed to remove member")
@@ -401,6 +402,7 @@ class FamilyViewModel @Inject constructor(
                     .onSuccess {
                         _inviteResult.emit(Result.success(Unit))
                         _state.update { it.copy(isLoading = false) }
+                        startObservingFamilyUpdates()
                     }
                     .onFailure { ex ->
                         _state.update {
