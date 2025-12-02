@@ -3,7 +3,6 @@ package com.kouloundissa.twinstracker.ui.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -134,21 +133,35 @@ fun FamilyManagementCard(
                 selectedFamily = selectedFamily,
                 onSelect = { familyViewModel.selectFamily(it) }
             )
-            Button(
-                onClick = { showCreateDialog = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                enabled = !isLoading,
+            Row(
+                Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                TextButton(
+                    onClick = { showJoinDialog = true },
+                    enabled = !isLoading
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Text("Créer une nouvelle famille")
+                    Icon(Icons.Default.QrCode, contentDescription = null, tint = tintColor)
+                    Text("Rejoindre", color = tintColor)
+                }
+                Button(
+                    onClick = { showCreateDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    enabled = !isLoading,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null)
+                        Text("Créer une nouvelle famille")
+                    }
                 }
             }
+
             HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
             selectedFamily?.let { family ->
                 FamilyMemberSection(
@@ -273,8 +286,7 @@ fun FamilyManagementCard(
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .height(IntrinsicSize.Min),
+                    .padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 selectedFamily?.let {
@@ -283,22 +295,6 @@ fun FamilyManagementCard(
                         familyViewModel = familyViewModel,
                         isLoading = isLoading
                     )
-                }
-            }
-            // Inline join button
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TextButton(
-                    onClick = { showJoinDialog = true },
-                    modifier = Modifier.weight(1f),
-                    enabled = !isLoading
-                ) {
-                    Icon(Icons.Default.QrCode, contentDescription = null, tint = tintColor)
-                    Text("Rejoindre", color = tintColor)
                 }
 
                 val createLabel = if (selectedFamily == null) "Créer" else "Enregistrer"
