@@ -40,6 +40,9 @@ import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -269,7 +272,20 @@ class FirebaseRepository @Inject constructor(
 
         finalBaby
     }
+    private val _selectedFamily = MutableStateFlow<Family?>(null)
+    val selectedFamily: StateFlow<Family?> = _selectedFamily.asStateFlow()
 
+    fun setSelectedFamily(family: Family?) {
+        _selectedFamily.value = family
+    }
+    fun streamBabiesByFamily(family: Family): Flow<List<Baby>> {
+        val babyIds = family.babyIds.distinct()
+        return if (babyIds.isEmpty()) {
+            flowOf(emptyList())
+        } else {
+            streamBabiesByIds(babyIds)
+        }
+    }
     fun streamBabies(): Flow<List<Baby>> {
         authHelper.getCurrentUserId() // Verify auth
         return streamFamilies()
