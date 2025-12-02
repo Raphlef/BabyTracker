@@ -1,7 +1,9 @@
 package com.kouloundissa.twinstracker.data
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.google.firebase.firestore.IgnoreExtraProperties
@@ -19,6 +21,7 @@ data class Family(
     val inviteCode: String = generateInviteCode(),   // Code for inviting new members
     val adminIds: List<String> = emptyList(),        // User IDs with admin privileges
     val memberIds: List<String> = emptyList(),       // All family member User IDs (includes admins)
+    val viewerIds: List<String> = emptyList(),       // all just viewer user Ids
     val babyIds: List<String> = emptyList(),         // Baby IDs associated with this family
     val active: Boolean = true,                    // Whether the family is active
     val settings: FamilySettings = FamilySettings(), // Family-specific settings
