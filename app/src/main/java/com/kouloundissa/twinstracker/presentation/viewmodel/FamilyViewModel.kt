@@ -13,7 +13,7 @@ import com.kouloundissa.twinstracker.data.Firestore.addOrUpdateFamily
 import com.kouloundissa.twinstracker.data.Firestore.deleteFamily
 import com.kouloundissa.twinstracker.data.Firestore.joinFamilyByCode
 import com.kouloundissa.twinstracker.data.Firestore.regenerateInviteCode
-import com.kouloundissa.twinstracker.data.Firestore.removeMemberFromFamily
+import com.kouloundissa.twinstracker.data.Firestore.removeUserFromAllRoles
 import com.kouloundissa.twinstracker.data.Firestore.streamFamilies
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -45,7 +45,6 @@ class FamilyViewModel @Inject constructor(
     val families: StateFlow<List<Family>> = _families.asStateFlow()
 
     val selectedFamily: StateFlow<Family?> = repository.selectedFamily
-
 
     private val _state = MutableStateFlow(FamilyState())
     val state: StateFlow<FamilyState> = _state.asStateFlow()
@@ -334,7 +333,7 @@ class FamilyViewModel @Inject constructor(
                     return@launch
                 }
 
-                repository.removeMemberFromFamily(familyId, userId)
+                repository.removeUserFromAllRoles(familyId, userId)
                     .onSuccess {
                         // Clear selection if user left the currently selected family
                         if (selectedFamily.value?.id == familyId) {
