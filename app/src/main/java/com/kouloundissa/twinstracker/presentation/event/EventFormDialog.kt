@@ -800,13 +800,13 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
     )
     val previousFeedType = remember { mutableStateOf(state.feedType) }
     val allEvents by viewModel.events.collectAsState()
+
     val presets1 = allEvents
         .filterIsInstance<FeedingEvent>()
         .filter { it.amountMl != null && it.amountMl > 0 }
         .sortedByDescending { it.timestamp }
-        .mapNotNull { it.amountMl }
         .take(10)
-        .calculatePresets()
+        .calculatePresetsWithPrediction(valueSelector = { it.amountMl?.toDouble() })
 
     val presets2 = allEvents
         .filterIsInstance<FeedingEvent>()
@@ -970,13 +970,13 @@ private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     val allEvents by viewModel.events.collectAsState()
+
     val presets1 = allEvents
         .filterIsInstance<PumpingEvent>()
         .filter { it.amountMl != null && it.amountMl > 0 }
         .sortedByDescending { it.timestamp }
-        .mapNotNull { it.amountMl }
         .take(10)
-        .calculatePresets()
+        .calculatePresetsWithPrediction(valueSelector = { it.amountMl?.toDouble() })
     val presets2 = allEvents
         .filterIsInstance<PumpingEvent>()
         .filter { it.durationMinutes != null && it.durationMinutes > 0 }
