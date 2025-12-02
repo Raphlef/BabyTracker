@@ -52,19 +52,13 @@ fun FamilyCheckScreen(
 ) {
     val babyViewModel: BabyViewModel = hiltViewModel()
     val babies by babyViewModel.babies.collectAsState()
-    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
     val families by familyViewModel.families.collectAsState()
+    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
+
     // Check if user has families and navigate accordingly
-    LaunchedEffect(families) {
-        if (families.isNotEmpty()) {
-            // User has families, select first one and navigate to dashboard
-            val firstFamily = families.first()
-            familyViewModel.selectFamily(firstFamily)
-
-            // Get first baby from the family
-            val familyBabies = babies.filter { it.id in firstFamily.babyIds }
-            val firstBabyId = familyBabies.firstOrNull()?.id
-
+    LaunchedEffect(selectedFamily) {
+        if (selectedFamily != null) {
+            val firstBabyId = babies.firstOrNull()?.id
             onNavigateToDashboard(firstBabyId)
         }
     }
