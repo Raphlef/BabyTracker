@@ -34,6 +34,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,11 +54,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.data.Family
 import com.kouloundissa.twinstracker.data.FamilyRole
 import com.kouloundissa.twinstracker.data.FamilySettings
+import com.kouloundissa.twinstracker.data.FamilyUser
 import com.kouloundissa.twinstracker.data.PrivacyLevel
 import com.kouloundissa.twinstracker.presentation.Family.CreateFamilyDialog
 import com.kouloundissa.twinstracker.presentation.settings.GlassCard
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
-import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyUser
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
@@ -86,13 +87,12 @@ fun FamilyManagementCard(
     var name by remember(selectedFamily) { mutableStateOf(selectedFamily?.name.orEmpty()) }
     var description by remember(selectedFamily) { mutableStateOf(selectedFamily?.description.orEmpty()) }
     var inviteCode by remember(selectedFamily) { mutableStateOf(selectedFamily?.inviteCode.orEmpty()) }
-    var allowInvites by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.allowMemberInvites == true) }
     var requireApproval by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.requireApprovalForNewMembers == true) }
     var sharedNotifications by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.sharedNotifications == true) }
     var privacyLevel by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.defaultPrivacy?.name.orEmpty()) }
     var showJoinDialog by remember { mutableStateOf(false) }
     var showCreateDialog by remember { mutableStateOf(false) }
-
+    val snackbarHostState = remember { SnackbarHostState() }
     // **Automatically select the first family when the list loads (or changes)**
     LaunchedEffect(families) {
         if (selectedFamily == null && families.isNotEmpty()) {
@@ -112,7 +112,10 @@ fun FamilyManagementCard(
     LaunchedEffect(inviteResult) {
         inviteResult?.onSuccess {
             showJoinDialog = false
-            // TODO: show Snackbar("Rejoint avec succès !")
+            snackbarHostState.showSnackbar("Vous avez rejoint la famille!")
+        }?.onFailure { ex ->
+            showJoinDialog = false
+            snackbarHostState.showSnackbar(ex.message ?: "Impossible de rejoindre")
         }
     }
     val baseColor = BackgroundColor
@@ -224,16 +227,6 @@ fun FamilyManagementCard(
                 }
             }
 
-            // Settings toggles
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    allowInvites,
-                    onCheckedChange = { allowInvites = it },
-                    enabled = !isLoading
-                )
-                Spacer(Modifier.width(8.dp))
-                Text("Tous peuvent inviter", color = contentColor)
-            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(
                     requireApproval,
@@ -317,7 +310,6 @@ fun FamilyManagementCard(
                             name = name,
                             description = description.ifBlank { null },
                             settings = base.settings.copy(
-                                allowMemberInvites = allowInvites,
                                 requireApprovalForNewMembers = requireApproval,
                                 sharedNotifications = sharedNotifications,
                                 defaultPrivacy = PrivacyLevel.valueOf(privacyLevel)
