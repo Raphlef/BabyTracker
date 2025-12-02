@@ -115,10 +115,11 @@ class FamilyViewModel @Inject constructor(
 
     fun loadFamilyUsers(family: Family) {
         viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
             repository.runCatching {
                 repository.getUsersByIds(family.memberIds)
-                    .mapNotNull { user ->
-                        user?.let { u ->
+                    .map { user ->
+                        user.let { u ->
                             FamilyUser(
                                 user = u,
                                 role = when {
@@ -132,8 +133,9 @@ class FamilyViewModel @Inject constructor(
                     }
             }.onSuccess { users ->
                 _familyUsers.value = users
+                _state.update { it.copy(isLoading = false) }
             }.onFailure { e ->
-                _state.update { it.copy(error = e.message) }
+                _state.update { it.copy(isLoading = false, error = e.message) }
             }
         }
     }
