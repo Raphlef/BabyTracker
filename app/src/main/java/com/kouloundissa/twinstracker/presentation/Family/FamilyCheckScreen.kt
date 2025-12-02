@@ -21,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -89,6 +90,7 @@ fun FamilyOnboardingContent(
     val familyState by familyViewModel.state.collectAsState()
     val inviteResult by familyViewModel.inviteResult.collectAsState(initial = null)
 
+    val snackbarHostState = remember { SnackbarHostState() }
     // Monitor family creation/join success
     LaunchedEffect(familyViewModel.families) {
         if (families.isNotEmpty()) {
@@ -99,8 +101,11 @@ fun FamilyOnboardingContent(
     // Monitor join success
     LaunchedEffect(inviteResult) {
         inviteResult?.onSuccess {
-            // Family was successfully joined, the families list will update
-            // which will trigger the LaunchedEffect above
+            showJoinDialog = false
+            snackbarHostState.showSnackbar("Vous avez rejoint la famille!")
+        }?.onFailure { ex ->
+            showJoinDialog = false
+            snackbarHostState.showSnackbar(ex.message ?: "Impossible de rejoindre")
         }
     }
 
