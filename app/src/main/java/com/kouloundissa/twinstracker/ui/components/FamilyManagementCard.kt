@@ -3,6 +3,7 @@ package com.kouloundissa.twinstracker.ui.components
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -344,6 +345,7 @@ fun FamilyManagementCard(
             // Display any error
             familyViewModel.state.collectAsState().value.error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error)
+                Log.e("FamilyViewModel", it)
             }
         }
     }
