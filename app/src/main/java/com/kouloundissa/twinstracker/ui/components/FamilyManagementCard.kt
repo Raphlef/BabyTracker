@@ -399,7 +399,7 @@ private fun FamilyMemberSection(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconSelector(
-                        title = user.displayName,
+                        title = user.displayNameOrEmail,
                         options = FamilyRole.entries,
                         selected = user.role,
                         onSelect = { newRole ->
