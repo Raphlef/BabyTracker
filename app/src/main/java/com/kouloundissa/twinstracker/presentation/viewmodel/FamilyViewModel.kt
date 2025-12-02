@@ -117,20 +117,24 @@ class FamilyViewModel @Inject constructor(
             setLoading(true)
             try {
                 repository.runCatching {
-                    repository.getUsersByIds(family.memberIds)
-                        .map { user ->
-                            user.let { u ->
-                                FamilyUser(
-                                    user = u,
-                                    role = when {
-                                        family.adminIds.contains(u.id) -> FamilyRole.ADMIN
-                                        family.memberIds.contains(u.id) -> FamilyRole.MEMBER
-                                        family.viewerIds.contains(u.id) -> FamilyRole.VIEWER
-                                        else -> FamilyRole.VIEWER
-                                    }
-                                )
-                            }
+                    // Fetch all users by their IDs
+                    val users =
+                        repository.getUsersByIds(family.memberIds + family.adminIds + family.viewerIds)
+                    users.map { user ->
+                        // Determine all roles for this user
+                        val role = when {
+                            family.adminIds.contains(user.id) -> FamilyRole.ADMIN      // Check admin first
+                            family.memberIds.contains(user.id) -> FamilyRole.MEMBER    // Then member
+                            family.viewerIds.contains(user.id) -> FamilyRole.VIEWER    // Then viewer
+                            else -> FamilyRole.VIEWER                                   // Fallback
                         }
+
+                        // Return a FamilyUser with all role
+                        FamilyUser(
+                            user = user,
+                            role = role
+                        )
+                    }
                 }.onSuccess { users ->
                     _familyUsers.value = users
                     clearError()
@@ -143,6 +147,7 @@ class FamilyViewModel @Inject constructor(
             }
         }
     }
+
 
     fun updateUserRole(family: Family, userId: String, newRole: FamilyRole) {
         viewModelScope.launch {
