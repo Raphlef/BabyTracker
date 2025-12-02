@@ -8,12 +8,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
@@ -22,18 +19,13 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FamilyRestroom
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -67,9 +59,10 @@ import com.kouloundissa.twinstracker.presentation.settings.GlassCard
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyUser
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
-import com.kouloundissa.twinstracker.ui.theme.*
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
+import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.flow.map
-import kotlin.collections.forEach
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -177,7 +170,7 @@ fun FamilyManagementCard(
                     babies = babies,
                     selectedBaby = selectedBaby,
                     onSelectBaby = { babyViewModel.selectBaby(it) },
-                    onAddBaby = { /* navigate to baby creation screen */ }
+                    onAddBaby = null
                 )
             }
             HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
