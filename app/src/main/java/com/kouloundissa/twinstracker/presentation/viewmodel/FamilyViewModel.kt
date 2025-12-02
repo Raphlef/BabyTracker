@@ -112,6 +112,7 @@ class FamilyViewModel @Inject constructor(
             repository.saveLastSelectedFamilyId(family?.id)
         }
     }
+
     fun loadFamilyUsers(family: Family) {
         viewModelScope.launch {
             setLoading(true)
@@ -387,20 +388,38 @@ class FamilyViewModel @Inject constructor(
     /** Joins a family via invite code */
     fun joinByCode(code: String) {
         viewModelScope.launch {
-            val currentUserId = repository.getCurrentUserId()
-                ?: return@launch _state.update {
+            _state.update { it.copy(isLoading = true, error = null) }
+
+            try {
+                val currentUserId = repository.getCurrentUserId()
+                    ?: return@launch _state.update {
+                        it.copy(
+                            isLoading = false,
+                            error = "User not authenticated"
+                        )
+                    }
+                repository.joinFamilyByCode(code, currentUserId)
+                    .onSuccess {
+                        _inviteResult.emit(Result.success(Unit))
+                        _state.update { it.copy(isLoading = false) }
+                    }
+                    .onFailure { ex ->
+                        _state.update {
+                            it.copy(
+                                isLoading = false,
+                                error = ex.message ?: "Failed to join family"
+                            )
+                        }
+                        _inviteResult.emit(Result.failure(ex))
+                    }
+            } catch (e: Exception) {
+                _state.update {
                     it.copy(
                         isLoading = false,
-                        error = "User not authenticated"
+                        error = e.message ?: "Failed to join family"
                     )
                 }
-            repository.joinFamilyByCode(code, currentUserId)
-                .onSuccess {
-                    _inviteResult.emit(Result.success(Unit))
-                }
-                .onFailure { ex ->
-                    _inviteResult.emit(Result.failure(ex))
-                }
+            }
         }
     }
 
@@ -443,6 +462,7 @@ class FamilyViewModel @Inject constructor(
     private fun clearError() {
         _state.update { it.copy(error = null) }
     }
+
     private fun handleError(exception: Exception, defaultMessage: String = "An error occurred") {
         _state.update {
             it.copy(
