@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -46,6 +47,10 @@ class FamilyViewModel @Inject constructor(
     fun selectFamily(family: Family?) {
         repository.setSelectedFamily(family)
         family?.let { loadFamilyUsers(it) }
+
+        viewModelScope.launch {
+            repository.saveLastSelectedFamilyId(family?.id)
+        }
     }
     private val _state = MutableStateFlow(FamilyState())
     val state: StateFlow<FamilyState> = _state.asStateFlow()
@@ -82,6 +87,19 @@ class FamilyViewModel @Inject constructor(
                 if (isAuth) {
                     _currentUserId.value = repository.getCurrentUserId()
                     startObservingFamilyUpdates()
+
+                    viewModelScope.launch {
+                        val lastFamilyId = repository.getLastSelectedFamilyId().first()
+                        if (lastFamilyId != null) {
+                            // Wait for families to load, then find and select it
+                            families.collect { familiesList ->
+                                val lastFamily = familiesList.find { it.id == lastFamilyId }
+                                if (lastFamily != null) {
+                                    selectFamily(lastFamily)
+                                }
+                            }
+                        }
+                    }
                 } else {
                     stopObservingFamilyUpdates()
                     _currentUserId.value = null

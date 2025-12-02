@@ -5,6 +5,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.google.firebase.auth.FirebaseAuth
@@ -162,6 +163,7 @@ class FirebaseRepository @Inject constructor(
     private val Context.userDataStore by preferencesDataStore(name = "user_prefs")
     private val rememberMeKey = booleanPreferencesKey("remember_me")
     private val favoriteEventTypesKey = stringSetPreferencesKey("favorite_event_types")
+    private val lastSelectedFamilyIdKey = stringPreferencesKey("last_selected_family_id")
 
     suspend fun saveUserSession() {
         context.userDataStore.edit { prefs -> prefs[rememberMeKey] = true }
@@ -274,10 +276,23 @@ class FirebaseRepository @Inject constructor(
     }
     private val _selectedFamily = MutableStateFlow<Family?>(null)
     val selectedFamily: StateFlow<Family?> = _selectedFamily.asStateFlow()
+    suspend fun saveLastSelectedFamilyId(familyId: String?) {
+        context.userDataStore.edit { prefs ->
+            if (familyId != null) {
+                prefs[lastSelectedFamilyIdKey] = familyId
+            } else {
+                prefs.remove(lastSelectedFamilyIdKey)
+            }
+        }
+    }
 
+    // Get last selected family ID as Flow
+    fun getLastSelectedFamilyId(): Flow<String?> =
+        context.userDataStore.data.map { it[lastSelectedFamilyIdKey] }
     fun setSelectedFamily(family: Family?) {
         _selectedFamily.value = family
     }
+
     fun streamBabiesByFamily(family: Family): Flow<List<Baby>> {
         val babyIds = family.babyIds.distinct()
         return if (babyIds.isEmpty()) {
