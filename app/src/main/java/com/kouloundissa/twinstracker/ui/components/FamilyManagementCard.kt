@@ -121,10 +121,8 @@ fun FamilyManagementCard(
     // Handle successful join
     LaunchedEffect(inviteResult) {
         inviteResult?.onSuccess {
-            showJoinDialog = false
             snackbarHostState.showSnackbar("Vous avez rejoint la famille!")
         }?.onFailure { ex ->
-            showJoinDialog = false
             snackbarHostState.showSnackbar(ex.message ?: "Impossible de rejoindre")
         }
     }
@@ -370,6 +368,7 @@ fun FamilyManagementCard(
             show = showJoinDialog,
             onDismiss = { showJoinDialog = false },
             onJoin = { code ->
+                showJoinDialog = false
                 familyViewModel.joinByCode(code)
             },
             inviteResult = inviteResult,
