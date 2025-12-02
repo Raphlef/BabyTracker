@@ -17,8 +17,9 @@ object FirestoreConstants {
         const val PHOTO_URL = "photoUrl"
 
         // Family fields
-        const val MEMBER_IDS = "memberIds"
         const val ADMIN_IDS = "adminIds"
+        const val MEMBER_IDS = "memberIds"
+        const val VIEWER_IDS = "viewerIds"
         const val BABY_IDS = "babyIds"
         const val INVITE_CODE = "inviteCode"
         const val SETTINGS = "settings"
