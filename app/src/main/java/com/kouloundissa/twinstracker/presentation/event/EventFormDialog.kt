@@ -107,7 +107,6 @@ import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.launch
 import java.util.Date
-import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class, DelicateCoroutinesApi::class)
 @Composable
@@ -801,30 +800,30 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
     val previousFeedType = remember { mutableStateOf(state.feedType) }
     val allEvents by viewModel.events.collectAsState()
 
-    val presets1 = allEvents
+    val amountPreset = allEvents
         .filterIsInstance<FeedingEvent>()
         .filter { it.amountMl != null && it.amountMl > 0 }
         .sortedByDescending { it.timestamp }
         .take(10)
-        .calculatePresetsWithPrediction(valueSelector = { it.amountMl?.toDouble() })
+        .calculatePresets()
 
-    val presets2 = allEvents
+    val durationPreset = allEvents
         .filterIsInstance<FeedingEvent>()
         .filter { it.durationMinutes != null && it.durationMinutes > 0 }
         .sortedByDescending { it.timestamp }
         .mapNotNull { it.durationMinutes }
         .take(10)
-        .calculatePresets(listOf(5, 10, 15, 20))
+        .calculatePresetsFromNumbers(listOf(5, 10, 15, 20))
 
     LaunchedEffect(state.feedType) {
-        if (state.feedType != FeedType.BREAST_MILK && state.amountMl.isEmpty() && presets1.size > 1) {
+        if (state.feedType != FeedType.BREAST_MILK && state.amountMl.isEmpty() && amountPreset.size > 1) {
             viewModel.updateForm {
-                (this as EventFormState.Feeding).copy(amountMl = presets1[1].toString())
+                (this as EventFormState.Feeding).copy(amountMl = amountPreset[1].toString())
             }
         }
-        if (state.feedType == FeedType.BREAST_MILK && state.durationMin.isEmpty() && presets2.size > 1) {
+        if (state.feedType == FeedType.BREAST_MILK && state.durationMin.isEmpty() && durationPreset.size > 1) {
             viewModel.updateForm {
-                (this as EventFormState.Feeding).copy(durationMin = presets2[1].toString())
+                (this as EventFormState.Feeding).copy(durationMin = durationPreset[1].toString())
             }
         }
     }
@@ -840,7 +839,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
             min = 0,
             max = 9999,
             step = 5,
-            presets = presets1
+            presets = amountPreset
         )
     }
 
@@ -860,7 +859,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                presets = presets2
+                presets = durationPreset
             )
 
             // Breast Side Selection
@@ -976,14 +975,15 @@ private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel
         .filter { it.amountMl != null && it.amountMl > 0 }
         .sortedByDescending { it.timestamp }
         .take(10)
-        .calculatePresetsWithPrediction(valueSelector = { it.amountMl?.toDouble() })
+        .calculatePresets()
+
     val presets2 = allEvents
         .filterIsInstance<PumpingEvent>()
         .filter { it.durationMinutes != null && it.durationMinutes > 0 }
         .sortedByDescending { it.timestamp }
         .mapNotNull { it.durationMinutes }
         .take(10)
-        .calculatePresets(listOf(5, 10, 15, 20))
+        .calculatePresetsFromNumbers(listOf(5, 10, 15, 20))
 
     LaunchedEffect(Unit) {
         if (state.amountMl.isEmpty()) {
@@ -1231,26 +1231,4 @@ fun FormNumericInput(
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         singleLine = true
     )
-}
-
-fun <T : Number> List<T>.calculatePresets(
-    defaultPresets: List<Int> = listOf(50, 100, 150, 200),
-    factors: List<Double> = listOf(0.75, 1.0, 1.25)
-): List<Int> {
-    if (isEmpty()) {
-        return defaultPresets
-    }
-
-    val avg = this.map { it.toDouble() }.average()
-    val nicAvg = roundToNiceNumber(avg.toInt())
-
-    // Calculate presets
-    return factors.map { factor ->
-        val scaled = (nicAvg * factor).toInt()
-        roundToNiceNumber(scaled)
-    }.filter { it > 0 }
-}
-
-fun roundToNiceNumber(value: Int): Int {
-    return (value / 5.0f).roundToInt() * 5
 }
