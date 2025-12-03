@@ -1,242 +1,236 @@
 package com.kouloundissa.twinstracker.presentation.event
 
-import com.kouloundissa.twinstracker.data.Event
 import java.util.Date
+import kotlin.math.roundToInt
 
-/**
- * EventPrediction - Calculates presets based on growth speed and trend analysis
- * Instead of averaging, this calculates the rate of change (speed) over time
- * to predict future values more accurately
- */
-class EventPrediction {
-
-    /**
-     * Represents a single data point with timestamp and value
-     */
-    data class TimestampedValue(
-        val timestamp: Date,
-        val value: Double
-    )
-
-    /**
-     * Analysis result containing growth metrics
-     */
-    data class GrowthAnalysis(
-        val currentValue: Double,
-        val averageGrowthSpeed: Double, // ml/hour or similar unit
-        val trendDirection: TrendDirection,
-        val volatility: Double, // Standard deviation of speeds
-        val predictedValue: Double // Predicted value for next event
-    )
-
-    enum class TrendDirection {
-        INCREASING,  // Positive growth
-        STABLE,      // Near zero growth
-        DECREASING   // Negative growth (or needs attention)
+object EventPrediction {
+    enum class PredictionMethod {
+        AVERAGE,        // Original: simple averaging
+        GROWTH_SPEED    // New: growth rate-based prediction
     }
 
-    companion object {
-        private const val HOURS_BETWEEN_EVENTS = 4.0 // Expected hours between events
-        private const val MIN_DATA_POINTS = 2 // Minimum points needed for speed calculation
+    /**
+     * Calculate presets using growth speed prediction
+     * @param events List of events with amounts and timestamps (must be sorted by timestamp ascending)
+     * @param now Current timestamp (defaults to now)
+     * @param defaultPresets Fallback presets if calculation fails
+     * @param factors Multipliers applied to predicted amount (0.75 = smaller, 1.0 = normal, 1.25 = larger)
+     * @return List of recommended preset amounts
+     */
+    fun <T : EventWithAmount> calculatePresetsFromGrowthSpeed(
+        events: List<T>,
+        now: Date = Date(),
+        defaultPresets: List<Int> = listOf(50, 100, 150, 200),
+        factors: List<Double> = listOf(0.75, 1.0, 1.25)
+    ): List<Int> {
+        if (events.isEmpty()) {
+            return defaultPresets
+        }
 
-        /**
-         * Calculate growth speed and trend from timestamped values
-         * @param values Sorted list of (timestamp, value) pairs (most recent first)
-         * @return GrowthAnalysis with metrics and prediction
-         */
-        fun analyzeGrowth(values: List<TimestampedValue>): GrowthAnalysis {
-            if (values.isEmpty()) {
-                return GrowthAnalysis(
-                    currentValue = 0.0,
-                    averageGrowthSpeed = 0.0,
-                    trendDirection = TrendDirection.STABLE,
-                    volatility = 0.0,
-                    predictedValue = 0.0
-                )
-            }
+        // Calculate the predicted amount at current time
+        val predictedAmount = predictNextAmount(events, now)
 
-            val currentValue = values.first().value
-
-            if (values.size < MIN_DATA_POINTS) {
-                return GrowthAnalysis(
-                    currentValue = currentValue,
-                    averageGrowthSpeed = 0.0,
-                    trendDirection = TrendDirection.STABLE,
-                    volatility = 0.0,
-                    predictedValue = currentValue
-                )
-            }
-
-            // Calculate growth speeds between consecutive events
-            val growthSpeeds = calculateGrowthSpeeds(values)
-
-            if (growthSpeeds.isEmpty()) {
-                return GrowthAnalysis(
-                    currentValue = currentValue,
-                    averageGrowthSpeed = 0.0,
-                    trendDirection = TrendDirection.STABLE,
-                    volatility = 0.0,
-                    predictedValue = currentValue
-                )
-            }
-
-            val averageSpeed = growthSpeeds.average()
-            val volatility = calculateVolatility(growthSpeeds, averageSpeed)
-            val trendDirection = determineTrend(averageSpeed)
-            val predictedValue = predictNextValue(currentValue, averageSpeed)
-
-            return GrowthAnalysis(
-                currentValue = currentValue,
-                averageGrowthSpeed = averageSpeed,
-                trendDirection = trendDirection,
-                volatility = volatility,
-                predictedValue = predictedValue
+        // If prediction failed or resulted in unrealistic value, fallback to average
+        if (predictedAmount <= 0) {
+            return calculatePresetsFromAverage(
+                events.mapNotNull { it.getAmountValue() },
+                defaultPresets,
+                factors
             )
         }
 
-        /**
-         * Calculate speed of growth between consecutive events
-         * Speed = (current_value - previous_value) / time_difference_in_hours
-         */
-        private fun calculateGrowthSpeeds(values: List<TimestampedValue>): List<Double> {
-            val speeds = mutableListOf<Double>()
+        // Generate presets based on predicted amount
+        return factors.map { factor ->
+            val scaled = (predictedAmount * factor).toInt()
+            roundToNiceNumber(scaled)
+        }.filter { it > 0 }
+    }
 
-            for (i in 0 until values.size - 1) {
-                val current = values[i]
-                val previous = values[i + 1]
+    /**
+     * Predict the next amount based on growth rate
+     *
+     * Algorithm:
+     * 1. Take last events to calculate growth rate (speed)
+     * 2. Calculate time difference and amount difference
+     * 3. Determine speed = amount change / time change
+     * 4. Predict: speed * time_elapsed
+     * 5. Apply sanity checks (min/max boundaries)
+     *
+     * @return Predicted amount, or -1 if calculation failed
+     */
+    private fun <T : EventWithAmount> predictNextAmount(
+        events: List<T>,
+        now: Date
+    ): Double {
+        if (events.isEmpty()) return -1.0
 
-                val timeDiffMs = current.timestamp.time - previous.timestamp.time
-                val timeDiffHours = timeDiffMs / (1000.0 * 60 * 60)
+        val lastEvent = events.first()
+        val lastAmount = lastEvent.getAmountValue() ?: return -1.0
 
-                // Only calculate if time difference is meaningful (> 10 minutes)
-                if (timeDiffHours > 0.167) {
-                    val valueDiff = current.value - previous.value
-                    val speed = valueDiff / timeDiffHours
-                    speeds.add(speed)
-                }
-            }
-
-            return speeds
+        // If only one event, can't calculate speed - return last amount
+        if (events.size == 1) {
+            return lastAmount
         }
 
-        /**
-         * Calculate volatility (standard deviation) of growth speeds
-         */
-        private fun calculateVolatility(speeds: List<Double>, mean: Double): Double {
-            if (speeds.size < 2) return 0.0
+        val recentEvents = events.takeIf { it.size >= 2 } ?: return lastAmount
 
-            val variance = speeds.map { (it - mean) * (it - mean) }.average()
-            return kotlin.math.sqrt(variance)
+        // Calculate consumptionRate  using linear regression (more robust)
+        val consumptionRate = calculateAverageConsumptionRate(recentEvents)
+
+        if (consumptionRate.isNaN() || consumptionRate.isInfinite() || consumptionRate <= 0) {
+            return -1.0
         }
 
-        /**
-         * Determine trend direction based on average growth speed
-         */
-        private fun determineTrend(averageSpeed: Double): TrendDirection {
-            return when {
-                averageSpeed > 0.5 -> TrendDirection.INCREASING
-                averageSpeed < -0.5 -> TrendDirection.DECREASING
-                else -> TrendDirection.STABLE
-            }
+        // Calculate time elapsed since last event
+        val timeElapsedMs = now.time - lastEvent.getTimestampValue().time
+        val timeElapsedHours = timeElapsedMs / (1000.0 * 60 * 60)
+
+        // Predict amount
+        var predictedAmount = (timeElapsedHours * consumptionRate)
+
+        // Apply sanity checks: growth should be reasonable
+        predictedAmount = applyGrowthSanityChecks(predictedAmount, lastAmount, timeElapsedHours)
+
+        return predictedAmount
+    }
+
+    /**
+     * Calculate average consumption rate from multiple events
+     *
+     * Formula: totalAmountConsumed / totalTimeSpan
+     *
+     * This gives us ml per hour across all events
+     */
+    private fun <T : EventWithAmount> calculateAverageConsumptionRate(
+        events: List<T>
+    ): Double {
+        if (events.size < 2) return 0.0
+
+        // Ensure events are sorted in ascending chronological order
+        val orderedEvents = events.sortedBy { it.getTimestampValue().time }
+
+        // Sum all amounts consumed
+        val totalAmount = orderedEvents.mapNotNull { it.getAmountValue() }.sum()
+
+        // Calculate total time span in hours (from first to last event)
+        val firstEventTime = orderedEvents.first().getTimestampValue().time
+        val lastEventTime = orderedEvents.last().getTimestampValue().time
+        val totalTimeMs = lastEventTime - firstEventTime
+
+        if (totalTimeMs <= 0) return 0.0
+
+        val totalTimeHours = totalTimeMs / (1000.0 * 60 * 60)
+
+        // Average consumption per hour
+        return totalAmount / totalTimeHours
+    }
+
+    /**
+     * Apply sanity checks to predicted growth
+     * Prevents unrealistic predictions due to:
+     * - Anomalies in the data
+     * - Extreme growth rates
+     * - Backwards prediction (negative growth beyond threshold)
+     */
+    private fun applyGrowthSanityChecks(
+        predicted: Double,
+        lastAmount: Double,
+        timeElapsedHours: Double
+    ): Double {
+        // Clamp to reasonable boundaries
+        val minAmount = lastAmount * 0.25  // Don't drop below 25% of last
+        val maxAmount = lastAmount * 2.5  // Don't exceed 250% of last
+
+        // Prevent extreme growth in short time
+        val maxReasonableAmount = when {
+            timeElapsedHours <= 1.0 -> lastAmount * 1.3  // 30% max growth in 1 hour
+            timeElapsedHours <= 4.0 -> lastAmount * 1.7  // 70% max growth in 4 hours
+            else -> maxAmount                         // 250% for longer periods
         }
 
-        /**
-         * Predict the next value based on current value and growth speed
-         * Uses expected time between events to calculate prediction
-         */
-        private fun predictNextValue(currentValue: Double, averageSpeed: Double): Double {
-            return currentValue + (averageSpeed * HOURS_BETWEEN_EVENTS)
+        // Prevent negative values
+        if (predicted <= 0) return lastAmount
+
+        return predicted.coerceIn(minAmount, maxReasonableAmount)
+    }
+
+    /**
+     * Calculate presets using traditional average method (legacy)
+     * @param amounts List of recent amounts
+     * @param defaultPresets Fallback presets if list is empty
+     * @param factors Multipliers applied to average (0.75 = smaller, 1.0 = normal, 1.25 = larger)
+     * @return List of recommended preset amounts
+     */
+    fun calculatePresetsFromAverage(
+        amounts: List<Double>,
+        defaultPresets: List<Int> = listOf(50, 100, 150, 200),
+        factors: List<Double> = listOf(0.75, 1.0, 1.25)
+    ): List<Int> {
+        if (amounts.isEmpty()) {
+            return defaultPresets
         }
 
-        /**
-         * Convert analysis to preset recommendations
-         */
-        fun generatePresets(
-            analysis: GrowthAnalysis,
-            defaultPresets: List<Int> = listOf(50, 100, 150, 200),
-            factors: List<Double> = listOf(0.75, 1.0, 1.25)
-        ): List<Int> {
-            // Use predicted value as base instead of simple average
-            val baseValue = when {
-                analysis.predictedValue > 0 -> analysis.predictedValue
-                analysis.currentValue > 0 -> analysis.currentValue
-                else -> return defaultPresets
-            }
+        val avg = amounts.average()
+        val nicAvg = roundToNiceNumber(avg.toInt())
 
-            val niceBase = roundToNiceNumber(baseValue.toInt())
+        // Calculate presets
+        return factors.map { factor ->
+            val scaled = (nicAvg * factor).toInt()
+            roundToNiceNumber(scaled)
+        }.filter { it > 0 }
+    }
 
-            // Generate presets with slight adjustment based on trend
-            val trendAdjustment = when (analysis.trendDirection) {
-                TrendDirection.INCREASING -> 1.05  // Add 5% if increasing
-                TrendDirection.DECREASING -> 0.95  // Reduce 5% if decreasing
-                TrendDirection.STABLE -> 1.0       // Keep as is
-            }
-
-            return factors.map { factor ->
-                val adjusted = (niceBase * factor * trendAdjustment).toInt()
-                roundToNiceNumber(adjusted)
-            }.filter { it > 0 }
-        }
-
-        /**
-         * Round to nearest 5ml for nice preset values
-         */
-        private fun roundToNiceNumber(value: Int): Int {
-            return (value / 5.0f).toInt() * 5
-        }
+    /**
+     * Round to nearest 5ml for nice preset values
+     */
+    private fun roundToNiceNumber(value: Int): Int {
+        return (value / 5.0f).roundToInt() * 5
     }
 }
 
 /**
- * Extension function to convert events to TimestampedValues
- * Usage: feedingEvents.toTimestampedValues { it.amountMl ?: 0.0 }
+ * Interface for events that contain an amount value
+ * Implement this in your event classes
  */
-fun <T> List<T>.toTimestampedValues(
-    timestampSelector: (T) -> Date,
-    valueSelector: (T) -> Double
-): List<EventPrediction.TimestampedValue> {
-    return this.map { item ->
-        EventPrediction.TimestampedValue(
-            timestamp = timestampSelector(item),
-            value = valueSelector(item)
-        )
-    }
+interface EventWithAmount {
+    fun getAmountValue(): Double?
+    fun getTimestampValue(): Date
 }
 
 /**
- * Extension function to calculate presets with growth prediction
- * Usage: feedingEvents.calculatePresetsWithPrediction()
+ * Extension function for easy access to FeedingEvent
  */
-fun <T : Event> List<T>.calculatePresetsWithPrediction(
-    valueSelector: (T) -> Double? = { 0.0 },
-    defaultPresets: List<Int> = listOf(50, 100, 150, 200)
+fun <T : EventWithAmount> List<T>.calculatePresets(
+    method: EventPrediction.PredictionMethod = EventPrediction.PredictionMethod.GROWTH_SPEED,
+    now: Date = Date(),
+    defaultPresets: List<Int> = listOf(50, 100, 150, 200),
+    factors: List<Double> = listOf(0.75, 1.0, 1.25)
 ): List<Int> {
-    val timestampedValues = this
-        .filter { valueSelector(it) != null && valueSelector(it)!! > 0 }
-        .sortedByDescending { it.timestamp }
-        .toTimestampedValues(
-            timestampSelector = { it.timestamp },
-            valueSelector = { valueSelector(it) ?: 0.0 }
-        )
+    return when (method) {
+        EventPrediction.PredictionMethod.GROWTH_SPEED -> {
+            EventPrediction.calculatePresetsFromGrowthSpeed(this, now, defaultPresets, factors)
+        }
 
-    val analysis = EventPrediction.analyzeGrowth(timestampedValues)
-    return EventPrediction.generatePresets(analysis, defaultPresets)
+        EventPrediction.PredictionMethod.AVERAGE -> {
+            EventPrediction.calculatePresetsFromAverage(
+                this.mapNotNull { it.getAmountValue() },
+                defaultPresets,
+                factors
+            )
+        }
+    }
 }
 
 /**
- * Simplified helper for quick growth analysis
- * Usage: val analysis = feedingEvents.analyzeGrowthTrend()
+ * Extension function for easy access with average method
  */
-fun <T : Event> List<T>.analyzeGrowthTrend(
-    valueSelector: (T) -> Double? = { 0.0 }
-): EventPrediction.GrowthAnalysis {
-    val timestampedValues = this
-        .filter { valueSelector(it) != null && valueSelector(it)!! > 0 }
-        .sortedByDescending { it.timestamp }
-        .toTimestampedValues(
-            timestampSelector = { it.timestamp },
-            valueSelector = { valueSelector(it) ?: 0.0 }
-        )
-
-    return EventPrediction.analyzeGrowth(timestampedValues)
+fun <T : Number> List<T>.calculatePresetsFromNumbers(
+    defaultPresets: List<Int> = listOf(50, 100, 150, 200),
+    factors: List<Double> = listOf(0.75, 1.0, 1.25)
+): List<Int> {
+    return EventPrediction.calculatePresetsFromAverage(
+        this.map { it.toDouble() },
+        defaultPresets,
+        factors
+    )
 }
