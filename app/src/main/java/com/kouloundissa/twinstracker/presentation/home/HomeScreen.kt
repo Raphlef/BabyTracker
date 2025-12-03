@@ -254,7 +254,9 @@ fun HomeScreen(
                             editingEvent =
                                 if (selectedType == EventType.SLEEP) activeSleepEvent else null
                             editingEvent?.let { event ->
-                                // Load event into form
+                                eventViewModel.loadEventIntoForm(
+                                    event
+                                )
                             }
                             showEventDialog = true
                         }
