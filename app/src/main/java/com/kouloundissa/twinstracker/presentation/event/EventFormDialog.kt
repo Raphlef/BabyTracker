@@ -114,8 +114,6 @@ fun EventFormDialog(
     initialBabyId: String,
     onDismiss: () -> Unit,
     initialEventType: EventType? = null,
-    eventViewModel: EventViewModel = hiltViewModel(),
-    babyViewModel: BabyViewModel = hiltViewModel(),
 ) {
     // Animated visibility state
     var isVisible by remember { mutableStateOf(false) }
@@ -166,9 +164,7 @@ fun EventFormDialog(
                         onDismiss()
                     }
                 },
-                initialEventType = initialEventType,
-                eventViewModel = eventViewModel,
-                babyViewModel = babyViewModel
+                initialEventType = initialEventType
             )
         }
     }
