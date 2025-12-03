@@ -306,6 +306,7 @@ fun HomeScreen(
                             verticalArrangement = Arrangement.spacedBy(spacing)
                         ) {
                             items(sortedEventTypes) { type ->
+                                val filterEvents = babyEvents.filter { EventType.forClass(it::class) == type }
                                 EventTypeCard(
                                     type = type,
                                     // summary = summaries[type]!!,
@@ -334,7 +335,7 @@ fun HomeScreen(
                                                 }
                                                 showEventDialog = true
                                             },
-                                            lastEvents =  filteredEvents
+                                            lastEvents =  filterEvents
                                         )
                                     )
                                 )
