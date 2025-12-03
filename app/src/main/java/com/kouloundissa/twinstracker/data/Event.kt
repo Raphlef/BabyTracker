@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.IgnoreExtraProperties
 import com.kouloundissa.twinstracker.R
+import com.kouloundissa.twinstracker.presentation.event.EventWithAmount
 import com.kouloundissa.twinstracker.ui.components.EventOverlayInfo
 import com.kouloundissa.twinstracker.ui.components.FeedingTimer
 import com.kouloundissa.twinstracker.ui.components.SleepTimer
@@ -86,7 +87,8 @@ enum class EventType(
             val totalMl = todayList.sumOf { (it as FeedingEvent).amountMl ?: 0.0 }.toInt()
             val count = todayList.size
             val averageMl = if (count > 0) (totalMl / count) else 0
-            val breastCount = todayList.count { (it as FeedingEvent).feedType == FeedType.BREAST_MILK }
+            val breastCount =
+                todayList.count { (it as FeedingEvent).feedType == FeedType.BREAST_MILK }
 
             return "${totalMl}ml • $count feeding${if (count > 1) "s" else ""} • avg ${averageMl}ml • $breastCount breast"
         }
@@ -365,8 +367,11 @@ data class FeedingEvent(
     val amountMl: Double? = null,
     val durationMinutes: Int? = null,
     val breastSide: BreastSide? = null
-) : Event() {
+) : Event(), EventWithAmount {
     constructor() : this("", "", "", Date(), null, null, FeedType.BREAST_MILK, null, null, null)
+
+    override fun getAmountValue(): Double? = amountMl
+    override fun getTimestampValue(): Date = timestamp
 }
 
 @IgnoreExtraProperties
@@ -411,8 +416,11 @@ data class PumpingEvent(
     val amountMl: Double? = null,
     val durationMinutes: Int? = null,
     val breastSide: BreastSide? = null
-) : Event() {
+) : Event(), EventWithAmount {
     constructor() : this("", "", "", Date(), null, null, null, null, null)
+
+    override fun getAmountValue(): Double? = amountMl
+    override fun getTimestampValue(): Date = timestamp
 }
 
 @IgnoreExtraProperties
