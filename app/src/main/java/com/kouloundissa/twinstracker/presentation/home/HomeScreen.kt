@@ -250,7 +250,7 @@ fun HomeScreen(
                     EventTypeOverlayContext(
                         activeSleepEvent = activeSleepEvent,
                         nextFeedingTimeMs = nextFeedingTimeMs,
-                        onTimerClick = {
+                        onClick = {
                             editingEvent =
                                 if (selectedType == EventType.SLEEP) activeSleepEvent else null
                             editingEvent?.let { event ->
@@ -355,7 +355,7 @@ fun HomeScreen(
                                         EventTypeOverlayContext(
                                             activeSleepEvent = activeSleepEvent,
                                             nextFeedingTimeMs = nextFeedingTimeMs,
-                                            onTimerClick = {
+                                            onClick = {
                                                 selectedType = type
                                                 editingEvent =
                                                     if (type == EventType.SLEEP) activeSleepEvent else null

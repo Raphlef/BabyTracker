@@ -70,7 +70,7 @@ enum class EventType(
                 {
                     FeedingTimer(
                         nextFeedingTimeMs = nextTime,
-                        onClick = context.onTimerClick,
+                        onClick = context.onClick,
                         modifier = Modifier.align(Alignment.CenterStart)
                     )
                 }
@@ -105,7 +105,7 @@ enum class EventType(
                 {
                     SleepTimer(
                         sleepEvent = sleepEvent,
-                        onClick = context.onTimerClick,
+                        onClick = context.onClick,
                         modifier = Modifier.align(Alignment.CenterStart)
                     )
                 }
@@ -777,5 +777,5 @@ sealed class EventFormState {
 data class EventTypeOverlayContext(
     val activeSleepEvent: SleepEvent?,
     val nextFeedingTimeMs: Long?,
-    val onTimerClick: () -> Unit
+    val onClick: () -> Unit
 )
