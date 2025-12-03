@@ -793,14 +793,19 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
                 .joinToString(" ") { word -> word.replaceFirstChar { c -> c.uppercase() } }
         }
     )
-    val previousFeedType = remember { mutableStateOf(state.feedType) }
+
+    val isEditMode = state.eventId != null
     val allEvents by viewModel.events.collectAsState()
 
-    val amountPreset = allEvents
-        .filterIsInstance<FeedingEvent>()
-        .filter { it.amountMl != null && it.amountMl > 0 }
-        .take(10)
-        .calculatePresets()
+    val amountPreset = if (isEditMode && state.event != null) {
+        listOf(state.event as FeedingEvent).calculatePresets()
+    } else {
+        allEvents
+            .filterIsInstance<FeedingEvent>()
+            .filter { it.amountMl != null && it.amountMl > 0 }
+            .take(10)
+            .calculatePresets()
+    }
 
     val durationPreset = allEvents
         .filterIsInstance<FeedingEvent>()
@@ -810,14 +815,22 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
         .calculatePresetsFromNumbers(listOf(5, 10, 15, 20))
 
     LaunchedEffect(state.feedType, amountPreset, durationPreset) {
+        if (isEditMode)
+            return@LaunchedEffect
         if (state.feedType != FeedType.BREAST_MILK && amountPreset.size > 1) {
             viewModel.updateForm {
-                (this as EventFormState.Feeding).copy(durationMin = "",amountMl = amountPreset[1].toString())
+                (this as EventFormState.Feeding).copy(
+                    durationMin = "",
+                    amountMl = amountPreset[1].toString()
+                )
             }
         }
         if (state.feedType == FeedType.BREAST_MILK && durationPreset.size > 1) {
             viewModel.updateForm {
-                (this as EventFormState.Feeding).copy(durationMin = durationPreset[1].toString(),amountMl = "")
+                (this as EventFormState.Feeding).copy(
+                    durationMin = durationPreset[1].toString(),
+                    amountMl = ""
+                )
             }
         }
     }
@@ -963,12 +976,17 @@ private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     val allEvents by viewModel.events.collectAsState()
+    val isEditMode = state.eventId != null
 
-    val presets1 = allEvents
-        .filterIsInstance<PumpingEvent>()
-        .filter { it.amountMl != null && it.amountMl > 0 }
-        .take(10)
-        .calculatePresets()
+    val amountPreset = if (isEditMode && state.event != null) {
+        listOf(state.event as PumpingEvent).calculatePresets()
+    } else {
+        allEvents
+            .filterIsInstance<PumpingEvent>()
+            .filter { it.amountMl != null && it.amountMl > 0 }
+            .take(10)
+            .calculatePresets()
+    }
 
     val presets2 = allEvents
         .filterIsInstance<PumpingEvent>()
@@ -980,7 +998,7 @@ private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel
     LaunchedEffect(Unit) {
         if (state.amountMl.isEmpty()) {
             viewModel.updateForm {
-                (this as EventFormState.Pumping).copy(amountMl = presets1[1].toString())
+                (this as EventFormState.Pumping).copy(amountMl = amountPreset[1].toString())
             }
         }
         if (state.durationMin.isEmpty()) {
@@ -1000,7 +1018,7 @@ private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel
         min = 0,
         max = 999,
         step = 5,
-        presets = presets1
+        presets = amountPreset
     )
 
     MinutesInput(
