@@ -803,14 +803,12 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
     val amountPreset = allEvents
         .filterIsInstance<FeedingEvent>()
         .filter { it.amountMl != null && it.amountMl > 0 }
-        .sortedByDescending { it.timestamp }
         .take(10)
         .calculatePresets()
 
     val durationPreset = allEvents
         .filterIsInstance<FeedingEvent>()
         .filter { it.durationMinutes != null && it.durationMinutes > 0 }
-        .sortedByDescending { it.timestamp }
         .mapNotNull { it.durationMinutes }
         .take(10)
         .calculatePresetsFromNumbers(listOf(5, 10, 15, 20))
@@ -973,14 +971,12 @@ private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel
     val presets1 = allEvents
         .filterIsInstance<PumpingEvent>()
         .filter { it.amountMl != null && it.amountMl > 0 }
-        .sortedByDescending { it.timestamp }
         .take(10)
         .calculatePresets()
 
     val presets2 = allEvents
         .filterIsInstance<PumpingEvent>()
         .filter { it.durationMinutes != null && it.durationMinutes > 0 }
-        .sortedByDescending { it.timestamp }
         .mapNotNull { it.durationMinutes }
         .take(10)
         .calculatePresetsFromNumbers(listOf(5, 10, 15, 20))

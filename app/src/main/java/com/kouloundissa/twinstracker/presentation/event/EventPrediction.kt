@@ -206,14 +206,16 @@ fun <T : EventWithAmount> List<T>.calculatePresets(
     defaultPresets: List<Int> = listOf(50, 100, 150, 200),
     factors: List<Double> = listOf(0.75, 1.0, 1.25)
 ): List<Int> {
+    val sorted = this.sortedByDescending { it.getTimestampValue() }
+
     return when (method) {
         EventPrediction.PredictionMethod.GROWTH_SPEED -> {
-            EventPrediction.calculatePresetsFromGrowthSpeed(this, now, defaultPresets, factors)
+            EventPrediction.calculatePresetsFromGrowthSpeed(sorted, now, defaultPresets, factors)
         }
 
         EventPrediction.PredictionMethod.AVERAGE -> {
             EventPrediction.calculatePresetsFromAverage(
-                this.mapNotNull { it.getAmountValue() },
+                sorted.mapNotNull { it.getAmountValue() },
                 defaultPresets,
                 factors
             )
