@@ -809,15 +809,15 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
         .take(10)
         .calculatePresetsFromNumbers(listOf(5, 10, 15, 20))
 
-    LaunchedEffect(state.feedType) {
-        if (state.feedType != FeedType.BREAST_MILK && state.amountMl.isEmpty() && amountPreset.size > 1) {
+    LaunchedEffect(state.feedType, amountPreset, durationPreset) {
+        if (state.feedType != FeedType.BREAST_MILK && amountPreset.size > 1) {
             viewModel.updateForm {
-                (this as EventFormState.Feeding).copy(amountMl = amountPreset[1].toString())
+                (this as EventFormState.Feeding).copy(durationMin = "",amountMl = amountPreset[1].toString())
             }
         }
-        if (state.feedType == FeedType.BREAST_MILK && state.durationMin.isEmpty() && durationPreset.size > 1) {
+        if (state.feedType == FeedType.BREAST_MILK && durationPreset.size > 1) {
             viewModel.updateForm {
-                (this as EventFormState.Feeding).copy(durationMin = durationPreset[1].toString())
+                (this as EventFormState.Feeding).copy(durationMin = durationPreset[1].toString(),amountMl = "")
             }
         }
     }
