@@ -19,8 +19,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.IgnoreExtraProperties
 import com.kouloundissa.twinstracker.R
-import com.kouloundissa.twinstracker.presentation.event.EventPrediction
 import com.kouloundissa.twinstracker.presentation.event.EventWithAmount
+import com.kouloundissa.twinstracker.presentation.event.predictNextFeedingTime
 import com.kouloundissa.twinstracker.ui.components.EventOverlayInfo
 import com.kouloundissa.twinstracker.ui.components.FeedingTimer
 import com.kouloundissa.twinstracker.ui.components.SleepTimer
@@ -68,11 +68,11 @@ enum class EventType(
         FeedingEvent::class,
         overlayBuilder = { context ->
 
-            val nextFeedingMs = EventPrediction.predictNextFeedingTimeMs(context.lastEvents)
+            val nextFeedingMs =context.lastEvents.predictNextFeedingTime()
             nextFeedingMs?.let { nextTime ->
                 {
                     FeedingTimer(
-                        nextFeedingTimeMs = nextTime,
+                        nextFeedingTimeMs = nextTime.nextFeedingTimeMs,
                         onClick = context.onClick,
                         modifier = Modifier.align(Alignment.CenterStart)
                     )
