@@ -64,7 +64,6 @@ import coil.compose.AsyncImage
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventTypeOverlayContext
-import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.toLocalDate
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.presentation.baby.BabyCreateDialog
@@ -79,7 +78,6 @@ import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.FlowPreview
-import java.time.Duration
 import java.time.LocalDate
 import java.util.Calendar
 import kotlin.math.ceil
@@ -213,43 +211,12 @@ fun HomeScreen(
         .sortedByDescending { it.timestamp }
         .firstOrNull { it.endTime == null && it.beginTime != null }
 
-    val nextFeedingTimeMs: Long? = run {
-        val lastFeeding = allEvents
-            .filterIsInstance<FeedingEvent>().maxByOrNull { it.timestamp } ?: return@run null
-
-        val recentFeedings = allEvents
-            .filterIsInstance<FeedingEvent>()
-            .sortedByDescending { it.timestamp }
-            .take(10)
-
-        if (recentFeedings.size < 2) return@run null
-
-        val intervals = recentFeedings
-            .zipWithNext { a, b ->
-                Duration.between(b.timestamp.toInstant(), a.timestamp.toInstant()).toMillis()
-            }
-            .sorted()
-
-        val medianIntervalMs = intervals[intervals.size / 2]
-
-        val filteredIntervals = intervals
-            .drop(intervals.size / 5)
-            .dropLast(intervals.size / 5)
-            .ifEmpty { intervals }
-
-        val predictedIntervalMs = filteredIntervals.average().toLong()
-        val minIntervalMs = 90 * 60 * 1000L
-        val medianPredictionMs = maxOf(medianIntervalMs, minIntervalMs)
-        val weightPredictionMs = maxOf(predictedIntervalMs, minIntervalMs)
-        lastFeeding.timestamp.time + weightPredictionMs
-    }
-    val currentOverlay by remember(selectedType, activeSleepEvent, nextFeedingTimeMs) {
+    val filteredEvents = babyEvents.filter { EventType.forClass(it::class) == selectedType }
+    val currentOverlay by remember(selectedType, filteredEvents) {
         derivedStateOf {
             selectedType?.let { type ->
                 type.createOverlay(
                     EventTypeOverlayContext(
-                        activeSleepEvent = activeSleepEvent,
-                        nextFeedingTimeMs = nextFeedingTimeMs,
                         onClick = {
                             editingEvent =
                                 if (selectedType == EventType.SLEEP) activeSleepEvent else null
@@ -259,7 +226,8 @@ fun HomeScreen(
                                 )
                             }
                             showEventDialog = true
-                        }
+                        },
+                        lastEvents = filteredEvents
                     )
                 )
             } ?: EventOverlayInfo()
@@ -355,8 +323,6 @@ fun HomeScreen(
                                     height = cardHeight,
                                     overlayContent = type.overlayBuilder(
                                         EventTypeOverlayContext(
-                                            activeSleepEvent = activeSleepEvent,
-                                            nextFeedingTimeMs = nextFeedingTimeMs,
                                             onClick = {
                                                 selectedType = type
                                                 editingEvent =
@@ -367,7 +333,8 @@ fun HomeScreen(
                                                     )
                                                 }
                                                 showEventDialog = true
-                                            }
+                                            },
+                                            lastEvents =  filteredEvents
                                         )
                                     )
                                 )
@@ -429,12 +396,10 @@ fun HomeScreen(
             }
             if (showTypeDialog && selectedType != null) {
                 // Filter events for this type and selected baby
-                val filtered = babyEvents
-                    .filter { EventType.forClass(it::class) == selectedType }
                 EventTypeDialog(
                     type = selectedType!!,
                     selectedBaby = selectedBaby,
-                    events = filtered,
+                    events = filteredEvents,
                     onDismiss = {
                         showTypeDialog = false
                         selectedType = null

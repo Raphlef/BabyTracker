@@ -23,6 +23,7 @@ import com.kouloundissa.twinstracker.presentation.event.EventWithAmount
 import com.kouloundissa.twinstracker.ui.components.EventOverlayInfo
 import com.kouloundissa.twinstracker.ui.components.FeedingTimer
 import com.kouloundissa.twinstracker.ui.components.SleepTimer
+import java.time.Duration
 import java.util.Date
 import java.util.UUID
 import kotlin.reflect.KClass
@@ -66,7 +67,36 @@ enum class EventType(
         R.drawable.feed,
         FeedingEvent::class,
         overlayBuilder = { context ->
-            context.nextFeedingTimeMs?.let { nextTime ->
+            val nextFeedingTimeMs: Long? = run {
+                val lastFeeding = context.lastEvents.maxByOrNull { it.timestamp } ?: return@run null
+
+                val recentFeedings = context.lastEvents
+                    .sortedByDescending { it.timestamp }
+                    .take(10)
+
+                if (recentFeedings.size < 2) return@run null
+
+                val intervals = recentFeedings
+                    .zipWithNext { a, b ->
+                        Duration.between(b.timestamp.toInstant(), a.timestamp.toInstant())
+                            .toMillis()
+                    }
+                    .sorted()
+
+                val medianIntervalMs = intervals[intervals.size / 2]
+
+                val filteredIntervals = intervals
+                    .drop(intervals.size / 5)
+                    .dropLast(intervals.size / 5)
+                    .ifEmpty { intervals }
+
+                val predictedIntervalMs = filteredIntervals.average().toLong()
+                val minIntervalMs = 90 * 60 * 1000L
+                val medianPredictionMs = maxOf(medianIntervalMs, minIntervalMs)
+                val weightPredictionMs = maxOf(predictedIntervalMs, minIntervalMs)
+                lastFeeding.timestamp.time + weightPredictionMs
+            }
+            nextFeedingTimeMs?.let { nextTime ->
                 {
                     FeedingTimer(
                         nextFeedingTimeMs = nextTime,
@@ -101,7 +131,13 @@ enum class EventType(
         R.drawable.sleep,
         SleepEvent::class,
         overlayBuilder = { context ->
-            context.activeSleepEvent?.let { sleepEvent ->
+
+            val activeSleepEvent: SleepEvent? = context.lastEvents
+                .filterIsInstance<SleepEvent>()
+                .sortedByDescending { it.timestamp }
+                .firstOrNull { it.endTime == null && it.beginTime != null }
+
+            activeSleepEvent?.let { sleepEvent ->
                 {
                     SleepTimer(
                         sleepEvent = sleepEvent,
@@ -775,7 +811,8 @@ sealed class EventFormState {
  * Context object passed to overlay builders containing runtime state
  */
 data class EventTypeOverlayContext(
-    val activeSleepEvent: SleepEvent?,
-    val nextFeedingTimeMs: Long?,
+    //  val activeSleepEvent: SleepEvent?,
+    // val nextFeedingTimeMs: Long?,
+    val lastEvents: List<Event>,
     val onClick: () -> Unit
 )
