@@ -19,11 +19,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.IgnoreExtraProperties
 import com.kouloundissa.twinstracker.R
+import com.kouloundissa.twinstracker.presentation.event.EventPrediction
 import com.kouloundissa.twinstracker.presentation.event.EventWithAmount
 import com.kouloundissa.twinstracker.ui.components.EventOverlayInfo
 import com.kouloundissa.twinstracker.ui.components.FeedingTimer
 import com.kouloundissa.twinstracker.ui.components.SleepTimer
-import java.time.Duration
 import java.util.Date
 import java.util.UUID
 import kotlin.reflect.KClass
@@ -67,36 +67,9 @@ enum class EventType(
         R.drawable.feed,
         FeedingEvent::class,
         overlayBuilder = { context ->
-            val nextFeedingTimeMs: Long? = run {
-                val lastFeeding = context.lastEvents.maxByOrNull { it.timestamp } ?: return@run null
 
-                val recentFeedings = context.lastEvents
-                    .sortedByDescending { it.timestamp }
-                    .take(10)
-
-                if (recentFeedings.size < 2) return@run null
-
-                val intervals = recentFeedings
-                    .zipWithNext { a, b ->
-                        Duration.between(b.timestamp.toInstant(), a.timestamp.toInstant())
-                            .toMillis()
-                    }
-                    .sorted()
-
-                val medianIntervalMs = intervals[intervals.size / 2]
-
-                val filteredIntervals = intervals
-                    .drop(intervals.size / 5)
-                    .dropLast(intervals.size / 5)
-                    .ifEmpty { intervals }
-
-                val predictedIntervalMs = filteredIntervals.average().toLong()
-                val minIntervalMs = 90 * 60 * 1000L
-                val medianPredictionMs = maxOf(medianIntervalMs, minIntervalMs)
-                val weightPredictionMs = maxOf(predictedIntervalMs, minIntervalMs)
-                lastFeeding.timestamp.time + weightPredictionMs
-            }
-            nextFeedingTimeMs?.let { nextTime ->
+            val nextFeedingMs = EventPrediction.predictNextFeedingTimeMs(context.lastEvents)
+            nextFeedingMs?.let { nextTime ->
                 {
                     FeedingTimer(
                         nextFeedingTimeMs = nextTime,

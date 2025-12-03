@@ -1,12 +1,104 @@
 package com.kouloundissa.twinstracker.presentation.event
 
+import com.kouloundissa.twinstracker.data.Event
+import java.time.Duration
 import java.util.Date
 import kotlin.math.roundToInt
 
 object EventPrediction {
     enum class PredictionMethod {
-        AVERAGE,        // Original: simple averaging
-        GROWTH_SPEED    // New: growth rate-based prediction
+        AVERAGE,        // simple averaging
+        GROWTH_SPEED,    // growth rate-based prediction
+        INTERVAL_BASED  // interval-based feeding time prediction
+    }
+    // ==================== FEEDING TIME PREDICTION ====================
+
+    /**
+     * Predict next feeding time based on historical feeding intervals
+     *
+     * Algorithm:
+     * 1. Take last 10 events to calculate feeding intervals
+     * 2. Remove outliers (drop first/last 20% of sorted intervals)
+     * 3. Calculate weighted prediction using median + average of filtered intervals
+     * 4. Apply minimum interval threshold (90 minutes)
+     * 5. Return last feeding time + predicted interval
+     *
+     * @param events List of recent feeding events (must be sorted by timestamp descending)
+     * @param now Current timestamp (defaults to now)
+     * @return Predicted next feeding time in milliseconds, or null if calculation fails
+     */
+    fun <T : Event> predictNextFeedingTimeMs(
+        events: List<T>,
+        now: Date = Date()
+    ): Long? {
+        // Need at least 2 events to calculate intervals
+        if (events.size < 2) return null
+
+        val lastFeeding = events.maxBy { it.timestamp.time }
+        val sortedEvents = events.sortedByDescending { it.timestamp.time }.take(10)
+
+        // Calculate intervals between consecutive feedings
+        val intervals = sortedEvents
+            .zipWithNext { a, b ->
+                    Duration.between(b.timestamp.toInstant(), a.timestamp.toInstant())
+                        .toMillis()
+            }
+            .sorted()
+
+        if (intervals.size < 2) return null
+
+        // Calculate predicted interval using statistical methods
+        val predictedIntervalMs = calculatePredictedInterval(intervals)
+
+        // Apply minimum interval threshold
+        val minIntervalMs = 90 * 60 * 1000L // 90 minutes minimum
+        val finalIntervalMs = maxOf(predictedIntervalMs, minIntervalMs)
+
+        // Return predicted next feeding time
+        return lastFeeding.timestamp.time + finalIntervalMs
+    }
+
+    /**
+     * Calculate the most reliable predicted interval using multiple strategies
+     *
+     * Strategy:
+     * 1. Calculate median (robust to outliers)
+     * 2. Remove outliers from distribution (exclude top/bottom 20%)
+     * 3. Calculate average of filtered intervals
+     * 4. Weight both results for final prediction
+     */
+    private fun calculatePredictedInterval(sortedIntervals: List<Long>): Long {
+        if (sortedIntervals.isEmpty()) return 0L
+
+        // Remove outliers: drop first and last 20%
+        val outlierThreshold = maxOf(1, sortedIntervals.size / 5)
+
+        val filteredIntervals = sortedIntervals
+            .drop(outlierThreshold)
+            .dropLast(outlierThreshold)
+            .ifEmpty { sortedIntervals }
+
+        // Median - robust to outliers
+        val medianInterval = getMedian(filteredIntervals)
+        // Average of filtered intervals - more stable
+        val averageInterval = filteredIntervals.average().toLong()
+
+        // Weight both: 40% median (stable), 60% average (adaptive)
+        return (medianInterval * 0.4 + averageInterval * 0.6).toLong()
+    }
+
+    /**
+     * Calculate median of a sorted list of values
+     */
+    private fun getMedian(sortedValues: List<Long>): Long {
+        return when {
+            sortedValues.isEmpty() -> 0L
+            sortedValues.size % 2 == 1 -> sortedValues[sortedValues.size / 2]
+            else -> {
+                val mid = sortedValues.size / 2
+                (sortedValues[mid - 1] + sortedValues[mid]) / 2
+            }
+        }
     }
 
     /**
@@ -192,6 +284,7 @@ object EventPrediction {
  * Interface for events that contain an amount value
  * Implement this in your event classes
  */
+
 interface EventWithAmount {
     fun getAmountValue(): Double?
     fun getTimestampValue(): Date
@@ -214,6 +307,15 @@ fun <T : EventWithAmount> List<T>.calculatePresets(
         }
 
         EventPrediction.PredictionMethod.AVERAGE -> {
+            EventPrediction.calculatePresetsFromAverage(
+                sorted.mapNotNull { it.getAmountValue() },
+                defaultPresets,
+                factors
+            )
+        }
+
+        EventPrediction.PredictionMethod.INTERVAL_BASED -> {
+            // For interval-based, return average presets as fallback
             EventPrediction.calculatePresetsFromAverage(
                 sorted.mapNotNull { it.getAmountValue() },
                 defaultPresets,
