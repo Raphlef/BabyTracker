@@ -357,7 +357,7 @@ fun ComboChartView(
             val barSet = BarDataSet(barEntries, barLabel).apply {
                 color = "#FF5722".toColorInt()
                 axisDependency = YAxis.AxisDependency.LEFT
-                setDrawValues(dataPointCount <= 10)
+                setDrawValues(false)
                 valueTextSize = 10f
             }
 
@@ -382,6 +382,12 @@ fun ComboChartView(
                 setDrawValues(dataPointCount <= 10)
                 valueTextSize = 10f
                 mode = LineDataSet.Mode.LINEAR
+
+                valueFormatter = object : ValueFormatter() {
+                    override fun getFormattedValue(value: Float): String {
+                        return if (value <= 0.01f) "0" else value.toInt().toString()
+                    }
+                }
             }
 
             // 2. Set combined data
