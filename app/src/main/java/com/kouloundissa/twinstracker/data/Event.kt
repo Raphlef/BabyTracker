@@ -375,7 +375,7 @@ data class FeedingEvent(
     val feedType: FeedType = FeedType.BREAST_MILK,
     val amountMl: Double? = null,
     val durationMinutes: Int? = null,
-    val breastSide: BreastSide? = null
+    val breastSide: BreastSide? = BreastSide.BOTH
 ) : Event(), EventWithAmount {
     constructor() : this("", "", "", Date(), null, null, FeedType.BREAST_MILK, null, null, null)
 
@@ -424,7 +424,7 @@ data class PumpingEvent(
     override val photoUrl: String? = null,
     val amountMl: Double? = null,
     val durationMinutes: Int? = null,
-    val breastSide: BreastSide? = null
+    val breastSide: BreastSide? = BreastSide.BOTH
 ) : Event(), EventWithAmount {
     constructor() : this("", "", "", Date(), null, null, null, null, null)
 
