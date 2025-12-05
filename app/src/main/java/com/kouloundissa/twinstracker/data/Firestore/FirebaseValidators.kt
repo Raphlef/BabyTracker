@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.data.Firestore
 
+import android.util.Patterns
 import java.util.Date
 import java.util.Locale
 
@@ -23,6 +24,22 @@ object FirebaseValidators {
         email.trim().lowercase(Locale.getDefault())
 
     fun validateEmail(email: String) {
-        require(email.isNotBlank()) { "Email cannot be empty" }
+        val trimmed = email.trim()
+
+        when {
+            trimmed.isEmpty() ->
+                throw IllegalArgumentException("Email ne peut pas être vide")
+            trimmed.length > 254 ->
+                throw IllegalArgumentException("Email trop long")
+            !Patterns.EMAIL_ADDRESS.matcher(trimmed).matches() ->
+                throw IllegalArgumentException("Format email invalide")
+        }
     }
+    fun validateEmailWithMessage(email: String): String? = try {
+        validateEmail(email)
+        null
+    } catch (e: IllegalArgumentException) {
+        e.message
+    }
+
 }
