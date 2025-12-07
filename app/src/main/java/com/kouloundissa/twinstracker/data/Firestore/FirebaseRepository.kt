@@ -708,7 +708,9 @@ class FirebaseRepository @Inject constructor(
         listenerStart: Date,
         now: Long
     ): Date {
-        return if (dayStart.time >= getDayStart(Date(now)).time) {
+        val todayStart = getDayStart(Date(now))
+
+        return if (dayStart >= todayStart) {
             // Today: query until listener start
             listenerStart
         } else {
@@ -791,7 +793,7 @@ class FirebaseRepository @Inject constructor(
         listenerStartDay: Date
     ) {
         // Load stable events from previous day if listener spans midnight
-        if (listenerStartDay < todayStart) {
+        if (listenerStart.time < todayStart.time) {
             Log.d(TAG, "  → Listener spans previous day, loading yesterday's stable cache")
             loadStableEventsFromDay(
                 babyId, listenerStartDay, firebaseCache, allEvents,
