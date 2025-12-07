@@ -118,6 +118,41 @@
     <string name="event_type_pumping">Pumping</string>
     <string name="event_type_drugs">Drugs</string>
 
+    <!-- ========== DIAPER TYPE ========== -->
+    <string name="diaper_type_wet">Wet</string>
+    <string name="diaper_type_dirty">Dirty</string>
+    <string name="diaper_type_mixed">Mixed</string>
+    <string name="diaper_type_dry">Dry</string>
+
+    <!-- ========== POOP CONSISTENCY ========== -->
+    <string name="poop_consistency_liquide">Liquide</string>
+    <string name="poop_consistency_semi_solide">Semi-solide</string>
+    <string name="poop_consistency_solide">Solide</string>
+
+    <!-- ========== POOP COLOR ========== -->
+    <string name="poop_color_brown">Marron</string>
+    <string name="poop_color_yellow">Jaune</string>
+    <string name="poop_color_green">Vert</string>
+    <string name="poop_color_other">Autre</string>
+
+    <!-- ========== FEED TYPE ========== -->
+    <string name="feed_type_breast_milk">Breast Milk</string>
+    <string name="feed_type_formula">Formula</string>
+    <string name="feed_type_solid">Solid</string>
+
+
+    <!-- ========== DRUG TYPE ========== -->
+    <string name="drug_type_paracetamol">Paracetamol</string>
+    <string name="drug_type_vitamin_a">Vitamin A</string>
+    <string name="drug_type_vitamin_b">Vitamin B Complex</string>
+    <string name="drug_type_vitamin_c">Vitamin C</string>
+    <string name="drug_type_vitamin_d">Vitamin D</string>
+    <string name="drug_type_vitamin_k">Vitamin K</string>
+    <string name="drug_type_iron">Iron Supplement</string>
+    <string name="drug_type_calcium">Calcium Supplement</string>
+    <string name="drug_type_cream">Cream</string>
+    <string name="drug_type_other">Other</string>
+
     <!-- ========== EVENT FORM DIALOG - TITLES ========== -->
     <string name="event_form_title_new">New Event</string>
     <string name="event_form_title_edit">Edit Event</string>
@@ -144,8 +179,8 @@
 
     <!-- ========== EVENT FORM DIALOG - FEEDING ========== -->
     <string name="feeding_type_label">Feeding Type</string>
-    <string name="breast_left">Left Breast</string>
-    <string name="breast_right">Right Breast</string>
+    <string name="breast_left">Left</string>
+    <string name="breast_right">Right</string>
     <string name="breast_both">Both</string>
     <string name="bottle">Bottle</string>
     <string name="breast_side_label">Breast Side</string>
