@@ -68,17 +68,13 @@ class FirebaseRepository @Inject constructor(
 ) {
     private val TAG = "FirebaseRepository"
 
-    // Helper instances
-    public val authHelper = FirebaseAuthHelper(auth)
-    val queryHelper = FirestoreQueryHelper(db)
-    private val photoHelper = FirebasePhotoHelper(
-        FirebaseStorage.getInstance(),
-        db,
-        context,
-        authHelper
-    )
+
 
     // ===== AUTHENTICATION =====
+    fun isUserLoggedIn(): Boolean = auth.currentUser != null
+    fun getCurrentUserEmail(): String? = auth.currentUser?.email
+    fun getCurrentUserId(): String = auth.currentUser?.uid ?: throw IllegalStateException("User not authenticated")
+
     suspend fun login(email: String, password: String) {
         FirebaseValidators.validateEmail(email)
         val normalized = FirebaseValidators.normalizeEmail(email)
@@ -87,7 +83,8 @@ class FirebaseRepository @Inject constructor(
 
     suspend fun sendPasswordReset(email: String) {
         FirebaseValidators.validateEmail(email)
-        auth.sendPasswordResetEmail(email).await()
+        val normalized = FirebaseValidators.normalizeEmail(email)
+        auth.sendPasswordResetEmail(normalized).await()
     }
 
     suspend fun register(email: String, password: String) {
@@ -95,7 +92,12 @@ class FirebaseRepository @Inject constructor(
         val normalized = FirebaseValidators.normalizeEmail(email)
 
         auth.createUserWithEmailAndPassword(normalized, password).await()
-        val userId = authHelper.getCurrentUserId()
+
+        reloadUser()
+        val userId = getCurrentUserId()
+        if (userId.isEmpty()) {
+            throw IllegalStateException("Failed to get user ID after registration")
+        }
 
         val user = User(
             id = userId,
@@ -111,6 +113,12 @@ class FirebaseRepository @Inject constructor(
             .document(userId)
             .set(user)
             .await()
+        sendVerificationEmail()
+    }
+
+    suspend fun checkEmailVerification(): Boolean {
+        reloadUser()
+        return isEmailVerified()
     }
 
     suspend fun signInWithGoogle(idToken: String) {
@@ -118,9 +126,65 @@ class FirebaseRepository @Inject constructor(
         auth.signInWithCredential(credential).await()
     }
 
+    /**
+     * Envoie un email de vérification à l'utilisateur actuel
+     * @return true si envoi réussi, false sinon
+     */
+    suspend fun sendVerificationEmail(): Boolean = withContext(Dispatchers.IO) {
+        return@withContext try {
+            val user = auth.currentUser
+            user?.sendEmailVerification()?.await()
+            true
+        } catch (e: Exception) {
+            Log.e("EmailVerification", "Erreur envoi email", e)
+            false
+        }
+    }
+
+    /**
+     * Vérifie si l'utilisateur a confirmé son email
+     */
+    fun isEmailVerified(): Boolean {
+        return auth.currentUser?.isEmailVerified ?: false
+    }
+
+    /**
+     * Recharge l'état utilisateur depuis Firebase
+     */
+    suspend fun reloadUser() = withContext(Dispatchers.IO) {
+        auth.currentUser?.reload()?.await()
+    }
+
+    /**
+     * Renvoie l'email pour vérification (avec délai pour éviter spam)
+     * @param minDelaySeconds délai minimum entre 2 envois
+     */
+    suspend fun resendVerificationEmail(minDelaySeconds: Int = 60): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            return@withContext try {
+                auth.currentUser?.sendEmailVerification()?.await()
+                Result.success(Unit)
+            } catch (e: Exception) {
+                when {
+                    e.message?.contains("too-many-requests") == true ->
+                        Result.failure(Exception("Trop de tentatives. Réessayez dans ${minDelaySeconds}s"))
+                    else -> Result.failure(e)
+                }
+            }
+        }
+
+    // Helper instances
+    val queryHelper = FirestoreQueryHelper(db)
+    private val photoHelper = FirebasePhotoHelper(
+        FirebaseStorage.getInstance(),
+        db,
+        context,
+        this
+    )
+
     // ===== USER PROFILE =====
     suspend fun getCurrentUserProfile(): User {
-        val userId = authHelper.getCurrentUserId()
+        val userId = getCurrentUserId()
         val doc = db.collection(FirestoreConstants.Collections.USERS)
             .document(userId)
             .get()
@@ -139,7 +203,7 @@ class FirebaseRepository @Inject constructor(
     }
 
     suspend fun updateUserProfile(updates: Map<String, Any?>) {
-        val userId = authHelper.getCurrentUserId()
+        val userId = getCurrentUserId()
         db.collection(FirestoreConstants.Collections.USERS)
             .document(userId)
             .update(updates.withUpdatedAt())
@@ -171,7 +235,7 @@ class FirebaseRepository @Inject constructor(
 
     suspend fun clearUserSession() {
         context.userDataStore.edit { prefs -> prefs.remove(rememberMeKey) }
-        authHelper.logout()
+        auth.signOut()
     }
 
     suspend fun isRemembered(): Boolean =
@@ -222,13 +286,11 @@ class FirebaseRepository @Inject constructor(
         photoHelper.deletePhoto(entityType, entityId)
 
     // ===== PUBLIC ACCESS METHODS (for backward compatibility) =====
-    fun isUserLoggedIn(): Boolean = authHelper.isLoggedIn()
-    fun getCurrentUserEmail(): String? = authHelper.getCurrentEmail()
-    fun getCurrentUserId(): String? = auth.currentUser?.uid
+
 
     // ===== BABY OPERATIONS =====
     suspend fun addOrUpdateBaby(baby: Baby, family: Family?): Result<Baby> = runCatching {
-        val userId = authHelper.getCurrentUserId()
+        val userId = getCurrentUserId()
 
         if (family == null) {
             throw IllegalStateException("L'utilisateur ne fait partie d'aucune famille")
@@ -426,7 +488,7 @@ class FirebaseRepository @Inject constructor(
         firebaseCache: FirebaseCache = FirebaseCache(context, db),
     ): Result<Unit> {
         return try {
-            val userId = authHelper.getCurrentUserId()
+            val userId = getCurrentUserId()
             val data = event.toMap()
                 .withUserIdAndTimestamp(userId)
 
@@ -446,7 +508,7 @@ class FirebaseRepository @Inject constructor(
         eventId: String, event: Event,
         firebaseCache: FirebaseCache = FirebaseCache(context, db),
     ): Result<Unit> = runCatching {
-        authHelper.getCurrentUserId()
+        getCurrentUserId()
         val data = event.toMap()
             .withUpdatedAt()
 
@@ -518,7 +580,7 @@ class FirebaseRepository @Inject constructor(
         // STEP 0: Shared validation
         FirebaseValidators.validateBabyId(babyId)
         FirebaseValidators.validateDateRange(startDate, endDate)
-        authHelper.getCurrentUserId()
+        getCurrentUserId()
 
         val prefix = logPrefix()
         val allEvents = mutableMapOf<String, Event>()
@@ -1099,7 +1161,7 @@ class FirebaseRepository @Inject constructor(
 
     suspend fun getLastGrowthEvent(babyId: String): Result<GrowthEvent?> = runCatching {
         FirebaseValidators.validateBabyId(babyId)
-        authHelper.getCurrentUserId()
+        getCurrentUserId()
 
         val snapshot = db.collection(FirestoreConstants.Collections.EVENTS)
             .whereEqualTo(FirestoreConstants.Fields.BABY_ID, babyId)
