@@ -19,6 +19,7 @@ import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.snapshots
 import com.google.firebase.storage.FirebaseStorage
+import com.kouloundissa.twinstracker.data.AnalysisRange
 import com.kouloundissa.twinstracker.data.AnalysisSnapshot
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DailyAnalysis
@@ -37,7 +38,6 @@ import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.data.Theme
 import com.kouloundissa.twinstracker.data.User
 import com.kouloundissa.twinstracker.data.toEvent
-import com.kouloundissa.twinstracker.presentation.analysis.AnalysisRange
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose

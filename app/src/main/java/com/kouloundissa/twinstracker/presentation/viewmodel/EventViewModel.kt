@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.storage.StorageException
 import com.kouloundissa.twinstracker.Service.NotificationService
+import com.kouloundissa.twinstracker.data.AnalysisRange
 import com.kouloundissa.twinstracker.data.AnalysisSnapshot
 import com.kouloundissa.twinstracker.data.DiaperEvent
 import com.kouloundissa.twinstracker.data.DrugsEvent
@@ -25,7 +26,6 @@ import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.data.User
 import com.kouloundissa.twinstracker.data.setPhotoUrl
-import com.kouloundissa.twinstracker.presentation.analysis.AnalysisRange
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
 import dagger.hilt.android.lifecycle.HiltViewModel
