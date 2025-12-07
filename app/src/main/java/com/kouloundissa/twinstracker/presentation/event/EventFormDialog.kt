@@ -68,6 +68,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -271,19 +272,19 @@ fun EventFormDialogContent(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete Event") },
-            text = { Text("Are you sure you want to delete this event?") },
+            title = { Text(stringResource(id = R.string.delete_event_title)) },
+            text = { Text(stringResource(id = R.string.delete_event_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     formState.event?.let { eventViewModel.deleteEvent(it) }
                     showDeleteConfirm = false
                 }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(id = R.string.delete_button_confirm), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Cancel")
+                    Text(stringResource(id = R.string.cancel_button_confirm))
                 }
             }
         )
@@ -334,13 +335,15 @@ fun EventFormDialogContent(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = stringResource(id = R.string.back_button_description),
                         tint = tint
                     )
                 }
                 Spacer(Modifier.width(12.dp))
                 Text(
-                    text = if (formState.eventId == null) "Add Event" else "Edit Event",
+                    text = stringResource(
+                        id = if (formState.eventId == null) R.string.event_form_add_event else R.string.event_form_edit_event
+                    ),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = tint,
@@ -391,7 +394,7 @@ fun EventFormDialogContent(
                                 .fillMaxWidth()
                         ) {
                             Text(
-                                text = "Event Type",
+                                text = stringResource(id = R.string.event_type_label),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier.padding(bottom = 12.dp),
@@ -433,7 +436,7 @@ fun EventFormDialogContent(
                     }
                 } else {
                     IconSelector(
-                        title = "Event Type",
+                        title = stringResource(id = R.string.event_type_label),
                         options = EventType.entries,
                         selected = currentType,
                         onSelect = { type ->
@@ -510,7 +513,7 @@ fun EventFormDialogContent(
         ) {
             // Cancel button
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = DarkBlue)
+                Text(stringResource(id = R.string.cancel_button_confirm), color = DarkBlue)
             }
 
             // Delete button - only in edit mode
@@ -535,7 +538,7 @@ fun EventFormDialogContent(
                             color = Color.Gray
                         )
                     } else {
-                        Text("Delete")
+                        Text(stringResource(id = R.string.delete_button_confirm))
                     }
                 }
             }
@@ -561,10 +564,12 @@ fun EventFormDialogContent(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Saving…")
+                    Text(stringResource(id = R.string.saving_button))
                 } else {
                     Text(
-                        text = if (formState.eventId == null) "Create Event" else "Update Event",
+                        text = stringResource(
+                            id = if (formState.eventId == null) R.string.create_event_button else R.string.update_event_button
+                        ),
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
@@ -574,14 +579,14 @@ fun EventFormDialogContent(
 }
 
 @Composable
-private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
+fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Type selector
         IconSelector(
-            title = "Diaper Type",
+            title = stringResource(id = R.string.diaper_type_label),
             options = DiaperType.entries,
             selected = state.diaperType,
             onSelect = { viewModel.updateForm { (this as EventFormState.Diaper).copy(diaperType = it) } },
@@ -602,7 +607,7 @@ private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) 
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 IconSelector(
-                    title = "Poop Color",
+                    title = stringResource(id = R.string.poop_color_label),
                     options = PoopColor.entries,
                     selected = state.poopColor,
                     onSelect = {
@@ -618,7 +623,7 @@ private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) 
                 )
 
                 IconSelector(
-                    title = "Consistency",
+                    title = stringResource(id = R.string.consistency_label),
                     options = PoopConsistency.entries,
                     selected = state.poopConsistency,
                     onSelect = {
@@ -641,7 +646,7 @@ private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) 
             onValueChange = { newNotes ->
                 viewModel.updateForm { (this as EventFormState.Diaper).copy(notes = newNotes) }
             },
-            label = "Notes (optional)",
+            label = stringResource(id = R.string.notes_hint),
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 80.dp),
@@ -651,7 +656,7 @@ private fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) 
 }
 
 @Composable
-private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
+fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
 
     val cornerShape = MaterialTheme.shapes.extraLarge
     val backgroundColor = BackgroundColor
@@ -680,13 +685,13 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        FormSection(title = "Sleep Period") {
+        FormSection(title = stringResource(id = R.string.sleep_period_title)) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 ModernDateSelector(
-                    label = "Begin sleep",
+                    label = stringResource(id = R.string.begin_sleep_label),
                     selectedDate = state.beginTime ?: Date(),
                     onDateSelected = { newBegin ->
                         viewModel.updateEventTimestamp(newBegin)
@@ -701,7 +706,7 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
                     modifier = Modifier.fillMaxWidth()
                 )
                 ModernDateSelector(
-                    label = "End sleep",
+                    label = stringResource(id = R.string.end_sleep_label),
                     selectedDate = state.endTime,
                     onDateSelected = { newEnd ->
                         viewModel.updateForm {
@@ -742,7 +747,7 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            "Duration",
+                            stringResource(id = R.string.duration),
                             style = MaterialTheme.typography.labelSmall,
                             color = backgroundColor.copy(alpha = 0.7f)
                         )
@@ -760,7 +765,7 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
         FormTextInput(
             value = state.notes,
             onValueChange = { viewModel.updateForm { (this as EventFormState.Sleep).copy(notes = it) } },
-            label = "Notes (optional)",
+            label = stringResource(id = R.string.notes_hint),
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 80.dp),
@@ -770,12 +775,13 @@ private fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
 }
 
 @Composable
-private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
+fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
     val contentColor = BackgroundColor
     val cornerShape = MaterialTheme.shapes.extraLarge
+
     // Feed Type
     IconSelector(
-        title = "Feed Type",
+        title = stringResource(id = R.string.feeding_type_label),
         options = FeedType.entries,
         selected = state.feedType,
         onSelect = {
@@ -834,6 +840,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
             }
         }
     }
+
     // Amount (hidden for breast milk)
     FormFieldVisibility(visible = state.feedType != FeedType.BREAST_MILK) {
         AmountInput(
@@ -871,7 +878,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
 
             // Breast Side Selection
             IconSelector(
-                title = "Breast Side",
+                title = stringResource(id = R.string.breast_side_label),
                 options = BreastSide.entries,
                 selected = state.breastSide,
                 onSelect = {
@@ -891,7 +898,7 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
     FormTextInput(
         value = state.notes,
         onValueChange = { viewModel.updateForm { (this as EventFormState.Feeding).copy(notes = it) } },
-        label = "Notes (optional)",
+        label = stringResource(id = R.string.notes_hint),
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 80.dp),
@@ -900,12 +907,12 @@ private fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel
 }
 
 @Composable
-private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) {
+fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        FormSection(title = "Body Measurements") {
+        FormSection(title = stringResource(id = R.string.body_measurements_title)) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -922,7 +929,7 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
                                 )
                             }
                         },
-                        label = "Weight (kg)",
+                        label = stringResource(id = R.string.weight_label),
                         modifier = Modifier.weight(1f),
                         max = 50f // reasonable max for baby
                     )
@@ -936,7 +943,7 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
                                 )
                             }
                         },
-                        label = "Height (cm)",
+                        label = stringResource(id = R.string.height_label),
                         modifier = Modifier.weight(1f),
                         max = 150f
                     )
@@ -951,7 +958,7 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
                             )
                         }
                     },
-                    label = "Head Circumference (cm)",
+                    label = stringResource(id = R.string.head_circumference_label),
                     modifier = Modifier.fillMaxWidth(),
                     max = 60f
                 )
@@ -961,7 +968,7 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
         FormTextInput(
             value = state.notes,
             onValueChange = { viewModel.updateForm { (this as EventFormState.Growth).copy(notes = it) } },
-            label = "Notes (optional)",
+            label = stringResource(id = R.string.notes_hint),
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 80.dp),
@@ -971,7 +978,7 @@ private fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) 
 }
 
 @Composable
-private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
+fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
     val contentColor = BackgroundColor
     val cornerShape = MaterialTheme.shapes.extraLarge
 
@@ -1036,7 +1043,7 @@ private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel
 
     // Breast Side
     IconSelector(
-        title = "Breast Side",
+        title = stringResource(id = R.string.breast_side_label),
         options = BreastSide.entries,
         selected = state.breastSide,
         onSelect = {
@@ -1050,17 +1057,32 @@ private fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel
             side.name.lowercase().replaceFirstChar { it.uppercase() }
         }
     )
+
+    // Notes
+    FormTextInput(
+        value = state.notes,
+        onValueChange = { newNotes ->
+            viewModel.updateForm {
+                (this as EventFormState.Drugs).copy(notes = newNotes)
+            }
+        },
+        label = stringResource(id = R.string.notes_hint),
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 80.dp),
+        minLines = 4
+    )
 }
 
 @Composable
-private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
+fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Drug Type Picker
         IconSelector(
-            title = "Drug Type",
+            title = stringResource(id = R.string.drug_type_label),
             options = DrugType.entries,
             selected = state.drugType,
             onSelect = { selected ->
@@ -1082,18 +1104,18 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
                         (this as EventFormState.Drugs).copy(otherDrugName = newName)
                     }
                 },
-                label = "Specify Drug Name",
+                label = stringResource(id = R.string.specify_drug_name_label),
                 modifier = Modifier.fillMaxWidth()
             )
         }
 
         // Dosage information section
         FormFieldVisibility(visible = state.drugType != DrugType.CREAM) {
-            FormSection(title = "Dosage Information") {
+            FormSection(title = stringResource(id = R.string.dosage_information_title)) {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Row(
+                    androidx.compose.foundation.layout.Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -1104,7 +1126,7 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
                                     (this as EventFormState.Drugs).copy(dosage = newValue)
                                 }
                             },
-                            label = "Amount",
+                            label = stringResource(id = R.string.dosage_amount_label),
                             modifier = Modifier.weight(2f),
                             max = 1000f
                         )
@@ -1116,7 +1138,7 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
                                     (this as EventFormState.Drugs).copy(unit = newValue)
                                 }
                             },
-                            label = "Unit",
+                            label = stringResource(id = R.string.dosage_unit_label),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -1132,7 +1154,7 @@ private fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
                     (this as EventFormState.Drugs).copy(notes = newNotes)
                 }
             },
-            label = "Notes (optional)",
+            label = stringResource(id = R.string.notes_hint),
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 80.dp),

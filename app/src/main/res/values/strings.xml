@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- App Name -->
-    <string name="app_name">TwinsTracker</string>
+    <string name="app_name" translatable="false">TwinsTracker</string>
 
     <!-- ========== AUTH SCREEN - MAIN TITLE ========== -->
-    <string name="twins_tracker_title">Twins Tracker</string>
+    <string name="twins_tracker_title" translatable="false">Twins Tracker</string>
 
     <!-- ========== AUTH SCREEN - LOADING STATES ========== -->
     <string name="authenticating">Authentification en cours...</string>
@@ -140,37 +140,49 @@
     <string name="breast_right">Right Breast</string>
     <string name="breast_both">Both</string>
     <string name="bottle">Bottle</string>
-    <string name="feeding_amount_label">Amount (ml)</string>
+    <string name="breast_side_label">Breast Side</string>
+    <string name="amount_label">Amount (ml)</string>
     <string name="duration_label">Duration (min)</string>
-
-    <!-- ========== EVENT FORM DIALOG - PUMPING ========== -->
-    <string name="pumping_amount_label">Amount (ml)</string>
 
     <!-- ========== EVENT FORM DIALOG - DIAPER ========== -->
     <string name="wet_diaper">Wet</string>
     <string name="poop_diaper">Poop</string>
+    <string name="diaper_type_label">Diaper Type</string>
+    <string name="poop_color_label">Poop Color</string>
+    <string name="consistency_label">Consistency</string>
 
     <!-- ========== EVENT FORM DIALOG - SLEEP ========== -->
     <string name="sleep_duration_label">Sleep Duration (min)</string>
+    <string name="sleep_period_title">Sleep Period</string>
+    <string name="begin_sleep_label">Begin sleep</string>
+    <string name="end_sleep_label">End sleep</string>
+    <string name="duration">Duration</string>
 
     <!-- ========== EVENT FORM DIALOG - GROWTH ========== -->
+    <string name="body_measurements_title">Body Measurements</string>
     <string name="weight_label">Weight (kg)</string>
     <string name="height_label">Height (cm)</string>
     <string name="head_circumference_label">Head Circumference (cm)</string>
 
+    <!-- ========== EVENT FORM DIALOG - DRUGS ========== -->
+    <string name="drug_type_label">Drug Type</string>
+    <string name="specify_drug_name_label">Specify Drug Name</string>
+    <string name="dosage_information_title">Dosage Information</string>
+    <string name="dosage_amount_label">Amount</string>
+    <string name="dosage_unit_label">Unit</string>
+
     <!-- ========== EVENT FORM DIALOG - BUTTONS ========== -->
-    <string name="save_button">Save</string>
-    <string name="save_changes">Save Changes</string>
-    <string name="cancel_button">Cancel</string>
-    <string name="delete_button">Delete</string>
+    <string name="event_form_add_event">Add Event</string>
+    <string name="event_form_edit_event">Edit Event</string>
+    <string name="cancel_button_confirm">Cancel</string>
+    <string name="delete_button_confirm">Delete</string>
+    <string name="create_event_button">Create Event</string>
+    <string name="update_event_button">Update Event</string>
+    <string name="saving_button">Saving…</string>
 
     <!-- ========== EVENT FORM DIALOG - MESSAGES ========== -->
-    <string name="required_field">This field is required</string>
-    <string name="invalid_input">Invalid input</string>
-    <string name="save_error">Error saving event</string>
-    <string name="delete_error">Error deleting event</string>
-    <string name="event_saved">Event saved successfully</string>
-    <string name="event_deleted">Event deleted successfully</string>
+    <string name="delete_event_title">Delete Event</string>
+    <string name="delete_event_message">Are you sure you want to delete this event?</string>
 
     <!-- ========== TOPAPPBAR (Existing) ========== -->
     <string name="back_button_description">Back</string>
