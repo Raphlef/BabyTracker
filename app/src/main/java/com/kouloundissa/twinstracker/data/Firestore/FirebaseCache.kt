@@ -369,8 +369,7 @@ class FirebaseCache(
         if (rangeIncludesToday) {
             realtimeDate = todayStart  // ← Set ONCE: today's date
             val sixHoursAgo = now.time - (CacheTTL.FRESH.ageThresholdMs)  // 6 hours in milliseconds
-            val listenerStartTime = sixHoursAgo // Don't go before today
-            realtime6hBeforeTimestamp = listenerStartTime
+            realtime6hBeforeTimestamp = sixHoursAgo
             Log.d(TAG, "  ✓ Range includes today - will setup real-time listener for $todayStart")
         }
 
