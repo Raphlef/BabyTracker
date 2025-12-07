@@ -1,6 +1,9 @@
 package com.kouloundissa.twinstracker.presentation.auth
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,16 +14,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
@@ -39,6 +41,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -48,6 +51,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Firestore.FirebaseValidators.validateEmailWithMessage
@@ -74,7 +78,6 @@ fun AuthScreen(
     val content = DarkGrey
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
-
 
 
     // Collect one-time events
@@ -111,7 +114,7 @@ fun AuthScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())  // Enable scrolling
-                        .padding(horizontal = 32.dp)
+                        .padding(horizontal = 15.dp)
                         .padding(top = 48.dp, bottom = 32.dp),
                     verticalArrangement = Arrangement.SpaceBetween,
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -119,7 +122,7 @@ fun AuthScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(32.dp),
+                            .padding(15.dp),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -464,76 +467,160 @@ private fun LoginForm(
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     var emailError by remember { mutableStateOf<String?>(null) }
+    val isEnabled = state.currentStep == AuthStep.IdleForm
 
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        // Email field
-        LabeledTextField(
-            value = state.email,
-            onValueChange = { email ->
-                onEmailChange(email)
-                emailError = validateEmailWithMessage(email)
-            },
-            label = "Email",
-            isError = emailError != null,
-            errorMessage = emailError,
-            enabled = state.currentStep == AuthStep.IdleForm,
-            imeAction = ImeAction.Next,
-            keyboardType = KeyboardType.Email
-        )
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        // ============================================================================
+        // TIER 1: INPUT FIELDS - Email & Password in card
+        // ============================================================================
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    color = backgroundColor.copy(alpha = 0.15f),
+                    shape = cornerShape
+                )
+                .padding(24.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Email field
+                    LabeledTextField(
+                        value = state.email,
+                        onValueChange = { email ->
+                            onEmailChange(email)
+                            emailError = validateEmailWithMessage(email)
+                        },
+                        label = "Email",
+                        isError = emailError != null,
+                        errorMessage = emailError,
+                        enabled = isEnabled,
+                        imeAction = ImeAction.Next,
+                        keyboardType = KeyboardType.Email
+                    )
 
-        // Password field
-        LabeledTextField(
-            value = state.password,
-            onValueChange = onPasswordChange,
-            label = "Mot de passe",
-            visualTransformation = PasswordVisualTransformation(),
-            enabled = state.currentStep == AuthStep.IdleForm,
-            imeAction = ImeAction.Send,
-            keyboardType = KeyboardType.Password
-        )
+                    // Password field
+                    LabeledTextField(
+                        value = state.password,
+                        onValueChange = onPasswordChange,
+                        label = "Mot de passe",
+                        visualTransformation = PasswordVisualTransformation(),
+                        enabled = isEnabled,
+                        imeAction = ImeAction.Send,
+                        keyboardType = KeyboardType.Password
+                    )
+                }
+            }
+        }
+        // ============================================================================
+        // TIER 2: OPTIONS ROW - Remember Me (left) + Forgot Password (right)
+        // ============================================================================
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Remember Me - Left side
+            Row(
+                modifier = Modifier
+                    .clip(cornerShape)
+                    .clickable(enabled = isEnabled) { onRememberMeChange(!state.rememberMe) }
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .background(
+                            color = if (state.rememberMe)
+                                tint
+                            else
+                                backgroundColor.copy(alpha = 0.08f),
+                            shape = cornerShape
+                        )
+                        .border(
+                            width = 2.dp,
+                            color = if (state.rememberMe)
+                                tint
+                            else
+                                content.copy(alpha = 0.25f),
+                            shape = cornerShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (state.rememberMe) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = backgroundColor,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
 
-        // Remember me
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(
-                checked = state.rememberMe,
-                onCheckedChange = onRememberMeChange,
-                enabled = state.currentStep == AuthStep.IdleForm
-            )
-            Spacer(Modifier.width(8.dp))
-            Text("Se souvenir de moi", color = backgroundColor)
+                Text(
+                    "Se souvenir",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = backgroundColor,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 13.sp
+                )
+            }
+
+            // Forgot Password - Right side
+            TextButton(
+                onClick = onForgotPasswordClick,
+                enabled = isEnabled,
+                modifier = Modifier
+                    .height(40.dp)
+                    .padding(0.dp),
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = tint,
+                    disabledContentColor = tint.copy(alpha = 0.5f)
+                )
+            ) {
+                Text(
+                    "Mot de passe oublié?",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
 
-        Spacer(Modifier.height(8.dp))
+        // ============================================================================
+        // TIER 3: PRIMARY ACTION - Login button (full width, prominent)
+        // ============================================================================
 
-        // Login button
-        val canSubmit =
-            emailError == null && state.email.isNotBlank() && state.password.isNotBlank()
+        val canSubmit = emailError == null &&
+                state.email.isNotBlank() &&
+                state.password.isNotBlank()
+
         PrimaryButton(
-            text = "Connexion",
+            text = "[translate:Connexion]",
             onClick = onLoginClick,
-            enabled = canSubmit && state.currentStep == AuthStep.IdleForm,
+            enabled = canSubmit && isEnabled,
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Register button
-        TextButton(
+        // ============================================================================
+        // TIER 4: SECONDARY ACTION - Register button (full width, subtle)
+        // ============================================================================
+        SecondaryButton(
+            text = "[translate:Créer un compte]",
             onClick = onRegisterClick,
-            enabled = state.currentStep == AuthStep.IdleForm,
+            enabled = isEnabled,
             modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Créer un compte", color = backgroundColor)
-        }
-
-        TextButton(
-            onClick = onForgotPasswordClick,
-            enabled = state.currentStep == AuthStep.IdleForm,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Mot de passe oublié?", color = DarkBlue)
-        }
+        )
     }
-
 }
+
 
 @Composable
 fun ForgotPasswordPanel(
@@ -676,6 +763,42 @@ fun PrimaryButton(
         } else {
             Text(text = text, style = MaterialTheme.typography.labelLarge)
         }
+    }
+}
+
+@Composable
+fun SecondaryButton(
+    text: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier
+) {
+    val backgroundColor = BackgroundColor
+    val tint = DarkBlue
+
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier
+            .height(50.dp),
+        shape = MaterialTheme.shapes.medium,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = backgroundColor.copy(alpha = 0.1f),
+            contentColor = tint,
+            disabledContainerColor = backgroundColor.copy(alpha = 0.05f),
+            disabledContentColor = tint.copy(alpha = 0.5f)
+        ),
+        border = BorderStroke(
+            width = 1.5.dp,
+            color = tint.copy(alpha = 0.3f)
+        ),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
