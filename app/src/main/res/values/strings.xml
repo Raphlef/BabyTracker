@@ -7,78 +7,78 @@
     <string name="twins_tracker_title" translatable="false">Twins Tracker</string>
 
     <!-- ========== AUTH SCREEN - LOADING STATES ========== -->
-    <string name="authenticating">Authentification en cours...</string>
-    <string name="loading_profile">Chargement du profil...</string>
+    <string name="authenticating">Authenticating...</string>
+    <string name="loading_profile">Loading profile...</string>
 
     <!-- ========== ERROR PANEL ========== -->
-    <string name="error_label">Erreur</string>
-    <string name="error_occurred">Une erreur s\'est produite</string>
-    <string name="retry">Réessayer</string>
+    <string name="error_label">Error</string>
+    <string name="error_occurred">An error occurred</string>
+    <string name="retry">Retry</string>
 
     <!-- ========== SUCCESS PANEL ========== -->
-    <string name="success_label">Succès</string>
-    <string name="auth_success_redirect">Authentification réussie ! Redirection...</string>
+    <string name="success_label">Success</string>
+    <string name="auth_success_redirect">Authentication successful! Redirecting...</string>
 
     <!-- ========== EMAIL VERIFICATION PANEL ========== -->
-    <string name="email_verification_title">Vérification d\'email</string>
-    <string name="confirmation_email_sent">Un email de confirmation a été envoyé à :</string>
-    <string name="waiting_verification">En attente de vérification...</string>
-    <string name="sending">Envoi en cours...</string>
-    <string name="email_verified_success">Email vérifié avec succès ! ✓</string>
-    <string name="resend_email_button">Renvoyer l\'email</string>
-    <string name="sending_button">Envoi...</string>
-    <string name="email_sent_button">Email renvoyé ✓</string>
-    <string name="email_verified_button">Email vérifié ✓</string>
+    <string name="email_verification_title">Email Verification</string>
+    <string name="confirmation_email_sent">A confirmation email has been sent to:</string>
+    <string name="waiting_verification">Waiting for verification...</string>
+    <string name="sending">Sending...</string>
+    <string name="email_verified_success">Email verified successfully! ✓</string>
+    <string name="resend_email_button">Resend Email</string>
+    <string name="sending_button">Sending...</string>
+    <string name="email_sent_button">Email Resent ✓</string>
+    <string name="email_verified_button">Email Verified ✓</string>
 
     <!-- ========== LOGIN FORM ========== -->
     <string name="email_label">Email</string>
-    <string name="password_label">Mot de passe</string>
-    <string name="remember_me">Se souvenir</string>
-    <string name="forgot_password">Mot de passe oublié?</string>
-    <string name="login_button">Connexion</string>
-    <string name="register_button">Créer un compte</string>
+    <string name="password_label">Password</string>
+    <string name="remember_me">Remember me</string>
+    <string name="forgot_password">Forgot password?</string>
+    <string name="login_button">Login</string>
+    <string name="register_button">Create Account</string>
 
     <!-- ========== FORGOT PASSWORD PANEL ========== -->
-    <string name="reset_password_title">Réinitialiser le mot de passe</string>
-    <string name="reset_password_description">Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.</string>
-    <string name="send_reset_link">Envoyer le lien</string>
-    <string name="sending_link">Envoi...</string>
-    <string name="back_to_login">Retour à la connexion</string>
+    <string name="reset_password_title">Reset Password</string>
+    <string name="reset_password_description">Enter your email address and we\'ll send you a link to reset your password.</string>
+    <string name="send_reset_link">Send Reset Link</string>
+    <string name="sending_link">Sending...</string>
+    <string name="back_to_login">Back to Login</string>
 
     <!-- ========== COMMON BUTTONS ========== -->
-    <string name="back">Retour</string>
+    <string name="back">Back</string>
 
     <!-- ========== VIEWMODEL - INIT & SETUP ========== -->
-    <string name="init_error">Erreur d\'initialisation</string>
+    <string name="init_error">Initialization error</string>
 
     <!-- ========== VIEWMODEL - LOGIN ERRORS ========== -->
-    <string name="user_not_found">Utilisateur non trouvé</string>
-    <string name="invalid_email_password">Email ou mot de passe incorrect</string>
-    <string name="network_error">Erreur réseau</string>
-    <string name="login_failed">Échec de la connexion</string>
+    <string name="user_not_found">User not found</string>
+    <string name="invalid_email_password">Invalid email or password</string>
+    <string name="network_error">Network error</string>
+    <string name="login_failed">Login failed</string>
     <string name="google_signin_failed">Google sign-in failed</string>
 
     <!-- ========== VIEWMODEL - REGISTER VALIDATION ========== -->
-    <string name="email_empty">Email ne peut pas être vide</string>
-    <string name="password_empty">Mot de passe ne peut pas être vide</string>
-    <string name="weak_password">Mot de passe trop faible (min 6 caractères)</string>
-    <string name="invalid_email">Email invalide</string>
-    <string name="email_already_used">Cet email est déjà utilisé</string>
-    <string name="register_failed">Échec inscription</string>
-    <string name="validation_error">Erreur validation</string>
+    <string name="email_empty">Email cannot be empty</string>
+    <string name="password_empty">Password cannot be empty</string>
+    <string name="weak_password">Password too weak (minimum 6 characters)</string>
+    <string name="invalid_email">Invalid email</string>
+    <string name="email_already_used">This email is already in use</string>
+    <string name="register_failed">Registration failed</string>
+    <string name="validation_error">Validation error</string>
 
     <!-- ========== VIEWMODEL - EMAIL VERIFICATION ========== -->
-    <string name="email_verification_check_error">Erreur vérification</string>
-    <string name="email_verification_timeout">Vérification d\'email échouée après 5 minutes</string>
-    <string name="email_resent">Email renvoyé</string>
+    <string name="email_verification_check_error">Verification error</string>
+    <string name="email_verification_timeout">Email verification failed after 5 minutes</string>
+    <string name="email_resent">Email resent</string>
 
     <!-- ========== VIEWMODEL - PASSWORD RESET ========== -->
-    <string name="password_reset_success">Email de réinitialisation envoyé à %s</string>
-    <string name="password_reset_error">Erreur lors de l\'envoi</string>
+    <string name="password_reset_success">Password reset email sent to %s</string>
+    <string name="password_reset_error">Error sending email</string>
 
     <!-- ========== VIEWMODEL - PROFILE ========== -->
-    <string name="profile_load_error">Erreur de profil utilisateur</string>
-    <string name="profile_update_failed">Échec de l\'update</string>
+    <string name="profile_load_error">User profile error</string>
+    <string name="profile_update_failed">Update failed</string>
 
     <!-- ========== ANALYSIS SCREEN - CHART TITLES ========== -->
     <string name="chart_meals">Meals</string>
