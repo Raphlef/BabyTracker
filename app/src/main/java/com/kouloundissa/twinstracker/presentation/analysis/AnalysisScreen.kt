@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -22,8 +21,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DailyAnalysis
 import com.kouloundissa.twinstracker.data.EventType
@@ -58,6 +59,7 @@ fun AnalysisScreen(
     eventViewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val errorMessage by eventViewModel.errorMessage.collectAsState()
     val favoriteEventTypes by eventViewModel.favoriteEventTypes.collectAsState()
     val allGrowth by eventViewModel.getEventsOfTypeAsFlow(GrowthEvent::class)
@@ -69,7 +71,6 @@ fun AnalysisScreen(
     val filters = remember { mutableStateOf(AnalysisFilters()) }
     val analysisSnapshot by eventViewModel.analysisSnapshot.collectAsState()
     val selectedRange = filters.value.dateRange.selectedRange
-    val context = LocalContext.current
 
     val omsGender = when (selectedBaby?.gender) {
         Gender.MALE -> Gender.MALE
@@ -81,6 +82,9 @@ fun AnalysisScreen(
     var customStartDate by remember { mutableStateOf<LocalDate?>(null) }
     var customEndDate by remember { mutableStateOf<LocalDate?>(null) }
 
+
+    val percentileFormat = stringResource(id = R.string.chart_percentile_format)
+
     val (dateList, ageRange) = remember(
         selectedRange,
         customStartDate,
@@ -90,7 +94,6 @@ fun AnalysisScreen(
         getDateRange(selectedRange, customStartDate, customEndDate, selectedBaby)
     }
     val (startAge, endAge) = ageRange
-
 
     // Generate labels for charts
     val chartLabels = remember(dateList) {
@@ -114,7 +117,6 @@ fun AnalysisScreen(
     val backgroundcolor = BackgroundColor
     val contentcolor = DarkGrey
     val tint = DarkBlue
-    val cornerShape = MaterialTheme.shapes.extraLarge
 
     LaunchedEffect(selectedBaby, favoriteEventTypes) {
         val newBabyFilter = selectedBaby?.let { baby ->
@@ -178,13 +180,13 @@ fun AnalysisScreen(
                             analysisSnapshot.dailyAnalysis.map { it.mealCount.toFloat() }
                         val mealVolumes = analysisSnapshot.dailyAnalysis.map { it.mealVolume }
 
-                        AnalysisCard(title = "Meals") {
+                        AnalysisCard(title = stringResource(id = R.string.chart_meals)) {
                             ComboChartView(
                                 labels = chartLabels,
                                 barValues = mealCounts.map { it.toFloat() },
                                 lineValues = mealVolumes,
-                                barLabel = "Meals",
-                                lineLabel = "Volumes (ml)",
+                                barLabel = stringResource(id = R.string.chart_meals_label),
+                                lineLabel = stringResource(id = R.string.chart_meals_volumes_label),
                             )
                         }
                     }
@@ -198,14 +200,13 @@ fun AnalysisScreen(
                             analysisSnapshot.dailyAnalysis.map { it.pumpingCount.toFloat() }
                         val pumpingCounts = analysisSnapshot.dailyAnalysis.map { it.pumpingVolume }
 
-
-                        AnalysisCard(title = "Pumping") {
+                        AnalysisCard(title = stringResource(id = R.string.chart_pumping)) {
                             ComboChartView(
                                 labels = chartLabels,
                                 barValues = pumpingCounts.map { it.toFloat() },
                                 lineValues = pumpingVolumes,
-                                barLabel = "Pumping number",
-                                lineLabel = "Volumes (ml)",
+                                barLabel = stringResource(id = R.string.chart_pumping_number_label),
+                                lineLabel = stringResource(id = R.string.chart_pumping_volumes_label),
                             )
                         }
                     }
@@ -219,13 +220,13 @@ fun AnalysisScreen(
                             analysisSnapshot.dailyAnalysis.map { it.poopCount.toFloat() }
                         val wetCounts = analysisSnapshot.dailyAnalysis.map { it.wetCount.toFloat() }
 
-                        AnalysisCard(title = "Poop") {
+                        AnalysisCard(title = stringResource(id = R.string.chart_poop)) {
                             ComboChartView(
                                 labels = chartLabels,
                                 barValues = poopCounts.map { it.toFloat() },
                                 lineValues = wetCounts.map { it.toFloat() },
-                                barLabel = "Poop count",
-                                lineLabel = "Wet count",
+                                barLabel = stringResource(id = R.string.chart_poop_count_label),
+                                lineLabel = stringResource(id = R.string.chart_wet_count_label),
                             )
                         }
                     }
@@ -236,7 +237,7 @@ fun AnalysisScreen(
                     item {
                         val sleepMinutes =
                             analysisSnapshot.dailyAnalysis.map { it.sleepMinutes.toFloat() }
-                        AnalysisCard(title = "Daily Sleep (min)") {
+                        AnalysisCard(title = stringResource(id = R.string.chart_sleep)) {
                             LineChartView(
                                 labels = chartLabels,
                                 values = sleepMinutes,
@@ -281,7 +282,7 @@ fun AnalysisScreen(
                                     startAge, endAge.coerceAtMost(currentAgeDays)
                                 ) // List<Pair<ageDays, value>>
 
-                                // Align with dateList by computing each date’s age
+                                // Align with dateList by computing each date's age
                                 val aligned = dateList.map { date ->
                                     val ageForDate =
                                         ChronoUnit.DAYS.between(birthDate, date).toInt()
@@ -290,14 +291,13 @@ fun AnalysisScreen(
                                         ?.second
                                         ?: Float.NaN
                                 }
-
-                                "${pct.toInt()}th pct" to aligned
+                                "${pct.toInt()}$percentileFormat" to aligned
                             }
                         }
-                        AnalysisCard(title = "Weight Growth (kg)") {
+                        AnalysisCard(title = stringResource(id = R.string.chart_weight)) {
                             MultiLineChartView(
                                 labels = chartLabels,
-                                series = listOf("Baby" to weights) + weightPercentileCurves.map { (label, data) ->
+                                series = listOf(stringResource(id = R.string.chart_baby_label) to weights) + weightPercentileCurves.map { (label, data) ->
                                     label to data
                                 }
                             )
@@ -329,14 +329,14 @@ fun AnalysisScreen(
                                             ?.second
                                             ?: Float.NaN
                                     }
-                                    "${pct.toInt()}th pct" to aligned
+                                    "${pct.toInt()}$percentileFormat" to aligned
                                 }
                             }
 
-                        AnalysisCard(title = "Length Growth (cm)") {
+                        AnalysisCard(title = stringResource(id = R.string.chart_height)) {
                             MultiLineChartView(
                                 labels = chartLabels,
-                                series = listOf("Baby" to heights) + lengthPercentileCurves.map { (label, data) ->
+                                series = listOf(stringResource(id = R.string.chart_baby_label) to heights) + lengthPercentileCurves.map { (label, data) ->
                                     label to data
                                 }
                             )
@@ -366,13 +366,13 @@ fun AnalysisScreen(
                                         ?.second
                                         ?: Float.NaN
                                 }
-                                "${pct.toInt()}th pct" to aligned
+                                "${pct.toInt()}$percentileFormat" to aligned
                             }
                         }
-                        AnalysisCard(title = "Head Circumference (cm)") {
+                        AnalysisCard(title = stringResource(id = R.string.chart_head)) {
                             MultiLineChartView(
                                 labels = chartLabels,
-                                series = listOf("Baby" to heads) + headPercentileCurves.map { (label, data) ->
+                                series = listOf(stringResource(id = R.string.chart_baby_label) to heads) + headPercentileCurves.map { (label, data) ->
                                     label to data
                                 }
                             )
@@ -398,6 +398,9 @@ enum class AnalysisRange(val displayName: String, val days: Int) {
     CUSTOM("Custom", -1)
 }
 
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
 
 // Create a helper function to get date range
 fun getDateRange(

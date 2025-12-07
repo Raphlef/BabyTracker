@@ -1,15 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">TwinsTracker</string> <!-- Likely already there -->
+    <!-- App Name -->
+    <string name="app_name">TwinsTracker</string>
 
-    <!-- For TopAppBar -->
+    <!-- ========== AUTH SCREEN - MAIN TITLE ========== -->
+    <string name="twins_tracker_title">Twins Tracker</string>
+
+    <!-- ========== AUTH SCREEN - LOADING STATES ========== -->
+    <string name="authenticating">Authentification en cours...</string>
+    <string name="loading_profile">Chargement du profil...</string>
+
+    <!-- ========== ERROR PANEL ========== -->
+    <string name="error_label">Erreur</string>
+    <string name="error_occurred">Une erreur s\'est produite</string>
+    <string name="retry">Réessayer</string>
+
+    <!-- ========== SUCCESS PANEL ========== -->
+    <string name="success_label">Succès</string>
+    <string name="auth_success_redirect">Authentification réussie ! Redirection...</string>
+
+    <!-- ========== EMAIL VERIFICATION PANEL ========== -->
+    <string name="email_verification_title">Vérification d\'email</string>
+    <string name="confirmation_email_sent">Un email de confirmation a été envoyé à :</string>
+    <string name="waiting_verification">En attente de vérification...</string>
+    <string name="sending">Envoi en cours...</string>
+    <string name="email_verified_success">Email vérifié avec succès ! ✓</string>
+    <string name="resend_email_button">Renvoyer l\'email</string>
+    <string name="sending_button">Envoi...</string>
+    <string name="email_sent_button">Email renvoyé ✓</string>
+    <string name="email_verified_button">Email vérifié ✓</string>
+
+    <!-- ========== LOGIN FORM ========== -->
+    <string name="email_label">Email</string>
+    <string name="password_label">Mot de passe</string>
+    <string name="remember_me">Se souvenir</string>
+    <string name="forgot_password">Mot de passe oublié?</string>
+    <string name="login_button">Connexion</string>
+    <string name="register_button">Créer un compte</string>
+
+    <!-- ========== FORGOT PASSWORD PANEL ========== -->
+    <string name="reset_password_title">Réinitialiser le mot de passe</string>
+    <string name="reset_password_description">Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.</string>
+    <string name="send_reset_link">Envoyer le lien</string>
+    <string name="sending_link">Envoi...</string>
+    <string name="back_to_login">Retour à la connexion</string>
+
+    <!-- ========== COMMON BUTTONS ========== -->
+    <string name="back">Retour</string>
+
+    <!-- ========== VIEWMODEL - INIT & SETUP ========== -->
+    <string name="init_error">Erreur d\'initialisation</string>
+
+    <!-- ========== VIEWMODEL - LOGIN ERRORS ========== -->
+    <string name="user_not_found">Utilisateur non trouvé</string>
+    <string name="invalid_email_password">Email ou mot de passe incorrect</string>
+    <string name="network_error">Erreur réseau</string>
+    <string name="login_failed">Échec de la connexion</string>
+    <string name="google_signin_failed">Google sign-in failed</string>
+
+    <!-- ========== VIEWMODEL - REGISTER VALIDATION ========== -->
+    <string name="email_empty">Email ne peut pas être vide</string>
+    <string name="password_empty">Mot de passe ne peut pas être vide</string>
+    <string name="weak_password">Mot de passe trop faible (min 6 caractères)</string>
+    <string name="invalid_email">Email invalide</string>
+    <string name="email_already_used">Cet email est déjà utilisé</string>
+    <string name="register_failed">Échec inscription</string>
+    <string name="validation_error">Erreur validation</string>
+
+    <!-- ========== VIEWMODEL - EMAIL VERIFICATION ========== -->
+    <string name="email_verification_check_error">Erreur vérification</string>
+    <string name="email_verification_timeout">Vérification d\'email échouée après 5 minutes</string>
+    <string name="email_resent">Email renvoyé</string>
+
+    <!-- ========== VIEWMODEL - PASSWORD RESET ========== -->
+    <string name="password_reset_success">Email de réinitialisation envoyé à %s</string>
+    <string name="password_reset_error">Erreur lors de l\'envoi</string>
+
+    <!-- ========== VIEWMODEL - PROFILE ========== -->
+    <string name="profile_load_error">Erreur de profil utilisateur</string>
+    <string name="profile_update_failed">Échec de l\'update</string>
+
+    <!-- ========== ANALYSIS SCREEN - CHART TITLES ========== -->
+    <string name="chart_meals">Meals</string>
+    <string name="chart_meals_label">Meals</string>
+    <string name="chart_meals_volumes_label">Volumes (ml)</string>
+
+    <string name="chart_pumping">Pumping</string>
+    <string name="chart_pumping_number_label">Pumping number</string>
+    <string name="chart_pumping_volumes_label">Volumes (ml)</string>
+
+    <string name="chart_poop">Poop</string>
+    <string name="chart_poop_count_label">Poop count</string>
+    <string name="chart_wet_count_label">Wet count</string>
+
+    <string name="chart_sleep">Daily Sleep (min)</string>
+
+    <string name="chart_weight">Weight Growth (kg)</string>
+    <string name="chart_height">Length Growth (cm)</string>
+    <string name="chart_head">Head Circumference (cm)</string>
+    <string name="chart_baby_label">Baby</string>
+    <string name="chart_percentile_format">%dth pct</string>
+
+    <!-- ========== ANALYSIS SCREEN - DATE RANGE LABELS ========== -->
+    <string name="range_1_day">1 Day</string>
+    <string name="range_3_days">3 Days</string>
+    <string name="range_1_week">1 Week</string>
+    <string name="range_2_weeks">2 Weeks</string>
+    <string name="range_1_month">1 Month</string>
+    <string name="range_3_months">3 Months</string>
+    <string name="range_custom">Custom</string>
+
+    <!-- ========== EVENT FORM DIALOG - TITLES ========== -->
+    <string name="event_form_title_new">New Event</string>
+    <string name="event_form_title_edit">Edit Event</string>
+
+    <!-- ========== EVENT FORM DIALOG - DATE & TIME ========== -->
+    <string name="date_label">Date</string>
+    <string name="date_placeholder">Select date</string>
+    <string name="time_label">Time</string>
+    <string name="time_placeholder">Select time</string>
+    <string name="current_time">Current Time</string>
+    <string name="custom_time">Custom Time</string>
+
+    <!-- ========== EVENT FORM DIALOG - SELECTIONS ========== -->
+    <string name="baby_label">Baby</string>
+    <string name="baby_placeholder">Select baby</string>
+    <string name="no_babies_available">No babies available</string>
+    <string name="event_type_label">Event Type</string>
+    <string name="event_type_placeholder">Select event type</string>
+
+    <!-- ========== EVENT FORM DIALOG - NOTES ========== -->
+    <string name="notes_label">Notes</string>
+    <string name="notes_placeholder">Enter notes...</string>
+    <string name="notes_hint">Add notes (optional)</string>
+
+    <!-- ========== EVENT FORM DIALOG - FEEDING ========== -->
+    <string name="feeding_type_label">Feeding Type</string>
+    <string name="breast_left">Left Breast</string>
+    <string name="breast_right">Right Breast</string>
+    <string name="breast_both">Both</string>
+    <string name="bottle">Bottle</string>
+    <string name="feeding_amount_label">Amount (ml)</string>
+    <string name="duration_label">Duration (min)</string>
+
+    <!-- ========== EVENT FORM DIALOG - PUMPING ========== -->
+    <string name="pumping_amount_label">Amount (ml)</string>
+
+    <!-- ========== EVENT FORM DIALOG - DIAPER ========== -->
+    <string name="wet_diaper">Wet</string>
+    <string name="poop_diaper">Poop</string>
+
+    <!-- ========== EVENT FORM DIALOG - SLEEP ========== -->
+    <string name="sleep_duration_label">Sleep Duration (min)</string>
+
+    <!-- ========== EVENT FORM DIALOG - GROWTH ========== -->
+    <string name="weight_label">Weight (kg)</string>
+    <string name="height_label">Height (cm)</string>
+    <string name="head_circumference_label">Head Circumference (cm)</string>
+
+    <!-- ========== EVENT FORM DIALOG - BUTTONS ========== -->
+    <string name="save_button">Save</string>
+    <string name="save_changes">Save Changes</string>
+    <string name="cancel_button">Cancel</string>
+    <string name="delete_button">Delete</string>
+
+    <!-- ========== EVENT FORM DIALOG - MESSAGES ========== -->
+    <string name="required_field">This field is required</string>
+    <string name="invalid_input">Invalid input</string>
+    <string name="save_error">Error saving event</string>
+    <string name="delete_error">Error deleting event</string>
+    <string name="event_saved">Event saved successfully</string>
+    <string name="event_deleted">Event deleted successfully</string>
+
+    <!-- ========== TOPAPPBAR (Existing) ========== -->
     <string name="back_button_description">Back</string>
     <string name="more_options_description">More options</string>
     <string name="menu_item_export_data">Export Data</string>
     <string name="menu_item_settings">Settings</string>
     <string name="menu_item_parents">Parents</string>
-
-    <!-- Add any other strings your app uses here -->
-    <string name="back">Back</string>
     <string name="more_options">More Options</string>
     <string name="export_data">Export Data</string>
     <string name="settings">Settings</string>

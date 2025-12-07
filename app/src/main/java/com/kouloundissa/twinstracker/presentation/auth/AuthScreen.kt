@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -78,7 +79,6 @@ fun AuthScreen(
     val content = DarkGrey
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
-
 
     // Collect one-time events
     LaunchedEffect(Unit) {
@@ -127,7 +127,7 @@ fun AuthScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            "Twins Tracker",
+                            stringResource(id = R.string.twins_tracker_title),
                             style = MaterialTheme.typography.headlineLarge,
                             color = BackgroundColor,
                             fontWeight = FontWeight.Bold,
@@ -152,14 +152,14 @@ fun AuthScreen(
                             // AUTHENTICATING WITH FIREBASE
                             AuthStep.Authenticating -> {
                                 AuthenticatingPanel(
-                                    message = "[translate:Authentification en cours...]"
+                                    message = stringResource(id = R.string.authenticating)
                                 )
                             }
 
                             // LOADING PROFILE FROM FIRESTORE
                             AuthStep.LoadingProfile -> {
                                 AuthenticatingPanel(
-                                    message = "[translate:Chargement du profil...]"
+                                    message = stringResource(id = R.string.loading_profile)
                                 )
                             }
 
@@ -256,14 +256,14 @@ private fun ErrorPanel(
         // Error icon
         Icon(
             imageVector = Icons.Default.Error,
-            contentDescription = "[translate:Erreur]",
+            contentDescription = stringResource(id = R.string.error_label),
             modifier = Modifier.size(64.dp),
             tint = Color.Red
         )
 
         // Error message
         Text(
-            "[translate:Une erreur s'est produite]",
+            stringResource(id = R.string.error_occurred),
             style = MaterialTheme.typography.headlineMedium,
             color = backgroundColor,
             fontWeight = FontWeight.Bold,
@@ -281,7 +281,7 @@ private fun ErrorPanel(
 
         // Retry button
         PrimaryButton(
-            text = "[translate:Réessayer]",
+            text = stringResource(id = R.string.retry),
             onClick = onRetryClick,
             modifier = Modifier.fillMaxWidth()
         )
@@ -299,13 +299,13 @@ private fun SuccessPanel() {
     ) {
         Icon(
             imageVector = Icons.Default.CheckCircle,
-            contentDescription = "[translate:Succès]",
+            contentDescription = stringResource(id = R.string.success_label),
             modifier = Modifier.size(64.dp),
             tint = Color(0xFF22C55E)
         )
         Spacer(modifier = Modifier.height(20.dp))
         Text(
-            "[translate:Authentification réussie ! Redirection...]",
+            stringResource(id = R.string.auth_success_redirect),
             style = MaterialTheme.typography.bodyMedium,
             color = Color(0xFF22C55E),
             textAlign = TextAlign.Center
@@ -331,7 +331,7 @@ private fun EmailVerificationPanel(
     ) {
         // Header
         Text(
-            "Vérification d'email",
+            stringResource(id = R.string.email_verification_title),
             style = MaterialTheme.typography.headlineMedium,
             color = backgroundColor,
             fontWeight = FontWeight.Bold
@@ -339,7 +339,7 @@ private fun EmailVerificationPanel(
 
         // Email display
         Text(
-            "Un email de confirmation a été envoyé à :",
+            stringResource(id = R.string.confirmation_email_sent),
             style = MaterialTheme.typography.bodyMedium,
             color = backgroundColor,
             textAlign = TextAlign.Center
@@ -363,11 +363,11 @@ private fun EmailVerificationPanel(
         // Resend button
         PrimaryButton(
             text = when (verificationState) {
-                EmailVerificationState.Initial -> "Renvoyer l'email"
-                EmailVerificationState.Sending -> "Envoi..."
-                is EmailVerificationState.Sent -> "Email renvoyé ✓"
-                is EmailVerificationState.Error -> "Renvoyer l'email"
-                EmailVerificationState.Verified -> "Email vérifié ✓"
+                EmailVerificationState.Initial -> stringResource(id = R.string.resend_email_button)
+                EmailVerificationState.Sending -> stringResource(id = R.string.sending_button)
+                is EmailVerificationState.Sent -> stringResource(id = R.string.email_sent_button)
+                is EmailVerificationState.Error -> stringResource(id = R.string.resend_email_button)
+                EmailVerificationState.Verified -> stringResource(id = R.string.email_verified_button)
             },
             onClick = onResendClick,
             enabled = verificationState !is EmailVerificationState.Sending
@@ -383,7 +383,7 @@ private fun EmailVerificationPanel(
             onClick = onBackClick,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Retour", color = backgroundColor)
+            Text(stringResource(id = R.string.back), color = backgroundColor)
         }
     }
 }
@@ -393,7 +393,7 @@ private fun VerificationStatusMessage(verificationState: EmailVerificationState)
     when (verificationState) {
         EmailVerificationState.Initial -> {
             Text(
-                "En attente de vérification...",
+                stringResource(id = R.string.waiting_verification),
                 style = MaterialTheme.typography.bodySmall,
                 color = DarkGrey,
                 textAlign = TextAlign.Center
@@ -411,7 +411,7 @@ private fun VerificationStatusMessage(verificationState: EmailVerificationState)
                     color = DarkBlue
                 )
                 Text(
-                    "Envoi en cours...",
+                    stringResource(id = R.string.sending),
                     style = MaterialTheme.typography.bodySmall,
                     color = DarkBlue
                 )
@@ -440,7 +440,7 @@ private fun VerificationStatusMessage(verificationState: EmailVerificationState)
 
         EmailVerificationState.Verified -> {
             Text(
-                "Email vérifié avec succès ! ✓",
+                stringResource(id = R.string.email_verified_success),
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(0xFF22C55E),
                 textAlign = TextAlign.Center,
@@ -494,7 +494,7 @@ private fun LoginForm(
                             onEmailChange(email)
                             emailError = validateEmailWithMessage(email)
                         },
-                        label = "Email",
+                        label = stringResource(id = R.string.email_label),
                         isError = emailError != null,
                         errorMessage = emailError,
                         enabled = isEnabled,
@@ -506,7 +506,7 @@ private fun LoginForm(
                     LabeledTextField(
                         value = state.password,
                         onValueChange = onPasswordChange,
-                        label = "Mot de passe",
+                        label = stringResource(id = R.string.password_label),
                         visualTransformation = PasswordVisualTransformation(),
                         enabled = isEnabled,
                         imeAction = ImeAction.Send,
@@ -565,7 +565,7 @@ private fun LoginForm(
                 }
 
                 Text(
-                    "Se souvenir",
+                    stringResource(id = R.string.remember_me),
                     style = MaterialTheme.typography.labelSmall,
                     color = backgroundColor,
                     fontWeight = FontWeight.Medium,
@@ -586,7 +586,7 @@ private fun LoginForm(
                 )
             ) {
                 Text(
-                    "Mot de passe oublié?",
+                    stringResource(id = R.string.forgot_password),
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
@@ -603,7 +603,7 @@ private fun LoginForm(
                 state.password.isNotBlank()
 
         PrimaryButton(
-            text = "[translate:Connexion]",
+            text = stringResource(id = R.string.login_button),
             onClick = onLoginClick,
             enabled = canSubmit && isEnabled,
             modifier = Modifier.fillMaxWidth()
@@ -613,7 +613,7 @@ private fun LoginForm(
         // TIER 4: SECONDARY ACTION - Register button (full width, subtle)
         // ============================================================================
         SecondaryButton(
-            text = "[translate:Créer un compte]",
+            text = stringResource(id = R.string.register_button),
             onClick = onRegisterClick,
             enabled = isEnabled,
             modifier = Modifier.fillMaxWidth()
@@ -638,7 +638,7 @@ fun ForgotPasswordPanel(
     ) {
         // Header
         Text(
-            "Réinitialiser le mot de passe",
+            stringResource(id = R.string.reset_password_title),
             style = MaterialTheme.typography.headlineMedium,
             color = backgroundColor,
             fontWeight = FontWeight.Bold
@@ -646,7 +646,7 @@ fun ForgotPasswordPanel(
 
         // Description
         Text(
-            "Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
+            stringResource(id = R.string.reset_password_description),
             style = MaterialTheme.typography.bodyMedium,
             color = backgroundColor,
             textAlign = TextAlign.Center
@@ -658,7 +658,7 @@ fun ForgotPasswordPanel(
         LabeledTextField(
             value = email,
             onValueChange = onEmailChange,
-            label = "Email",
+            label = stringResource(id = R.string.email_label),
             enabled = !isLoading,
             imeAction = ImeAction.Send,
             keyboardType = KeyboardType.Email,
@@ -678,7 +678,7 @@ fun ForgotPasswordPanel(
 
         // Send button
         PrimaryButton(
-            text = if (isLoading) "Envoi..." else "Envoyer le lien",
+            text = if (isLoading) stringResource(id = R.string.sending_link) else stringResource(id = R.string.send_reset_link),
             onClick = onSendClick,
             enabled = !isLoading && email.isNotBlank(),
             isLoading = isLoading,
@@ -691,7 +691,7 @@ fun ForgotPasswordPanel(
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Retour à la connexion", color = backgroundColor)
+            Text(stringResource(id = R.string.back_to_login), color = backgroundColor)
         }
     }
 }

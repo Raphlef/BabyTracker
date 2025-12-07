@@ -243,7 +243,9 @@ private fun countActiveFilters(filters: AnalysisFilters): Int {
     return count
 }
 
+@Composable
 private fun getFilterSummary(filters: AnalysisFilters): String {
+
     val parts = mutableListOf<String>()
 
     if (filters.babyFilter.selectedBabies.isNotEmpty()) {

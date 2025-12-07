@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.presentation.viewmodel
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,6 +9,7 @@ import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Firestore.FirebaseRepository
 import com.kouloundissa.twinstracker.data.User
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,7 +27,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val repository: FirebaseRepository
+    private val repository: FirebaseRepository,
+    private val context: Context // For accessing string resources
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
@@ -46,7 +49,7 @@ class AuthViewModel @Inject constructor(
             try {
                 _state.value = _state.value.copy(currentStep = AuthStep.LoadingProfile)
 
-                // Pré-remplir l’email si déjà connecté
+                // Pré-remplir l'email si déjà connecté
                 repository.getCurrentUserEmail()?.let { email ->
                     _state.update { it.copy(email = email) }
                 }
@@ -62,7 +65,7 @@ class AuthViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e("AuthViewModel", "Init error", e)
                 _state.value = _state.value.copy(
-                    currentStep = AuthStep.Error("Erreur d'initialisation")
+                    currentStep = AuthStep.Error(context.getString(R.string.init_error))
                 )
             }
         }
@@ -72,6 +75,7 @@ class AuthViewModel @Inject constructor(
     fun onError(message: String) {
         _state.update { it.copy(error = message) }
     }
+
     fun retryAfterError() {
         _state.update {
             it.copy(
@@ -81,6 +85,7 @@ class AuthViewModel @Inject constructor(
             )
         }
     }
+
     // Clear the error (after UI displays it)
     fun clearError() {
         _state.update {
@@ -90,6 +95,7 @@ class AuthViewModel @Inject constructor(
             )
         }
     }
+
     fun navigateToForgotPassword() {
         _state.update {
             it.copy(
@@ -98,6 +104,7 @@ class AuthViewModel @Inject constructor(
             )
         }
     }
+
     fun loginWithGoogle() {
         viewModelScope.launch {
             _state.value = _state.value.copy(rememberMe = true)
@@ -114,16 +121,16 @@ class AuthViewModel @Inject constructor(
                 if (_state.value.rememberMe) repository.saveUserSession()
                 performPostAuthSetup()
             } catch (e: Exception) {
+                val errorMsg = context.getString(R.string.google_signin_failed)
                 _state.update {
                     it.copy(
-                        currentStep = AuthStep.Error("Google sign-in failed: ${e.message}"),
-                        error = "Google sign-in failed: ${e.message}"
+                        currentStep = AuthStep.Error("$errorMsg: ${e.message}"),
+                        error = "$errorMsg: ${e.message}"
                     )
                 }
             }
         }
     }
-
 
     fun onEmailChange(email: String) {
         _state.value = _state.value.copy(email = email)
@@ -157,10 +164,10 @@ class AuthViewModel @Inject constructor(
                 performPostAuthSetup()
             } catch (e: Exception) {
                 val errorMsg = when (e) {
-                    is FirebaseAuthInvalidUserException -> "[translate:Utilisateur non trouvé]"
-                    is FirebaseAuthInvalidCredentialsException -> "[translate:Email ou mot de passe incorrect]"
-                    is FirebaseNetworkException -> "[translate:Erreur réseau]"
-                    else -> "[translate:Échec de la connexion : ${e.message}]"
+                    is FirebaseAuthInvalidUserException -> context.getString(R.string.user_not_found)
+                    is FirebaseAuthInvalidCredentialsException -> context.getString(R.string.invalid_email_password)
+                    is FirebaseNetworkException -> context.getString(R.string.network_error)
+                    else -> "${context.getString(R.string.login_failed)}: ${e.message}"
                 }
 
                 _state.update {
@@ -181,14 +188,14 @@ class AuthViewModel @Inject constructor(
         // Validations simples
         if (email.isEmpty() || password.isEmpty()) {
             val msg = when {
-                email.isEmpty() -> "Email ne peut pas être vide"
-                password.isEmpty() -> "Mot de passe ne peut pas être vide"
+                email.isEmpty() -> context.getString(R.string.email_empty)
+                password.isEmpty() -> context.getString(R.string.password_empty)
                 else -> null
             }
             _state.update {
                 it.copy(
                     error = msg,
-                    currentStep = AuthStep.Error(msg ?: "[translate:Erreur]")
+                    currentStep = AuthStep.Error(msg ?: context.getString(R.string.error_label))
                 )
             }
             return
@@ -218,13 +225,13 @@ class AuthViewModel @Inject constructor(
             } catch (e: Exception) {
                 val errorMsg = when (e) {
                     is FirebaseAuthWeakPasswordException ->
-                        "[translate:Mot de passe trop faible (min 6 caractères)]"
+                        context.getString(R.string.weak_password)
                     is FirebaseAuthInvalidCredentialsException ->
-                        "[translate:Email invalide]"
+                        context.getString(R.string.invalid_email)
                     is FirebaseAuthUserCollisionException ->
-                        "[translate:Cet email est déjà utilisé]"
-                    is IllegalArgumentException -> e.message ?: "[translate:Erreur validation]"
-                    else -> "[translate:Échec inscription: ${e.message}]"
+                        context.getString(R.string.email_already_used)
+                    is IllegalArgumentException -> e.message ?: context.getString(R.string.validation_error)
+                    else -> "${context.getString(R.string.register_failed)}: ${e.message}"
                 }
 
                 _state.update {
@@ -242,8 +249,8 @@ class AuthViewModel @Inject constructor(
         verificationCheckJob?.cancel()
 
         verificationCheckJob = viewModelScope.launch {
-            repeat(60) { // 60 tentatives = ~5 minutes avec délai
-                delay(5000) // Vérifier chaque 5 secondes
+            repeat(60) { // 60 attempts = ~5 minutes with delay
+                delay(5000) // Check every 5 seconds
 
                 try {
                     if (repository.checkEmailVerification()) {
@@ -258,16 +265,16 @@ class AuthViewModel @Inject constructor(
                         return@launch
                     }
                 } catch (e: Exception) {
-                    Log.e("EmailVerification", "Erreur vérification", e)
+                    Log.e("EmailVerification", context.getString(R.string.email_verification_check_error), e)
                 }
             }
             _state.update {
                 it.copy(
                     currentStep = AuthStep.EmailVerification,
                     emailVerificationState = EmailVerificationState.Error(
-                        "[translate:Vérification d'email échouée après 5 minutes]"
+                        context.getString(R.string.email_verification_timeout)
                     ),
-                    error = "[translate:Vérification d'email échouée après 5 minutes]"
+                    error = context.getString(R.string.email_verification_timeout)
                 )
             }
         }
@@ -285,12 +292,15 @@ class AuthViewModel @Inject constructor(
                 onSuccess = {
                     _state.update {
                         it.copy(
-                            emailVerificationState = EmailVerificationState.Sent("Email renvoyé"), error = null
+                            emailVerificationState = EmailVerificationState.Sent(
+                                context.getString(R.string.email_resent)
+                            ),
+                            error = null
                         )
                     }
                 },
                 onFailure = { error ->
-                    val errorMsg = error.message ?: "[translate:Erreur]"
+                    val errorMsg = error.message ?: context.getString(R.string.error_label)
                     _state.update {
                         it.copy(
                             emailVerificationState = EmailVerificationState.Error(errorMsg),
@@ -306,8 +316,8 @@ class AuthViewModel @Inject constructor(
         if (email.isEmpty()) {
             _state.update {
                 it.copy(
-                    currentStep = AuthStep.Error("Email ne peut pas être vide"),
-                    error = "Email ne peut pas être vide"
+                    currentStep = AuthStep.Error(context.getString(R.string.email_empty)),
+                    error = context.getString(R.string.email_empty)
                 )
             }
             return
@@ -335,15 +345,15 @@ class AuthViewModel @Inject constructor(
                 // Show success message
                 _state.update {
                     it.copy(
-                        error = "Email de réinitialisation envoyé à $email"
+                        error = context.getString(R.string.password_reset_success, email)
                     )
                 }
             } catch (e: Exception) {
                 val errorMsg = when (e) {
-                    is FirebaseAuthInvalidUserException -> "Utilisateur non trouvé"
-                    is FirebaseAuthInvalidCredentialsException -> "Email invalide"
-                    is FirebaseNetworkException -> "Erreur réseau"
-                    else -> "Erreur lors de l'envoi : ${e.message}"
+                    is FirebaseAuthInvalidUserException -> context.getString(R.string.user_not_found)
+                    is FirebaseAuthInvalidCredentialsException -> context.getString(R.string.invalid_email)
+                    is FirebaseNetworkException -> context.getString(R.string.network_error)
+                    else -> "${context.getString(R.string.password_reset_error)}: ${e.message}"
                 }
 
                 _state.update {
@@ -355,6 +365,7 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
+
     fun loadUserProfile() {
         viewModelScope.launch {
             try {
@@ -365,7 +376,7 @@ class AuthViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                Log.e("Profile", "Error loading profile", e)
+                Log.e("Profile", context.getString(R.string.profile_load_error), e)
             }
         }
     }
@@ -387,10 +398,11 @@ class AuthViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
+                val errorMsg = "${context.getString(R.string.profile_update_failed)}: ${e.message}"
                 _state.update {
                     it.copy(
-                        currentStep = AuthStep.Error("[translate:Échec de l'update: ${e.message}]"),
-                        error = "[translate:Échec de l'update: ${e.message}]"
+                        currentStep = AuthStep.Error(errorMsg),
+                        error = errorMsg
                     )
                 }
             }
@@ -402,7 +414,7 @@ class AuthViewModel @Inject constructor(
             // Charger le profil Firestore
             val profile = repository.getCurrentUserProfile()
 
-            // Mettre à jour l’état
+            // Mettre à jour l'état
             _state.update {
                 it.copy(
                     currentStep = AuthStep.Success,
@@ -412,16 +424,16 @@ class AuthViewModel @Inject constructor(
                 )
             }
         } catch (e: Exception) {
-            Log.e("Auth", "Erreur de profil utilisateur", e)
+            Log.e("Auth", context.getString(R.string.profile_load_error), e)
+            val errorMsg = "${context.getString(R.string.profile_load_error)}: ${e.message}"
             _state.update {
                 it.copy(
-                    currentStep = AuthStep.Error("[translate:Erreur de profil utilisateur : ${e.message}]"),
-                    error = "[translate:Erreur de profil utilisateur : ${e.message}]"
+                    currentStep = AuthStep.Error(errorMsg),
+                    error = errorMsg
                 )
             }
         }
     }
-
 
     fun logout() {
         viewModelScope.launch {
@@ -433,13 +445,21 @@ class AuthViewModel @Inject constructor(
     }
 
     fun clearVerificationFlow() {
-        _state.update { it.copy(showEmailVerificationFlow = false,
-            currentStep = AuthStep.IdleForm) }
+        _state.update {
+            it.copy(
+                showEmailVerificationFlow = false,
+                currentStep = AuthStep.IdleForm
+            )
+        }
     }
 
     fun resetVerificationState() {
-        _state.update { it.copy(emailVerificationState = EmailVerificationState.Initial,
-            error = null) }
+        _state.update {
+            it.copy(
+                emailVerificationState = EmailVerificationState.Initial,
+                error = null
+            )
+        }
     }
 
     override fun onCleared() {
@@ -448,6 +468,9 @@ class AuthViewModel @Inject constructor(
     }
 }
 
+// ============================================================================
+// STATE CLASSES
+// ============================================================================
 
 sealed class AuthStep {
     object IdleForm : AuthStep()  // User at login/register form
@@ -458,13 +481,12 @@ sealed class AuthStep {
     object Success : AuthStep()  // Ready to navigate
     data class Error(val message: String) : AuthStep()  // Fatal error state
 }
+
 data class AuthState(
     val email: String = "",
     val password: String = "",
     val rememberMe: Boolean = false,
-
     val currentStep: AuthStep = AuthStep.IdleForm,
-
     val userProfile: User? = null,
     val error: String? = null,
     val showEmailVerificationFlow: Boolean = false,
