@@ -174,7 +174,11 @@ class EventViewModel @Inject constructor(
     init {
         // Get current user ID on initialization
         viewModelScope.launch {
-            _currentUserId.value = repository.getCurrentUserId()
+            try {
+                _currentUserId.value = repository.getCurrentUserId()
+            } catch (e: Exception) {
+                //can failed when no user log (first start)
+            }
             repository.getFavoriteEventTypes().collect { favorites ->
                 _favoriteEventTypes.value = favorites
             }
