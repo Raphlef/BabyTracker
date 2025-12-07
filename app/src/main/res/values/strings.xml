@@ -125,21 +125,20 @@
     <string name="diaper_type_dry">Dry</string>
 
     <!-- ========== POOP CONSISTENCY ========== -->
-    <string name="poop_consistency_liquide">Liquide</string>
-    <string name="poop_consistency_semi_solide">Semi-solide</string>
-    <string name="poop_consistency_solide">Solide</string>
+    <string name="poop_consistency_liquide">Liquid</string>
+    <string name="poop_consistency_semi_solide">Semi-solid</string>
+    <string name="poop_consistency_solide">Solid</string>
 
     <!-- ========== POOP COLOR ========== -->
-    <string name="poop_color_brown">Marron</string>
-    <string name="poop_color_yellow">Jaune</string>
-    <string name="poop_color_green">Vert</string>
-    <string name="poop_color_other">Autre</string>
+    <string name="poop_color_brown">Brown</string>
+    <string name="poop_color_yellow">Yellow</string>
+    <string name="poop_color_green">Green</string>
+    <string name="poop_color_other">Other</string>
 
     <!-- ========== FEED TYPE ========== -->
     <string name="feed_type_breast_milk">Breast Milk</string>
     <string name="feed_type_formula">Formula</string>
     <string name="feed_type_solid">Solid</string>
-
 
     <!-- ========== DRUG TYPE ========== -->
     <string name="drug_type_paracetamol">Paracetamol</string>
