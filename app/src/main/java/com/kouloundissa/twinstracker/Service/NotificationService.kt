@@ -8,19 +8,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import androidx.compose.ui.graphics.Color
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.kouloundissa.twinstracker.MainActivity
 import com.kouloundissa.twinstracker.R
-import com.kouloundissa.twinstracker.data.DiaperEvent
-import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
-import com.kouloundissa.twinstracker.data.FeedingEvent
-import com.kouloundissa.twinstracker.data.GrowthEvent
-import com.kouloundissa.twinstracker.data.PumpingEvent
-import com.kouloundissa.twinstracker.data.SleepEvent
+import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -30,7 +24,6 @@ import jakarta.inject.Inject
 import jakarta.inject.Singleton
 import java.text.SimpleDateFormat
 import java.util.Locale
-import kotlin.jvm.java
 
 @Singleton
 class NotificationService @Inject constructor(
@@ -78,7 +71,7 @@ class NotificationService @Inject constructor(
             }
         }
         val eventType = EventType.forClass(event::class)
-        val eventTypeText = eventType.displayName
+        val eventTypeText = eventType.getDisplayName(context)
 
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

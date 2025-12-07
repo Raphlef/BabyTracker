@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import com.kouloundissa.twinstracker.presentation.analysis.AnalysisRange
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
@@ -297,7 +298,7 @@ fun EventTypeFilterSection(
                     },
                     label = {
                         Text(
-                            eventType.displayName,
+                            eventType.getDisplayName(context = LocalContext.current),
                             style = if (isSelected) {
                                 MaterialTheme.typography.labelMedium
                             } else {
@@ -323,7 +324,7 @@ fun EventTypeFilterSection(
                     leadingIcon = {
                         Icon(
                             imageVector = eventType.icon,
-                            contentDescription = eventType.displayName,
+                            contentDescription = eventType.getDisplayName(context = LocalContext.current),
                             modifier = Modifier.size(16.dp),
                             tint = if (isSelected) eventType.color else contentColor.copy(alpha = 0.6f)
                         )

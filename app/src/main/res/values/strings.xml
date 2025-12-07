@@ -110,6 +110,14 @@
     <string name="range_3_months">3 Months</string>
     <string name="range_custom">Custom</string>
 
+    <!-- ========== EVENT TYPES - ENUM DISPLAY NAMES ========== -->
+    <string name="event_type_diaper">Diaper</string>
+    <string name="event_type_feeding">Feeding</string>
+    <string name="event_type_sleep">Sleep</string>
+    <string name="event_type_growth">Growth</string>
+    <string name="event_type_pumping">Pumping</string>
+    <string name="event_type_drugs">Drugs</string>
+
     <!-- ========== EVENT FORM DIALOG - TITLES ========== -->
     <string name="event_form_title_new">New Event</string>
     <string name="event_form_title_edit">Edit Event</string>

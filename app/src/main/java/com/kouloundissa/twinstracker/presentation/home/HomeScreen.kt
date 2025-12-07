@@ -54,6 +54,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -63,6 +64,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import com.kouloundissa.twinstracker.data.EventTypeOverlayContext
 import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.toLocalDate
 import com.kouloundissa.twinstracker.data.SleepEvent
@@ -306,7 +308,8 @@ fun HomeScreen(
                             verticalArrangement = Arrangement.spacedBy(spacing)
                         ) {
                             items(sortedEventTypes) { type ->
-                                val filterEvents = babyEvents.filter { EventType.forClass(it::class) == type }
+                                val filterEvents =
+                                    babyEvents.filter { EventType.forClass(it::class) == type }
                                 EventTypeCard(
                                     type = type,
                                     // summary = summaries[type]!!,
@@ -335,7 +338,7 @@ fun HomeScreen(
                                                 }
                                                 showEventDialog = true
                                             },
-                                            lastEvents =  filterEvents
+                                            lastEvents = filterEvents
                                         )
                                     )
                                 )
@@ -446,7 +449,7 @@ fun EventTypeCard(
     val backgroundColor = BackgroundColor
     val contentColor = DarkGrey
     val tint = DarkBlue
-
+    val context = LocalContext.current
     val borderWidth = 1.dp
     val cornerShape = MaterialTheme.shapes.extraLarge
 
@@ -496,7 +499,7 @@ fun EventTypeCard(
         ) {
             // Event name at top-left
             Text(
-                text = type.displayName,
+                text = type.getDisplayName(context),
                 style = MaterialTheme.typography.titleMedium,
                 color = backgroundColor,
                 modifier = Modifier
@@ -572,7 +575,7 @@ fun EventTypeCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "Add ${type.displayName}",
+                        contentDescription = "Add ${type.getDisplayName(LocalContext.current)}",
                         tint = contentColor,
                         modifier = Modifier.size(18.dp)
                     )

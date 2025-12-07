@@ -49,6 +49,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -57,6 +58,7 @@ import coil.compose.AsyncImage
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
@@ -232,7 +234,7 @@ private fun EventTypeDialogContent(
                     .fillMaxWidth()
             ) {
                 if (events.isEmpty()) {
-                    Text("No ${type.displayName.lowercase()} events yet")
+                    Text("No ${type.getDisplayName(context = LocalContext.current).lowercase()} events yet")
                 } else {
                     Timeline(
                         events = events,
@@ -319,7 +321,7 @@ private fun EventTypeHeaderPanel(
                 modifier = Modifier.size(24.dp)
             )
             Text(
-                text = type.displayName,
+                text = type.getDisplayName(context = LocalContext.current),
                 style = MaterialTheme.typography.titleLarge,
                 color = tint
             )

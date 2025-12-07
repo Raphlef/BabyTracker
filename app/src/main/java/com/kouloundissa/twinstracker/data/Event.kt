@@ -1,8 +1,10 @@
 package com.kouloundissa.twinstracker.data
 
+import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
@@ -33,7 +35,7 @@ import kotlin.reflect.KClass
  */
 enum class EventType(
     val Key: String,
-    val displayName: String,
+    private @StringRes val displayNameRes: Int,
     val color: Color,
     val icon: ImageVector,
     @DrawableRes val drawableRes: Int,
@@ -43,7 +45,7 @@ enum class EventType(
 ) {
     DIAPER(
         "DIAPER",
-        "Diaper",
+        R.string.event_type_diaper,
         Color(0xFFFFC107),
         Icons.Outlined.BabyChangingStation,
         R.drawable.diaper,
@@ -61,14 +63,14 @@ enum class EventType(
     },
     FEEDING(
         "FEEDING",
-        "Feeding",
+        R.string.event_type_feeding,
         Color(0xFF4CAF50),
         Icons.Filled.Restaurant,
         R.drawable.feed,
         FeedingEvent::class,
         overlayBuilder = { context ->
 
-            val nextFeedingMs =context.lastEvents.predictNextFeedingTime()
+            val nextFeedingMs = context.lastEvents.predictNextFeedingTime()
             nextFeedingMs?.let { nextTime ->
                 {
                     FeedingTimer(
@@ -98,7 +100,7 @@ enum class EventType(
     },
     SLEEP(
         "SLEEP",
-        "Sleep",
+        R.string.event_type_sleep,
         Color(0xFF2196F3),
         Icons.Filled.Bedtime,
         R.drawable.sleep,
@@ -137,7 +139,7 @@ enum class EventType(
     },
     GROWTH(
         "GROWTH",
-        "Growth",
+        R.string.event_type_growth,
         Color(0xFF9C27B0),
         Icons.Filled.BarChart,
         R.drawable.growth,
@@ -156,7 +158,7 @@ enum class EventType(
     },
     PUMPING(
         "PUMPING",
-        "Pumping",
+        R.string.event_type_pumping,
         Color(0xFFFF5722),
         Icons.Filled.WaterDrop,
         R.drawable.pumping,
@@ -179,7 +181,7 @@ enum class EventType(
     },
     DRUGS(
         "DRUGS",
-        "Drugs",
+        R.string.event_type_drugs,
         Color(0xFF3F51B5),
         Icons.Filled.MedicalServices,
         R.drawable.drugs,
@@ -217,6 +219,12 @@ enum class EventType(
     }
 
     companion object {
+
+        // ✅ Can be called from ANY context (non-Composable)
+        fun EventType.getDisplayName(context: Context): String {
+            return context.getString(this.displayNameRes)
+        }
+
         fun forClass(clazz: KClass<out Event>): EventType =
             entries.firstOrNull { it.eventClass == clazz }
                 ?: DIAPER

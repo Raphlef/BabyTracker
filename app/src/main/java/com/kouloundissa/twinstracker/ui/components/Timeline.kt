@@ -1,6 +1,7 @@
 package com.kouloundissa.twinstracker.ui.components
 
 
+import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
@@ -63,11 +64,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.kouloundissa.twinstracker.data.DiaperEvent
-import com.kouloundissa.twinstracker.data.DiaperType
 import com.kouloundissa.twinstracker.data.DrugType
 import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.toLocalDate
 import com.kouloundissa.twinstracker.data.GrowthEvent
@@ -105,7 +106,7 @@ fun LazyListScope.timelineItemsContent(
         }
     } else {
         eventsByDate.forEach { (date, dayEvents) ->
-            item { DayHeader(date,dayEvents) }
+            item { DayHeader(date, dayEvents) }
             items(dayEvents, key = { it.id }) { event ->
                 eventCard(event, { onEdit(event) }, { onDelete(event) })
             }
@@ -121,6 +122,7 @@ fun LazyListScope.timelineItemsContent(
         item { LoadingMoreIndicator() }
     }
 }
+
 /**
  * Standalone Timeline component for use in regular Column layouts.
  * Creates its own LazyColumn for scrolling.
@@ -178,7 +180,7 @@ private fun DayHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(backgroundColor.copy(alpha = 0.95f),shape = cornerShape)
+            .background(backgroundColor.copy(alpha = 0.95f), shape = cornerShape)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -275,14 +277,23 @@ fun InfiniteScrollEffect(
             if (itemsAdded == 0) {
                 // No items were added - stop future attempts
                 consecutiveEmptyLoads++
-                Log.d("InfiniteScroll",  "Load returned 0 items. Consecutive empty loads: $consecutiveEmptyLoads/$maxConsecutiveEmptyLoads")
+                Log.d(
+                    "InfiniteScroll",
+                    "Load returned 0 items. Consecutive empty loads: $consecutiveEmptyLoads/$maxConsecutiveEmptyLoads"
+                )
                 if (consecutiveEmptyLoads >= maxConsecutiveEmptyLoads) {
-                    Log.d("InfiniteScroll", "Max consecutive empty loads reached. Stopping future attempts.")
+                    Log.d(
+                        "InfiniteScroll",
+                        "Max consecutive empty loads reached. Stopping future attempts."
+                    )
                 }
             } else {
                 consecutiveEmptyLoads = 0
                 lastLoadedCount = currentCount
-                Log.d("InfiniteScroll", "Load returned $itemsAdded items. Total: $currentCount. Reset empty load counter.")
+                Log.d(
+                    "InfiniteScroll",
+                    "Load returned $itemsAdded items. Total: $currentCount. Reset empty load counter."
+                )
             }
 
             loadingStartCount = 0
@@ -415,7 +426,7 @@ fun EventCard(
                 EventTypeIndicator(eventType)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        buildEventTitle(event, eventType),
+                        buildEventTitle(event, eventType, context),
                         style = MaterialTheme.typography.titleMedium,
                         color = tint
                     )
@@ -572,22 +583,19 @@ private fun DurationBadge(event: SleepEvent) {
 }
 
 // Build event-specific titles using your existing data classes
-private fun buildEventTitle(event: Event, eventType: EventType): String {
+private fun buildEventTitle(
+    event: Event, eventType: EventType,
+    context: Context
+): String {
     return when (event) {
         is DiaperEvent -> {
-            val typeInfo = when (event.diaperType) {
-                DiaperType.WET -> "Wet"
-                DiaperType.DIRTY -> "Dirty"
-                DiaperType.MIXED -> "Mixed"
-                DiaperType.DRY -> "Dry"
-                else -> ""
-            }
-            "${eventType.displayName} - $typeInfo"
+            val typeInfo = event.diaperType.displayName
+            "${eventType.getDisplayName(context)} - $typeInfo"
         }
 
         is FeedingEvent -> {
             val details = buildString {
-                append(eventType.displayName)
+                append(eventType.getDisplayName(context))
                 event.amountMl?.takeIf { it > 0 }?.let { append(" - ${it.toInt()}ml") }
                 event.durationMinutes?.takeIf { it > 0 }?.let { append(" (${it}min)") }
                 event.breastSide?.let {
@@ -603,15 +611,15 @@ private fun buildEventTitle(event: Event, eventType: EventType): String {
 
         is SleepEvent -> {
             if (event.isSleeping) {
-                "${eventType.displayName} - Ongoing"
+                "${eventType.getDisplayName(context)} - Ongoing"
             } else {
-                eventType.displayName
+                eventType.getDisplayName(context)
             }
         }
 
         is GrowthEvent -> {
             val measurements = buildString {
-                append(eventType.displayName)
+                append(eventType.getDisplayName(context))
                 val parts = mutableListOf<String>()
                 event.weightKg?.let { parts.add("${String.format("%.1f", it)}kg") }
                 event.heightCm?.let { parts.add("${it.toInt()}cm") }
@@ -625,7 +633,7 @@ private fun buildEventTitle(event: Event, eventType: EventType): String {
 
         is PumpingEvent -> {
             val details = buildString {
-                append(eventType.displayName)
+                append(eventType.getDisplayName(context))
                 event.amountMl?.let { append(" - ${it.toInt()}ml") }
                 event.durationMinutes?.let { append(" (${it}min)") }
                 event.breastSide?.let {
@@ -641,7 +649,7 @@ private fun buildEventTitle(event: Event, eventType: EventType): String {
 
         is DrugsEvent -> {
             val details = buildString {
-                append(eventType.displayName)
+                append(eventType.getDisplayName(context))
                 val drugName = if (event.drugType == DrugType.OTHER) {
                     event.otherDrugName ?: "Unknown"
                 } else {
@@ -653,6 +661,6 @@ private fun buildEventTitle(event: Event, eventType: EventType): String {
             details
         }
 
-        else -> eventType.displayName
+        else -> eventType.getDisplayName(context)
     }
 }

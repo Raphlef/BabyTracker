@@ -66,6 +66,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -89,6 +90,7 @@ import com.kouloundissa.twinstracker.data.EventFormState.Growth
 import com.kouloundissa.twinstracker.data.EventFormState.Pumping
 import com.kouloundissa.twinstracker.data.EventFormState.Sleep
 import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import com.kouloundissa.twinstracker.data.FeedType
 import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.PoopColor
@@ -181,6 +183,8 @@ fun EventFormDialogContent(
     eventViewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel(),
 ) {
+
+    val context = LocalContext.current
     val focusManager = LocalFocusManager.current
 
     val formState by eventViewModel.formState.collectAsState()
@@ -416,13 +420,13 @@ fun EventFormDialogContent(
                                         ) {
                                             Icon(
                                                 imageVector = type.icon,
-                                                contentDescription = type.displayName,
+                                                contentDescription =  type.getDisplayName(LocalContext.current),
                                                 tint = BackgroundColor,
                                                 modifier = Modifier.size(32.dp)
                                             )
                                             Spacer(Modifier.height(6.dp))
                                             Text(
-                                                text = type.displayName,
+                                                text = type.getDisplayName(LocalContext.current),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 textAlign = TextAlign.Center,
                                                 color = BackgroundColor,
@@ -451,7 +455,7 @@ fun EventFormDialogContent(
                             eventViewModel.updateForm { newState }
                         },
                         getIcon = { it.icon },
-                        getLabel = { it.displayName },
+                        getLabel = { it.getDisplayName(context) },
                         getColor = { it.color }
                     )
                 }

@@ -26,12 +26,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
@@ -352,6 +354,7 @@ private fun ContinuousEventBox(
 
 @Composable
 private fun EventContent(span: DaySpan, type: EventType) {
+    val context = LocalContext.current
     Row(
         modifier = Modifier.fillMaxSize(),
         verticalAlignment = Alignment.CenterVertically,
@@ -359,13 +362,13 @@ private fun EventContent(span: DaySpan, type: EventType) {
     ) {
         Icon(
             imageVector = type.icon,
-            contentDescription = type.displayName,
+            contentDescription = type.getDisplayName(context),
             tint = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier.size(14.dp)
         )
         Spacer(modifier = Modifier.width(4.dp))
         Text(
-            text = span.evt.notes.takeIf { !it.isNullOrBlank() } ?: type.displayName,
+            text = span.evt.notes.takeIf { !it.isNullOrBlank() } ?: type.getDisplayName(context),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onPrimary,
             maxLines = 1,

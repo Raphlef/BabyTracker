@@ -54,6 +54,7 @@ import com.kouloundissa.twinstracker.data.EventFormState.Growth
 import com.kouloundissa.twinstracker.data.EventFormState.Pumping
 import com.kouloundissa.twinstracker.data.EventFormState.Sleep
 import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import com.kouloundissa.twinstracker.presentation.analysis.AnalysisScreen
 import com.kouloundissa.twinstracker.presentation.baby.BabyCreateDialog
 import com.kouloundissa.twinstracker.presentation.baby.BabyEditDialog
@@ -320,10 +321,10 @@ fun DashboardScreen(
                         navItems = tabs,
                         hazeState = hazeState,
                         eventTypes = eventTypes.map { et ->
-                            et.displayName to @Composable {
+                            et.getDisplayName(context) to @Composable {
                                 Icon(
                                     et.icon,
-                                    et.displayName,
+                                    et.getDisplayName(context),
                                     tint = et.color
                                 )
                             }
