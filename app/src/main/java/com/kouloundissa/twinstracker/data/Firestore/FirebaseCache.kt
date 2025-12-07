@@ -178,6 +178,7 @@ fun getDayEnd(date: Date): Date {
     }
     return calendar.time
 }
+
 /**
  * FirebaseCache handles persistent caching of Firestore events with intelligent TTL management
  * Reduces Firestore read operations by:
@@ -302,9 +303,12 @@ class FirebaseCache(
 
             val cacheTTL = CacheTTL.getTTL(dataAge)
 
-            Log.d(TAG, "Cache analysis: dataAge=${dataAge}ms (${TimeUnit.MILLISECONDS.toHours(dataAge)}h), " +
-                    "cacheAge=${cacheAge}ms (${TimeUnit.MILLISECONDS.toMinutes(cacheAge)}min), " +
-                    "TTL stage=${cacheTTL.name}, TTL=${cacheTTL.ttlMs}ms")
+            Log.d(
+                TAG,
+                "Cache analysis: dataAge=${dataAge}ms (${TimeUnit.MILLISECONDS.toHours(dataAge)}h), " +
+                        "cacheAge=${cacheAge}ms (${TimeUnit.MILLISECONDS.toMinutes(cacheAge)}min), " +
+                        "TTL stage=${cacheTTL.name}, TTL=${cacheTTL.ttlMs}ms"
+            )
 
             // FRESH data (ttlMs == -1) should NOT be cached
             if (cacheTTL == CacheTTL.FRESH) {
