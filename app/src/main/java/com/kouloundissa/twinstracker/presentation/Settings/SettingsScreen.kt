@@ -76,6 +76,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.kouloundissa.twinstracker.R
+import com.kouloundissa.twinstracker.presentation.viewmodel.AuthStep
 import com.kouloundissa.twinstracker.presentation.viewmodel.AuthViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
@@ -157,7 +158,7 @@ fun SettingsScreenContent(
     val babies by babyViewModel.babies.collectAsState()
     val families by familyViewModel.families.collectAsState()
 
-    val isAuthLoading by authViewModel.state.map { it.isLoading }.collectAsState(false)
+    val isAuthLoading by authViewModel.state.map { it.currentStep == AuthStep.Authenticating||it.currentStep == AuthStep.LoadingProfile ||it.currentStep == AuthStep.EmailVerification  }.collectAsState(false)
     val isFamilyLoading by familyViewModel.state.map { it.isLoading }.collectAsState(false)
     // val isLoading = isAuthLoading || isBabyLoading || isFamilyLoading
     val snackbarHostState = remember { SnackbarHostState() }
