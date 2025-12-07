@@ -236,12 +236,6 @@ fun HomeScreen(
         }
     }
 
-    val summaries = remember(todaysByType, lastGrowthEvent) {
-        EventType.entries.associateWith { type ->
-            val todayList = todaysByType[type].orEmpty()
-            type.generateSummary(todayList, lastGrowthEvent)
-        }
-    }
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = Color.Transparent,

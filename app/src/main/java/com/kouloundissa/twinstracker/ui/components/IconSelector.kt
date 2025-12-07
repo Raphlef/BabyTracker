@@ -36,7 +36,7 @@ fun <T> IconSelector(
     selected: T?,
     onSelect: (T) -> Unit,
     getIcon: (T) -> ImageVector,
-    getLabel: (T) -> String,
+    getLabel: @Composable (T) -> String,
     getColor: ((T) -> Color)? = null,
     enabled: Boolean = true,
     modifier: Modifier = Modifier

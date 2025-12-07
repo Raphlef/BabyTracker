@@ -96,6 +96,7 @@ import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.PoopColor
 import com.kouloundissa.twinstracker.data.PoopConsistency
 import com.kouloundissa.twinstracker.data.PumpingEvent
+import com.kouloundissa.twinstracker.data.getDisplayName
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.AmountInput
@@ -283,7 +284,10 @@ fun EventFormDialogContent(
                     formState.event?.let { eventViewModel.deleteEvent(it) }
                     showDeleteConfirm = false
                 }) {
-                    Text(stringResource(id = R.string.delete_button_confirm), color = MaterialTheme.colorScheme.error)
+                    Text(
+                        stringResource(id = R.string.delete_button_confirm),
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
             },
             dismissButton = {
@@ -420,7 +424,9 @@ fun EventFormDialogContent(
                                         ) {
                                             Icon(
                                                 imageVector = type.icon,
-                                                contentDescription =  type.getDisplayName(LocalContext.current),
+                                                contentDescription = type.getDisplayName(
+                                                    LocalContext.current
+                                                ),
                                                 tint = BackgroundColor,
                                                 modifier = Modifier.size(32.dp)
                                             )
@@ -596,7 +602,7 @@ fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
             onSelect = { viewModel.updateForm { (this as EventFormState.Diaper).copy(diaperType = it) } },
             getIcon = { type -> type.icon },
             getColor = { it.color },
-            getLabel = { it.displayName }
+            getLabel = { it.getDisplayName(LocalContext.current) }
         )
 
         // Conditionally show poop details with smooth animation
@@ -622,7 +628,7 @@ fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
                         }
                     },
                     getIcon = { Icons.Default.Palette },
-                    getLabel = { it.displayName },
+                    getLabel = { it.getDisplayName(LocalContext.current) },
                     getColor = { it.color }
                 )
 
@@ -639,7 +645,7 @@ fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
                     },
                     getColor = { it.color },
                     getIcon = { it.icon },
-                    getLabel = { it.displayName }
+                    getLabel = { it.getDisplayName(LocalContext.current) }
                 )
             }
         }
@@ -798,9 +804,7 @@ fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
         },
         getColor = { it.color },
         getLabel = {
-            it.name.replace("_", " ").lowercase()
-                .split(" ")
-                .joinToString(" ") { word -> word.replaceFirstChar { c -> c.uppercase() } }
+            it.getDisplayName(LocalContext.current)
         }
     )
 
@@ -892,9 +896,7 @@ fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
                 },
                 getIcon = { side -> side.icon },
                 getColor = { it.color },
-                getLabel = {
-                    it.name.lowercase().replaceFirstChar { c -> c.uppercase() }
-                }
+                getLabel = { side -> side.getDisplayName(LocalContext.current) }
             )
         }
     }
@@ -1096,7 +1098,7 @@ fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
             },
             getColor = { it.color },
             getIcon = { it.icon },
-            getLabel = { it.displayName }
+            getLabel = { it.getDisplayName(LocalContext.current) }
         )
 
         // Conditionally show drug name input

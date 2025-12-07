@@ -74,6 +74,7 @@ import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.toLo
 import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
+import com.kouloundissa.twinstracker.data.getDisplayName
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
@@ -589,7 +590,7 @@ private fun buildEventTitle(
 ): String {
     return when (event) {
         is DiaperEvent -> {
-            val typeInfo = event.diaperType.displayName
+            val typeInfo = event.diaperType.getDisplayName(context)
             "${eventType.getDisplayName(context)} - $typeInfo"
         }
 
@@ -653,7 +654,7 @@ private fun buildEventTitle(
                 val drugName = if (event.drugType == DrugType.OTHER) {
                     event.otherDrugName ?: "Unknown"
                 } else {
-                    event.drugType.displayName
+                    event.drugType.getDisplayName(context)
                 }
                 append(" - $drugName")
                 event.dosage?.let { append(" ${it.toInt()}${event.unit}") }

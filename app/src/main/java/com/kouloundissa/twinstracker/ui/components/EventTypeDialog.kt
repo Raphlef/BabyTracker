@@ -65,6 +65,8 @@ import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -92,8 +94,8 @@ fun EventTypeDialog(
         onDismissRequest = {
             isVisible = false
             // Delay dismiss to allow exit animation
-            kotlinx.coroutines.GlobalScope.launch {
-                kotlinx.coroutines.delay(300)
+            GlobalScope.launch {
+                delay(300)
                 onDismiss()
             }
         },
@@ -126,8 +128,8 @@ fun EventTypeDialog(
                 events = events,
                 onDismiss = {
                     isVisible = false
-                    kotlinx.coroutines.GlobalScope.launch {
-                        kotlinx.coroutines.delay(300)
+                    GlobalScope.launch {
+                        delay(300)
                         onDismiss()
                     }
                 },
@@ -169,10 +171,10 @@ private fun EventTypeDialogContent(
         EventType.forClass(event::class) == type
     }
     val lazyListState = rememberLazyListState()
-
+    val context = LocalContext.current
     // Generate summary using the new refactored method
     val summary = remember(todayEvents) {
-        type.generateSummary(todayEvents, lastGrowthEvent)
+        type.generateSummary(todayEvents, lastGrowthEvent, context)
     }
 
     InfiniteScrollEffect(
@@ -234,7 +236,11 @@ private fun EventTypeDialogContent(
                     .fillMaxWidth()
             ) {
                 if (events.isEmpty()) {
-                    Text("No ${type.getDisplayName(context = LocalContext.current).lowercase()} events yet")
+                    Text(
+                        "No ${
+                            type.getDisplayName(context = LocalContext.current).lowercase()
+                        } events yet"
+                    )
                 } else {
                     Timeline(
                         events = events,
