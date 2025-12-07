@@ -18,14 +18,14 @@ class FirebasePhotoHelper(
     private val storage: FirebaseStorage,
     private val db: FirebaseFirestore,
     private val context: Context,
-    private val authHelper: FirebaseAuthHelper
+    private val repo: FirebaseRepository
 ) {
     suspend fun uploadPhoto(
         entityType: String,
         entityId: String,
         uri: Uri
     ): String = withContext(Dispatchers.IO) {
-        val userId = authHelper.getCurrentUserId()
+        val userId = repo.getCurrentUserId()
         val photoPath = FirebaseStorageUtils.buildPhotoStoragePath(entityType, entityId)
 
         Log.d("PhotoUpload", "Starting upload: $photoPath for userId=$userId")
@@ -60,7 +60,7 @@ class FirebasePhotoHelper(
         entityType: String,
         entityId: String
     ) = withContext(Dispatchers.IO) {
-        authHelper.getCurrentUserId() // Verify auth
+        repo.getCurrentUserId() // Verify auth
         val photoRef = storage.getPhotoReference(entityType, entityId)
 
         try {
@@ -76,8 +76,10 @@ class FirebasePhotoHelper(
             db.collection(entityType)
                 .document(entityId)
                 .update(
-                    FirestoreConstants.Fields.PHOTO_URL, FieldValue.delete(),
-                    FirestoreConstants.Fields.UPDATED_AT, FirestoreTimestampUtils.getCurrentTimestamp()
+                    FirestoreConstants.Fields.PHOTO_URL,
+                    FieldValue.delete(),
+                    FirestoreConstants.Fields.UPDATED_AT,
+                    FirestoreTimestampUtils.getCurrentTimestamp()
                 )
                 .await()
         } catch (e: FirebaseFirestoreException) {
