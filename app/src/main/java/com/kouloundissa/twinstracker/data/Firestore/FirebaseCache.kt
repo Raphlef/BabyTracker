@@ -350,8 +350,9 @@ class FirebaseCache(
         requestedStart: Date,
         requestedEnd: Date
     ): DataRetrievalPlan {
-        val todayStart = getDayStart(Date())
         val now = Date()
+        val todayStart = getDayStart(now)
+
 
         val rangeIncludesToday = requestedStart <= todayStart && requestedEnd > todayStart
 
