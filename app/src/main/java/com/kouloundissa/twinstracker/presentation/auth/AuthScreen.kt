@@ -1,9 +1,5 @@
 package com.kouloundissa.twinstracker.presentation.auth
 
-import android.util.Patterns
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +15,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -41,21 +40,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.ApiException
 import com.kouloundissa.twinstracker.R
+import com.kouloundissa.twinstracker.data.Firestore.FirebaseValidators.validateEmailWithMessage
 import com.kouloundissa.twinstracker.presentation.viewmodel.AuthEvent
+import com.kouloundissa.twinstracker.presentation.viewmodel.AuthState
+import com.kouloundissa.twinstracker.presentation.viewmodel.AuthStep
 import com.kouloundissa.twinstracker.presentation.viewmodel.AuthViewModel
+import com.kouloundissa.twinstracker.presentation.viewmodel.EmailVerificationState
 import com.kouloundissa.twinstracker.ui.components.BackgroundContainer
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
@@ -69,7 +69,6 @@ fun AuthScreen(
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
-    var emailError by remember { mutableStateOf<String?>(null) }
 
     val backgroundColor = BackgroundColor
     val content = DarkGrey
@@ -77,36 +76,13 @@ fun AuthScreen(
     val cornerShape = MaterialTheme.shapes.extraLarge
 
 
-    // Preconfigure GoogleSignInClient
-    val googleSignInClient = remember {
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(context.getString(R.string.default_web_client_id))
-            .requestEmail()
-            .build()
-        GoogleSignIn.getClient(context, gso)
-    }
 
-
-    // Launcher for Google Sign-In Intent
-    val googleLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val data = result.data
-        val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-        try {
-            val account = task.getResult(ApiException::class.java)
-            account?.idToken?.let { viewModel.handleGoogleSignInResult(it) }
-                ?: viewModel.onError("No ID token from Google")
-        } catch (e: ApiException) {
-            viewModel.onError("Google sign-in error: ${e.statusCode}")
-        }
-    }
     // Collect one-time events
     LaunchedEffect(Unit) {
         viewModel.oneTimeEventFlow.collect { event ->
             when (event) {
                 AuthEvent.StartGoogleSignIn -> {
-                    googleLauncher.launch(googleSignInClient.signInIntent)
+                    //googleLauncher.launch(googleSignInClient.signInIntent)
                 }
 
                 AuthEvent.Logout -> {
@@ -119,8 +95,10 @@ fun AuthScreen(
     }
 
     // Trigger navigation on successful auth
-    LaunchedEffect(state.isAuthenticated) {
-        if (state.isAuthenticated) onLoginSuccess()
+    LaunchedEffect(state.currentStep) {
+        if (state.currentStep is AuthStep.Success && state.userProfile != null) {
+            onLoginSuccess()
+        }
     }
 
     BackgroundContainer(backgroundRes = R.drawable.background) {
@@ -153,104 +131,485 @@ fun AuthScreen(
                         )
                         Spacer(Modifier.height(40.dp))
 
-                        // Email field
-                        LabeledTextField(
-                            value = state.email,
-                            onValueChange = {
-                                viewModel.onEmailChange(it)
-                                emailError = when {
-                                    it.isBlank() -> "Email requis"
-                                    !ValidationUtils.isValidEmail(it) -> "Email invalide"
-                                    else -> null
-                                }
-                            },
-                            label = "Email",
-                            isError = emailError != null,
-                            errorMessage = emailError,
-                            enabled = !state.isLoading,
-                            imeAction = ImeAction.Next,
-                            keyboardType = KeyboardType.Email
-                        )
+                        when (state.currentStep) {
+                            // USER AT FORM
+                            AuthStep.IdleForm -> {
+                                LoginForm(
+                                    state = state,
+                                    onEmailChange = viewModel::onEmailChange,
+                                    onPasswordChange = viewModel::onPasswordChange,
+                                    onRememberMeChange = viewModel::onRememberMeChanged,
+                                    onLoginClick = viewModel::login,
+                                    onRegisterClick = viewModel::register,
+                                    onGoogleSignInClick = viewModel::loginWithGoogle,
+                                    onForgotPasswordClick = viewModel::navigateToForgotPassword,
+                                )
+                            }
 
-                        Spacer(Modifier.height(16.dp))
+                            // AUTHENTICATING WITH FIREBASE
+                            AuthStep.Authenticating -> {
+                                AuthenticatingPanel(
+                                    message = "[translate:Authentification en cours...]"
+                                )
+                            }
 
-                        // Password field
-                        LabeledTextField(
-                            value = state.password,
-                            onValueChange = viewModel::onPasswordChange,
-                            label = "Mot de passe",
-                            visualTransformation = PasswordVisualTransformation(),
-                            enabled = !state.isLoading,
-                            imeAction = ImeAction.Send,
-                            keyboardType = KeyboardType.Password
-                        )
+                            // LOADING PROFILE FROM FIRESTORE
+                            AuthStep.LoadingProfile -> {
+                                AuthenticatingPanel(
+                                    message = "[translate:Chargement du profil...]"
+                                )
+                            }
 
-                        Spacer(Modifier.height(16.dp))
+                            // WAITING FOR EMAIL VERIFICATION (POST-REGISTER)
+                            AuthStep.EmailVerification -> {
+                                EmailVerificationPanel(
+                                    email = state.email,
+                                    verificationState = state.emailVerificationState,
+                                    onResendClick = viewModel::resendVerificationEmail,
+                                    onBackClick = viewModel::clearVerificationFlow,
+                                )
+                            }
 
-                        // Remember me
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = state.rememberMe,
-                                onCheckedChange = viewModel::onRememberMeChanged,
-                                enabled = !state.isLoading
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text("Se souvenir de moi", color = BackgroundColor)
-                        }
+                            AuthStep.ForgotPassword -> {
+                                ForgotPasswordPanel(
+                                    email = state.email,
+                                    isLoading = state.currentStep == AuthStep.Authenticating,
+                                    error = state.error,
+                                    onEmailChange = viewModel::onEmailChange,
+                                    onSendClick = {
+                                        viewModel.initiatePasswordReset(state.email)
+                                    },
+                                    onBackClick = viewModel::retryAfterError,
+                                    backgroundColor = BackgroundColor
+                                )
+                            }
 
-                        Spacer(Modifier.height(24.dp))
+                            // FATAL ERROR - Show error with retry
+                            is AuthStep.Error -> {
+                                ErrorPanel(
+                                    error = (state.currentStep as AuthStep.Error).message,
+                                    onRetryClick = viewModel::retryAfterError,
+                                    backgroundColor = BackgroundColor
+                                )
+                            }
 
-                        val canSubmit =
-                            emailError == null && state.email.isNotBlank() && state.password.isNotBlank()
-                        PrimaryButton(
-                            text = "Connexion",
-                            onClick = { viewModel.login() },
-                            enabled = canSubmit && !state.isLoading,
-                            isLoading = state.isLoading
-                        )
-
-                        Spacer(Modifier.height(16.dp))
-
-                        TextButton(
-                            onClick = { viewModel.register() },
-                            enabled = !state.isLoading,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Créer un compte", color = BackgroundColor)
-                        }
-
-                        Spacer(Modifier.height(12.dp))
-
-//                        SocialButton(
-//                            text = "Continuer avec Google",
-//                            icon = Icons.Filled.AccountCircle,
-//                            onClick = viewModel::loginWithGoogle,
-//                            modifier = Modifier.fillMaxWidth()
-//                        )
-
-                        state.error?.let {
-                            Spacer(Modifier.height(16.dp))
-                            Text(
-                                it,
-                                color = Color.Red,// MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall
-                            )
+                            // READY TO NAVIGATE
+                            AuthStep.Success -> {
+                                SuccessPanel()
+                            }
                         }
                     }
                 }
-                LoadingOverlay(isVisible = state.isLoading || state.isAuthenticated)
+
+                // Only show overlay during async operations
+                when (state.currentStep) {
+                    AuthStep.Authenticating,
+                    AuthStep.LoadingProfile,
+                    AuthStep.Success -> {
+                        LoadingOverlay(isVisible = true)
+                    }
+
+                    else -> {} // No overlay
+                }
             }
         }
     }
 }
 
-// ValidationUtils.kt
-object ValidationUtils {
-    fun isValidEmail(email: String): Boolean =
-        Patterns.EMAIL_ADDRESS.matcher(email).matches()
+@Composable
+private fun AuthenticatingPanel(message: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(32.dp)
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(48.dp),
+            color = DarkBlue,
+            strokeWidth = 4.dp
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        Text(
+            message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = DarkGrey,
+            textAlign = TextAlign.Center
+        )
+    }
 }
 
-// UiComponents.kt
+@Composable
+private fun ErrorPanel(
+    error: String,
+    onRetryClick: () -> Unit,
+    backgroundColor: Color
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        // Error icon
+        Icon(
+            imageVector = Icons.Default.Error,
+            contentDescription = "[translate:Erreur]",
+            modifier = Modifier.size(64.dp),
+            tint = Color.Red
+        )
+
+        // Error message
+        Text(
+            "[translate:Une erreur s'est produite]",
+            style = MaterialTheme.typography.headlineMedium,
+            color = backgroundColor,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+
+        Text(
+            error,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.Red,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Retry button
+        PrimaryButton(
+            text = "[translate:Réessayer]",
+            onClick = onRetryClick,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun SuccessPanel() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(32.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.CheckCircle,
+            contentDescription = "[translate:Succès]",
+            modifier = Modifier.size(64.dp),
+            tint = Color(0xFF22C55E)
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        Text(
+            "[translate:Authentification réussie ! Redirection...]",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFF22C55E),
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun EmailVerificationPanel(
+    email: String,
+    verificationState: EmailVerificationState,
+    onResendClick: () -> Unit,
+    onBackClick: () -> Unit,
+) {
+    val backgroundColor = BackgroundColor
+    val content = DarkGrey
+    val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        // Header
+        Text(
+            "Vérification d'email",
+            style = MaterialTheme.typography.headlineMedium,
+            color = backgroundColor,
+            fontWeight = FontWeight.Bold
+        )
+
+        // Email display
+        Text(
+            "Un email de confirmation a été envoyé à :",
+            style = MaterialTheme.typography.bodyMedium,
+            color = backgroundColor,
+            textAlign = TextAlign.Center
+        )
+
+        Text(
+            email,
+            style = MaterialTheme.typography.labelLarge,
+            color = DarkBlue,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Status message based on verification state
+        VerificationStatusMessage(verificationState = verificationState)
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Resend button
+        PrimaryButton(
+            text = when (verificationState) {
+                EmailVerificationState.Initial -> "Renvoyer l'email"
+                EmailVerificationState.Sending -> "Envoi..."
+                is EmailVerificationState.Sent -> "Email renvoyé ✓"
+                is EmailVerificationState.Error -> "Renvoyer l'email"
+                EmailVerificationState.Verified -> "Email vérifié ✓"
+            },
+            onClick = onResendClick,
+            enabled = verificationState !is EmailVerificationState.Sending
+                    && verificationState != EmailVerificationState.Verified,
+            isLoading = verificationState is EmailVerificationState.Sending,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Back button
+        TextButton(
+            onClick = onBackClick,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Retour", color = backgroundColor)
+        }
+    }
+}
+
+@Composable
+private fun VerificationStatusMessage(verificationState: EmailVerificationState) {
+    when (verificationState) {
+        EmailVerificationState.Initial -> {
+            Text(
+                "En attente de vérification...",
+                style = MaterialTheme.typography.bodySmall,
+                color = DarkGrey,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        EmailVerificationState.Sending -> {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = DarkBlue
+                )
+                Text(
+                    "Envoi en cours...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DarkBlue
+                )
+            }
+        }
+
+        is EmailVerificationState.Sent -> {
+            Text(
+                verificationState.message,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF22C55E), // Green
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        is EmailVerificationState.Error -> {
+            Text(
+                verificationState.message,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Red,
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        EmailVerificationState.Verified -> {
+            Text(
+                "Email vérifié avec succès ! ✓",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF22C55E),
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoginForm(
+    state: AuthState,
+    onEmailChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onRememberMeChange: (Boolean) -> Unit,
+    onLoginClick: () -> Unit,
+    onRegisterClick: () -> Unit,
+    onGoogleSignInClick: () -> Unit,
+    onForgotPasswordClick: () -> Unit
+) {
+    val backgroundColor = BackgroundColor
+    val content = DarkGrey
+    val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
+    var emailError by remember { mutableStateOf<String?>(null) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        // Email field
+        LabeledTextField(
+            value = state.email,
+            onValueChange = { email ->
+                onEmailChange(email)
+                emailError = validateEmailWithMessage(email)
+            },
+            label = "Email",
+            isError = emailError != null,
+            errorMessage = emailError,
+            enabled = state.currentStep == AuthStep.IdleForm,
+            imeAction = ImeAction.Next,
+            keyboardType = KeyboardType.Email
+        )
+
+        // Password field
+        LabeledTextField(
+            value = state.password,
+            onValueChange = onPasswordChange,
+            label = "Mot de passe",
+            visualTransformation = PasswordVisualTransformation(),
+            enabled = state.currentStep == AuthStep.IdleForm,
+            imeAction = ImeAction.Send,
+            keyboardType = KeyboardType.Password
+        )
+
+        // Remember me
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = state.rememberMe,
+                onCheckedChange = onRememberMeChange,
+                enabled = state.currentStep == AuthStep.IdleForm
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("Se souvenir de moi", color = backgroundColor)
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        // Login button
+        val canSubmit =
+            emailError == null && state.email.isNotBlank() && state.password.isNotBlank()
+        PrimaryButton(
+            text = "Connexion",
+            onClick = onLoginClick,
+            enabled = canSubmit && state.currentStep == AuthStep.IdleForm,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Register button
+        TextButton(
+            onClick = onRegisterClick,
+            enabled = state.currentStep == AuthStep.IdleForm,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Créer un compte", color = backgroundColor)
+        }
+
+        TextButton(
+            onClick = onForgotPasswordClick,
+            enabled = state.currentStep == AuthStep.IdleForm,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Mot de passe oublié?", color = DarkBlue)
+        }
+    }
+
+}
+
+@Composable
+fun ForgotPasswordPanel(
+    email: String,
+    isLoading: Boolean,
+    error: String?,
+    onEmailChange: (String) -> Unit,
+    onSendClick: () -> Unit,
+    onBackClick: () -> Unit,
+    backgroundColor: Color
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        // Header
+        Text(
+            "Réinitialiser le mot de passe",
+            style = MaterialTheme.typography.headlineMedium,
+            color = backgroundColor,
+            fontWeight = FontWeight.Bold
+        )
+
+        // Description
+        Text(
+            "Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = backgroundColor,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Email input
+        LabeledTextField(
+            value = email,
+            onValueChange = onEmailChange,
+            label = "Email",
+            enabled = !isLoading,
+            imeAction = ImeAction.Send,
+            keyboardType = KeyboardType.Email,
+        )
+
+        // Error message
+        error?.let {
+            Text(
+                it,
+                color = if (it.contains("envoyé")) Color(0xFF22C55E) else Color.Red,
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Send button
+        PrimaryButton(
+            text = if (isLoading) "Envoi..." else "Envoyer le lien",
+            onClick = onSendClick,
+            enabled = !isLoading && email.isNotBlank(),
+            isLoading = isLoading,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Back button
+        TextButton(
+            onClick = onBackClick,
+            enabled = !isLoading,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Retour à la connexion", color = backgroundColor)
+        }
+    }
+}
+
+
 @Composable
 fun LabeledTextField(
     value: String,
@@ -283,7 +642,7 @@ fun LabeledTextField(
         if (errorMessage != null) {
             Text(
                 text = errorMessage,
-                color = Color.Red,// MaterialTheme.colorScheme.error,
+                color = Color.Red,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier
                     .padding(start = 16.dp, top = 4.dp)
@@ -331,33 +690,5 @@ fun LoadingOverlay(isVisible: Boolean) {
         ) {
             CircularProgressIndicator()
         }
-    }
-}
-
-@Composable
-fun SocialButton(
-    text: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier.fillMaxWidth()
-) {
-    Button(
-        onClick = onClick,
-        modifier = modifier
-            .height(50.dp),
-        shape = MaterialTheme.shapes.medium,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = Color.Unspecified,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(text = text, style = MaterialTheme.typography.bodyLarge)
     }
 }
