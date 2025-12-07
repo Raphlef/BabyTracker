@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.ui.components
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,13 +34,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kouloundissa.twinstracker.data.AnalysisRange
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.EventType
-import com.kouloundissa.twinstracker.presentation.analysis.AnalysisRange
+import com.kouloundissa.twinstracker.data.getDisplayName
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
@@ -112,8 +115,9 @@ private fun FilterPanelHeader(
     filters: AnalysisFilters,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val activeFilterCount = countActiveFilters(filters)
-    val filterSummary = remember(filters) { getFilterSummary(filters) }
+    val filterSummary = remember(filters) { getFilterSummary(filters, context) }
 
     val tint = DarkBlue
     val contentColor = DarkGrey
@@ -243,7 +247,7 @@ private fun countActiveFilters(filters: AnalysisFilters): Int {
     return count
 }
 
-private fun getFilterSummary(filters: AnalysisFilters): String {
+private fun getFilterSummary(filters: AnalysisFilters, context: Context): String {
 
     val parts = mutableListOf<String>()
 
@@ -251,7 +255,7 @@ private fun getFilterSummary(filters: AnalysisFilters): String {
         parts.add(filters.babyFilter.selectedBabies.first().name)
     }
 
-    parts.add(filters.dateRange.selectedRange.displayName)
+    parts.add(filters.dateRange.selectedRange.getDisplayName(context))
 
     if (filters.eventTypeFilter.selectedTypes.isNotEmpty()) {
         parts.add("${filters.eventTypeFilter.selectedTypes.size} event type")

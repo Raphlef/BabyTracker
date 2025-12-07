@@ -43,6 +43,7 @@ enum class DiaperType(
     MIXED(R.string.diaper_type_mixed, Icons.Default.Merge, Color(0xFFAB47BC)),
     DRY(R.string.diaper_type_dry, Icons.Default.InvertColorsOff, Color(0xFFFFCA28))
 }
+
 fun DiaperType.getDisplayName(context: Context): String {
     return context.getString(this.displayNameRes)
 }
@@ -56,6 +57,7 @@ enum class PoopConsistency(
     SEMI_SOLIDE(R.string.poop_consistency_semi_solide, Icons.Default.Grain, Color(0xFFFFB74D)),
     SOLIDE(R.string.poop_consistency_solide, Icons.Default.Circle, Color(0xFF66BB6A))
 }
+
 fun PoopConsistency.getDisplayName(context: Context): String {
     return context.getString(this.displayNameRes)
 }
@@ -107,7 +109,7 @@ fun BreastSide.getDisplayName(context: Context): String {
 }
 
 enum class DrugType(
-    @StringRes val displayNameRes: Int,
+    internal @StringRes val displayNameRes: Int,
     val icon: ImageVector,
     val category: Category,
     val color: Color
@@ -196,6 +198,21 @@ fun DrugType.getDisplayName(context: Context): String {
     return context.getString(this.displayNameRes)
 }
 
+enum class AnalysisRange(
+    internal @StringRes val displayNameRes: Int,
+    val days: Int
+) {
+    ONE_DAY(R.string.range_1_day, 1),
+    THREE_DAYS(R.string.range_3_days, 3),
+    ONE_WEEK(R.string.range_1_week, 7),
+    TWO_WEEKS(R.string.range_2_weeks, 14),
+    ONE_MONTH(R.string.range_1_month, 30),
+    THREE_MONTHS(R.string.range_3_months, 90),
+    CUSTOM(R.string.range_custom, -1)
+}
+fun AnalysisRange.getDisplayName(context: Context): String {
+    return context.getString(this.displayNameRes)
+}
 enum class DashboardTab(val label: String, val icon: @Composable () -> Unit) {
     Home("Home", { Icon(Icons.Default.Home, contentDescription = "Home") }),
     Calendar("Calendar", { Icon(Icons.Default.CalendarToday, contentDescription = "Calendar") }),

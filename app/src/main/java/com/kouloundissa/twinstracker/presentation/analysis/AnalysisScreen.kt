@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.R
+import com.kouloundissa.twinstracker.data.AnalysisRange
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DailyAnalysis
 import com.kouloundissa.twinstracker.data.EventType
@@ -49,7 +50,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
-import java.util.Date
 import java.util.Locale
 
 @Composable
@@ -382,20 +382,6 @@ fun AnalysisScreen(
             }
         }
     }
-}
-
-private fun Date.toLocalDate(): LocalDate =
-    this.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-
-// First, create an enum for predefined ranges
-enum class AnalysisRange(val displayName: String, val days: Int) {
-    ONE_DAY("1 Day", 1),
-    THREE_DAYS("3 Days", 3),
-    ONE_WEEK("1 Week", 7),
-    TWO_WEEKS("2 Weeks", 14),
-    ONE_MONTH("1 Month", 30),
-    THREE_MONTHS("3 Months", 90),
-    CUSTOM("Custom", -1)
 }
 
 // ============================================================================
