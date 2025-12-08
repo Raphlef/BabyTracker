@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Button
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -343,20 +344,34 @@ fun HomeScreen(
                     }
 
                     item {
-                        Spacer(Modifier.height(24.dp))
-                        Text(
-                            stringResource(id = R.string.recent_events),
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.headlineMedium,
+                        Row(
                             modifier = Modifier
-                                .padding(vertical = 8.dp)
+                                .fillMaxWidth()
                                 .background(
                                     backgroundColor.copy(alpha = 0.95f),
                                     shape = cornerShape
                                 )
-                                .padding(vertical = 8.dp, horizontal = 12.dp),
-                            color = tint,
-                        )
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                stringResource(id = R.string.recent_events),
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.headlineMedium,
+                                modifier = Modifier
+                                    .padding(vertical = 8.dp),
+                                color = tint,
+                            )
+
+                            Divider(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 12.dp),
+                                color = tint.copy(alpha = 0.5f),
+                                thickness = 2.dp
+                            )
+                        }
                     }
                     timelineItemsContent(
                         eventsByDate = babyEvents.groupBy { it.timestamp.toLocalDate() },

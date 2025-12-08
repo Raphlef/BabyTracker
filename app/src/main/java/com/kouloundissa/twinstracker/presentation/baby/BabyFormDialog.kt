@@ -346,15 +346,28 @@ private fun BabyFormBottomSheetContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = if (isEditMode)
-                    stringResource(id = R.string.baby_form_title_edit)
-                else
-                    stringResource(id = R.string.baby_form_title_create),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = backgroundColor,
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        backgroundColor.copy(alpha = 0.95f),
+                        shape = cornerShape
+                    )
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = if (isEditMode)
+                        stringResource(id = R.string.baby_form_title_edit)
+                    else
+                        stringResource(id = R.string.baby_form_title_create),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    color = tint,
+                )
+            }
         }
         Spacer(Modifier.height(8.dp))
         // Form content with scroll
@@ -809,7 +822,10 @@ private fun DeleteConfirmationDialog(
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text(stringResource(id = R.string.delete_button), color = MaterialTheme.colorScheme.error)
+                Text(
+                    stringResource(id = R.string.delete_button),
+                    color = MaterialTheme.colorScheme.error
+                )
             }
         },
         dismissButton = {

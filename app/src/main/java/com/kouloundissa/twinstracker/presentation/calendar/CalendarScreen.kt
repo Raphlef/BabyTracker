@@ -1,10 +1,12 @@
 package com.kouloundissa.twinstracker.presentation.calendar
 
 import DayTimeline
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -130,6 +133,7 @@ fun CalendarScreen(
     val backgroundColor = BackgroundColor.copy(alpha = 0.2f)
     val contentColor = DarkGrey.copy(alpha = 0.5f)
     val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
     /** UI **/
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -205,16 +209,38 @@ fun CalendarScreen(
                         !selectedDate.isBefore(eventStartDate) && !selectedDate.isAfter(eventEndDate)
                     }
                 item {
-                    Text(
-                        stringResource(
-                            id = R.string.events_on_date_format,
-                            selectedDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy")),
-                            dailyEvents.size
-                        ),
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = BackgroundColor
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                backgroundColor.copy(alpha = 0.95f),
+                                shape = cornerShape
+                            )
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            stringResource(
+                                id = R.string.events_on_date_format,
+                                selectedDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy")),
+                                dailyEvents.size
+                            ),
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.headlineMedium,
+                            modifier = Modifier
+                                .padding(vertical = 8.dp),
+                            color = tint,
+                        )
+
+                        Divider(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 12.dp),
+                            color = tint.copy(alpha = 0.5f),
+                            thickness = 2.dp
+                        )
+                    }
                 }
                 if (isLoading) {
                     item {
