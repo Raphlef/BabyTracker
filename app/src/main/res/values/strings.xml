@@ -282,6 +282,19 @@
     <string name="take_photo_button">Take Photo</string>
     <string name="choose_from_library_button">Choose from Library</string>
 
+    <!-- ========== SETTINGS SCREEN ========== -->
+    <string name="settings_family_management">Family Management</string>
+    <string name="settings_profile_section">My Profile</string>
+    <string name="settings_display_name_label">Display Name</string>
+    <string name="settings_save_name_button">Save Name</string>
+    <string name="settings_logout_button">Sign Out</string>
+    <string name="settings_logout_confirmation_title">Sign Out Confirmation</string>
+    <string name="settings_logout_confirmation_message">Are you sure you want to sign out?</string>
+    <string name="settings_logout_confirm">Sign Out</string>
+    <string name="settings_notifications_section">Notifications</string>
+    <string name="settings_notifications_enabled">Notifications Enabled</string>
+    <string name="settings_save_settings_button">Save Settings</string>
+
     <!-- ========== TOPAPPBAR (Existing) ========== -->
     <string name="back_button_description">Back</string>
     <string name="more_options_description">More options</string>

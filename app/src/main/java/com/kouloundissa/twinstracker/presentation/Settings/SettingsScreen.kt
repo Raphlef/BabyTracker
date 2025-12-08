@@ -67,6 +67,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -158,7 +159,8 @@ fun SettingsScreenContent(
     val babies by babyViewModel.babies.collectAsState()
     val families by familyViewModel.families.collectAsState()
 
-    val isAuthLoading by authViewModel.state.map { it.currentStep == AuthStep.Authenticating||it.currentStep == AuthStep.LoadingProfile ||it.currentStep == AuthStep.EmailVerification  }.collectAsState(false)
+    val isAuthLoading by authViewModel.state.map { it.currentStep == AuthStep.Authenticating || it.currentStep == AuthStep.LoadingProfile || it.currentStep == AuthStep.EmailVerification }
+        .collectAsState(false)
     val isFamilyLoading by familyViewModel.state.map { it.isLoading }.collectAsState(false)
     // val isLoading = isAuthLoading || isBabyLoading || isFamilyLoading
     val snackbarHostState = remember { SnackbarHostState() }
@@ -208,12 +210,12 @@ fun SettingsScreenContent(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back"
+                        contentDescription = stringResource(id = R.string.back)
                     )
                 }
                 Spacer(Modifier.width(12.dp))
                 Text(
-                    text = "Settings",
+                    text = stringResource(id = R.string.settings),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = contentColor,
@@ -227,7 +229,7 @@ fun SettingsScreenContent(
                 // — Family Management Section —
                 item {
                     SectionCard(
-                        "Gestion de la famille",
+                        stringResource(id = R.string.settings_family_management),
                         icon = Icons.Default.FamilyRestroom
                     )
                     {
@@ -237,7 +239,7 @@ fun SettingsScreenContent(
                 // — Profile Section —
                 item {
                     SectionCard(
-                        "Mon profil",
+                        stringResource(id = R.string.settings_profile_section),
                         icon = Icons.Default.Person
                     ) {
                         GlassCard(
@@ -245,7 +247,7 @@ fun SettingsScreenContent(
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                 ReadOnlyField(
-                                    "Email",
+                                    stringResource(id = R.string.email_label),
                                     profile?.email.orEmpty(),
                                     color = contentColor
                                 )
@@ -257,7 +259,7 @@ fun SettingsScreenContent(
                                     textStyle = LocalTextStyle.current.copy(color = contentColor),
                                     label = {
                                         Text(
-                                            "Nom affiché",
+                                            stringResource(id = R.string.settings_display_name_label),
                                             color = contentColor,
                                         )
                                     },
@@ -278,7 +280,7 @@ fun SettingsScreenContent(
                                     enabled = !isAuthLoading,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("Enregistrer le nom")
+                                    Text(stringResource(id = R.string.settings_save_name_button))
                                 }
 
                                 // Logout button with confirmation
@@ -302,7 +304,7 @@ fun SettingsScreenContent(
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Se déconnecter")
+                                    Text(stringResource(id = R.string.settings_logout_button))
                                 }
                             }
                         }
@@ -313,10 +315,10 @@ fun SettingsScreenContent(
                         AlertDialog(
                             onDismissRequest = { showLogoutDialog = false },
                             title = {
-                                Text("Confirmation de déconnexion")
+                                Text(stringResource(id = R.string.settings_logout_confirmation_title))
                             },
                             text = {
-                                Text("Êtes-vous sûr de vouloir vous déconnecter ?")
+                                Text(stringResource(id = R.string.settings_logout_confirmation_message))
                             },
                             confirmButton = {
                                 TextButton(
@@ -331,7 +333,7 @@ fun SettingsScreenContent(
                                     }
                                 ) {
                                     Text(
-                                        "Se déconnecter",
+                                        stringResource(id = R.string.settings_logout_confirm),
                                         color = Color.Red// MaterialTheme.colorScheme.error
                                     )
                                 }
@@ -340,7 +342,7 @@ fun SettingsScreenContent(
                                 TextButton(
                                     onClick = { showLogoutDialog = false }
                                 ) {
-                                    Text("Annuler")
+                                    Text(stringResource(id = R.string.cancel_button_confirm))
                                 }
                             }
                         )
@@ -350,7 +352,7 @@ fun SettingsScreenContent(
                 // — Notifications & Default Baby Section —
                 item {
                     SectionCard(
-                        "Notifications",
+                        stringResource(id = R.string.settings_notifications_section),
                         icon = Icons.Default.Notifications
                     )
                     {
@@ -359,7 +361,7 @@ fun SettingsScreenContent(
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                 ToggleSetting(
-                                    label = "Notifications activées",
+                                    label = stringResource(id = R.string.settings_notifications_enabled),
                                     checked = notificationsEnabled,
                                     enabled = !isAuthLoading
                                 ) { notificationsEnabled = it }
@@ -375,7 +377,7 @@ fun SettingsScreenContent(
                                     enabled = !isAuthLoading,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("Enregistrer les réglages")
+                                    Text(stringResource(id = R.string.settings_save_settings_button))
                                 }
                             }
                         }
