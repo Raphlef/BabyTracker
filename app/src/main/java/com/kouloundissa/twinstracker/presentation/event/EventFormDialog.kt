@@ -17,12 +17,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -285,14 +287,14 @@ fun EventFormDialogContent(
                     showDeleteConfirm = false
                 }) {
                     Text(
-                        stringResource(id = R.string.delete_button_confirm),
+                        stringResource(id = R.string.delete_button),
                         color = MaterialTheme.colorScheme.error
                     )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text(stringResource(id = R.string.cancel_button_confirm))
+                    Text(stringResource(id = R.string.cancel_button))
                 }
             }
         )
@@ -325,6 +327,7 @@ fun EventFormDialogContent(
                     ),
                 )
                 .systemBarsPadding()
+                .navigationBarsPadding()
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -522,8 +525,15 @@ fun EventFormDialogContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Cancel button
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(id = R.string.cancel_button_confirm), color = DarkBlue)
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.height(40.dp)
+            ) {
+                Text(
+                    stringResource(id = R.string.cancel_button),
+                    color = DarkBlue,
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
 
             // Delete button - only in edit mode
@@ -539,7 +549,9 @@ fun EventFormDialogContent(
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = Color.Red,
                         disabledContentColor = Color.Gray
-                    )
+                    ),
+                    modifier = Modifier.height(40.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
                 ) {
                     if (isDeleting) {
                         CircularProgressIndicator(
@@ -548,7 +560,10 @@ fun EventFormDialogContent(
                             color = Color.Gray
                         )
                     } else {
-                        Text(stringResource(id = R.string.delete_button_confirm))
+                        Text(
+                            stringResource(id = R.string.delete_button),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                 }
             }
@@ -565,7 +580,8 @@ fun EventFormDialogContent(
                 },
                 enabled = !isSaving,
                 shape = cornerShape,
-                modifier = Modifier.height(56.dp)
+                modifier = Modifier
+                    .height(56.dp)
             ) {
                 if (isSaving) {
                     CircularProgressIndicator(
