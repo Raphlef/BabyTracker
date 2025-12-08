@@ -42,11 +42,13 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.Gender
+import com.kouloundissa.twinstracker.data.getDisplayName
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
@@ -164,6 +166,7 @@ private fun BabyInfoHeaderContent(
     baby: Baby?,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val backgroundColor = BackgroundColor
     val tint = DarkBlue
     Row(
@@ -195,7 +198,7 @@ private fun BabyInfoHeaderContent(
 
             if (baby?.gender != Gender.UNKNOWN) {
                 Text(
-                    text = baby?.gender?.displayName ?: "",
+                    text = baby?.gender?.getDisplayName(context) ?: "",
                     style = MaterialTheme.typography.bodyMedium,
                     color = tint.copy(alpha = 0.85f),
                     maxLines = 1
@@ -259,7 +262,7 @@ private fun BabySelectorItem(
     isSelected: Boolean,
     onSelect: () -> Unit
 ) {
-
+    val context = LocalContext.current
     val contentColor = DarkGrey
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
@@ -308,7 +311,7 @@ private fun BabySelectorItem(
                 )
 
                 Text(
-                    text = baby.gender.displayName,
+                    text = baby.gender.getDisplayName(context),
                     style = MaterialTheme.typography.bodySmall,
                     color = tint.copy(alpha = 0.65f),
                     maxLines = 1

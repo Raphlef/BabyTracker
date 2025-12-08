@@ -35,10 +35,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.AnalysisRange
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.EventType
@@ -136,7 +138,7 @@ private fun FilterPanelHeader(
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Filters",
+                text = stringResource(id = R.string.filters),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = tint
@@ -226,7 +228,7 @@ private fun FilterPanelContent(
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("Clear Filters")
+                Text(stringResource(id = R.string.clear_filters))
             }
         }
     }

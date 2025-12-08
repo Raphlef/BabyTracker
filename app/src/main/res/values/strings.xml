@@ -97,9 +97,14 @@
 
     <string name="chart_weight">Weight Growth (kg)</string>
     <string name="chart_height">Length Growth (cm)</string>
-    <string name="chart_head">Head Circumference (cm)</string>
     <string name="chart_baby_label">Baby</string>
     <string name="chart_percentile_format">%dth pct</string>
+
+    <!-- ========== ANALYSIS SCREEN - Filter LABELS ========== -->
+    <string name="filters">Filters</string>
+    <string name="clear_filters">Clear Filters</string>
+    <string name="date_range">"Date Range"</string>
+    <string name="selected_count_format">%d selected</string>
 
     <!-- ========== ANALYSIS SCREEN - DATE RANGE LABELS ========== -->
     <string name="range_1_day">1 Day</string>
@@ -109,6 +114,44 @@
     <string name="range_1_month">1 Month</string>
     <string name="range_3_months">3 Months</string>
     <string name="range_custom">Custom</string>
+
+    <!-- ========== GENDER ENUM ========== -->
+    <string name="gender_male">Boy</string>
+    <string name="gender_female">Girl</string>
+    <string name="gender_other">Non Binary</string>
+    <string name="gender_prefer_not_to_say">Prefer not to say</string>
+    <string name="gender_unknown">Unspecified</string>
+
+    <!-- ========== BABY FORM - HEADER ========== -->
+    <string name="baby_form_title_edit">Edit Baby</string>
+    <string name="baby_form_title_create">Create Baby</string>
+
+    <!-- ========== BABY FORM - FIELDS ========== -->
+    <string name="baby_name_label">Baby Name</string>
+    <string name="baby_name_error">Name is required</string>
+    <string name="date_of_birth_label">Date of Birth</string>
+    <string name="gender_label">Gender</string>
+    <string name="weight_form_label">Weight (kg)</string>
+    <string name="length_form_label">Length (cm)</string>
+    <string name="head_circumference">Head Circumference (cm)</string>
+    <string name="blood_type_label">Blood Type</string>
+    <string name="allergies_label">Allergies (comma separated)</string>
+    <string name="medical_conditions_label">Medical Conditions (comma separated)</string>
+    <string name="pediatrician_contact_label">Pediatrician Contact</string>
+    <string name="pick_contact_description">Pick Contact</string>
+
+    <!-- ========== BABY FORM - VALIDATION ========== -->
+    <string name="invalid_number">Invalid number</string>
+
+    <!-- ========== BABY FORM - BUTTONS ========== -->
+    <string name="baby_form_save_button">Save</string>
+    <string name="baby_form_create_button">Create</string>
+    <string name="baby_form_creating_button">Creating…</string>
+
+    <!-- ========== BABY DELETE DIALOG ========== -->
+    <string name="delete_baby_title">Delete %s</string>
+    <string name="delete_baby_irreversible">This action is irreversible.</string>
+    <string name="delete_baby_events_warning">⚠️ %d associated event(s) will also be deleted.</string>
 
     <!-- ========== EVENT TYPES - ENUM DISPLAY NAMES ========== -->
     <string name="event_type_diaper">Diaper</string>
@@ -207,7 +250,6 @@
     <string name="body_measurements_title">Body Measurements</string>
     <string name="weight_label">Weight (kg)</string>
     <string name="height_label">Height (cm)</string>
-    <string name="head_circumference_label">Head Circumference (cm)</string>
 
     <!-- ========== EVENT FORM DIALOG - DRUGS ========== -->
     <string name="drug_type_label">Drug Type</string>

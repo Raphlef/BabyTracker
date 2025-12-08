@@ -59,14 +59,17 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.BloodType
 import com.kouloundissa.twinstracker.data.Gender
+import com.kouloundissa.twinstracker.data.getDisplayName
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
@@ -344,7 +347,10 @@ private fun BabyFormBottomSheetContent(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = if (isEditMode) "Edit Baby" else "Create Baby",
+                text = if (isEditMode)
+                    stringResource(id = R.string.baby_form_title_edit)
+                else
+                    stringResource(id = R.string.baby_form_title_create),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = backgroundColor,
@@ -451,7 +457,7 @@ private fun BabyFormActionButtons(
                         disabledContentColor = Color.Gray
                     )
                 ) {
-                    Text("Delete")
+                    Text(stringResource(id = R.string.delete_button_confirm))
                 }
             }
 
@@ -481,9 +487,19 @@ private fun BabyFormActionButtons(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text(if (isEditMode) "Saving..." else "Creating...")
+                    Text(
+                        if (isEditMode)
+                            stringResource(id = R.string.saving_button)
+                        else
+                            stringResource(id = R.string.baby_form_creating_button)
+                    )
                 } else {
-                    Text(if (isEditMode) "Save" else "Create")
+                    Text(
+                        if (isEditMode)
+                            stringResource(id = R.string.baby_form_save_button)
+                        else
+                            stringResource(id = R.string.baby_form_create_button)
+                    )
                 }
             }
         }
@@ -576,12 +592,12 @@ private fun BabyFormContent(
             if (state.nameError) state.nameError = false
         },
         textStyle = LocalTextStyle.current.copy(color = backgroundColor),
-        label = { Text("Baby Name*", color = backgroundColor) },
+        label = { Text(stringResource(id = R.string.baby_name_label), color = backgroundColor) },
         isError = state.nameError,
         modifier = Modifier.fillMaxWidth(),
         shape = cornerShape,
     )
-    if (state.nameError) Text("Name is required", color = Color.Red)
+    if (state.nameError) Text(stringResource(id = R.string.baby_name_error), color = Color.Red)
 
     Spacer(Modifier.height(16.dp))
 
@@ -600,7 +616,7 @@ private fun BabyFormContent(
     Spacer(Modifier.height(16.dp))
 
     ModernDateSelector(
-        label = "Date of Birth",
+        label = stringResource(id = R.string.date_of_birth_label),
         selectedDate = Date(state.birthDateTimeMillis),
         onDateSelected = { dt -> state.birthDateTimeMillis = dt.time },
         modifier = Modifier.fillMaxWidth()
@@ -609,18 +625,18 @@ private fun BabyFormContent(
     Spacer(Modifier.height(16.dp))
 
     IconSelector(
-        title = "Gender",
+        title = stringResource(id = R.string.gender_label),
         options = Gender.entries,
         selected = state.gender,
         onSelect = { state.gender = it },
         getIcon = { it.icon },
         getColor = { it.color },
-        getLabel = { it.displayName }
+        getLabel = { it.getDisplayName(context) }
     )
     Spacer(Modifier.height(16.dp))
 
     NumericFieldSection(
-        label = "Weight (kg)",
+        label = stringResource(id = R.string.weight_form_label),
         value = state.weight,
         onChange = { state.weight = it },
         error = state.weightError,
@@ -630,7 +646,7 @@ private fun BabyFormContent(
     Spacer(Modifier.height(12.dp))
 
     NumericFieldSection(
-        label = "Length (cm)",
+        label = stringResource(id = R.string.length_form_label),
         value = state.lengthCm,
         onChange = { state.lengthCm = it },
         error = state.lengthError,
@@ -640,7 +656,7 @@ private fun BabyFormContent(
     Spacer(Modifier.height(12.dp))
 
     NumericFieldSection(
-        label = "Head Circumference (cm)",
+        label = stringResource(id = R.string.head_circumference),
         value = state.headCirc,
         onChange = { state.headCirc = it },
         error = state.headCircError,
@@ -651,7 +667,7 @@ private fun BabyFormContent(
 
 
     IconSelector(
-        title = "Blood Type",
+        title = stringResource(id = R.string.blood_type_label),
         options = BloodType.entries.toList(),
         selected = state.bloodType,
         onSelect = { state.bloodType = it },
@@ -665,7 +681,7 @@ private fun BabyFormContent(
         value = state.allergies,
         onValueChange = { state.allergies = it },
         textStyle = LocalTextStyle.current.copy(color = backgroundColor),
-        label = { Text("Allergies (comma separated)", color = backgroundColor) },
+        label = { Text(stringResource(id = R.string.allergies_label), color = backgroundColor) },
         shape = cornerShape,
         modifier = Modifier.fillMaxWidth()
     )
@@ -675,7 +691,12 @@ private fun BabyFormContent(
         value = state.conditions,
         onValueChange = { state.conditions = it },
         textStyle = LocalTextStyle.current.copy(color = backgroundColor),
-        label = { Text("Medical Conditions (comma separated)", color = backgroundColor) },
+        label = {
+            Text(
+                stringResource(id = R.string.medical_conditions_label),
+                color = backgroundColor
+            )
+        },
         modifier = Modifier.fillMaxWidth(),
         shape = cornerShape,
     )
@@ -685,14 +706,19 @@ private fun BabyFormContent(
         value = state.pediatricianContact,
         onValueChange = { /* read-only */ },
         textStyle = LocalTextStyle.current.copy(color = backgroundColor),
-        label = { Text("Pediatrician Contact", color = backgroundColor) },
+        label = {
+            Text(
+                stringResource(id = R.string.pediatrician_contact_label),
+                color = backgroundColor
+            )
+        },
         readOnly = true,
         singleLine = true,
         trailingIcon = {
             IconButton(onClick = { contactLauncher.launch(null) }) {
                 Icon(
                     Icons.Default.Person,
-                    contentDescription = "Pick Contact",
+                    contentDescription = stringResource(id = R.string.pick_contact_description),
                     tint = backgroundColor
                 )
             }
@@ -705,7 +731,7 @@ private fun BabyFormContent(
         value = state.notes,
         onValueChange = { state.notes = it },
         textStyle = LocalTextStyle.current.copy(color = backgroundColor),
-        label = { Text("Notes", color = backgroundColor) },
+        label = { Text(stringResource(id = R.string.notes_label), color = backgroundColor) },
         shape = cornerShape,
         modifier = Modifier
             .fillMaxWidth()
@@ -726,6 +752,7 @@ private fun NumericFieldSection(
     error: String?,
     onErrorChange: (String?) -> Unit
 ) {
+    val context = LocalContext.current
     val contentColor = Color.White
     val cornerShape = MaterialTheme.shapes.extraLarge
 
@@ -738,7 +765,7 @@ private fun NumericFieldSection(
             onChange(cleaned)
             onErrorChange(
                 if (cleaned.isNotBlank() && cleaned.toDoubleOrNull() == null)
-                    "Nombre invalide" else null
+                    context.getString(R.string.invalid_number) else null
             )
         },
         textStyle = LocalTextStyle.current.copy(color = contentColor),
@@ -766,14 +793,14 @@ private fun DeleteConfirmationDialog(
     val totalEvents = remember { totalEventsProvider() }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Delete $babyName") },
+        title = { Text(stringResource(id = R.string.delete_baby_title, babyName)) },
         text = {
             Column {
-                Text("This action is irreversible.")
+                Text(stringResource(id = R.string.delete_baby_irreversible))
                 if (totalEvents > 0) {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "⚠️ $totalEvents associated event(s) will also be deleted.",
+                        stringResource(id = R.string.delete_baby_events_warning, totalEvents),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -781,12 +808,12 @@ private fun DeleteConfirmationDialog(
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("Delete", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(id = R.string.delete_button_confirm), color = MaterialTheme.colorScheme.error)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(id = R.string.cancel_button_confirm))
             }
         }
     )

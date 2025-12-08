@@ -964,7 +964,7 @@ fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) {
                             )
                         }
                     },
-                    label = stringResource(id = R.string.head_circumference_label),
+                    label = stringResource(id = R.string.head_circumference),
                     modifier = Modifier.fillMaxWidth(),
                     max = 60f
                 )

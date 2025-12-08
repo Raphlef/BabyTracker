@@ -369,7 +369,7 @@ fun AnalysisScreen(
                                 "${pct.toInt()}$percentileFormat" to aligned
                             }
                         }
-                        AnalysisCard(title = stringResource(id = R.string.chart_head)) {
+                        AnalysisCard(title = stringResource(id = R.string.head_circumference)) {
                             MultiLineChartView(
                                 labels = chartLabels,
                                 series = listOf(stringResource(id = R.string.chart_baby_label) to heads) + headPercentileCurves.map { (label, data) ->

@@ -1,61 +1,8 @@
 package com.kouloundissa.twinstracker.data // Ensure this matches your package structure [1]
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material.icons.filled.*
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import com.google.firebase.firestore.IgnoreExtraProperties
-import java.util.UUID // For generating unique IDs
+import java.util.UUID
 
-// Enum for Gender, if not already defined elsewhere
-@IgnoreExtraProperties
-enum class Gender(
-    val icon: ImageVector,
-    val displayName: String,
-    val emoji: String,
-    val color: Color
-) {
-    MALE(
-        Icons.Filled.Male,
-        "Garçon",
-        "\uD83D\uDC66",
-        Color(0xFF42A5F5)
-    ),                          // Blue
-    FEMALE(
-        Icons.Filled.Female,
-        "Fille",
-        "\uD83D\uDC67",
-        Color(0xFFEC407A)
-    ),                        // Pink
-    OTHER(
-        Icons.Filled.Transgender,
-        "Non Binaire",
-        "\uD83E\uDDD1\u200D\uD83E\uDDB1",
-        Color(0xFFAB47BC)
-    ),  // Purple
-    PREFER_NOT_TO_SAY(
-        Icons.Filled.VisibilityOff,
-        "Prefer not to say",
-        "❓",
-        Color(0xFFFFCA28)
-    ),   // Amber
-    UNKNOWN(
-        Icons.AutoMirrored.Filled.HelpOutline,
-        "Unspecified",
-        "❔",
-        Color(0xFF9E9E9E)
-    )         // Gray
-
-}
-
-enum class BloodType(val icon: ImageVector, val color: Color) {
-    A(Icons.Filled.Bloodtype, Color(0xFFEF5350)),           // Red
-    B(Icons.Filled.Bloodtype, Color(0xFFFFB74D)),           // Orange
-    AB(Icons.Filled.Bloodtype, Color(0xFF66BB6A)),          // Green
-    O(Icons.Filled.Bloodtype, Color(0xFF29B6F6)),           // Blue
-    UNKNOWN(Icons.AutoMirrored.Filled.HelpOutline, Color(0xFF9E9E9E))  // Gray
-}
 
 @IgnoreExtraProperties
 data class Baby(

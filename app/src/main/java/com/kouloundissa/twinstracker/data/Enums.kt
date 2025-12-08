@@ -3,8 +3,10 @@ package com.kouloundissa.twinstracker.data
 import android.content.Context
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.BabyChangingStation
+import androidx.compose.material.icons.filled.Bloodtype
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
@@ -12,17 +14,21 @@ import androidx.compose.material.icons.filled.ChildCare
 import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Female
 import androidx.compose.material.icons.filled.Grain
 import androidx.compose.material.icons.filled.Healing
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.InvertColorsOff
 import androidx.compose.material.icons.filled.LocalDrink
 import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.Male
 import androidx.compose.material.icons.filled.Merge
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Opacity
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Transgender
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.WbTwilight
@@ -30,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.google.firebase.firestore.IgnoreExtraProperties
 import com.kouloundissa.twinstracker.R
 
 
@@ -222,4 +229,54 @@ enum class DashboardTab(val label: String, val icon: @Composable () -> Unit) {
 
     // Settings("Settings", { Icon(Icons.Default.Settings, contentDescription = "Settings") }),
     Baby("Baby", { Icon(Icons.Default.ChildCare, contentDescription = "Baby") }),
+}
+
+@IgnoreExtraProperties
+enum class Gender(
+    val icon: ImageVector,
+    internal @StringRes val displayNameRes: Int,
+    val emoji: String,
+    val color: Color
+) {
+    MALE(
+        Icons.Filled.Male,
+        R.string.gender_male,
+        "\uD83D\uDC66",
+        Color(0xFF42A5F5)
+    ),                          // Blue
+    FEMALE(
+        Icons.Filled.Female,
+        R.string.gender_female,
+        "\uD83D\uDC67",
+        Color(0xFFEC407A)
+    ),                        // Pink
+    OTHER(
+        Icons.Filled.Transgender,
+        R.string.gender_other,
+        "\uD83E\uDDD1\u200D\uD83E\uDDB1",
+        Color(0xFFAB47BC)
+    ),  // Purple
+    PREFER_NOT_TO_SAY(
+        Icons.Filled.VisibilityOff,
+        R.string.gender_prefer_not_to_say,
+        "❓",
+        Color(0xFFFFCA28)
+    ),   // Amber
+    UNKNOWN(
+        Icons.AutoMirrored.Filled.HelpOutline,
+        R.string.gender_unknown,
+        "❔",
+        Color(0xFF9E9E9E)
+    )         // Gray
+
+}
+fun Gender.getDisplayName(context: Context): String {
+    return context.getString(this.displayNameRes)
+}
+enum class BloodType(val icon: ImageVector, val color: Color) {
+    A(Icons.Filled.Bloodtype, Color(0xFFEF5350)),           // Red
+    B(Icons.Filled.Bloodtype, Color(0xFFFFB74D)),           // Orange
+    AB(Icons.Filled.Bloodtype, Color(0xFF66BB6A)),          // Green
+    O(Icons.Filled.Bloodtype, Color(0xFF29B6F6)),           // Blue
+    UNKNOWN(Icons.AutoMirrored.Filled.HelpOutline, Color(0xFF9E9E9E))  // Gray
 }

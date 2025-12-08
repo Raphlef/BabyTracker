@@ -30,9 +30,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.AnalysisRange
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
@@ -107,7 +109,7 @@ fun DateRangeFilterSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Date Range",
+                text = stringResource(id = R.string.date_range),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = tint
@@ -263,7 +265,7 @@ fun EventTypeFilterSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Event Type",
+                text = stringResource(id = R.string.event_type_label),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = DarkBlue
@@ -271,7 +273,7 @@ fun EventTypeFilterSection(
 
             if (selectedCount > 0) {
                 Text(
-                    text = "$selectedCount selected",
+                    text = stringResource(id = R.string.selected_count_format, selectedCount),
                     style = MaterialTheme.typography.bodySmall,
                     color = DarkBlue.copy(alpha = 0.7f)
                 )
