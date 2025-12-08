@@ -47,10 +47,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
@@ -62,7 +64,7 @@ fun AmountInput(
     modifier: Modifier = Modifier,
     min: Int = 0,
     max: Int = 300,
-    label: String = "Amount (ml)",
+    label: String = stringResource(id = R.string.amount_label),
     step: Int = 5,
     presets: List<Int> = listOf(50, 100, 150, 200)
 ) {

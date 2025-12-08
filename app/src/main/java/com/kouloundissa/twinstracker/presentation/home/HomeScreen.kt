@@ -56,12 +56,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
@@ -343,7 +345,7 @@ fun HomeScreen(
                     item {
                         Spacer(Modifier.height(24.dp))
                         Text(
-                            "Recent Events",
+                            stringResource(id = R.string.recent_events),
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.headlineMedium,
                             modifier = Modifier

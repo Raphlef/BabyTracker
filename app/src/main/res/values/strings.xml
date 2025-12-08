@@ -117,6 +117,8 @@
     <string name="event_type_growth">Growth</string>
     <string name="event_type_pumping">Pumping</string>
     <string name="event_type_drugs">Drugs</string>
+    <string name="event_type_today_summary">Today\'s Summary</string>
+    <string name="event_type_add_event">Add New Event</string>
 
     <!-- ========== DIAPER TYPE ========== -->
     <string name="diaper_type_wet">Wet</string>
@@ -163,6 +165,7 @@
     <string name="time_placeholder">Select time</string>
     <string name="current_time">Current Time</string>
     <string name="custom_time">Custom Time</string>
+    <string name="date_time_label">Event Date &amp; Time</string>
 
     <!-- ========== EVENT FORM DIALOG - SELECTIONS ========== -->
     <string name="baby_label">Baby</string>
@@ -225,6 +228,17 @@
     <!-- ========== EVENT FORM DIALOG - MESSAGES ========== -->
     <string name="delete_event_title">Delete Event</string>
     <string name="delete_event_message">Are you sure you want to delete this event?</string>
+
+    <!-- ========== EVENT LIST ========== -->
+    <string name="recent_events">Recent Events</string>
+    <string name="events_on_date_format">Events on %1$s (%2$d)</string>
+    <string name="no_events">No events</string>
+
+    <!-- ========== PHOTO PICKER ========== -->
+    <string name="select_photo_title">Select Photo</string>
+    <string name="select_photo_description">Choose an option</string>
+    <string name="take_photo_button">Take Photo</string>
+    <string name="choose_from_library_button">Choose from Library</string>
 
     <!-- ========== TOPAPPBAR (Existing) ========== -->
     <string name="back_button_description">Back</string>

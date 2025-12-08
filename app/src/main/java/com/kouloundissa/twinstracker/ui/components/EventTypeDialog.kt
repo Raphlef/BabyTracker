@@ -50,11 +50,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
@@ -266,7 +268,7 @@ private fun EventTypeDialogContent(
                 TextButton(
                     onClick = { onAdd(type) }
                 ) {
-                    Text("Add New Event", color = backgroundColor)
+                    Text(stringResource(id = R.string.event_type_add_event), color = backgroundColor)
                 }
             }
         }
@@ -418,7 +420,7 @@ private fun EventTypeHeaderPanel(
                 modifier = Modifier.padding(12.dp)
             ) {
                 Text(
-                    text = "Today's Summary",
+                    text = stringResource(id = R.string.event_type_today_summary),
                     style = MaterialTheme.typography.labelSmall,
                     color = contentColor.copy(alpha = 0.8f)
                 )

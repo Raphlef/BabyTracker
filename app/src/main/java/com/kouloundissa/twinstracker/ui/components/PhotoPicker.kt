@@ -1,6 +1,5 @@
 package com.kouloundissa.twinstracker.ui.components
 
-import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -42,13 +41,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.google.firebase.BuildConfig
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
@@ -239,8 +238,8 @@ fun PhotoPicker(
         if (showDialog) {
             AlertDialog(
                 onDismissRequest = { showDialog = false },
-                title = { Text("Select Photo") },
-                text = { Text("Choose an option") },
+                title = { Text(stringResource(id = R.string.select_photo_title)) },
+                text = { Text(stringResource(id = R.string.select_photo_description)) },
                 confirmButton = {
                     TextButton(onClick = {
                         showDialog = false
@@ -249,7 +248,7 @@ fun PhotoPicker(
                             cameraLauncher.launch(uri)
                         }
                     }) {
-                        Text("Take Photo")
+                        Text(stringResource(id = R.string.take_photo_button))
                     }
                 },
                 dismissButton = {
@@ -257,7 +256,7 @@ fun PhotoPicker(
                         showDialog = false
                         galleryLauncher.launch("image/*")
                     }) {
-                        Text("Choose from Library")
+                        Text(stringResource(id = R.string.choose_from_library_button))
                     }
                 }
             )

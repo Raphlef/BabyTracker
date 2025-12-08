@@ -28,9 +28,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.SleepEvent
@@ -204,8 +206,11 @@ fun CalendarScreen(
                     }
                 item {
                     Text(
-                        "Events on ${selectedDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy"))} " +
-                                "(${dailyEvents.size})",
+                        stringResource(
+                            id = R.string.events_on_date_format,
+                            selectedDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy")),
+                            dailyEvents.size
+                        ),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.headlineMedium,
                         color = BackgroundColor
@@ -228,7 +233,7 @@ fun CalendarScreen(
                 }
                 item {
                     if (dailyEvents.isEmpty()) {
-                        Text("No events", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(id = R.string.no_events), style = MaterialTheme.typography.bodyMedium)
                     } else {
                         DayTimeline(
                             date = selectedDate,

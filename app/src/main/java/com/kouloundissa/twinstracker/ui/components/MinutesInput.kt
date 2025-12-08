@@ -30,9 +30,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
@@ -41,7 +43,7 @@ import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 fun MinutesInput(
     value: String,
     onValueChange: (String) -> Unit,
-    label: String = "Duration (min)",
+    label: String = stringResource(id = R.string.duration_label),
     modifier: Modifier = Modifier,
     presets: List<Int> = listOf(5, 10, 15, 20)
 ) {
