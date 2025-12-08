@@ -354,7 +354,7 @@ class FirebaseCache(
         val todayStart = getDayStart(now)
 
 
-        val rangeIncludesToday = requestedStart <= todayStart && requestedEnd > todayStart
+        val rangeIncludesToday = todayStart in requestedStart..<requestedEnd
 
         Log.d(
             TAG,
