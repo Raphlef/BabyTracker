@@ -4,7 +4,7 @@
     <string name="app_name" translatable="false">TwinsTracker</string>
 
     <!-- ========== AUTH SCREEN - MAIN TITLE ========== -->
-    <string name="twins_tracker_title" translatable="false">Twins Tracker</string>
+    <string name="twins_tracker_title" translatable="false">TwinsTracker</string>
 
     <!-- ========== AUTH SCREEN - LOADING STATES ========== -->
     <string name="authenticating">Authenticating...</string>
