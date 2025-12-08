@@ -746,7 +746,7 @@ sealed class EventFormState {
         val feedType: FeedType = FeedType.FORMULA,
         val amountMl: String = "",
         val durationMin: String = "",
-        val breastSide: BreastSide? = null,
+        val breastSide: BreastSide? = BreastSide.BOTH,
         val notes: String = "",
     ) : EventFormState()
 
