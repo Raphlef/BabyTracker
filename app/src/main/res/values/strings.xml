@@ -275,6 +275,9 @@
     <string name="recent_events">Recent Events</string>
     <string name="events_on_date_format">Events on %1$s (%2$d)</string>
     <string name="no_events">No events</string>
+    <string name="events">events</string>
+    <string name="date_with_event_count">%1$s (%2$d events)</string>
+    <string name="loading_events">Loading older events…</string>
 
     <!-- ========== PHOTO PICKER ========== -->
     <string name="select_photo_title">Select Photo</string>

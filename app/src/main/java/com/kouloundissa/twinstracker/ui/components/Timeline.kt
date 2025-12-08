@@ -60,9 +60,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.DiaperEvent
 import com.kouloundissa.twinstracker.data.DrugType
 import com.kouloundissa.twinstracker.data.DrugsEvent
@@ -98,7 +100,7 @@ fun LazyListScope.timelineItemsContent(
     if (eventsByDate.isEmpty()) {
         item {
             Text(
-                "No events yet",
+                stringResource(id = R.string.no_events),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(32.dp),
@@ -187,7 +189,11 @@ private fun DayHeader(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            text = formattedDate + " (${events.size} events)",
+            text = stringResource(
+                id = R.string.date_with_event_count,
+                formattedDate,
+                events.size
+            ),
             style = MaterialTheme.typography.labelMedium,
             color = tint
         )
@@ -230,7 +236,7 @@ private fun LoadingMoreIndicator(modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    "Loading older events…",
+                    stringResource(id = R.string.loading_events),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
