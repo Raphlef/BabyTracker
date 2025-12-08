@@ -458,7 +458,7 @@ private fun BabyFormActionButtons(
                         disabledContentColor = Color.Gray
                     )
                 ) {
-                    Text(stringResource(id = R.string.delete_button_confirm))
+                    Text(stringResource(id = R.string.delete_button))
                 }
             }
 
@@ -809,12 +809,12 @@ private fun DeleteConfirmationDialog(
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text(stringResource(id = R.string.delete_button_confirm), color = MaterialTheme.colorScheme.error)
+                Text(stringResource(id = R.string.delete_button), color = MaterialTheme.colorScheme.error)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(id = R.string.cancel_button_confirm))
+                Text(stringResource(id = R.string.cancel_button))
             }
         }
     )

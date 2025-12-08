@@ -342,7 +342,7 @@ fun SettingsScreenContent(
                                 TextButton(
                                     onClick = { showLogoutDialog = false }
                                 ) {
-                                    Text(stringResource(id = R.string.cancel_button_confirm))
+                                    Text(stringResource(id = R.string.cancel_button))
                                 }
                             }
                         )

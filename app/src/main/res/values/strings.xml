@@ -261,8 +261,8 @@
     <!-- ========== EVENT FORM DIALOG - BUTTONS ========== -->
     <string name="event_form_add_event">Add Event</string>
     <string name="event_form_edit_event">Edit Event</string>
-    <string name="cancel_button_confirm">Cancel</string>
-    <string name="delete_button_confirm">Delete</string>
+    <string name="cancel_button">Cancel</string>
+    <string name="delete_button">Delete</string>
     <string name="create_event_button">Create Event</string>
     <string name="update_event_button">Update Event</string>
     <string name="saving_button">Saving…</string>
