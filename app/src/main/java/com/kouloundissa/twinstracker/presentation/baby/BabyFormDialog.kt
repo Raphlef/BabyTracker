@@ -426,7 +426,8 @@ private fun BabyFormActionButtons(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp, bottom = 64.dp)
+            .navigationBarsPadding()
+            .padding(top = 12.dp, bottom = 54.dp)
             .background(
                 color = backgroundColor.copy(alpha = 0.7f),
                 shape = cornerShape
