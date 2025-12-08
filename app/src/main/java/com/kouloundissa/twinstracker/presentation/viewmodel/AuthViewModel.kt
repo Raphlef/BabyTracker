@@ -124,8 +124,8 @@ class AuthViewModel @Inject constructor(
                 val errorMsg = context.getString(R.string.google_signin_failed)
                 _state.update {
                     it.copy(
-                        currentStep = AuthStep.Error("$errorMsg: ${e.message}"),
-                        error = "$errorMsg: ${e.message}"
+                        currentStep = AuthStep.Error("$errorMsg: ${e.localizedMessage}"),
+                        error = "$errorMsg: ${e.localizedMessage}"
                     )
                 }
             }
@@ -167,7 +167,7 @@ class AuthViewModel @Inject constructor(
                     is FirebaseAuthInvalidUserException -> context.getString(R.string.user_not_found)
                     is FirebaseAuthInvalidCredentialsException -> context.getString(R.string.invalid_email_password)
                     is FirebaseNetworkException -> context.getString(R.string.network_error)
-                    else -> "${context.getString(R.string.login_failed)}: ${e.message}"
+                    else -> "${context.getString(R.string.login_failed)}: ${e.localizedMessage}"
                 }
 
                 _state.update {
@@ -230,7 +230,7 @@ class AuthViewModel @Inject constructor(
                         context.getString(R.string.invalid_email)
                     is FirebaseAuthUserCollisionException ->
                         context.getString(R.string.email_already_used)
-                    is IllegalArgumentException -> e.message ?: context.getString(R.string.validation_error)
+                    is IllegalArgumentException -> e.localizedMessage ?: context.getString(R.string.validation_error)
                     else -> "${context.getString(R.string.register_failed)}: ${e.message}"
                 }
 
@@ -353,7 +353,7 @@ class AuthViewModel @Inject constructor(
                     is FirebaseAuthInvalidUserException -> context.getString(R.string.user_not_found)
                     is FirebaseAuthInvalidCredentialsException -> context.getString(R.string.invalid_email)
                     is FirebaseNetworkException -> context.getString(R.string.network_error)
-                    else -> "${context.getString(R.string.password_reset_error)}: ${e.message}"
+                    else -> "${context.getString(R.string.password_reset_error)}: ${e.localizedMessage}"
                 }
 
                 _state.update {
@@ -398,7 +398,7 @@ class AuthViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                val errorMsg = "${context.getString(R.string.profile_update_failed)}: ${e.message}"
+                val errorMsg = "${context.getString(R.string.profile_update_failed)}: ${e.localizedMessage}"
                 _state.update {
                     it.copy(
                         currentStep = AuthStep.Error(errorMsg),
@@ -425,7 +425,7 @@ class AuthViewModel @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e("Auth", context.getString(R.string.profile_load_error), e)
-            val errorMsg = "${context.getString(R.string.profile_load_error)}: ${e.message}"
+            val errorMsg = "${context.getString(R.string.profile_load_error)}: ${e.localizedMessage}"
             _state.update {
                 it.copy(
                     currentStep = AuthStep.Error(errorMsg),

@@ -56,7 +56,7 @@ class BabyViewModel @Inject constructor(
         }
         .catch { e ->
             _isLoading.value = false
-            _errorMessage.value = "Failed to load babies: ${e.message}"
+            _errorMessage.value = "Failed to load babies: ${e.localizedMessage}"
             emit(emptyList())
         }
         .stateIn(
@@ -106,7 +106,7 @@ class BabyViewModel @Inject constructor(
                     if (ids.isEmpty()) emptyList()
                     else repository.getUsersByIds(ids)
             } catch (e: Exception) {
-                _errorMessage.value = "Erreur chargement parents : ${e.message}"
+                _errorMessage.value = "Erreur chargement parents : ${e.localizedMessage}"
             } finally {
                 _isLoading.value = false
             }
@@ -307,7 +307,7 @@ class BabyViewModel @Inject constructor(
                 }
 
             } catch (e: Exception) {
-                _errorMessage.value = "Échec de la suppression : ${e.message}"
+                _errorMessage.value = "Échec de la suppression : ${e.localizedMessage}"
             } finally {
                 _isLoading.value = false
             }

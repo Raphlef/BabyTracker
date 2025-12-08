@@ -39,7 +39,7 @@ object FirebaseValidators {
         validateEmail(email)
         null
     } catch (e: IllegalArgumentException) {
-        e.message
+        e.localizedMessage
     }
 
 }

@@ -422,7 +422,7 @@ class FamilyViewModel @Inject constructor(
                 _state.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "Failed to join family"
+                        error = e.localizedMessage ?: "Failed to join family"
                     )
                 }
             }
@@ -443,7 +443,7 @@ class FamilyViewModel @Inject constructor(
                 _state.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "Failed to load families"
+                        error = e.localizedMessage ?: "Failed to load families"
                     )
                 }
             }
