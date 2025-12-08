@@ -792,13 +792,18 @@ class FirebaseRepository @Inject constructor(
         listenerStart: Date,
         listenerStartDay: Date
     ) {
+        val now = System.currentTimeMillis()
+        val freshThresholdMs = CacheTTL.FRESH.ageThresholdMs
+
         // Load stable events from previous day if listener spans midnight
         if (listenerStart.time < todayStart.time) {
             Log.d(TAG, "  → Listener spans previous day, loading yesterday's stable cache")
             loadStableEventsFromDay(
                 babyId, listenerStartDay, firebaseCache, allEvents,
-                rangeStart = listenerStart.time,
-                rangeEnd = todayStart.time
+                // Load events that are now stable (created >6h ago)
+                filterPredicate = { event ->
+                    now - event.timestamp.time >= freshThresholdMs
+                },
             )
         }
 
@@ -807,8 +812,10 @@ class FirebaseRepository @Inject constructor(
             Log.d(TAG, "  → Loading today's stable cache")
             loadStableEventsFromDay(
                 babyId, todayStart, firebaseCache, allEvents,
-                rangeStart = todayStart.time,
-                rangeEnd = listenerStart.time
+                filterPredicate = { event ->
+                    event.timestamp.time < listenerStart.time &&
+                            now - event.timestamp.time >= freshThresholdMs
+                },
             )
         }
     }
@@ -821,8 +828,7 @@ class FirebaseRepository @Inject constructor(
         dayStart: Date,
         firebaseCache: FirebaseCache,
         allEvents: MutableMap<String, Event>,
-        rangeStart: Long,
-        rangeEnd: Long
+        filterPredicate: (Event) -> Boolean,
     ) {
         val dayCache = firebaseCache.getCachedDayEvents(babyId, dayStart)
         if (dayCache == null) {
@@ -830,9 +836,7 @@ class FirebaseRepository @Inject constructor(
             return
         }
 
-        val relevantEvents = dayCache.events.filter { event ->
-            event.timestamp.time >= rangeStart && event.timestamp.time < rangeEnd
-        }
+        val relevantEvents = dayCache.events.filter(filterPredicate)
 
         relevantEvents.forEach { event ->
             allEvents[event.id] = event
