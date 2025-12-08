@@ -338,6 +338,20 @@ fun ComboChartView(
     val scaleRatio = if (leftRange > 0) rightRange / leftRange else 1f
     val needsDualAxes = scaleRatio > 5f || scaleRatio < 0.2f
 
+    // If not using dual axes, merge ranges so all data fits
+    val (finalLeftMin, finalLeftMax) = remember(
+        leftAxisMin, leftAxisMax, rightAxisMin, rightAxisMax, needsDualAxes
+    ) {
+        if (needsDualAxes) {
+            Pair(leftAxisMin, leftAxisMax)
+        } else {
+            // Merge both ranges to accommodate all data on single axis
+            val minValue = minOf(leftAxisMin, rightAxisMin)
+            val maxValue = maxOf(leftAxisMax, rightAxisMax)
+            Pair(minValue, maxValue)
+        }
+    }
+
     AndroidView(
         factory = {
             CombinedChart(context).apply {
@@ -399,8 +413,8 @@ fun ComboChartView(
             // 3. Update axes
             chart.axisLeft.apply {
                 isEnabled = true
-                axisMinimum = leftAxisMin
-                axisMaximum = leftAxisMax
+                axisMinimum = finalLeftMin
+                axisMaximum = finalLeftMax
                 setSpaceTop(5f)
                 setSpaceBottom(5f)
                 // Fewer grid lines for cleaner look
