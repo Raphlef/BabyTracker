@@ -300,7 +300,7 @@ class AuthViewModel @Inject constructor(
                     }
                 },
                 onFailure = { error ->
-                    val errorMsg = error.message ?: context.getString(R.string.error_label)
+                    val errorMsg = error.localizedMessage ?: context.getString(R.string.error_label)
                     _state.update {
                         it.copy(
                             emailVerificationState = EmailVerificationState.Error(errorMsg),
