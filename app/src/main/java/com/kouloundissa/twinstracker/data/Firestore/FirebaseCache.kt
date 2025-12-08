@@ -105,8 +105,8 @@ enum class CacheTTL(val ageThresholdMs: Long, val ttlMs: Long) {
     // 0-6 hours old: no cache (always fresh)
     FRESH(TimeUnit.HOURS.toMillis(6), 0L),
 
-    // 6-24 hours old: 60 min TTL
-    RECENT(TimeUnit.HOURS.toMillis(24), TimeUnit.MINUTES.toMillis(60)),
+    // 6-24 hours old: 10 min TTL
+    RECENT(TimeUnit.HOURS.toMillis(24), TimeUnit.MINUTES.toMillis(10)),
 
     // 24-48 hours old: 12 hour TTL
     MODERATE(TimeUnit.HOURS.toMillis(48), TimeUnit.HOURS.toMillis(12)),
