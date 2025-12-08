@@ -1,6 +1,7 @@
 package com.kouloundissa.twinstracker.presentation.baby
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.net.Uri
 import android.provider.ContactsContract
 import android.util.Log
@@ -26,6 +27,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -207,7 +210,8 @@ fun BabyFormDialogInternal(
                     bloodType = babyData.bloodType,
                     allergies = babyData.allergies,
                     medicalConditions = babyData.medicalConditions,
-                    pediatricianContact = babyData.pediatricianContact,
+                    pediatricianName = babyData.pediatricianName,
+                    pediatricianPhone = babyData.pediatricianPhone,
                     notes = babyData.notes,
                     existingPhotoUrl = currentBaby?.photoUrl,
                     newPhotoUri = newPhotoUri,
@@ -270,7 +274,8 @@ class BabyFormState(
     // Free text fields
     var allergies by mutableStateOf(initial?.allergies?.joinToString(", ").orEmpty())
     var conditions by mutableStateOf(initial?.medicalConditions?.joinToString(", ").orEmpty())
-    var pediatricianContact by mutableStateOf(initial?.pediatricianContact.orEmpty())
+    var pediatricianName by mutableStateOf(initial?.pediatricianName.orEmpty())
+    var pediatricianPhone by mutableStateOf(initial?.pediatricianPhone.orEmpty())
     var notes by mutableStateOf(initial?.notes.orEmpty())
 
     // Errors
@@ -306,7 +311,8 @@ class BabyFormState(
             allergies = allergies.split(",").map { it.trim() }.filter { it.isNotEmpty() },
             medicalConditions = conditions.split(",").map { it.trim() }
                 .filter { it.isNotEmpty() },
-            pediatricianContact = pediatricianContact.ifBlank { null },
+            pediatricianName = pediatricianName.ifBlank { null },
+            pediatricianPhone = pediatricianPhone.ifBlank { null },
             notes = notes.ifBlank { null },
             createdAt = original?.createdAt ?: now,
             updatedAt = now,
@@ -541,7 +547,8 @@ fun rememberBabyFormState(initial: Baby?): BabyFormState {
                     s.headCirc,
                     s.allergies,
                     s.conditions,
-                    s.pediatricianContact,
+                    s.pediatricianName,
+                    s.pediatricianPhone,
                     s.notes
                 )
             },
@@ -558,8 +565,9 @@ fun rememberBabyFormState(initial: Baby?): BabyFormState {
                 dummy.headCirc = list[8] as String
                 dummy.allergies = list[9] as String
                 dummy.conditions = list[10] as String
-                dummy.pediatricianContact = list[11] as String
-                dummy.notes = list[12] as String
+                dummy.pediatricianName = list[11] as String
+                dummy.pediatricianPhone = list[12] as String
+                dummy.notes = list[13] as String
                 dummy
             }
         )
@@ -590,14 +598,35 @@ private fun BabyFormContent(
         uri?.let {
             val cursor = context.contentResolver.query(
                 it,
-                arrayOf(ContactsContract.Contacts.DISPLAY_NAME),
+                arrayOf(
+                    ContactsContract.Contacts.DISPLAY_NAME,
+                    ContactsContract.Contacts._ID
+                ),
                 null, null, null
             )
             cursor?.use { c ->
-                if (c.moveToFirst()) state.pediatricianContact = c.getString(0)
+                if (c.moveToFirst()) {
+                    state.pediatricianName = c.getString(0)
+
+                    // Get phone number
+                    val contactId = c.getString(1)
+                    val phoneCursor = context.contentResolver.query(
+                        ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                        arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
+                        "${ContactsContract.CommonDataKinds.Phone.CONTACT_ID} = ?",
+                        arrayOf(contactId),
+                        null
+                    )
+                    phoneCursor?.use { pc ->
+                        if (pc.moveToFirst()) {
+                            state.pediatricianPhone = pc.getString(0)
+                        }
+                    }
+                }
             }
         }
     }
+
 
     OutlinedTextField(
         value = state.name,
@@ -716,30 +745,51 @@ private fun BabyFormContent(
     )
     Spacer(Modifier.height(12.dp))
 
-    OutlinedTextField(
-        value = state.pediatricianContact,
-        onValueChange = { /* read-only */ },
-        textStyle = LocalTextStyle.current.copy(color = backgroundColor),
-        label = {
-            Text(
-                stringResource(id = R.string.pediatrician_contact_label),
-                color = backgroundColor
-            )
-        },
-        readOnly = true,
-        singleLine = true,
-        trailingIcon = {
-            IconButton(onClick = { contactLauncher.launch(null) }) {
-                Icon(
-                    Icons.Default.Person,
-                    contentDescription = stringResource(id = R.string.pick_contact_description),
-                    tint = backgroundColor
-                )
+    Column {
+        OutlinedTextField(
+            value = state.pediatricianName ?: "",
+            onValueChange = { },
+            label = { Text("Pediatrician") },
+            readOnly = true,
+            trailingIcon = {
+                IconButton(onClick = { contactLauncher.launch(null) }) {
+                    Icon(Icons.Default.Person, contentDescription = null)
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Quick actions
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = {
+                    val intent = Intent(Intent.ACTION_DIAL).apply {
+                        data = Uri.parse("tel:${state.pediatricianPhone}")
+                    }
+                    context.startActivity(intent)
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text("Call")
             }
-        },
-        shape = cornerShape,
-        modifier = Modifier.fillMaxWidth()
-    )
+
+            Button(
+                onClick = {
+                    val intent = Intent(ContactsContract.Intents.Insert.ACTION).apply {
+                        type = ContactsContract.RawContacts.CONTENT_TYPE
+                        putExtra(ContactsContract.Intents.Insert.NAME, state.pediatricianName)
+                        putExtra(ContactsContract.Intents.Insert.PHONE, state.pediatricianPhone)
+                    }
+                    context.startActivity(intent)
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text("Save")
+            }
+        }
+    }
     Spacer(Modifier.height(12.dp))
     OutlinedTextField(
         value = state.notes,

@@ -24,7 +24,8 @@ data class Baby(
     val bloodType: BloodType = BloodType.UNKNOWN,
     val allergies: List<String> = emptyList(),
     val medicalConditions: List<String> = emptyList(),
-    val pediatricianContact: String? = null,
+    val pediatricianName: String? = null,
+    val pediatricianPhone: String? = null,
 
     // Other tracking notes
     val notes: String? = null,                      // General notes about the baby
