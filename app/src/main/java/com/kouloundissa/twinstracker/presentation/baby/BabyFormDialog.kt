@@ -1,8 +1,11 @@
 package com.kouloundissa.twinstracker.presentation.baby
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.provider.ContactsContract
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -66,6 +69,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.R
@@ -596,37 +600,56 @@ private fun BabyFormContent(
         contract = ActivityResultContracts.PickContact()
     ) { uri ->
         uri?.let {
-            val cursor = context.contentResolver.query(
-                it,
-                arrayOf(
-                    ContactsContract.Contacts.DISPLAY_NAME,
-                    ContactsContract.Contacts._ID
-                ),
-                null, null, null
-            )
-            cursor?.use { c ->
-                if (c.moveToFirst()) {
-                    state.pediatricianName = c.getString(0)
 
-                    // Get phone number
-                    val contactId = c.getString(1)
-                    val phoneCursor = context.contentResolver.query(
-                        ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                        arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
-                        "${ContactsContract.CommonDataKinds.Phone.CONTACT_ID} = ?",
-                        arrayOf(contactId),
-                        null
-                    )
-                    phoneCursor?.use { pc ->
-                        if (pc.moveToFirst()) {
-                            state.pediatricianPhone = pc.getString(0)
+            try {
+                context.contentResolver.query(
+                    uri,
+                    arrayOf(
+                        ContactsContract.Contacts.DISPLAY_NAME,
+                        ContactsContract.Contacts._ID
+                    ),
+                    null, null, null
+                )?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val name = cursor.getString(0)
+                        val contactId = cursor.getString(1)
+
+                        // Query phone number
+                        context.contentResolver.query(
+                            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                            arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
+                            "${ContactsContract.CommonDataKinds.Phone.CONTACT_ID} = ?",
+                            arrayOf(contactId),
+                            null
+                        )?.use { phoneCursor ->
+                            val phone = if (phoneCursor.moveToFirst()) {
+                                phoneCursor.getString(0)
+                            } else {
+                                ""
+                            }
+
+                            state.pediatricianName = name
+                            state.pediatricianPhone = phone
                         }
                     }
                 }
+            } catch (e: Exception) {
+                Log.e("ContactPicker", "Error querying contact", e)
             }
         }
     }
-
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Permission granted, launch contact picker
+            contactLauncher.launch(null)
+        } else {
+            // Handle permission denied
+            // Show snackbar or toast
+            Log.e("ContactPicker", "READ_CONTACTS permission denied")
+        }
+    }
 
     OutlinedTextField(
         value = state.name,
@@ -752,7 +775,22 @@ private fun BabyFormContent(
             label = { Text("Pediatrician") },
             readOnly = true,
             trailingIcon = {
-                IconButton(onClick = { contactLauncher.launch(null) }) {
+                IconButton(onClick = {
+                    // Check permission before launching
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        if (ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.READ_CONTACTS
+                            ) == PackageManager.PERMISSION_GRANTED
+                        ) {
+                            contactLauncher.launch(null)
+                        } else {
+                            permissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+                        }
+                    } else {
+                        contactLauncher.launch(null)
+                    }
+                }) {
                     Icon(Icons.Default.Person, contentDescription = null)
                 }
             },
@@ -760,7 +798,10 @@ private fun BabyFormContent(
         )
 
         // Quick actions
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Button(
                 onClick = {
                     val intent = Intent(Intent.ACTION_DIAL).apply {
@@ -770,7 +811,11 @@ private fun BabyFormContent(
                 },
                 modifier = Modifier.weight(1f)
             ) {
-                Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(
+                    Icons.Default.Phone,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
                 Text("Call")
             }
 
