@@ -149,7 +149,7 @@ fun AnalysisScreen(
     LaunchedEffect(Unit) {
         AdManager.preloadInterstitial(
             context = context,
-            adUnitId = "ca-app-pub-2976291373414752/5389690911"
+            adUnitId = "ca-app-pub-8151974596806893/1549328889"
         )
     }
 
@@ -208,7 +208,7 @@ fun AnalysisScreen(
                     item {
                         // AdManager.showInterstitial(activity)
                         InlineBannerAd(
-                            adUnitId = "ca-app-pub-2976291373414752/6090374978" // banner ad unit id
+                            adUnitId = "ca-app-pub-8151974596806893/9208327057" // banner ad unit id
                         )
                     }
                 }
@@ -234,7 +234,7 @@ fun AnalysisScreen(
                     item {
                         // AdManager.showInterstitial(activity)
                         InlineBannerAd(
-                            adUnitId = "ca-app-pub-2976291373414752/6090374978" // banner ad unit id
+                            adUnitId = "ca-app-pub-8151974596806893/9208327057" // banner ad unit id
                         )
                     }
                 }
@@ -260,7 +260,7 @@ fun AnalysisScreen(
                     item {
                         // AdManager.showInterstitial(activity)
                         InlineBannerAd(
-                            adUnitId = "ca-app-pub-2976291373414752/6090374978" // banner ad unit id
+                            adUnitId = "ca-app-pub-8151974596806893/9208327057" // banner ad unit id
                         )
                     }
                 }
@@ -281,7 +281,7 @@ fun AnalysisScreen(
                     item {
                         // AdManager.showInterstitial(activity)
                         InlineBannerAd(
-                            adUnitId = "ca-app-pub-2976291373414752/6090374978" // banner ad unit id
+                            adUnitId = "ca-app-pub-8151974596806893/9208327057" // banner ad unit id
                         )
                     }
                 }
@@ -420,7 +420,7 @@ fun AnalysisScreen(
                     item {
                         // AdManager.showInterstitial(activity)
                         InlineBannerAd(
-                            adUnitId = "ca-app-pub-2976291373414752/6090374978" // banner ad unit id
+                            adUnitId = "ca-app-pub-8151974596806893/9208327057" // banner ad unit id
                         )
                     }
                 }
