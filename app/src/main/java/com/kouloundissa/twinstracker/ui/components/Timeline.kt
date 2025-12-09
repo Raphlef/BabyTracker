@@ -117,9 +117,7 @@ fun LazyListScope.timelineItemsContent(
             if ((index + 1) % 2 == 0) {
                 item {
                     // AdManager.showInterstitial(activity)
-                    InlineBannerAd(
-                        adUnitId = "ca-app-pub-8151974596806893/9208327057" // banner ad unit id
-                    )
+                    InlineBannerAd()
                 }
             }
             items(dayEvents, key = { it.id }) { event ->

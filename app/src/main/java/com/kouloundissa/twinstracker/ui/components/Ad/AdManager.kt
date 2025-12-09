@@ -20,28 +20,44 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 object AdManager {
 
     private const val TAG = "AdManager"
+    private const val INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-8151974596806893/1549328889"
 
+    //test id "ca-app-pub-3940256099942544/1033173712"
+    //real id "ca-app-pub-8151974596806893/1549328889"
     // Interstitial cache
     private var interstitialAd: InterstitialAd? = null
-    private var isInterstitialLoading = false
+    private var isLoading = false
+    private var loadAttempts = 0
+    private val maxAttempts = 3
 
-    fun preloadInterstitial(context: Context, adUnitId: String) {
-        if (isInterstitialLoading || interstitialAd != null) {
-            Log.d(TAG, "Interstitial: skip load (loading=${isInterstitialLoading}, hasAd=${interstitialAd != null})")
+    fun preloadInterstitial(context: Context) {
+        if (interstitialAd != null || isLoading) {
+            Log.d(
+                TAG,
+                "preloadInterstitial: skip (hasAd=${interstitialAd != null}, loading=$isLoading)"
+            )
             return
         }
-        Log.d(TAG, "Interstitial: start load, adUnitId=$adUnitId")
-        isInterstitialLoading = true
+
+        if (loadAttempts >= maxAttempts) {
+            Log.w(TAG, "preloadInterstitial: max attempts reached ($maxAttempts)")
+            return
+        }
+
+        Log.d(TAG, "preloadInterstitial: attempt ${loadAttempts + 1}/$maxAttempts")
+        isLoading = true
+        loadAttempts++
 
         val request = AdRequest.Builder().build()
         InterstitialAd.load(
             context,
-            adUnitId,
+            INTERSTITIAL_AD_UNIT_ID,
             request,
             object : InterstitialAdLoadCallback() {
                 override fun onAdLoaded(ad: InterstitialAd) {
-                    Log.d(TAG, "Interstitial: onAdLoaded")
-                    isInterstitialLoading = false
+                    Log.d(TAG, "✅ onAdLoaded SUCCESS")
+                    isLoading = false
+                    loadAttempts = 0
                     interstitialAd = ad
 
                     ad.fullScreenContentCallback = object : FullScreenContentCallback() {
@@ -50,7 +66,10 @@ object AdManager {
                         }
 
                         override fun onAdFailedToShowFullScreenContent(adError: AdError) {
-                            Log.d(TAG, "Interstitial: onAdFailedToShowFullScreenContent=${adError.message}")
+                            Log.d(
+                                TAG,
+                                "Interstitial: onAdFailedToShowFullScreenContent=${adError.message}"
+                            )
                             interstitialAd = null
                         }
 
@@ -70,44 +89,54 @@ object AdManager {
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
-                    Log.d(TAG, "Interstitial: onAdFailedToLoad domain=${error.domain}, code=${error.code}, msg=${error.message}")
-                    isInterstitialLoading = false
+                    Log.e(
+                        TAG,
+                        "❌ onAdFailedToLoad: code=${error.code}, domain=${error.domain}, msg=${error.message}"
+                    )
+                    isLoading = false
                     interstitialAd = null
+                    // Retry après 2s si pas max attempts
+                    if (loadAttempts < maxAttempts) {
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            preloadInterstitial(context)
+                        }, 2000)
+                    }
                 }
             }
         )
     }
 
-    fun showInterstitial(activity: Activity, onNotReady: () -> Unit = {}) {
+    fun showInterstitial(activity: Activity): Boolean {
         val ad = interstitialAd
-        if (ad != null) {
-            Log.d(TAG, "Interstitial: show()")
+        return if (ad != null && !isLoading) {
+            Log.d(TAG, "🎬 showInterstitial: SUCCESS")
             ad.show(activity)
+            true
         } else {
-            Log.d(TAG, "Interstitial: show() called but ad is null")
-            onNotReady()
+            Log.w(TAG, "❌ showInterstitial: ad=null (loading=$isLoading, attempts=$loadAttempts)")
+            // Auto-reload si pas en cours
+            if (!isLoading) {
+                preloadInterstitial(activity)
+            }
+            false
         }
     }
-
-    // Single place to add test devices / extras later
-    fun buildAdRequest(): AdRequest =
-        AdRequest.Builder().build()
 }
+
 @Composable
 fun InlineBannerAd(
-    adUnitId: String,
     modifier: Modifier = Modifier
         .fillMaxWidth()
 ) {
     val context = LocalContext.current
-
+    val INLINE_AD_UNIT_ID = "ca-app-pub-8151974596806893/9208327057"
     AndroidView(
         modifier = modifier,
         factory = {
             AdView(context).apply {
                 // Simple banner; you can switch to adaptive later
                 setAdSize(AdSize.BANNER)
-                this.adUnitId = adUnitId
+                this.adUnitId = INLINE_AD_UNIT_ID
 
                 val request = AdRequest.Builder().build()
                 loadAd(request)

@@ -133,6 +133,12 @@ fun AnalysisScreen(
             eventTypeFilter = AnalysisFilter.EventTypeFilter(selectedTypes = favoriteEventTypes)
         )
     }
+    LaunchedEffect(Unit) {
+        AdManager.preloadInterstitial(
+            context = context,
+        )
+    }
+
     LaunchedEffect(isVisible, filters.value) {
         if (isVisible) {
             filters.value.babyFilter.selectedBabies.firstOrNull()?.let {
@@ -140,18 +146,15 @@ fun AnalysisScreen(
                 Log.d("AnalysisScreen", "Starting stream for babyId: ${it}")
                 eventViewModel.refreshWithFilters(filters.value)
                 if (filters.value.dateRange != AnalysisFilter.DateRange(AnalysisRange.ONE_DAY) &&
-                    filters.value.dateRange != AnalysisFilter.DateRange(AnalysisRange.THREE_DAYS)&&
-                    filters.value.dateRange != AnalysisFilter.DateRange(AnalysisRange.ONE_WEEK))
+                    filters.value.dateRange != AnalysisFilter.DateRange(AnalysisRange.THREE_DAYS) &&
+                    filters.value.dateRange != AnalysisFilter.DateRange(AnalysisRange.ONE_WEEK)
+                ) {
                     AdManager.showInterstitial(activity)
+                }
             }
         }
     }
-    LaunchedEffect(Unit) {
-        AdManager.preloadInterstitial(
-            context = context,
-            adUnitId = "ca-app-pub-8151974596806893/1549328889"
-        )
-    }
+
 
 
     LaunchedEffect(errorMessage) {
@@ -207,9 +210,7 @@ fun AnalysisScreen(
                     }
                     item {
                         // AdManager.showInterstitial(activity)
-                        InlineBannerAd(
-                            adUnitId = "ca-app-pub-8151974596806893/9208327057" // banner ad unit id
-                        )
+                        InlineBannerAd()
                     }
                 }
 
@@ -233,9 +234,7 @@ fun AnalysisScreen(
                     }
                     item {
                         // AdManager.showInterstitial(activity)
-                        InlineBannerAd(
-                            adUnitId = "ca-app-pub-8151974596806893/9208327057" // banner ad unit id
-                        )
+                        InlineBannerAd()
                     }
                 }
 
@@ -259,9 +258,7 @@ fun AnalysisScreen(
                     }
                     item {
                         // AdManager.showInterstitial(activity)
-                        InlineBannerAd(
-                            adUnitId = "ca-app-pub-8151974596806893/9208327057" // banner ad unit id
-                        )
+                        InlineBannerAd()
                     }
                 }
                 if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
@@ -280,9 +277,7 @@ fun AnalysisScreen(
                     }
                     item {
                         // AdManager.showInterstitial(activity)
-                        InlineBannerAd(
-                            adUnitId = "ca-app-pub-8151974596806893/9208327057" // banner ad unit id
-                        )
+                        InlineBannerAd()
                     }
                 }
                 if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
@@ -419,9 +414,7 @@ fun AnalysisScreen(
                     }
                     item {
                         // AdManager.showInterstitial(activity)
-                        InlineBannerAd(
-                            adUnitId = "ca-app-pub-8151974596806893/9208327057" // banner ad unit id
-                        )
+                        InlineBannerAd()
                     }
                 }
             }
