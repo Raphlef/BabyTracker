@@ -77,6 +77,7 @@ import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.data.getDisplayName
+import com.kouloundissa.twinstracker.ui.components.Ad.InlineBannerAd
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
@@ -108,8 +109,19 @@ fun LazyListScope.timelineItemsContent(
             )
         }
     } else {
-        eventsByDate.forEach { (date, dayEvents) ->
+        val dates = eventsByDate.keys.toList()
+        dates.forEachIndexed { index, date ->
+            val dayEvents = eventsByDate.getValue(date)
             item { DayHeader(date, dayEvents) }
+            // Show ad every 2 day headers
+            if ((index + 1) % 2 == 0) {
+                item {
+                    // AdManager.showInterstitial(activity)
+                    InlineBannerAd(
+                        adUnitId = "ca-app-pub-2976291373414752/6090374978" // banner ad unit id
+                    )
+                }
+            }
             items(dayEvents, key = { it.id }) { event ->
                 eventCard(event, { onEdit(event) }, { onDelete(event) })
             }

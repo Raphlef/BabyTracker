@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.presentation.analysis
 
+import android.app.Activity
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,8 @@ import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.WhoLms.WhoLmsRepository
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
+import com.kouloundissa.twinstracker.ui.components.Ad.AdManager
+import com.kouloundissa.twinstracker.ui.components.Ad.InlineBannerAd
 import com.kouloundissa.twinstracker.ui.components.AnalysisCard
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilterPanel
@@ -60,6 +63,7 @@ fun AnalysisScreen(
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    val activity = context as Activity
     val errorMessage by eventViewModel.errorMessage.collectAsState()
     val favoriteEventTypes by eventViewModel.favoriteEventTypes.collectAsState()
     val allGrowth by eventViewModel.getEventsOfTypeAsFlow(GrowthEvent::class)
@@ -135,9 +139,20 @@ fun AnalysisScreen(
                 babyViewModel.selectBaby(it)
                 Log.d("AnalysisScreen", "Starting stream for babyId: ${it}")
                 eventViewModel.refreshWithFilters(filters.value)
+                if (filters.value.dateRange != AnalysisFilter.DateRange(AnalysisRange.ONE_DAY) &&
+                    filters.value.dateRange != AnalysisFilter.DateRange(AnalysisRange.THREE_DAYS)&&
+                    filters.value.dateRange != AnalysisFilter.DateRange(AnalysisRange.ONE_WEEK))
+                    AdManager.showInterstitial(activity)
             }
         }
     }
+    LaunchedEffect(Unit) {
+        AdManager.preloadInterstitial(
+            context = context,
+            adUnitId = "ca-app-pub-2976291373414752/5389690911"
+        )
+    }
+
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -190,6 +205,12 @@ fun AnalysisScreen(
                             )
                         }
                     }
+                    item {
+                        // AdManager.showInterstitial(activity)
+                        InlineBannerAd(
+                            adUnitId = "ca-app-pub-2976291373414752/6090374978" // banner ad unit id
+                        )
+                    }
                 }
 
                 if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
@@ -209,6 +230,12 @@ fun AnalysisScreen(
                                 lineLabel = stringResource(id = R.string.chart_pumping_volumes_label),
                             )
                         }
+                    }
+                    item {
+                        // AdManager.showInterstitial(activity)
+                        InlineBannerAd(
+                            adUnitId = "ca-app-pub-2976291373414752/6090374978" // banner ad unit id
+                        )
                     }
                 }
 
@@ -230,6 +257,12 @@ fun AnalysisScreen(
                             )
                         }
                     }
+                    item {
+                        // AdManager.showInterstitial(activity)
+                        InlineBannerAd(
+                            adUnitId = "ca-app-pub-2976291373414752/6090374978" // banner ad unit id
+                        )
+                    }
                 }
                 if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
                     filters.value.eventTypeFilter.selectedTypes.contains(EventType.SLEEP)
@@ -244,6 +277,12 @@ fun AnalysisScreen(
                                 forceIncludeZero = true
                             )
                         }
+                    }
+                    item {
+                        // AdManager.showInterstitial(activity)
+                        InlineBannerAd(
+                            adUnitId = "ca-app-pub-2976291373414752/6090374978" // banner ad unit id
+                        )
                     }
                 }
                 if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
@@ -377,6 +416,12 @@ fun AnalysisScreen(
                                 }
                             )
                         }
+                    }
+                    item {
+                        // AdManager.showInterstitial(activity)
+                        InlineBannerAd(
+                            adUnitId = "ca-app-pub-2976291373414752/6090374978" // banner ad unit id
+                        )
                     }
                 }
             }
