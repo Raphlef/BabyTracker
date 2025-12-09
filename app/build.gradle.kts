@@ -171,6 +171,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.play.services)
 
     implementation(libs.gson)
+
+    implementation(libs.play.services.ads)
 }
 
 // --- Fonctions Git Versioning ---
