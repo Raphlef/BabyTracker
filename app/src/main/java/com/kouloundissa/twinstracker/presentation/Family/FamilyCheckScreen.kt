@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -84,6 +85,7 @@ fun FamilyOnboardingContent(
     familyViewModel: FamilyViewModel,
     onFamilyCreatedOrJoined: (Family) -> Unit
 ) {
+    val context = LocalContext.current
     var showCreateDialog by remember { mutableStateOf(false) }
     var showJoinDialog by remember { mutableStateOf(false) }
     val families by familyViewModel.families.collectAsState()
@@ -212,7 +214,7 @@ fun FamilyOnboardingContent(
         JoinFamilyDialog(
             show = showJoinDialog,
             onDismiss = { showJoinDialog = false },
-            onJoin = { code -> familyViewModel.joinByCode(code) },
+            onJoin = { code -> familyViewModel.joinByCode(code, context) },
             inviteResult = inviteResult,
             isLoading = familyState.isLoading
         )
