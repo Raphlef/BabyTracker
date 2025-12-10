@@ -151,6 +151,24 @@ class FamilyViewModel @Inject constructor(
     fun isCurrentUserViewer(): Boolean = _currentUserRoles.value.contains(FamilyRole.VIEWER)
 
     fun hasAnyRole(): Boolean = _currentUserRoles.value.isNotEmpty()
+    fun canUserSaveEvent(): Boolean {
+        // Only MEMBER and ADMIN can save events
+        val roles = _currentUserRoles.value
+        return roles.contains(FamilyRole.MEMBER) || roles.contains(FamilyRole.ADMIN)
+    }
+
+    fun canUserEditEvent(): Boolean {
+        // Only MEMBER and ADMIN can save events
+        val roles = _currentUserRoles.value
+        return roles.contains(FamilyRole.MEMBER) || roles.contains(FamilyRole.ADMIN)
+    }
+
+    fun canUserDeleteEvent(): Boolean {
+        // Only MEMBER and ADMIN can save events
+        val roles = _currentUserRoles.value
+        return roles.contains(FamilyRole.MEMBER) || roles.contains(FamilyRole.ADMIN)
+    }
+
     fun selectFamily(family: Family?) {
         repository.setSelectedFamily(family)
         family?.let { loadFamilyUsers(it) }
@@ -399,7 +417,10 @@ class FamilyViewModel @Inject constructor(
                         startObservingFamilyUpdates()
                     }
                     .onFailure { err ->
-                        handleError(err as Exception, context.getString(R.string.error_remove_member))
+                        handleError(
+                            err as Exception,
+                            context.getString(R.string.error_remove_member)
+                        )
                     }
             } catch (e: Exception) {
                 handleError(e, context.getString(R.string.error_remove_member))

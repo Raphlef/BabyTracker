@@ -310,7 +310,7 @@ fun EventFormDialogContent(
             text = { Text(stringResource(id = R.string.delete_event_message)) },
             confirmButton = {
                 TextButton(onClick = {
-                    formState.event?.let { eventViewModel.deleteEvent(it) }
+                    formState.event?.let { eventViewModel.deleteEvent(it, familyViewModel) }
                     showDeleteConfirm = false
                 }) {
                     Text(
@@ -534,7 +534,7 @@ fun EventFormDialogContent(
                     onPhotoRemoved = {
                         // Only remove from storage if this event already exists:
                         if (isEditMode) {
-                            eventViewModel.deleteEventPhoto(formState.eventId!!)
+                            eventViewModel.deleteEventPhoto(formState.eventId!!, familyViewModel)
                         }
                         formState.photoUrl = null
                         formState.photoRemoved = true
@@ -608,7 +608,7 @@ fun EventFormDialogContent(
                             return@Button  // Stop execution
                         }
                         haptic.performHapticFeedback(HapticFeedbackType.Confirm)
-                        eventViewModel.SaveEvent(it.id)
+                        eventViewModel.SaveEvent(it.id, familyViewModel)
                     }
                 },
                 enabled = !isSaving,

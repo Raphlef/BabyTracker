@@ -63,6 +63,7 @@ import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
+import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
@@ -155,6 +156,7 @@ private fun EventTypeDialogContent(
     onEdit: (Event) -> Unit,
     onAdd: (EventType) -> Unit,
     eventViewModel: EventViewModel = hiltViewModel(),
+    familyViewModel: FamilyViewModel = hiltViewModel(),
     selectedBaby: Baby?,
     overlay: EventOverlayInfo = EventOverlayInfo()
 ) {
@@ -249,7 +251,7 @@ private fun EventTypeDialogContent(
                         onEdit = onEdit,
                         onDelete = { event ->
                             selectedBaby?.let {
-                                eventViewModel.deleteEvent(event)
+                                eventViewModel.deleteEvent(event,familyViewModel)
                             }
                         },
                         isLoadingMore = isLoadingMore,

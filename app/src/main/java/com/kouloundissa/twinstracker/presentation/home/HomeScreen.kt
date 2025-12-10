@@ -75,6 +75,7 @@ import com.kouloundissa.twinstracker.presentation.baby.BabyCreateDialog
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
+import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.components.EventOverlayInfo
 import com.kouloundissa.twinstracker.ui.components.EventTypeDialog
 import com.kouloundissa.twinstracker.ui.components.InfiniteScrollEffect
@@ -94,7 +95,8 @@ fun HomeScreen(
     contentPadding: PaddingValues = PaddingValues(),
     isVisible: Boolean,
     babyViewModel: BabyViewModel = hiltViewModel(),
-    eventViewModel: EventViewModel = hiltViewModel()
+    eventViewModel: EventViewModel = hiltViewModel(),
+    familyViewModel: FamilyViewModel = hiltViewModel()
 ) {
     val backgroundColor = BackgroundColor
     val contentColor = DarkGrey
@@ -380,7 +382,7 @@ fun HomeScreen(
                             eventViewModel.loadEventIntoForm(event)
                             showEventDialog = true
                         },
-                        onDelete = { eventViewModel.deleteEvent(it) },
+                        onDelete = { eventViewModel.deleteEvent(it, familyViewModel) },
                         isLoadingMore = isLoadingMore,
                         hasMoreHistory = hasMoreHistory,
                     )
