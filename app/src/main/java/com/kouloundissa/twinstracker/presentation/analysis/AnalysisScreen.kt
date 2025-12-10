@@ -155,8 +155,6 @@ fun AnalysisScreen(
         }
     }
 
-
-
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
