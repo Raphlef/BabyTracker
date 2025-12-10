@@ -440,12 +440,6 @@ class FamilyViewModel @Inject constructor(
 
             try {
                 val currentUserId = repository.getCurrentUserIdOrThrow()
-                    ?: return@launch _state.update {
-                        it.copy(
-                            isLoading = false,
-                            error = "User not authenticated"
-                        )
-                    }
                 repository.joinFamilyByCode(code, currentUserId)
                     .onSuccess {
                         _inviteResult.emit(Result.success(Unit))
