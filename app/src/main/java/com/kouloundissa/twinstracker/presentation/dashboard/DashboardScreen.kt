@@ -264,7 +264,7 @@ fun DashboardScreen(
                     // Dialog display condition
                     selectedBaby?.takeIf { showEventForm }?.let { baby ->
                         val formState =
-                            selectedEventFormState ?: EventFormState.Diaper() // fallback default
+                            selectedEventFormState ?: EventFormState.Diaper()
                         EventFormDialog(
                             initialBabyId = baby.id,
                             initialEventType = formState.eventType,

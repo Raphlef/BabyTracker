@@ -233,7 +233,7 @@ fun SettingsScreenContent(
                         icon = Icons.Default.FamilyRestroom
                     )
                     {
-                        FamilyManagementCard(families, familyViewModel, isFamilyLoading)
+                        FamilyManagementCard(families, isFamilyLoading)
                     }
                 }
                 // — Profile Section —

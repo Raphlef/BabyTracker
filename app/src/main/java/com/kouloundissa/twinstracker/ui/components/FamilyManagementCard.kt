@@ -78,8 +78,8 @@ import kotlinx.coroutines.flow.map
 @Composable
 fun FamilyManagementCard(
     families: List<Family>,
-    familyViewModel: FamilyViewModel,
     isLoading: Boolean,
+    familyViewModel: FamilyViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
     // Selected family from ViewModel
