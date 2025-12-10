@@ -157,14 +157,27 @@ class FamilyViewModel @Inject constructor(
         return roles.contains(FamilyRole.MEMBER) || roles.contains(FamilyRole.ADMIN)
     }
 
+    fun canUserSaveBaby(): Boolean {
+        val roles = _currentUserRoles.value
+        return roles.contains(FamilyRole.MEMBER) || roles.contains(FamilyRole.ADMIN)
+    }
+
+    fun canUserDeleteBaby(): Boolean {
+        val roles = _currentUserRoles.value
+        return roles.contains(FamilyRole.MEMBER) || roles.contains(FamilyRole.ADMIN)
+    }
+
+    fun canUserEditBaby(): Boolean {
+        val roles = _currentUserRoles.value
+        return roles.contains(FamilyRole.MEMBER) || roles.contains(FamilyRole.ADMIN)
+    }
+
     fun canUserEditEvent(): Boolean {
-        // Only MEMBER and ADMIN can save events
         val roles = _currentUserRoles.value
         return roles.contains(FamilyRole.MEMBER) || roles.contains(FamilyRole.ADMIN)
     }
 
     fun canUserDeleteEvent(): Boolean {
-        // Only MEMBER and ADMIN can save events
         val roles = _currentUserRoles.value
         return roles.contains(FamilyRole.MEMBER) || roles.contains(FamilyRole.ADMIN)
     }

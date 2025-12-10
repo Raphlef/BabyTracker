@@ -219,7 +219,8 @@ fun BabyFormDialogInternal(
                     notes = babyData.notes,
                     existingPhotoUrl = currentBaby?.photoUrl,
                     newPhotoUri = newPhotoUri,
-                    photoRemoved = photoRemoved
+                    photoRemoved = photoRemoved,
+                    familyViewModel
                 )
                 selectedBaby?.let { it1 ->
                     savedBabyLocal = it1
@@ -240,7 +241,7 @@ fun BabyFormDialogInternal(
             onConfirm = {
                 deleteRequested = true
                 openDeleteDialog.value = false
-                babyViewModel.deleteBaby(currentBaby.id)
+                babyViewModel.deleteBaby(currentBaby.id, familyViewModel)
             },
             onDismiss = { openDeleteDialog.value = false }
         )
@@ -395,7 +396,13 @@ private fun BabyFormBottomSheetContent(
                     existingPhotoUrl = currentBaby?.photoUrl,
                     onRequestDeletePhoto = {
                         if (isEditMode && currentBaby != null) {
-                            babyViewModel.deleteBabyPhoto(currentBaby.id, selectedFamily)
+                            selectedFamily?.let {
+                                babyViewModel.deleteBabyPhoto(
+                                    currentBaby.id,
+                                    it,
+                                    familyViewModel
+                                )
+                            }
                         }
                     }
                 )
