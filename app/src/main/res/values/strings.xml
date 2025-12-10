@@ -198,6 +198,11 @@
     <string name="drug_type_other">Other</string>
 
     <!-- ========== EVENT FORM DIALOG - TITLES ========== -->
+    <string name="restricted_access">Restricted Access</string>
+    <string name="viewer_cannot_create_event">Only administrators and members can create events.</string>
+    <string name="cannot_modify_event">You cannot modify events</string>
+    <string name="viewer_cannot_modify">You currently have read-only access. Only administrators and members can modify events.</string>
+    <string name="ok_button">OK</string>
     <string name="event_form_title_new">New Event</string>
     <string name="event_form_title_edit">Edit Event</string>
 
@@ -298,6 +303,8 @@
     <string name="family_management_save_button">Save</string>
     <string name="family_management_joined_success">You have successfully joined the family!</string>
     <string name="family_management_join_failed">Failed to join</string>
+    <string name="only_admins_can_change_roles">Only administrators can change roles.</string>
+
 
     <!-- ========== FAMILY MEMBER SECTION ========== -->
     <string name="family_member_section_title">Family members</string>

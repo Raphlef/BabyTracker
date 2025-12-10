@@ -101,6 +101,7 @@ import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.getDisplayName
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
+import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.components.AmountInput
 import com.kouloundissa.twinstracker.ui.components.BabySelectorRow
 import com.kouloundissa.twinstracker.ui.components.IconSelector
@@ -120,14 +121,33 @@ fun EventFormDialog(
     initialBabyId: String,
     onDismiss: () -> Unit,
     initialEventType: EventType? = null,
+    familyViewModel: FamilyViewModel = hiltViewModel(),
+    eventViewModel: EventViewModel = hiltViewModel(),
 ) {
     // Animated visibility state
     var isVisible by remember { mutableStateOf(false) }
 
+    val formState by eventViewModel.formState.collectAsState()
+    val isCreateMode = formState.eventId == null
+    val currentUserIsViewer = familyViewModel.isCurrentUserViewer()
     LaunchedEffect(Unit) {
         isVisible = true
     }
 
+    // If viewer is trying to create event, show error instead
+    if (currentUserIsViewer && isCreateMode) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(stringResource(R.string.restricted_access)) },
+            text = { Text(stringResource(R.string.viewer_cannot_create_event)) },
+            confirmButton = {
+                Button(onClick = onDismiss) {
+                    Text("OK")
+                }
+            }
+        )
+        return
+    }
     // Wrap everything in a Dialog to make it truly full-screen
     Dialog(
         onDismissRequest = {
@@ -176,19 +196,20 @@ fun EventFormDialog(
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventFormDialogContent(
     initialBabyId: String,
     onDismiss: () -> Unit,
     initialEventType: EventType? = null,
+    familyViewModel: FamilyViewModel = hiltViewModel(),
     eventViewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel(),
 ) {
-
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
+
+    val currentUserIsViewer = familyViewModel.isCurrentUserViewer()
 
     val formState by eventViewModel.formState.collectAsState()
     val lastGrowthEvent by eventViewModel.lastGrowthEvent.collectAsState()
@@ -221,7 +242,13 @@ fun EventFormDialogContent(
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
 
     val haptic = LocalHapticFeedback.current
-
+    var showViewerWarning by remember { mutableStateOf(false) }
+    if (showViewerWarning) {
+        ViewerCannotModifyDialog(onDismiss = {
+            showViewerWarning = false
+            onDismiss()
+        })
+    }
     LaunchedEffect(formState.eventType) {
         // Reset focus when event type changes
         focusManager.clearFocus()
@@ -537,7 +564,7 @@ fun EventFormDialogContent(
             }
 
             // Delete button - only in edit mode
-            if (formState.eventId != null) {
+            if (formState.eventId != null && !currentUserIsViewer) {
                 OutlinedButton(
                     onClick = {
                         showDeleteConfirm = true
@@ -574,6 +601,12 @@ fun EventFormDialogContent(
             Button(
                 onClick = {
                     selectedBaby?.let {
+                        val isEditMode = formState.eventId != null
+                        if (currentUserIsViewer && isEditMode) {
+                            showViewerWarning = true
+                            haptic.performHapticFeedback(HapticFeedbackType.Reject)
+                            return@Button  // Stop execution
+                        }
                         haptic.performHapticFeedback(HapticFeedbackType.Confirm)
                         eventViewModel.SaveEvent(it.id)
                     }
@@ -602,6 +635,20 @@ fun EventFormDialogContent(
             }
         }
     }
+}
+
+@Composable
+fun ViewerCannotModifyDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.cannot_modify_event)) },
+        text = { Text(stringResource(R.string.viewer_cannot_modify)) },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text(stringResource(R.string.ok_button))
+            }
+        }
+    )
 }
 
 @Composable
