@@ -142,6 +142,7 @@
 
     <!-- ========== BABY FORM - VALIDATION ========== -->
     <string name="invalid_number">Invalid number</string>
+    <string name="viewer_cannot_create_baby">Only administrators and members can create baby.</string>
 
     <!-- ========== BABY FORM - BUTTONS ========== -->
     <string name="baby_form_save_button">Save</string>

@@ -95,7 +95,22 @@ import java.util.Locale
 fun BabyCreateDialog(
     onBabyCreated: (Baby) -> Unit,
     onCancel: () -> Unit,
+    familyViewModel: FamilyViewModel = hiltViewModel(),
 ) {
+    val currentUserIsViewer = familyViewModel.isCurrentUserViewer()
+    if (currentUserIsViewer) {
+        AlertDialog(
+            onDismissRequest = onCancel,
+            title = { Text(stringResource(R.string.restricted_access)) },
+            text = { Text(stringResource(R.string.viewer_cannot_create_baby)) },
+            confirmButton = {
+                Button(onClick = onCancel) {
+                    Text("OK")
+                }
+            }
+        )
+        return
+    }
     BabyFormDialogInternal(
         babyToEdit = null,
         // Creation only: no delete
@@ -140,7 +155,15 @@ fun BabyFormDialogInternal(
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
 
     val selectedFamily by familyViewModel.selectedFamily.collectAsState()
-
+    val currentUserIsViewer = familyViewModel.isCurrentUserViewer()
+    val haptic = LocalHapticFeedback.current
+    var showViewerWarning by remember { mutableStateOf(false) }
+    if (showViewerWarning) {
+        ViewerCannotModifyBaby(onDismiss = {
+            showViewerWarning = false
+            onCancel()
+        })
+    }
     // Resolve latest baby reference when editing
     val currentBaby = remember(babies, babyToEdit) {
         babyToEdit?.let { b -> babies.find { it.id == b.id } ?: babyToEdit }
@@ -201,6 +224,11 @@ fun BabyFormDialogInternal(
             onOpenDeleteDialog = { openDeleteDialog.value = true },
             onSave = { babyData, newPhotoUri, photoRemoved ->
                 saveRequested = true
+                if (currentUserIsViewer && isEditMode) {
+                    showViewerWarning = true
+                    haptic.performHapticFeedback(HapticFeedbackType.Reject)
+                    return@BabyFormBottomSheetContent  // Stop execution
+                }
                 babyViewModel.saveBaby(
                     selectedFamily,
                     id = babyData.id,
@@ -855,6 +883,19 @@ private fun BabyFormContent(
     )
 }
 
+@Composable
+fun ViewerCannotModifyBaby(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.restricted_access)) },
+        text = { Text(stringResource(R.string.viewer_cannot_create_baby)) },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text(stringResource(R.string.ok_button))
+            }
+        }
+    )
+}
 /* -----------------------
    Subcomponents
    ----------------------- */
