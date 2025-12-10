@@ -450,7 +450,7 @@ class FamilyViewModel @Inject constructor(
                         _state.update {
                             it.copy(
                                 isLoading = false,
-                                error = ex.message ?: "Failed to join family"
+                                error = ex.localizedMessage ?: "Failed to join family"
                             )
                         }
                         _inviteResult.emit(Result.failure(ex))
