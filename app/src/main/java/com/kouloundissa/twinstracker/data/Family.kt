@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.google.firebase.firestore.IgnoreExtraProperties
+import com.kouloundissa.twinstracker.data.Firestore.FirestoreConstants
 import java.util.UUID
 
 /**
@@ -41,6 +42,7 @@ data class Family(
         createdAt = 0L,
         updatedAt = 0L
     )
+
     companion object {
         /**
          * Generates a random 6-character invite code for the family
@@ -51,6 +53,7 @@ data class Family(
                 .map { chars.random() }
                 .joinToString("")
         }
+
         /** Return a copy with a fresh inviteCode and updated timestamp */
         fun withNewInviteCode(family: Family): Family =
             family.copy(
@@ -74,10 +77,11 @@ data class FamilySettings(
  * Privacy levels for family data sharing
  */
 enum class PrivacyLevel {
-    PRIVATE,      // Only the creator can see
-    FAMILY_ONLY,  // All family members can see
-    PUBLIC        // Can be shared outside the family
+    PRIVATE,      // Noone can join
+    FAMILY_ONLY,  // People with code can join
+    PUBLIC        // Every one can join
 }
+
 @IgnoreExtraProperties
 data class FamilyUser(
     val user: User,
@@ -116,4 +120,65 @@ enum class FamilyRole(
         icon = Icons.Default.Visibility,
         color = Color(0xFF388E3C)      // Green for viewers
     );
+}
+
+/**
+ * Validates if a family can accept new members based on privacy settings
+ * @throws IllegalArgumentException if privacy settings forbid joining
+ */
+fun Family.validateCanAcceptMembers() {
+    when (settings.defaultPrivacy) {
+        PrivacyLevel.PRIVATE ->
+            throw IllegalArgumentException("Cette famille est privée et n'accepte pas de nouveaux membres")
+
+        PrivacyLevel.FAMILY_ONLY -> {} // Allow - requires valid invite code
+        PrivacyLevel.PUBLIC -> {} // Allow - open to everyone
+    }
+}
+
+/**
+ * Validates if a family is available for joining (not deleted, etc.)
+ * @throws IllegalArgumentException if family cannot be joined
+ */
+fun Family.validateAvailableForJoining() {
+    if (!active) {
+        throw IllegalArgumentException("Cette famille n'existe plus ou a été désactivée")
+    }
+}
+
+/**
+ * Checks if user is already a member or viewer of this family
+ * @throws IllegalArgumentException if user already joined
+ */
+fun Family.validateUserNotAlreadyMember(userId: String) {
+    if (adminIds.contains(userId) || memberIds.contains(userId) || viewerIds.contains(userId)) {
+        throw IllegalArgumentException("Vous êtes déjà membre de cette famille")
+    }
+}
+
+/**
+ * Determines the role for a new member based on family settings
+ */
+fun Family.determineRoleForNewMember(): FamilyRole {
+    return if (settings.requireApprovalForNewMembers) {
+        FamilyRole.VIEWER  // Pending approval, add as VIEWER
+    } else {
+        FamilyRole.MEMBER  // Auto-approve, add as MEMBER
+    }
+}
+
+/**
+ * Gets the field name and list for updating based on role
+ */
+fun getRoleUpdateInfo(role: FamilyRole): Pair<String, String> {
+    return when (role) {
+        FamilyRole.VIEWER ->
+            Pair(FirestoreConstants.Fields.VIEWER_IDS, "viewer")
+
+        FamilyRole.MEMBER ->
+            Pair(FirestoreConstants.Fields.MEMBER_IDS, "member")
+
+        else ->
+            throw IllegalArgumentException("Invalid role: $role")
+    }
 }

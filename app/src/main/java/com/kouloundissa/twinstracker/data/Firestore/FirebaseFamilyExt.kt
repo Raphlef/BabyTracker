@@ -4,7 +4,11 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.kouloundissa.twinstracker.data.Family
-import com.kouloundissa.twinstracker.data.FamilyRole
+import com.kouloundissa.twinstracker.data.determineRoleForNewMember
+import com.kouloundissa.twinstracker.data.getRoleUpdateInfo
+import com.kouloundissa.twinstracker.data.validateAvailableForJoining
+import com.kouloundissa.twinstracker.data.validateCanAcceptMembers
+import com.kouloundissa.twinstracker.data.validateUserNotAlreadyMember
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -196,44 +200,19 @@ suspend fun FirebaseRepository.joinFamilyByCode(
     val family = doc.toObject(Family::class.java)
         ?: throw Exception("Family data corrupted")
 
-    // ✅ Check if already a member
-    if (family.memberIds.contains(userId) || family.viewerIds.contains(userId)) {
-        throw Exception("Vous êtes déjà membre de cette famille")
-    }
+    family.validateAvailableForJoining()
+    family.validateCanAcceptMembers()
+    family.validateUserNotAlreadyMember(userId)
 
-    // ✅ Determine role based on settings
-    val newRole = if (family.settings.requireApprovalForNewMembers) {
-        FamilyRole.VIEWER  // Pending approval, add as VIEWER
-    } else {
-        FamilyRole.MEMBER  // Auto-approve, add as MEMBER
-    }
+    val newRole = family.determineRoleForNewMember()
 
-    // ✅ Update family with new user in appropriate list
-    val updatedFamily = when (newRole) {
-        FamilyRole.VIEWER -> family.copy(
-            viewerIds = (family.viewerIds + userId).distinct(),
-            updatedAt = System.currentTimeMillis()
-        )
-        FamilyRole.MEMBER -> family.copy(
-            memberIds = (family.memberIds + userId).distinct(),
-            updatedAt = System.currentTimeMillis()
-        )
-        else -> throw Exception("Invalid role for joining")
-    }
+    val (fieldName, roleLabel) = getRoleUpdateInfo(newRole)
 
     db.collection(FirestoreConstants.Collections.FAMILIES)
         .document(family.id)
         .update(
-            when (newRole) {
-                FamilyRole.VIEWER -> FirestoreConstants.Fields.VIEWER_IDS
-                FamilyRole.MEMBER -> FirestoreConstants.Fields.MEMBER_IDS
-                else -> throw Exception("Invalid role")
-            },
-            FieldValue.arrayUnion(userId),
-            FirestoreConstants.Fields.UPDATED_AT,
-            FirestoreTimestampUtils.getCurrentTimestamp()
+            fieldName, FieldValue.arrayUnion(userId),
+            FirestoreConstants.Fields.UPDATED_AT, FirestoreTimestampUtils.getCurrentTimestamp()
         )
         .await()
-
-    updatedFamily
 }
