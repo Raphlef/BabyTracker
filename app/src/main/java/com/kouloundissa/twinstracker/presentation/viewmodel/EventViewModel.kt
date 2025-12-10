@@ -764,9 +764,15 @@ class EventViewModel @Inject constructor(
     }
 
     // Entry-point to validate & save whichever event type is active
-    fun SaveEvent(babyId: String) {
+    fun SaveEvent(babyId: String, familyViewModel: FamilyViewModel) {
         if (babyId.isBlank()) {
             _errorMessage.value = "Baby ID is missing."
+            return
+        }
+
+        if (!familyViewModel.canUserSaveEvent()) {
+            _errorMessage.value =
+                "You don't have permission to save events. Only members and admins can save."
             return
         }
         _isSaving.value = true
@@ -786,7 +792,7 @@ class EventViewModel @Inject constructor(
                         createEventWithPhoto(event, state)
                     } else {
                         // Update branch
-                        updateEventWithPhoto(event, state)
+                        updateEventWithPhoto(event, state, familyViewModel)
                     }
                 }
             )
@@ -840,13 +846,17 @@ class EventViewModel @Inject constructor(
         }
     }
 
-    private suspend fun updateEventWithPhoto(event: Event, state: EventFormState) {
+    private suspend fun updateEventWithPhoto(
+        event: Event,
+        state: EventFormState,
+        familyViewModel: FamilyViewModel
+    ) {
         try {
             // 1. Handle photo upload or deletion (before event update)
             val photoUrl = when {
                 state.newPhotoUrl != null -> uploadEventPhoto(event.id, state.newPhotoUrl!!)
                 state.photoRemoved -> {
-                    deleteEventPhoto(event.id); null
+                    deleteEventPhoto(event.id, familyViewModel); null
                 }
 
                 else -> event.photoUrl
@@ -880,7 +890,12 @@ class EventViewModel @Inject constructor(
         }
     }
 
-    fun deleteEventPhoto(eventId: String) {
+    fun deleteEventPhoto(eventId: String, familyViewModel: FamilyViewModel) {
+        if (!familyViewModel.canUserEditEvent()) {
+            _errorMessage.value =
+                "You don't have permission to edit events. Only members and admins can save."
+            return
+        }
         _isLoading.value = true
         viewModelScope.launch {
             try {
@@ -933,7 +948,12 @@ class EventViewModel @Inject constructor(
      * Updates isDeleting, deleteSuccess, and deleteError accordingly.
      * After successful deletion, refreshes the current event stream.
      */
-    fun deleteEvent(event: Event) {
+    fun deleteEvent(event: Event, familyViewModel: FamilyViewModel) {
+        if (!familyViewModel.canUserDeleteEvent()) {
+            _errorMessage.value =
+                "You don't have permission to delete events. Only members and admins can save."
+            return
+        }
         _isDeleting.value = true
         _deleteError.value = null
 
