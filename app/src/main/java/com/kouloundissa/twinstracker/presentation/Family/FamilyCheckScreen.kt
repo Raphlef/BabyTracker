@@ -105,7 +105,7 @@ fun FamilyOnboardingContent(
             snackbarHostState.showSnackbar("Vous avez rejoint la famille!")
         }?.onFailure { ex ->
             showJoinDialog = false
-            snackbarHostState.showSnackbar(ex.message ?: "Impossible de rejoindre")
+            snackbarHostState.showSnackbar(ex.localizedMessage ?: "Impossible de rejoindre")
         }
     }
 
