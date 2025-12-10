@@ -58,11 +58,13 @@ class FamilyViewModel @Inject constructor(
     private val _familyUsers = MutableStateFlow<List<FamilyUser>>(emptyList())
     val familyUsers: StateFlow<List<FamilyUser>> = _familyUsers.asStateFlow()
 
-    // Backing StateFlow for currentUserId
     private val _currentUserId = MutableStateFlow<String?>(null)
     val currentUserId: StateFlow<String?> = _currentUserId.asStateFlow()
 
+    private val _currentUserRoles = MutableStateFlow<Set<FamilyRole>>(emptySet())
+    val currentUserRoles: StateFlow<Set<FamilyRole>> = _currentUserRoles.asStateFlow()
     private var familiesJob: Job? = null
+    private var rolesObserverJob: Job? = null
 
     private val authStateFlow: Flow<FirebaseUser?> = callbackFlow {
         val listener = FirebaseAuth.AuthStateListener { auth ->
@@ -78,7 +80,11 @@ class FamilyViewModel @Inject constructor(
             .distinctUntilChanged()
             .onEach { isAuth ->
                 if (isAuth) {
-                    _currentUserId.value = repository.getCurrentUserIdOrThrow()
+                    try {
+                        _currentUserId.value = repository.getCurrentUserIdOrThrow()
+                    } catch (e: Exception) {
+                        _currentUserId.value = null
+                    }
                     startObservingFamilyUpdates()
 
                     viewModelScope.launch {
@@ -97,12 +103,49 @@ class FamilyViewModel @Inject constructor(
                     stopObservingFamilyUpdates()
                     _currentUserId.value = null
                     _families.value = emptyList()
+                    _currentUserRoles.value = emptySet()
                     _state.value = FamilyState()  // reset loading/error
                 }
             }
             .launchIn(viewModelScope)
-    }
 
+        viewModelScope.launch {
+            selectedFamily.collect { family ->
+                rolesObserverJob?.cancel()
+                rolesObserverJob = viewModelScope.launch {
+                    currentUserId.collect { userId ->
+                        if (family != null && userId != null) {
+                            updateCurrentUserRoles(family, userId)
+                        } else {
+                            _currentUserRoles.value = emptySet()
+                        }
+                    }
+                }
+            }
+        }
+    }
+    private fun updateCurrentUserRoles(family: Family, userId: String) {
+        val roles = mutableSetOf<FamilyRole>()
+
+        if (family.adminIds.contains(userId)) {
+            roles.add(FamilyRole.ADMIN)
+        }
+        if (family.memberIds.contains(userId)) {
+            roles.add(FamilyRole.MEMBER)
+        }
+        if (family.viewerIds.contains(userId)) {
+            roles.add(FamilyRole.VIEWER)
+        }
+
+        _currentUserRoles.value = roles
+    }
+    fun isCurrentUserAdmin(): Boolean = _currentUserRoles.value.contains(FamilyRole.ADMIN)
+
+    fun isCurrentUserMember(): Boolean = _currentUserRoles.value.contains(FamilyRole.MEMBER)
+
+    fun isCurrentUserViewer(): Boolean = _currentUserRoles.value.contains(FamilyRole.VIEWER)
+
+    fun hasAnyRole(): Boolean = _currentUserRoles.value.isNotEmpty()
     fun selectFamily(family: Family?) {
         repository.setSelectedFamily(family)
         family?.let { loadFamilyUsers(it) }
@@ -238,7 +281,7 @@ class FamilyViewModel @Inject constructor(
             setLoading(true)
 
             try {
-                val currentUserId = repository.getCurrentUserIdOrThrow()
+                val currentUserId = _currentUserId.value
                 if (currentUserId.isNullOrBlank()) {
                     _state.update {
                         it.copy(
