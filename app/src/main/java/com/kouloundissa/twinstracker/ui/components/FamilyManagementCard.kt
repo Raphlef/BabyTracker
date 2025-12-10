@@ -84,6 +84,7 @@ fun FamilyManagementCard(
     val selectedFamily by familyViewModel.selectedFamily.collectAsState()
     val familyUsers by familyViewModel.familyUsers.collectAsState(emptyList())
     val currentUserId by familyViewModel.currentUserId.collectAsState()
+
     val inviteResult by familyViewModel.inviteResult.collectAsState(initial = null)
 
     val babies by babyViewModel.babies.collectAsState()
@@ -116,9 +117,6 @@ fun FamilyManagementCard(
         }
     }
 
-    LaunchedEffect(selectedFamily) {
-        selectedFamily?.let { familyViewModel.loadFamilyUsers(it) }
-    }
     // Handle successful join
     LaunchedEffect(inviteResult) {
         inviteResult?.onSuccess {
