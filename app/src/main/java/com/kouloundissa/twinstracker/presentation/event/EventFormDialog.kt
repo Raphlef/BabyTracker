@@ -898,7 +898,8 @@ fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
             viewModel.updateForm {
                 (this as EventFormState.Feeding).copy(
                     durationMin = "",
-                    amountMl = amountPreset[1].toString()
+                    amountMl = amountPreset[1].toString(),
+                    breastSide = null
                 )
             }
         }
@@ -906,7 +907,8 @@ fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
             viewModel.updateForm {
                 (this as EventFormState.Feeding).copy(
                     durationMin = durationPreset[1].toString(),
-                    amountMl = ""
+                    amountMl = "",
+                    breastSide = BreastSide.BOTH
                 )
             }
         }

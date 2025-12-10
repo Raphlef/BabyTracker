@@ -774,7 +774,7 @@ sealed class EventFormState {
         override var photoRemoved: Boolean = false,
         val amountMl: String = "",
         val durationMin: String = "",
-        val breastSide: BreastSide? = null,
+        val breastSide: BreastSide? = BreastSide.BOTH,
         val notes: String = "",
     ) : EventFormState()
 
