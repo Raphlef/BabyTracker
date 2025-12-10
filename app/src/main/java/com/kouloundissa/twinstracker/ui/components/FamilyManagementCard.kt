@@ -87,6 +87,7 @@ fun FamilyManagementCard(
     val familyUsers by familyViewModel.familyUsers.collectAsState(emptyList())
     val inviteResult by familyViewModel.inviteResult.collectAsState(initial = null)
     val isCurrentAdmin = familyViewModel.isCurrentUserAdmin()
+    val errorMessage = familyViewModel.state.collectAsState().value.error
     val isEditFamily = selectedFamily != null
 
     val babies by babyViewModel.babies.collectAsState()
@@ -136,6 +137,12 @@ fun FamilyManagementCard(
     val contentColor = DarkGrey
     val cornerShape = MaterialTheme.shapes.extraLarge
 
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            familyViewModel.clearError()
+        }
+    }
     GlassCard(
         loading = isLoading
     ) {
@@ -186,7 +193,7 @@ fun FamilyManagementCard(
                     familyUsers = familyUsers,
                     isLoading = isLoading,
                     onRoleChange = { userId, newRole ->
-                        familyViewModel.updateUserRole(family, userId, newRole)
+                        familyViewModel.updateUserRole(family, userId, newRole, context)
                     },
                     onRemoveUser = { userId ->
                         familyViewModel.removeUserFromFamily(family, userId)
@@ -398,7 +405,7 @@ fun FamilyManagementCard(
             onDismiss = { showJoinDialog = false },
             onJoin = { code ->
                 showJoinDialog = false
-                familyViewModel.joinByCode(code)
+                familyViewModel.joinByCode(code, context)
             },
             inviteResult = inviteResult,
             isLoading = isLoading
