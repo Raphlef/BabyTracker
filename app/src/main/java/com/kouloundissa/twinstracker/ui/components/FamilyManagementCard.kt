@@ -83,9 +83,9 @@ fun FamilyManagementCard(
     // Selected family from ViewModel
     val selectedFamily by familyViewModel.selectedFamily.collectAsState()
     val familyUsers by familyViewModel.familyUsers.collectAsState(emptyList())
-    val currentUserId by familyViewModel.currentUserId.collectAsState()
-
     val inviteResult by familyViewModel.inviteResult.collectAsState(initial = null)
+    val isCurrentAdmin = familyViewModel.isCurrentUserAdmin()
+    val isEditFamily = selectedFamily != null
 
     val babies by babyViewModel.babies.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
@@ -105,7 +105,7 @@ fun FamilyManagementCard(
     var description by remember(selectedFamily) { mutableStateOf(selectedFamily?.description.orEmpty()) }
     var inviteCode by remember(selectedFamily) { mutableStateOf(selectedFamily?.inviteCode.orEmpty()) }
     var requireApproval by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.requireApprovalForNewMembers == true) }
-    var sharedNotifications by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.sharedNotifications == true) }
+    //var sharedNotifications by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.sharedNotifications == true) }
     var privacyLevel by remember(selectedFamily) { mutableStateOf(selectedFamily?.settings?.defaultPrivacy?.name.orEmpty()) }
     var showJoinDialog by remember { mutableStateOf(false) }
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -173,7 +173,6 @@ fun FamilyManagementCard(
             HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
             selectedFamily?.let { family ->
                 FamilyMemberSection(
-                    family = family,
                     familyUsers = familyUsers,
                     isLoading = isLoading,
                     onRoleChange = { userId, newRole ->
@@ -182,7 +181,7 @@ fun FamilyManagementCard(
                     onRemoveUser = { userId ->
                         familyViewModel.removeUserFromFamily(family, userId)
                     },
-                    currentUserId = currentUserId
+                    familyViewModel = familyViewModel
                 )
 
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
@@ -201,8 +200,8 @@ fun FamilyManagementCard(
 
             // Editable Form
             Text(
-                if (selectedFamily == null) "Créer une nouvelle famille"
-                else "Modifier la famille",
+                if (isEditFamily) "Modifier la famille"
+                else "Créer une nouvelle famille",
                 style = MaterialTheme.typography.titleMedium,
                 color = contentColor
             )
@@ -211,7 +210,7 @@ fun FamilyManagementCard(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("Nom de la famille", color = contentColor) },
-                enabled = !isLoading,
+                enabled = !isLoading && (!isEditFamily || isCurrentAdmin),
                 textStyle = LocalTextStyle.current.copy(color = contentColor),
                 singleLine = true,
                 shape = cornerShape,
@@ -222,7 +221,7 @@ fun FamilyManagementCard(
                 onValueChange = { description = it },
                 textStyle = LocalTextStyle.current.copy(color = contentColor),
                 label = { Text("Description (optionnel)", color = contentColor) },
-                enabled = !isLoading,
+                enabled = !isLoading && (!isEditFamily || isCurrentAdmin),
                 shape = cornerShape,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -250,7 +249,7 @@ fun FamilyManagementCard(
                 )
                 IconButton(
                     onClick = { familyViewModel.regenerateCode() },
-                    enabled = !isLoading
+                    enabled = !isLoading && (!isEditFamily || isCurrentAdmin)
                 ) {
                     Icon(
                         Icons.Default.Refresh,
@@ -264,20 +263,12 @@ fun FamilyManagementCard(
                 Checkbox(
                     requireApproval,
                     onCheckedChange = { requireApproval = it },
-                    enabled = !isLoading
+                    enabled = !isLoading && (!isEditFamily || isCurrentAdmin)
                 )
                 Spacer(Modifier.width(8.dp))
                 Text("Validation admin nécessaire", color = contentColor)
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    sharedNotifications,
-                    onCheckedChange = { sharedNotifications = it },
-                    enabled = !isLoading
-                )
-                Spacer(Modifier.width(8.dp))
-                Text("Notifications partagées", color = contentColor)
-            }
+
 
             Row(
                 Modifier
@@ -298,7 +289,8 @@ fun FamilyManagementCard(
                             PrivacyLevel.PUBLIC -> Icons.Default.Public
                         }
                     },
-                    getLabel = { it.name.replace('_', ' ').lowercase() }
+                    getLabel = { it.name.replace('_', ' ').lowercase() },
+                    enabled = !isLoading && (!isEditFamily || isCurrentAdmin)
                 )
             }
 
@@ -327,7 +319,6 @@ fun FamilyManagementCard(
                             description = description.ifBlank { null },
                             settings = base.settings.copy(
                                 requireApprovalForNewMembers = requireApproval,
-                                sharedNotifications = sharedNotifications,
                                 defaultPrivacy = PrivacyLevel.valueOf(privacyLevel)
                             )
                         )
@@ -379,15 +370,14 @@ fun FamilyManagementCard(
 
 @Composable
 private fun FamilyMemberSection(
-    family: Family,
     familyUsers: List<FamilyUser>,
-    currentUserId: String?,
     isLoading: Boolean,
     onRoleChange: (String, FamilyRole) -> Unit,
-    onRemoveUser: (String) -> Unit
+    onRemoveUser: (String) -> Unit,
+    familyViewModel: FamilyViewModel,
 ) {
     val tintColor = DarkGrey
-    val isCurrentAdmin = currentUserId != null && family.adminIds.contains(currentUserId)
+    val isCurrentAdmin = familyViewModel.isCurrentUserAdmin()
     Column {
         Text(
             "Membres de la famille",
@@ -556,9 +546,7 @@ fun FamilyLeaveButton(
     val currentUserId: String by nonNullUserIdFlow
         .collectAsState(initial = "")
     selectedFamily?.let { family ->
-        val isOnlyAdmin =
-            family.adminIds.contains(currentUserId) && family.adminIds.size == 1
-
+        val isOnlyAdmin = familyViewModel.isCurrentUserAdmin() && family.adminIds.size == 1
 
         TextButton(
             onClick = { showConfirmDialog = true },
