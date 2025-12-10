@@ -66,7 +66,7 @@ data class Family(
 @IgnoreExtraProperties
 data class FamilySettings(
     val requireApprovalForNewMembers: Boolean = false, // Require admin approval for new members
-    val sharedNotifications: Boolean = true,         // Enable shared notifications for family events
+    //val sharedNotifications: Boolean = true,         // Enable shared notifications for family events
     val defaultPrivacy: PrivacyLevel = PrivacyLevel.FAMILY_ONLY, // Default privacy for new entries
 )
 
