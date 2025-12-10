@@ -279,6 +279,47 @@
     <string name="date_with_event_count">%1$s (%2$d events)</string>
     <string name="loading_events">Loading older events…</string>
 
+    <!-- ========== FAMILY MANAGEMENT CARD ========== -->
+    <string name="family_management_your_families">Your families</string>
+    <string name="family_management_join_button">Join</string>
+    <string name="family_management_create_new_family">Create a new family</string>
+    <string name="family_management_babies_section">Babies</string>
+    <string name="family_management_edit_title">Edit family</string>
+    <string name="family_management_create_title">Create a new family</string>
+    <string name="family_management_family_name_label">Family name</string>
+    <string name="family_management_description_label">Description (optional)</string>
+    <string name="family_management_invite_code_label">Invite code</string>
+    <string name="family_management_copy_code">Copy code</string>
+    <string name="family_management_regenerate_code">Regenerate code</string>
+    <string name="family_management_code_copied">Code copied</string>
+    <string name="family_management_require_approval">Admin approval required</string>
+    <string name="family_management_privacy_level">Privacy level</string>
+    <string name="family_management_create_button">Create</string>
+    <string name="family_management_save_button">Save</string>
+    <string name="family_management_joined_success">You have successfully joined the family!</string>
+    <string name="family_management_join_failed">Failed to join</string>
+
+    <!-- ========== FAMILY MEMBER SECTION ========== -->
+    <string name="family_member_section_title">Family members</string>
+    <string name="family_member_remove_button">Remove</string>
+
+    <!-- ========== JOIN FAMILY DIALOG ========== -->
+    <string name="join_family_dialog_title">Join a family</string>
+    <string name="join_family_dialog_invite_code_label">Invite code</string>
+    <string name="join_family_dialog_unknown_error">Unknown error</string>
+    <string name="join_family_dialog_join_button">Join</string>
+    <string name="join_family_dialog_cancel_button">Cancel</string>
+
+    <!-- ========== FAMILY LEAVE BUTTON ========== -->
+    <string name="family_leave_button_leave">Leave</string>
+    <string name="family_leave_button_cannot_leave">Cannot leave</string>
+    <string name="family_leave_dialog_title">Leave family</string>
+    <string name="family_leave_dialog_only_admin_message">You cannot leave this family because you are the only administrator. Please assign another member as administrator first.</string>
+    <string name="family_leave_dialog_confirm_message">Are you sure you want to leave \"%1$s\"? You will lose access to all babies and data in this family.</string>
+    <string name="family_leave_dialog_confirm_button">Leave</string>
+    <string name="family_leave_dialog_dismiss_only_admin">Understood</string>
+    <string name="family_leave_dialog_dismiss_cancel">Cancel</string>
+
     <!-- ========== PHOTO PICKER ========== -->
     <string name="select_photo_title">Select Photo</string>
     <string name="select_photo_description">Choose an option</string>

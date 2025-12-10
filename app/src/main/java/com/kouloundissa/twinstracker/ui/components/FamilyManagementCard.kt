@@ -54,9 +54,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Family
 import com.kouloundissa.twinstracker.data.FamilyRole
 import com.kouloundissa.twinstracker.data.FamilySettings
@@ -95,7 +97,11 @@ fun FamilyManagementCard(
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText(label, text)
         clipboard.setPrimaryClip(clip)
-        Toast.makeText(context, "Code copié", Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+            context,
+            context.getString(R.string.family_management_code_copied),
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     val context = LocalContext.current
@@ -120,9 +126,9 @@ fun FamilyManagementCard(
     // Handle successful join
     LaunchedEffect(inviteResult) {
         inviteResult?.onSuccess {
-            snackbarHostState.showSnackbar("Vous avez rejoint la famille!")
+            snackbarHostState.showSnackbar(context.getString(R.string.family_management_joined_success))
         }?.onFailure { ex ->
-            snackbarHostState.showSnackbar(ex.message ?: "Impossible de rejoindre")
+            snackbarHostState.showSnackbar(context.getString(R.string.family_management_join_failed) + " " + ex.localizedMessage)
         }
     }
     val baseColor = BackgroundColor
@@ -134,7 +140,11 @@ fun FamilyManagementCard(
         loading = isLoading
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Vos familles", style = MaterialTheme.typography.titleSmall, color = contentColor)
+            Text(
+                stringResource(R.string.family_management_your_families),
+                style = MaterialTheme.typography.titleSmall,
+                color = contentColor
+            )
 
             FamilyList(
                 families = families,
@@ -151,7 +161,7 @@ fun FamilyManagementCard(
                     enabled = !isLoading
                 ) {
                     Icon(Icons.Default.QrCode, contentDescription = null, tint = tintColor)
-                    Text("Rejoindre", color = tintColor)
+                    Text(stringResource(R.string.family_management_join_button), color = tintColor)
                 }
                 Button(
                     onClick = { showCreateDialog = true },
@@ -165,7 +175,7 @@ fun FamilyManagementCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null)
-                        Text("Créer une nouvelle famille")
+                        Text(stringResource(R.string.family_management_create_new_family))
                     }
                 }
             }
@@ -188,7 +198,11 @@ fun FamilyManagementCard(
             }
             // Baby selector row
             if (selectedFamily != null) {
-                Text("Bébés", style = MaterialTheme.typography.titleSmall, color = contentColor)
+                Text(
+                    stringResource(R.string.family_management_babies_section),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = contentColor
+                )
                 BabySelectorRow(
                     babies = babies,
                     selectedBaby = selectedBaby,
@@ -200,8 +214,10 @@ fun FamilyManagementCard(
 
             // Editable Form
             Text(
-                if (isEditFamily) "Modifier la famille"
-                else "Créer une nouvelle famille",
+                stringResource(
+                    if (isEditFamily) R.string.family_management_edit_title
+                    else R.string.family_management_create_title
+                ),
                 style = MaterialTheme.typography.titleMedium,
                 color = contentColor
             )
@@ -209,7 +225,12 @@ fun FamilyManagementCard(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Nom de la famille", color = contentColor) },
+                label = {
+                    Text(
+                        stringResource(R.string.family_management_family_name_label),
+                        color = contentColor
+                    )
+                },
                 enabled = !isLoading && (!isEditFamily || isCurrentAdmin),
                 textStyle = LocalTextStyle.current.copy(color = contentColor),
                 singleLine = true,
@@ -220,7 +241,12 @@ fun FamilyManagementCard(
                 value = description,
                 onValueChange = { description = it },
                 textStyle = LocalTextStyle.current.copy(color = contentColor),
-                label = { Text("Description (optionnel)", color = contentColor) },
+                label = {
+                    Text(
+                        stringResource(R.string.family_management_description_label),
+                        color = contentColor
+                    )
+                },
                 enabled = !isLoading && (!isEditFamily || isCurrentAdmin),
                 shape = cornerShape,
                 modifier = Modifier.fillMaxWidth()
@@ -230,7 +256,12 @@ fun FamilyManagementCard(
                     value = inviteCode,
                     onValueChange = {},
                     textStyle = LocalTextStyle.current.copy(color = contentColor),
-                    label = { Text("Code d'invitation", color = contentColor) },
+                    label = {
+                        Text(
+                            stringResource(R.string.family_management_invite_code_label),
+                            color = contentColor
+                        )
+                    },
                     readOnly = true,
                     shape = cornerShape,
                     modifier = Modifier
@@ -253,7 +284,7 @@ fun FamilyManagementCard(
                 ) {
                     Icon(
                         Icons.Default.Refresh,
-                        contentDescription = "Régénérer le code",
+                        contentDescription = stringResource(R.string.family_management_regenerate_code),
                         tint = tintColor
                     )
                 }
@@ -266,7 +297,10 @@ fun FamilyManagementCard(
                     enabled = !isLoading && (!isEditFamily || isCurrentAdmin)
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("Validation admin nécessaire", color = contentColor)
+                Text(
+                    stringResource(R.string.family_management_require_approval),
+                    color = contentColor
+                )
             }
 
 
@@ -278,7 +312,7 @@ fun FamilyManagementCard(
             {
                 // Privacy
                 IconSelector(
-                    title = "Niveau de confidentialité",
+                    title = stringResource(R.string.family_management_privacy_level),
                     options = PrivacyLevel.entries.toList(),
                     selected = PrivacyLevel.entries.find { it.name == privacyLevel },
                     onSelect = { selected -> privacyLevel = selected.name },
@@ -309,7 +343,11 @@ fun FamilyManagementCard(
                     )
                 }
 
-                val createLabel = if (selectedFamily == null) "Créer" else "Enregistrer"
+                val createLabel =
+                    if (isEditFamily) stringResource(R.string.family_management_save_button)
+                    else
+                        stringResource(R.string.family_management_create_button)
+
 
                 Button(
                     onClick = {
@@ -380,7 +418,7 @@ private fun FamilyMemberSection(
     val isCurrentAdmin = familyViewModel.isCurrentUserAdmin()
     Column {
         Text(
-            "Membres de la famille",
+            stringResource(R.string.family_member_section_title),
             style = MaterialTheme.typography.titleSmall,
             color = tintColor
         )
@@ -417,7 +455,7 @@ private fun FamilyMemberSection(
                     ) {
                         Icon(
                             Icons.Default.Delete,
-                            contentDescription = "Supprimer",
+                            contentDescription = stringResource(R.string.delete_button),
                             tint = Color.Red
                         )
                     }
@@ -499,13 +537,13 @@ fun JoinFamilyDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Rejoindre une famille") },
+        title = { Text(stringResource(R.string.join_family_dialog_title)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = code,
                     onValueChange = { code = it.uppercase().trim() },
-                    label = { Text("Code d’invitation") },
+                    label = { Text(stringResource(R.string.join_family_dialog_invite_code_label)) },
                     singleLine = true,
                     enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth()
@@ -513,7 +551,7 @@ fun JoinFamilyDialog(
                 inviteResult?.onFailure { ex ->
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = ex.message ?: "Erreur inconnue",
+                        text = stringResource(R.string.join_family_dialog_unknown_error) + " " + ex.localizedMessage,
                         color = MaterialTheme.colorScheme.error
                     )
                 }
@@ -524,12 +562,12 @@ fun JoinFamilyDialog(
                 onClick = { onJoin(code) },
                 enabled = code.length == 6 && !isLoading
             ) {
-                Text("Rejoindre")
+                Text(stringResource(R.string.join_family_dialog_join_button))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Annuler")
+                Text(stringResource(R.string.cancel_button))
             }
         }
     )
@@ -564,7 +602,10 @@ fun FamilyLeaveButton(
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    if (isOnlyAdmin) "Impossible de quitter" else "Quitter",
+                    stringResource(
+                        if (isOnlyAdmin) R.string.family_leave_button_cannot_leave
+                        else R.string.family_leave_button_leave
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -576,14 +617,17 @@ fun FamilyLeaveButton(
         if (showConfirmDialog) {
             AlertDialog(
                 onDismissRequest = { showConfirmDialog = false },
-                title = { Text("Quitter la famille") },
+                title = { Text(stringResource(R.string.family_leave_dialog_title)) },
                 text = {
                     Text(
-                        if (isOnlyAdmin) {
-                            "Vous ne pouvez pas quitter cette famille car vous êtes le seul administrateur. Nommez d'abord un autre membre comme administrateur."
-                        } else {
-                            "Êtes-vous sûr de vouloir quitter \"${family.name}\" ? Vous perdrez l'accès à tous les bébés et données de cette famille."
-                        }
+                        stringResource(
+                            if (isOnlyAdmin) {
+                                R.string.family_leave_dialog_only_admin_message
+                            } else {
+                                R.string.family_leave_dialog_confirm_message
+                            },
+                            family.name
+                        )
                     )
                 },
                 confirmButton = {
@@ -598,13 +642,21 @@ fun FamilyLeaveButton(
 
                             }
                         ) {
-                            Text("Quitter", color = MaterialTheme.colorScheme.error)
+                            Text(
+                                stringResource(R.string.family_leave_dialog_confirm_button),
+                                color = MaterialTheme.colorScheme.error
+                            )
                         }
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showConfirmDialog = false }) {
-                        Text(if (isOnlyAdmin) "Compris" else "Annuler")
+                        Text(
+                            stringResource(
+                                if (isOnlyAdmin) R.string.family_leave_dialog_dismiss_only_admin
+                                else R.string.cancel_button
+                            )
+                        )
                     }
                 }
             )
