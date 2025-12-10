@@ -139,8 +139,9 @@ fun FamilyManagementCard(
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
-            snackbarHostState.showSnackbar(it)
-            familyViewModel.clearError()
+            snackbarHostState.showSnackbar(
+                message = it
+            )
         }
     }
     GlassCard(
