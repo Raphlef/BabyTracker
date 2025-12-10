@@ -286,7 +286,7 @@ fun FamilyManagementCard(
                     }
                 )
                 IconButton(
-                    onClick = { familyViewModel.regenerateCode() },
+                    onClick = { familyViewModel.regenerateCode(context) },
                     enabled = !isLoading && (!isEditFamily || isCurrentAdmin)
                 ) {
                     Icon(
@@ -586,6 +586,7 @@ fun FamilyLeaveButton(
     familyViewModel: FamilyViewModel,
     isLoading: Boolean
 ) {
+    var context= LocalContext.current
     var showConfirmDialog by remember { mutableStateOf(false) }
     val nonNullUserIdFlow = familyViewModel.currentUserId.map { it.orEmpty() }
     val currentUserId: String by nonNullUserIdFlow
@@ -644,7 +645,8 @@ fun FamilyLeaveButton(
                                 showConfirmDialog = false
                                 familyViewModel.removeMember(
                                     family.id,
-                                    currentUserId
+                                    currentUserId,
+                                    context
                                 )
 
                             }

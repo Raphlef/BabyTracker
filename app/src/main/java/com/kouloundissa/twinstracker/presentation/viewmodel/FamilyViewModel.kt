@@ -1,9 +1,12 @@
 package com.kouloundissa.twinstracker.presentation.viewmodel
 
+import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Family
 import com.kouloundissa.twinstracker.data.FamilyRole
 import com.kouloundissa.twinstracker.data.FamilyUser
@@ -124,6 +127,7 @@ class FamilyViewModel @Inject constructor(
             }
         }
     }
+
     private fun updateCurrentUserRoles(family: Family, userId: String) {
         val roles = mutableSetOf<FamilyRole>()
 
@@ -139,6 +143,7 @@ class FamilyViewModel @Inject constructor(
 
         _currentUserRoles.value = roles
     }
+
     fun isCurrentUserAdmin(): Boolean = _currentUserRoles.value.contains(FamilyRole.ADMIN)
 
     fun isCurrentUserMember(): Boolean = _currentUserRoles.value.contains(FamilyRole.MEMBER)
@@ -192,7 +197,7 @@ class FamilyViewModel @Inject constructor(
     }
 
 
-    fun updateUserRole(family: Family, userId: String, newRole: FamilyRole) {
+    fun updateUserRole(family: Family, userId: String, newRole: FamilyRole, context: Context) {
         viewModelScope.launch {
             setLoading(true)
             try {
@@ -202,7 +207,7 @@ class FamilyViewModel @Inject constructor(
                     _state.update {
                         it.copy(
                             isLoading = false,
-                            error = "Seuls les administrateurs peuvent modifier les rôles."
+                            error = context.getString(R.string.only_admins_can_change_roles)
                         )
                     }
                     return@launch
@@ -229,14 +234,16 @@ class FamilyViewModel @Inject constructor(
                         setLoading(false)
                     }
                     .onFailure { e ->
-                        handleError(e as Exception, "Failed to update user role")
+                        handleError(
+                            e as Exception,
+                            context.getString(R.string.error_update_user_role)
+                        )
                     }
             } catch (e: Exception) {
-                handleError(e, "Failed to update user role")
+                handleError(e, context.getString(R.string.error_update_user_role))
             }
         }
     }
-
 
     fun removeUserFromFamily(family: Family, userId: String) {
         viewModelScope.launch {
@@ -359,15 +366,15 @@ class FamilyViewModel @Inject constructor(
         }
     }
 
-    fun removeMember(familyId: String, userId: String) {
+    fun removeMember(familyId: String, userId: String, context: Context) {
         viewModelScope.launch {
             setLoading(true)
             try {
                 // Get current family from cached families list
                 val family = _families.value.firstOrNull { it.id == familyId }
                     ?: return@launch handleError(
-                        Exception("Family not found"),
-                        "Family not found"
+                        Exception(context.getString(R.string.error_family_not_found)),
+                        context.getString(R.string.error_family_not_found)
                     )
 
                 // Safety check: prevent leaving if user is the only admin
@@ -375,7 +382,7 @@ class FamilyViewModel @Inject constructor(
                     _state.update {
                         it.copy(
                             isLoading = false,
-                            error = "You cannot leave as you are the only administrator. Assign another admin first."
+                            error = context.getString(R.string.family_leave_dialog_only_admin_message)
                         )
                     }
                     return@launch
@@ -392,16 +399,16 @@ class FamilyViewModel @Inject constructor(
                         startObservingFamilyUpdates()
                     }
                     .onFailure { err ->
-                        handleError(err as Exception, "Failed to remove member")
+                        handleError(err as Exception, context.getString(R.string.error_remove_member))
                     }
             } catch (e: Exception) {
-                handleError(e, "Failed to remove member")
+                handleError(e, context.getString(R.string.error_remove_member))
             }
         }
     }
 
     /** Regenerates invite code for the selected family */
-    fun regenerateCode() {
+    fun regenerateCode(context: Context) {
         viewModelScope.launch {
             setLoading(true)
             try {
@@ -425,16 +432,19 @@ class FamilyViewModel @Inject constructor(
                         setLoading(false)
                     }
                     .onFailure { exception ->
-                        handleError(exception as Exception, "Failed to regenerate invite code")
+                        handleError(
+                            exception as Exception,
+                            context.getString(R.string.error_regenerate_invite_code)
+                        )
                     }
             } catch (e: Exception) {
-                handleError(e, "Failed to regenerate invite code")
+                handleError(e, context.getString(R.string.error_regenerate_invite_code))
             }
         }
     }
 
     /** Joins a family via invite code */
-    fun joinByCode(code: String) {
+    fun joinByCode(code: String, context: Context) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
 
@@ -447,21 +457,11 @@ class FamilyViewModel @Inject constructor(
                         startObservingFamilyUpdates()
                     }
                     .onFailure { ex ->
-                        _state.update {
-                            it.copy(
-                                isLoading = false,
-                                error = ex.localizedMessage ?: "Failed to join family"
-                            )
-                        }
+                        handleError(ex as Exception, context.getString(R.string.error_join_family))
                         _inviteResult.emit(Result.failure(ex))
                     }
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        error = e.localizedMessage ?: "Failed to join family"
-                    )
-                }
+            } catch (ex: Exception) {
+                handleError(ex, context.getString(R.string.error_join_family))
             }
         }
     }
@@ -476,13 +476,8 @@ class FamilyViewModel @Inject constructor(
                         _families.value = list
                         _state.update { it.copy(isLoading = false, error = null) }
                     }
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        error = e.localizedMessage ?: "Failed to load families"
-                    )
-                }
+            } catch (ex: Exception) {
+                handleError(ex, "Failed to load families")
             }
         }
     }
@@ -502,15 +497,16 @@ class FamilyViewModel @Inject constructor(
     /**
      * Utility: Clear error
      */
-    private fun clearError() {
+    fun clearError() {
         _state.update { it.copy(error = null) }
     }
 
     private fun handleError(exception: Exception, defaultMessage: String = "An error occurred") {
+        Log.e("FamilyViewModel", "Error", exception)
         _state.update {
             it.copy(
                 isLoading = false,
-                error = exception.message ?: defaultMessage
+                error = defaultMessage + " " + exception.localizedMessage
             )
         }
     }
