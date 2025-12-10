@@ -136,8 +136,14 @@ class BabyViewModel @Inject constructor(
         notes: String? = null,
         existingPhotoUrl: String?,
         newPhotoUri: Uri? = null,
-        photoRemoved: Boolean = false
+        photoRemoved: Boolean = false,
+        familyViewModel: FamilyViewModel
     ) {
+        if (!familyViewModel.canUserSaveBaby()) {
+            _errorMessage.value =
+                "You don't have permission to save baby. Only members and admins can save."
+            return
+        }
         val isUpdate = !id.isNullOrBlank()
         Log.d(TAG, "saveBaby: ${if (isUpdate) "UPDATE" else "CREATE"} - id=$id, name=$name")
 
@@ -293,7 +299,12 @@ class BabyViewModel @Inject constructor(
         }
     }
 
-    fun deleteBaby(babyId: String) {
+    fun deleteBaby(babyId: String, familyViewModel: FamilyViewModel) {
+        if (!familyViewModel.canUserDeleteBaby()) {
+            _errorMessage.value =
+                "You don't have permission to delete baby. Only members and admins can save."
+            return
+        }
         _isLoading.value = true
         viewModelScope.launch {
             try {
@@ -319,7 +330,12 @@ class BabyViewModel @Inject constructor(
         }
     }
 
-    fun deleteBabyPhoto(babyId: String, family: Family?) {
+    fun deleteBabyPhoto(babyId: String, family: Family, familyViewModel: FamilyViewModel) {
+        if (!familyViewModel.canUserEditBaby()) {
+            _errorMessage.value =
+                "You don't have permission to edit baby. Only members and admins can save."
+            return
+        }
         _isLoading.value = true
         viewModelScope.launch {
             try {
