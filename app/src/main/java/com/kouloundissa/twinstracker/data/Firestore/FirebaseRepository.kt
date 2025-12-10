@@ -73,7 +73,7 @@ class FirebaseRepository @Inject constructor(
     // ===== AUTHENTICATION =====
     fun isUserLoggedIn(): Boolean = auth.currentUser != null
     fun getCurrentUserEmail(): String? = auth.currentUser?.email
-    fun getCurrentUserId(): String = auth.currentUser?.uid ?: throw IllegalStateException("User not authenticated")
+    fun getCurrentUserIdOrThrow(): String = auth .currentUser?.uid ?: throw IllegalStateException("User not authenticated")
 
     suspend fun login(email: String, password: String) {
         FirebaseValidators.validateEmail(email)
@@ -94,7 +94,7 @@ class FirebaseRepository @Inject constructor(
         auth.createUserWithEmailAndPassword(normalized, password).await()
 
         reloadUser()
-        val userId = getCurrentUserId()
+        val userId = getCurrentUserIdOrThrow()
         if (userId.isEmpty()) {
             throw IllegalStateException("Failed to get user ID after registration")
         }
@@ -184,7 +184,7 @@ class FirebaseRepository @Inject constructor(
 
     // ===== USER PROFILE =====
     suspend fun getCurrentUserProfile(): User {
-        val userId = getCurrentUserId()
+        val userId = getCurrentUserIdOrThrow()
         val doc = db.collection(FirestoreConstants.Collections.USERS)
             .document(userId)
             .get()
@@ -203,7 +203,7 @@ class FirebaseRepository @Inject constructor(
     }
 
     suspend fun updateUserProfile(updates: Map<String, Any?>) {
-        val userId = getCurrentUserId()
+        val userId = getCurrentUserIdOrThrow()
         db.collection(FirestoreConstants.Collections.USERS)
             .document(userId)
             .update(updates.withUpdatedAt())
@@ -290,7 +290,7 @@ class FirebaseRepository @Inject constructor(
 
     // ===== BABY OPERATIONS =====
     suspend fun addOrUpdateBaby(baby: Baby, family: Family?): Result<Baby> = runCatching {
-        val userId = getCurrentUserId()
+        val userId = getCurrentUserIdOrThrow()
 
         if (family == null) {
             throw IllegalStateException("L'utilisateur ne fait partie d'aucune famille")
@@ -488,7 +488,7 @@ class FirebaseRepository @Inject constructor(
         firebaseCache: FirebaseCache = FirebaseCache(context, db),
     ): Result<Unit> {
         return try {
-            val userId = getCurrentUserId()
+            val userId = getCurrentUserIdOrThrow()
             val data = event.toMap()
                 .withUserIdAndTimestamp(userId)
 
@@ -508,7 +508,7 @@ class FirebaseRepository @Inject constructor(
         eventId: String, event: Event,
         firebaseCache: FirebaseCache = FirebaseCache(context, db),
     ): Result<Unit> = runCatching {
-        getCurrentUserId()
+        getCurrentUserIdOrThrow()
         val data = event.toMap()
             .withUpdatedAt()
 
@@ -580,7 +580,7 @@ class FirebaseRepository @Inject constructor(
         // STEP 0: Shared validation
         FirebaseValidators.validateBabyId(babyId)
         FirebaseValidators.validateDateRange(startDate, endDate)
-        getCurrentUserId()
+        getCurrentUserIdOrThrow()
 
         val prefix = logPrefix()
         val allEvents = mutableMapOf<String, Event>()
@@ -1167,7 +1167,7 @@ class FirebaseRepository @Inject constructor(
 
     suspend fun getLastGrowthEvent(babyId: String): Result<GrowthEvent?> = runCatching {
         FirebaseValidators.validateBabyId(babyId)
-        getCurrentUserId()
+        getCurrentUserIdOrThrow()
 
         val snapshot = db.collection(FirestoreConstants.Collections.EVENTS)
             .whereEqualTo(FirestoreConstants.Fields.BABY_ID, babyId)

@@ -78,7 +78,7 @@ class FamilyViewModel @Inject constructor(
             .distinctUntilChanged()
             .onEach { isAuth ->
                 if (isAuth) {
-                    _currentUserId.value = repository.getCurrentUserId()
+                    _currentUserId.value = repository.getCurrentUserIdOrThrow()
                     startObservingFamilyUpdates()
 
                     viewModelScope.launch {
@@ -238,7 +238,7 @@ class FamilyViewModel @Inject constructor(
             setLoading(true)
 
             try {
-                val currentUserId = repository.getCurrentUserId()
+                val currentUserId = repository.getCurrentUserIdOrThrow()
                 if (currentUserId.isNullOrBlank()) {
                     _state.update {
                         it.copy(
@@ -396,7 +396,7 @@ class FamilyViewModel @Inject constructor(
             _state.update { it.copy(isLoading = true, error = null) }
 
             try {
-                val currentUserId = repository.getCurrentUserId()
+                val currentUserId = repository.getCurrentUserIdOrThrow()
                     ?: return@launch _state.update {
                         it.copy(
                             isLoading = false,

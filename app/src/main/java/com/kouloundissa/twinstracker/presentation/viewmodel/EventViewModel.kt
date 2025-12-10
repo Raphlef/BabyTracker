@@ -175,7 +175,7 @@ class EventViewModel @Inject constructor(
         // Get current user ID on initialization
         viewModelScope.launch {
             try {
-                _currentUserId.value = repository.getCurrentUserId()
+                _currentUserId.value = repository.getCurrentUserIdOrThrow()
             } catch (e: Exception) {
                 //can failed when no user log (first start)
             }

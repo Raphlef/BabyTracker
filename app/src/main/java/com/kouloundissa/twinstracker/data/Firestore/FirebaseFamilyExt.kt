@@ -14,7 +14,7 @@ import java.util.UUID
 
 // --- Family Methods ---
 suspend fun FirebaseRepository.addOrUpdateFamily(family: Family): Result<Family> = runCatching {
-    val currentUserId = getCurrentUserId()
+    val currentUserId = getCurrentUserIdOrThrow()
 
     val isNew = family.id.isBlank()
     val familyWithIds = family.copy(
@@ -33,7 +33,7 @@ suspend fun FirebaseRepository.addOrUpdateFamily(family: Family): Result<Family>
 }
 
 fun FirebaseRepository.streamFamilies(): Flow<List<Family>> {
-    val currentUserId = getCurrentUserId()
+    val currentUserId = getCurrentUserIdOrThrow()
 
     return callbackFlow {
         val listeners = mutableListOf<ListenerRegistration>()

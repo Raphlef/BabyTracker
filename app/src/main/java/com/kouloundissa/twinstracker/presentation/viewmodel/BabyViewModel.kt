@@ -234,7 +234,7 @@ class BabyViewModel @Inject constructor(
         }
 
         // Get current user ID for parentIds
-        val currentUserId = repository.getCurrentUserId()
+        val currentUserId = repository.getCurrentUserIdOrThrow()
 
         return if (isUpdate) {
             // Update: Get existing baby and update fields

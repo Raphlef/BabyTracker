@@ -25,7 +25,7 @@ class FirebasePhotoHelper(
         entityId: String,
         uri: Uri
     ): String = withContext(Dispatchers.IO) {
-        val userId = repo.getCurrentUserId()
+        val userId = repo.getCurrentUserIdOrThrow()
         val photoPath = FirebaseStorageUtils.buildPhotoStoragePath(entityType, entityId)
 
         Log.d("PhotoUpload", "Starting upload: $photoPath for userId=$userId")
@@ -60,7 +60,7 @@ class FirebasePhotoHelper(
         entityType: String,
         entityId: String
     ) = withContext(Dispatchers.IO) {
-        repo.getCurrentUserId() // Verify auth
+        repo.getCurrentUserIdOrThrow() // Verify auth
         val photoRef = storage.getPhotoReference(entityType, entityId)
 
         try {
