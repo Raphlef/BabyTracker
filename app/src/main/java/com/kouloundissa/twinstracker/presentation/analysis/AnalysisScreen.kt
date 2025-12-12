@@ -36,7 +36,6 @@ import com.kouloundissa.twinstracker.data.WhoLms.WhoLmsRepository
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.Ad.AdManager
-import com.kouloundissa.twinstracker.ui.components.Ad.InlineBannerAd
 import com.kouloundissa.twinstracker.ui.components.AnalysisCard
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilterPanel
@@ -206,10 +205,6 @@ fun AnalysisScreen(
                             )
                         }
                     }
-                    item {
-                        // AdManager.showInterstitial(activity)
-                        InlineBannerAd()
-                    }
                 }
 
                 if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
@@ -229,10 +224,6 @@ fun AnalysisScreen(
                                 lineLabel = stringResource(id = R.string.chart_pumping_volumes_label),
                             )
                         }
-                    }
-                    item {
-                        // AdManager.showInterstitial(activity)
-                        InlineBannerAd()
                     }
                 }
 
@@ -254,10 +245,6 @@ fun AnalysisScreen(
                             )
                         }
                     }
-                    item {
-                        // AdManager.showInterstitial(activity)
-                        InlineBannerAd()
-                    }
                 }
                 if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
                     filters.value.eventTypeFilter.selectedTypes.contains(EventType.SLEEP)
@@ -272,10 +259,6 @@ fun AnalysisScreen(
                                 forceIncludeZero = true
                             )
                         }
-                    }
-                    item {
-                        // AdManager.showInterstitial(activity)
-                        InlineBannerAd()
                     }
                 }
                 if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
@@ -409,10 +392,6 @@ fun AnalysisScreen(
                                 }
                             )
                         }
-                    }
-                    item {
-                        // AdManager.showInterstitial(activity)
-                        InlineBannerAd()
                     }
                 }
             }
