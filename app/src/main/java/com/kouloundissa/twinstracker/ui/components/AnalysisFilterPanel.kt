@@ -101,7 +101,16 @@ fun AnalysisFilterPanel(
             expandedContent = {
                 FilterPanelContent(
                     filters = filters,
-                    onFiltersChanged = onFiltersChanged,
+                    onFiltersChanged = { newFilters ->
+                        val shouldCollapse =
+                            newFilters.babyFilter != filters.babyFilter ||
+                                    newFilters.dateRange != filters.dateRange
+
+                        onFiltersChanged(newFilters)
+                        if (shouldCollapse) {
+                            isExpanded = false
+                        }
+                    },
                 )
             },
             isExpanded = isExpanded,
