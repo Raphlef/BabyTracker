@@ -69,11 +69,11 @@ class FirebaseRepository @Inject constructor(
     private val TAG = "FirebaseRepository"
 
 
-
     // ===== AUTHENTICATION =====
     fun isUserLoggedIn(): Boolean = auth.currentUser != null
     fun getCurrentUserEmail(): String? = auth.currentUser?.email
-    fun getCurrentUserIdOrThrow(): String = auth .currentUser?.uid ?: throw IllegalStateException("User not authenticated")
+    fun getCurrentUserIdOrThrow(): String =
+        auth.currentUser?.uid ?: throw IllegalStateException("User not authenticated")
 
     suspend fun login(email: String, password: String) {
         FirebaseValidators.validateEmail(email)
@@ -168,6 +168,7 @@ class FirebaseRepository @Inject constructor(
                 when {
                     e.message?.contains("too-many-requests") == true ->
                         Result.failure(Exception("Trop de tentatives. Réessayez dans ${minDelaySeconds}s"))
+
                     else -> Result.failure(e)
                 }
             }
@@ -336,6 +337,7 @@ class FirebaseRepository @Inject constructor(
 
         finalBaby
     }
+
     private val _selectedFamily = MutableStateFlow<Family?>(null)
     val selectedFamily: StateFlow<Family?> = _selectedFamily.asStateFlow()
     suspend fun saveLastSelectedFamilyId(familyId: String?) {
@@ -351,6 +353,7 @@ class FirebaseRepository @Inject constructor(
     // Get last selected family ID as Flow
     fun getLastSelectedFamilyId(): Flow<String?> =
         context.userDataStore.data.map { it[lastSelectedFamilyIdKey] }
+
     fun setSelectedFamily(family: Family?) {
         _selectedFamily.value = family
     }
@@ -363,6 +366,7 @@ class FirebaseRepository @Inject constructor(
             streamBabiesByIds(babyIds)
         }
     }
+
     private fun streamBabiesByIds(babyIds: List<String>): Flow<List<Baby>> {
         if (babyIds.isEmpty()) return flowOf(emptyList())
 
@@ -731,15 +735,16 @@ class FirebaseRepository @Inject constructor(
         now: Long
     ) {
         val isCompletedDay = dayEnd.time < now
-        val cacheableEvents = if (isCompletedDay) {
-            // Completed day: cache all events
-            queriedEvents
-        } else {
-            // Current day: only cache events older than 6h
-            queriedEvents.filter { event ->
-                now - event.timestamp.time >= CacheTTL.FRESH.ageThresholdMs
-            }
-        }
+        var cacheableEvents = queriedEvents
+//        cacheableEvents = if (isCompletedDay) {
+//            // Completed day: cache all events
+//            queriedEvents
+//        } else {
+//            // Current day: only cache events older than 6h
+//            queriedEvents.filter { event ->
+//                now - event.timestamp.time >= CacheTTL.FRESH.ageThresholdMs
+//            }
+//        }
 
         if (cacheableEvents.isNotEmpty()) {
             firebaseCache.cacheDayEvents(babyId, dayStart, cacheableEvents)
@@ -766,7 +771,15 @@ class FirebaseRepository @Inject constructor(
         Log.d(TAG, "→ Real-time strategy: listener from $listenerStart (always 6h back)")
 
         // PHASE 1: Load stable cached data
-        loadStableCachedData(babyId, plan, firebaseCache, allEvents, todayStart, listenerStart, listenerStartDay)
+        loadStableCachedData(
+            babyId,
+            plan,
+            firebaseCache,
+            allEvents,
+            todayStart,
+            listenerStart,
+            listenerStartDay
+        )
 
         // Emit stable data if loaded
         val hasStableData = allEvents.isNotEmpty()
