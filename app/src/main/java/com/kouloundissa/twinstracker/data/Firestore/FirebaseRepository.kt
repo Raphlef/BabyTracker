@@ -1183,7 +1183,8 @@ class FirebaseRepository @Inject constructor(
                             headCircumferenceCm = it.headCircumferenceCm?.toFloat() ?: Float.NaN,
                             timestamp = it.timestamp.time
                         )
-                    }
+                    },
+                events = dayEvents
             )
         }
 
