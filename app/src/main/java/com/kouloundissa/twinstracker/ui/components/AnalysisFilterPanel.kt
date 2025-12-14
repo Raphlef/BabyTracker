@@ -288,7 +288,7 @@ sealed class AnalysisFilter {
 }
 
 data class AnalysisFilters(
-    val dateRange: AnalysisFilter.DateRange = AnalysisFilter.DateRange(AnalysisRange.ONE_WEEK),
+    val dateRange: AnalysisFilter.DateRange = AnalysisFilter.DateRange(AnalysisRange.THREE_DAYS),
     val babyFilter: AnalysisFilter.BabyFilter = AnalysisFilter.BabyFilter(),
     val eventTypeFilter: AnalysisFilter.EventTypeFilter = AnalysisFilter.EventTypeFilter(
         selectedTypes = emptySet()
