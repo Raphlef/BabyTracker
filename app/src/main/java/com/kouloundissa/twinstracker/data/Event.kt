@@ -57,8 +57,45 @@ enum class EventType(
             todayList: List<Event>,
             lastGrowthEvent: GrowthEvent?, context: Context
         ): String {
-            val count = todayList.size
-            return if (count > 0) "$count today" else "No diaper today"
+
+            val filterEvents = todayList.filter { event ->
+                EventType.forClass(event::class) == DIAPER
+            }
+
+            val count = filterEvents.size
+            if (count == 0) return "No diaper today"
+
+            // Get breakdown by type
+            val typeCount = filterEvents.filterIsInstance<DiaperEvent>()
+                .groupingBy { it.diaperType }
+                .eachCount()
+
+            // Build summary with type indicators (prioritized: DIRTY > MIXED > WET > DRY)
+            val breakdown = buildString {
+                // Prioritized order: DIRTY > MIXED > WET > DRY
+                val priorityOrder = listOf(
+                    DiaperType.DIRTY,
+                    DiaperType.MIXED,
+                    DiaperType.WET,
+                    DiaperType.DRY
+                )
+
+                var isFirst = true
+                for (type in priorityOrder) {
+                    typeCount[type]?.takeIf { it > 0 }?.let { count ->
+                        if (!isFirst) append(" ")
+                        append("$count${type.emoji}")
+                        isFirst = false
+                    }
+                }
+            }
+
+            val plural = if (count > 1) "s" else ""
+            return if (breakdown.isNotEmpty()) {
+                "$count diaper$plural ($breakdown)"
+            } else {
+                "$count diaper$plural"
+            }
         }
     },
     FEEDING(
@@ -87,13 +124,16 @@ enum class EventType(
             todayList: List<Event>,
             lastGrowthEvent: GrowthEvent?, context: Context
         ): String {
-            if (todayList.isEmpty()) return "No feeding"
+            val filterEvents = todayList.filter { event ->
+                EventType.forClass(event::class) == FEEDING
+            }
+            if (filterEvents.isEmpty()) return "No feeding"
 
-            val totalMl = todayList.sumOf { (it as FeedingEvent).amountMl ?: 0.0 }.toInt()
-            val count = todayList.size
+            val totalMl = filterEvents.sumOf { (it as FeedingEvent).amountMl ?: 0.0 }.toInt()
+            val count = filterEvents.size
             val averageMl = if (count > 0) (totalMl / count) else 0
             val breastCount =
-                todayList.count { (it as FeedingEvent).feedType == FeedType.BREAST_MILK }
+                filterEvents.count { (it as FeedingEvent).feedType == FeedType.BREAST_MILK }
 
             return "${totalMl}ml • $count feeding${if (count > 1) "s" else ""} • avg ${averageMl}ml • $breastCount breast"
         }
@@ -128,11 +168,14 @@ enum class EventType(
             todayList: List<Event>,
             lastGrowthEvent: GrowthEvent?, context: Context
         ): String {
-            val totalMin = todayList.sumOf { (it as SleepEvent).durationMinutes ?: 0L }
+            val filterEvents = todayList.filter { event ->
+                EventType.forClass(event::class) == SLEEP
+            }
+            val totalMin = filterEvents.sumOf { (it as SleepEvent).durationMinutes ?: 0L }
             if (totalMin > 0) {
                 val h = totalMin / 60
                 val m = totalMin % 60
-                return "Today: ${h}h ${m}m"
+                return "Total sleep: ${h}h ${m}m"
             }
             return "No sleep today"
         }
@@ -151,6 +194,9 @@ enum class EventType(
             todayList: List<Event>,
             lastGrowthEvent: GrowthEvent?, context: Context
         ): String {
+            val filterEvents = todayList.filter { event ->
+                EventType.forClass(event::class) == GROWTH
+            }
             return lastGrowthEvent?.let {
                 "${it.weightKg ?: "-"}kg • ${it.heightCm ?: "-"}cm"
             } ?: "No growth data"
@@ -171,10 +217,13 @@ enum class EventType(
             todayList: List<Event>,
             lastGrowthEvent: GrowthEvent?, context: Context
         ): String {
-            if (todayList.isEmpty()) return "No pumping today"
+            val filterEvents = todayList.filter { event ->
+                EventType.forClass(event::class) == PUMPING
+            }
+            if (filterEvents.isEmpty()) return "No pumping"
 
-            val totalMl = todayList.sumOf { (it as PumpingEvent).amountMl ?: 0.0 }.toInt()
-            val count = todayList.size
+            val totalMl = filterEvents.sumOf { (it as PumpingEvent).amountMl ?: 0.0 }.toInt()
+            val count = filterEvents.size
             val averageMl = if (count > 0) (totalMl / count) else 0
 
             return "${totalMl}ml • $count session${if (count > 1) "s" else ""} • avg ${averageMl}ml"
@@ -195,14 +244,17 @@ enum class EventType(
             todayList: List<Event>,
             lastGrowthEvent: GrowthEvent?, context: Context
         ): String {
-            if (todayList.isEmpty()) return "No drugs today"
+            val filterEvents = todayList.filter { event ->
+                EventType.forClass(event::class) == DRUGS
+            }
+            if (filterEvents.isEmpty()) return "No drugs"
 
-            val doses = todayList.size
-            val last = todayList
+            val doses = filterEvents.size
+            val last = filterEvents
                 .filterIsInstance<DrugsEvent>()
                 .maxByOrNull { it.timestamp }!!
             val doseValue = last.dosage?.toInt() ?: "-"
-            return "${doses} today • ${last.drugType.getDisplayName(context)} ${doseValue}${last.unit}"
+            return "${doses} • ${last.drugType.getDisplayName(context)} ${doseValue}${last.unit}"
         }
     };
 
