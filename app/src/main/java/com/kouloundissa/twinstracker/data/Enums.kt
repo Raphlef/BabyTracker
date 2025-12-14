@@ -43,12 +43,13 @@ import com.kouloundissa.twinstracker.R
 enum class DiaperType(
     internal @StringRes val displayNameRes: Int,
     val icon: ImageVector,
-    val color: Color
+    val color: Color,
+    val emoji: String,
 ) {
-    WET(R.string.diaper_type_wet, Icons.Default.Opacity, Color(0xFF4FC3F7)),
-    DIRTY(R.string.diaper_type_dirty, Icons.Default.Circle, Color(0xFF8D6E63)),
-    MIXED(R.string.diaper_type_mixed, Icons.Default.Merge, Color(0xFFAB47BC)),
-    DRY(R.string.diaper_type_dry, Icons.Default.InvertColorsOff, Color(0xFFFFCA28))
+    WET(R.string.diaper_type_wet, Icons.Default.Opacity, Color(0xFF4FC3F7),"💧"),
+    DIRTY(R.string.diaper_type_dirty, Icons.Default.Circle, Color(0xFF8D6E63),"💩"),
+    MIXED(R.string.diaper_type_mixed, Icons.Default.Merge, Color(0xFFAB47BC),"🔄"),
+    DRY(R.string.diaper_type_dry, Icons.Default.InvertColorsOff, Color(0xFFFFCA28),"✓")
 }
 
 fun DiaperType.getDisplayName(context: Context): String {
