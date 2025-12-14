@@ -8,13 +8,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -55,7 +57,7 @@ fun AnalysisCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp)
+            //.height(350.dp)
             .padding(vertical = 8.dp)
             .clip(cornerShape),
         tonalElevation = 4.dp,
@@ -63,7 +65,7 @@ fun AnalysisCard(
     ) {
         Column(
             Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .background(backgroundColor.copy(alpha = 1f))
         ) {
             Text(
@@ -72,26 +74,23 @@ fun AnalysisCard(
                 modifier = Modifier.padding(12.dp),
                 color = contentColor
             )
-            if (summary != null) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(8.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    Text(
-                        text = summary,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = contentColor,
-                        modifier = Modifier.padding(4.dp)
-                    )
-                }
-            } else {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(8.dp),
-                    content = content
+            // Chart always visible
+            Box(
+                Modifier
+                    .height(200.dp)  // Fixed height for chart
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                content = content
+            )
+
+            // Summary below chart if selected
+            summary?.let {
+                Divider(modifier = Modifier.padding(horizontal = 8.dp))
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor,
+                    modifier = Modifier.padding(12.dp)
                 )
             }
         }
@@ -110,7 +109,7 @@ fun LineChartView(
     val (axisMin, axisMax) = remember(values) {
         calculateAxisRange(values, paddingPercentage, forceIncludeZero)
     }
-
+    var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
     AndroidView(
         factory = {
             LineChart(context).apply {
@@ -123,7 +122,15 @@ fun LineChartView(
                 setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
                     override fun onValueSelected(e: Entry?, h: Highlight?) {
                         if (h != null) {
-                            onDaySelected?.invoke(h.x.toInt())
+                            val index = h.x.toInt()
+                            // Toggle locally
+                            if (selectedDayIndex == index) {
+                                selectedDayIndex = null
+                                onDaySelected?.invoke(null)
+                            } else {
+                                selectedDayIndex = index
+                                onDaySelected?.invoke(index)
+                            }
                         }
                     }
 
@@ -193,6 +200,8 @@ fun MultiLineChartView(
         calculateAxisRange(allValues, paddingPercentage, forceIncludeZero)
     }
 
+    var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
+
     AndroidView(
         factory = {
             LineChart(context).apply {
@@ -206,7 +215,15 @@ fun MultiLineChartView(
                 setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
                     override fun onValueSelected(e: Entry?, h: Highlight?) {
                         if (h != null) {
-                            onDaySelected?.invoke(h.x.toInt())
+                            val index = h.x.toInt()
+                            // Toggle locally
+                            if (selectedDayIndex == index) {
+                                selectedDayIndex = null
+                                onDaySelected?.invoke(null)
+                            } else {
+                                selectedDayIndex = index
+                                onDaySelected?.invoke(index)
+                            }
                         }
                     }
 
@@ -329,6 +346,8 @@ fun ComboChartView(
         }
     }
 
+    var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
+
     AndroidView(
         factory = {
             CombinedChart(context).apply {
@@ -344,7 +363,15 @@ fun ComboChartView(
                 setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
                     override fun onValueSelected(e: Entry?, h: Highlight?) {
                         if (h != null) {
-                            onDaySelected?.invoke(h.x.toInt())
+                            val index = h.x.toInt()
+                            // Toggle locally
+                            if (selectedDayIndex == index) {
+                                selectedDayIndex = null
+                                onDaySelected?.invoke(null)
+                            } else {
+                                selectedDayIndex = index
+                                onDaySelected?.invoke(index)
+                            }
                         }
                     }
 
