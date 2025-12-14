@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -21,7 +23,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.graphics.toColorInt
-import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.charts.CombinedChart
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.XAxis
@@ -34,6 +35,8 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
+import com.github.mikephil.charting.highlight.Highlight
+import com.github.mikephil.charting.listener.OnChartValueSelectedListener
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import kotlin.math.abs
@@ -42,11 +45,13 @@ import android.graphics.Color as AndroidColor
 @Composable
 fun AnalysisCard(
     title: String,
-    content: @Composable BoxScope.() -> Unit
+    summary: String? = null,
+    content: @Composable BoxScope.() -> Unit,
 ) {
     val backgroundColor = BackgroundColor
-    val contentColor= DarkBlue
+    val contentColor = DarkBlue
     val cornerShape = MaterialTheme.shapes.large
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -59,7 +64,7 @@ fun AnalysisCard(
         Column(
             Modifier
                 .fillMaxSize()
-                .background(backgroundColor.copy(alpha = 1f)    )
+                .background(backgroundColor.copy(alpha = 1f))
         ) {
             Text(
                 text = title,
@@ -67,87 +72,39 @@ fun AnalysisCard(
                 modifier = Modifier.padding(12.dp),
                 color = contentColor
             )
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(8.dp), content = content
-            )
+            if (summary != null) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(8.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = summary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = contentColor,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                }
+            } else {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(8.dp),
+                    content = content
+                )
+            }
         }
     }
 }
-
-@Composable
-fun BarChartView(
-    labels: List<String>,
-    values: List<Float>,
-    forceIncludeZero: Boolean = false,
-    paddingPercentage: Float = 0.1f
-) {
-    val context = LocalContext.current
-    val (axisMin, axisMax) = remember(values) {
-        calculateAxisRange(values, paddingPercentage, forceIncludeZero)
-    }
-
-    AndroidView(
-        factory = {
-            BarChart(context).apply {
-                description.isEnabled = false
-                setPinchZoom(false)
-                axisRight.isEnabled = false
-                setTouchEnabled(true)
-                isDragEnabled = true
-                setScaleEnabled(true)
-                setPinchZoom(true)
-            }
-        },
-        update = { chart ->
-            // 1. Build entries and data set
-            val entries = values.mapIndexed { i, v -> BarEntry(i.toFloat(), v) }
-            val barSet = BarDataSet(entries, "").apply {
-                color = "#FFB300".toColorInt()
-                valueTextColor = AndroidColor.BLACK
-                valueTextSize = 10f
-                setDrawValues(values.size <= 10)
-            }
-            chart.data = BarData(barSet).apply { barWidth = 0.6f }
-
-            // 2. Update axes
-            chart.axisLeft.apply {
-                axisMinimum = axisMin
-                axisMaximum = axisMax
-                spaceTop = 5f
-                spaceBottom = 5f
-            }
-            chart.xAxis.apply {
-                position = XAxis.XAxisPosition.BOTTOM
-                setDrawGridLines(false)
-                // Show only every nth label to avoid clutter
-                val maxLabels = 6
-                val step = (labels.size / maxLabels).coerceAtLeast(1)
-                granularity = step.toFloat()
-                labelCount = (labels.size + step - 1) / step
-                valueFormatter = object : ValueFormatter() {
-                    override fun getFormattedValue(v: Float): String {
-                        val idx = v.toInt().coerceIn(0, labels.lastIndex)
-                        return if (idx % step == 0) labels[idx] else ""
-                    }
-                }
-            }
-
-            // 3. Refresh chart
-            chart.invalidate()
-        },
-        modifier = Modifier.fillMaxSize()
-    )
-}
-
 
 @Composable
 fun LineChartView(
     labels: List<String>,
     values: List<Float>,
     forceIncludeZero: Boolean = false,
-    paddingPercentage: Float = 0.1f
+    paddingPercentage: Float = 0.1f,
+    onDaySelected: ((Int?) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val (axisMin, axisMax) = remember(values) {
@@ -163,6 +120,15 @@ fun LineChartView(
                 isDragEnabled = true
                 setScaleEnabled(true)
                 setPinchZoom(true)
+                setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
+                    override fun onValueSelected(e: Entry?, h: Highlight?) {
+                        if (h != null) {
+                            onDaySelected?.invoke(h.x.toInt())
+                        }
+                    }
+
+                    override fun onNothingSelected() {}
+                })
             }
         },
         update = { chart ->
@@ -213,7 +179,8 @@ fun MultiLineChartView(
     labels: List<String>,
     series: List<Pair<String, List<Float>>>,
     forceIncludeZero: Boolean = false,
-    paddingPercentage: Float = 0.1f
+    paddingPercentage: Float = 0.1f,
+    onDaySelected: ((Int?) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val maxPoints = remember(series) {
@@ -236,6 +203,15 @@ fun MultiLineChartView(
                 isDragEnabled = true
                 setScaleEnabled(true)
                 setPinchZoom(true)
+                setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
+                    override fun onValueSelected(e: Entry?, h: Highlight?) {
+                        if (h != null) {
+                            onDaySelected?.invoke(h.x.toInt())
+                        }
+                    }
+
+                    override fun onNothingSelected() {}
+                })
             }
         },
         update = { chart ->
@@ -315,7 +291,8 @@ fun ComboChartView(
     lineLabel: String = "Line Data",
     forceIncludeZeroLeft: Boolean = false,
     forceIncludeZeroRight: Boolean = false,
-    paddingPercentage: Float = 0.1f
+    paddingPercentage: Float = 0.1f,
+    onDaySelected: ((Int?) -> Unit)? = null
 ) {
     val context = LocalContext.current
 
@@ -363,6 +340,16 @@ fun ComboChartView(
                 legend.isEnabled = true
                 setDrawGridBackground(false)
                 setDrawBorders(false)
+
+                setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
+                    override fun onValueSelected(e: Entry?, h: Highlight?) {
+                        if (h != null) {
+                            onDaySelected?.invoke(h.x.toInt())
+                        }
+                    }
+
+                    override fun onNothingSelected() {}
+                })
             }
         },
         update = { chart ->
