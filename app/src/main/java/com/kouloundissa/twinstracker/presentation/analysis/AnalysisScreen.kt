@@ -31,7 +31,6 @@ import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DailyAnalysis
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.Gender
-import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.WhoLms.WhoLmsRepository
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
@@ -65,8 +64,7 @@ fun AnalysisScreen(
     val activity = context as Activity
     val errorMessage by eventViewModel.errorMessage.collectAsState()
     val favoriteEventTypes by eventViewModel.favoriteEventTypes.collectAsState()
-    val allGrowth by eventViewModel.getEventsOfTypeAsFlow(GrowthEvent::class)
-        .collectAsState(initial = emptyList())
+    val lastGrowthEvent by eventViewModel.lastGrowthEvent.collectAsState()
 
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
 
@@ -195,13 +193,34 @@ fun AnalysisScreen(
                             analysisSnapshot.dailyAnalysis.map { it.mealCount.toFloat() }
                         val mealVolumes = analysisSnapshot.dailyAnalysis.map { it.mealVolume }
 
-                        AnalysisCard(title = stringResource(id = R.string.chart_meals)) {
+                        val type = EventType.FEEDING
+                        var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
+
+                        val selectedDayData = selectedDayIndex?.let {
+                            analysisSnapshot.dailyAnalysis.getOrNull(it)
+                        }
+                        val summary = selectedDayData?.let {
+                            type.generateSummary(
+                                it.events.filter { event ->
+                                    EventType.forClass(event::class) == type
+                                },
+                                lastGrowthEvent,
+                                context
+                            )
+                        }
+                        AnalysisCard(
+                            title = stringResource(id = R.string.chart_meals),
+                            summary = summary
+                        ) {
                             ComboChartView(
                                 labels = chartLabels,
                                 barValues = mealCounts.map { it.toFloat() },
                                 lineValues = mealVolumes,
                                 barLabel = stringResource(id = R.string.chart_meals_label),
                                 lineLabel = stringResource(id = R.string.chart_meals_volumes_label),
+                                onDaySelected = { index ->
+                                    selectedDayIndex = index
+                                }
                             )
                         }
                     }
@@ -215,13 +234,34 @@ fun AnalysisScreen(
                             analysisSnapshot.dailyAnalysis.map { it.pumpingCount.toFloat() }
                         val pumpingCounts = analysisSnapshot.dailyAnalysis.map { it.pumpingVolume }
 
-                        AnalysisCard(title = stringResource(id = R.string.chart_pumping)) {
+                        val type = EventType.PUMPING
+                        var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
+
+                        val selectedDayData = selectedDayIndex?.let {
+                            analysisSnapshot.dailyAnalysis.getOrNull(it)
+                        }
+                        val summary = selectedDayData?.let {
+                            type.generateSummary(
+                                it.events.filter { event ->
+                                    EventType.forClass(event::class) == type
+                                },
+                                lastGrowthEvent,
+                                context
+                            )
+                        }
+                        AnalysisCard(
+                            title = stringResource(id = R.string.chart_pumping),
+                            summary = summary
+                        ) {
                             ComboChartView(
                                 labels = chartLabels,
                                 barValues = pumpingCounts.map { it.toFloat() },
                                 lineValues = pumpingVolumes,
                                 barLabel = stringResource(id = R.string.chart_pumping_number_label),
                                 lineLabel = stringResource(id = R.string.chart_pumping_volumes_label),
+                                onDaySelected = { index ->
+                                    selectedDayIndex = index
+                                }
                             )
                         }
                     }
@@ -235,13 +275,34 @@ fun AnalysisScreen(
                             analysisSnapshot.dailyAnalysis.map { it.poopCount.toFloat() }
                         val wetCounts = analysisSnapshot.dailyAnalysis.map { it.wetCount.toFloat() }
 
-                        AnalysisCard(title = stringResource(id = R.string.chart_poop)) {
+                        val type = EventType.DIAPER
+                        var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
+
+                        val selectedDayData = selectedDayIndex?.let {
+                            analysisSnapshot.dailyAnalysis.getOrNull(it)
+                        }
+                        val summary = selectedDayData?.let {
+                            type.generateSummary(
+                                it.events.filter { event ->
+                                    EventType.forClass(event::class) == type
+                                },
+                                lastGrowthEvent,
+                                context
+                            )
+                        }
+                        AnalysisCard(
+                            title = stringResource(id = R.string.chart_poop),
+                            summary = summary,
+                        ) {
                             ComboChartView(
                                 labels = chartLabels,
                                 barValues = poopCounts.map { it.toFloat() },
                                 lineValues = wetCounts.map { it.toFloat() },
                                 barLabel = stringResource(id = R.string.chart_poop_count_label),
                                 lineLabel = stringResource(id = R.string.chart_wet_count_label),
+                                onDaySelected = { index ->
+                                    selectedDayIndex = index
+                                }
                             )
                         }
                     }
@@ -249,14 +310,36 @@ fun AnalysisScreen(
                 if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
                     filters.value.eventTypeFilter.selectedTypes.contains(EventType.SLEEP)
                 ) {
+
                     item {
+                        val type = EventType.SLEEP
+                        var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
+
+                        val selectedDayData = selectedDayIndex?.let {
+                            analysisSnapshot.dailyAnalysis.getOrNull(it)
+                        }
+                        val summary = selectedDayData?.let {
+                            type.generateSummary(
+                                it.events.filter { event ->
+                                    EventType.forClass(event::class) == type
+                                },
+                                lastGrowthEvent,
+                                context
+                            )
+                        }
                         val sleepMinutes =
                             analysisSnapshot.dailyAnalysis.map { it.sleepMinutes.toFloat() }
-                        AnalysisCard(title = stringResource(id = R.string.chart_sleep)) {
+                        AnalysisCard(
+                            title = stringResource(id = R.string.chart_sleep),
+                            summary = summary
+                        ) {
                             LineChartView(
                                 labels = chartLabels,
                                 values = sleepMinutes,
-                                forceIncludeZero = true
+                                forceIncludeZero = true,
+                                onDaySelected = { index ->
+                                    selectedDayIndex = index
+                                }
                             )
                         }
                     }
@@ -309,11 +392,29 @@ fun AnalysisScreen(
                                 "${pct.toInt()}$percentileFormat" to aligned
                             }
                         }
-                        AnalysisCard(title = stringResource(id = R.string.chart_weight)) {
+                        val type = EventType.GROWTH
+                        var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
+
+                        val selectedDayData = selectedDayIndex?.let {
+                            analysisSnapshot.dailyAnalysis.getOrNull(it)
+                        }
+                        val summary = selectedDayData?.let {
+                            type.generateSummary(
+                                it.events.filter { event ->
+                                    EventType.forClass(event::class) == type
+                                },
+                                lastGrowthEvent,
+                                context
+                            )
+                        }
+                        AnalysisCard(title = stringResource(id = R.string.chart_weight),summary = summary) {
                             MultiLineChartView(
                                 labels = chartLabels,
                                 series = listOf(stringResource(id = R.string.chart_baby_label) to weights) + weightPercentileCurves.map { (label, data) ->
                                     label to data
+                                },
+                                onDaySelected = { index ->
+                                    selectedDayIndex = index
                                 }
                             )
                         }
@@ -348,11 +449,29 @@ fun AnalysisScreen(
                                 }
                             }
 
-                        AnalysisCard(title = stringResource(id = R.string.chart_height)) {
+                        val type = EventType.GROWTH
+                        var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
+
+                        val selectedDayData = selectedDayIndex?.let {
+                            analysisSnapshot.dailyAnalysis.getOrNull(it)
+                        }
+                        val summary = selectedDayData?.let {
+                            type.generateSummary(
+                                it.events.filter { event ->
+                                    EventType.forClass(event::class) == type
+                                },
+                                lastGrowthEvent,
+                                context
+                            )
+                        }
+                        AnalysisCard(title = stringResource(id = R.string.chart_height),summary = summary) {
                             MultiLineChartView(
                                 labels = chartLabels,
                                 series = listOf(stringResource(id = R.string.chart_baby_label) to heights) + lengthPercentileCurves.map { (label, data) ->
                                     label to data
+                                },
+                                onDaySelected = { index ->
+                                    selectedDayIndex = index
                                 }
                             )
                         }
@@ -384,11 +503,29 @@ fun AnalysisScreen(
                                 "${pct.toInt()}$percentileFormat" to aligned
                             }
                         }
-                        AnalysisCard(title = stringResource(id = R.string.head_circumference)) {
+                        val type = EventType.GROWTH
+                        var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
+
+                        val selectedDayData = selectedDayIndex?.let {
+                            analysisSnapshot.dailyAnalysis.getOrNull(it)
+                        }
+                        val summary = selectedDayData?.let {
+                            type.generateSummary(
+                                it.events.filter { event ->
+                                    EventType.forClass(event::class) == type
+                                },
+                                lastGrowthEvent,
+                                context
+                            )
+                        }
+                        AnalysisCard(title = stringResource(id = R.string.head_circumference),summary = summary) {
                             MultiLineChartView(
                                 labels = chartLabels,
                                 series = listOf(stringResource(id = R.string.chart_baby_label) to heads) + headPercentileCurves.map { (label, data) ->
                                     label to data
+                                },
+                                onDaySelected = { index ->
+                                    selectedDayIndex = index
                                 }
                             )
                         }
