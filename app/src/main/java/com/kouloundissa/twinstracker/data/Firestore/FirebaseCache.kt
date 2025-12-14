@@ -233,7 +233,8 @@ class FirebaseCache(
     suspend fun cacheDayEvents(
         babyId: String,
         dayStart: Date,
-        events: List<Event>
+        events: List<Event>,
+        isComplete: Boolean
     ) {
         val cacheKey = generateDayCacheKey(babyId, dayStart.time)
         val cachedData = CachedDayData(
@@ -241,7 +242,7 @@ class FirebaseCache(
             dayStartTimestamp = dayStart.time,
             events = events,
             cachedAt = System.currentTimeMillis(),
-            isComplete = true
+            isComplete = isComplete
         )
 
         try {
@@ -290,6 +291,16 @@ class FirebaseCache(
             val cachedData = deserializeCachedDayData(json) ?: return null
             val now = System.currentTimeMillis()
 
+            val todayStart = getDayStart(Date(now))
+
+            if (!cachedData.isComplete && dayStart.time < todayStart.time) {
+                Log.d(
+                    TAG,
+                    "✗ Cache is INCOMPLETE (partial) and NOT today → REJECT\n" +
+                            "  Reason: Partial cache only valid for today (incomplete=false for historical data is unreliable)"
+                )
+                return null
+            }
             // Calculate how long ago the cache was stored
             val cacheAge = now - cachedData.cachedAt
 
@@ -389,8 +400,7 @@ class FirebaseCache(
                     cachedDays[currentDayStart] = cachedDay
                     Log.d(TAG, "  ✓ Today cached: ${cachedDay.events.size} events")
                 } else {
-                    // ❌ Pas de cache aujourd'hui → ajouter à missingDays
-                    // Mais seulement pour la période STABLE (avant listener)
+                    // ❌ No cache today → add to missingDays for stable period query
                     missingDays.add(currentDay)
                     Log.d(TAG, "  → Today not cached: will query stable period in PHASE 3")
                 }
