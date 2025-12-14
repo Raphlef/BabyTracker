@@ -203,10 +203,6 @@ class FirebaseCache(
         return "events_${babyId}_day_${dayStart}"
     }
 
-    private fun generateCacheKey(babyId: String, startDate: Date, endDate: Date): String {
-        return "events_${babyId}_${startDate.time}_${endDate.time}"
-    }
-
     /**
      * Safe way to get Preferences from DataStore Flow
      * Handles Flow cancellation and timeouts
