@@ -165,9 +165,9 @@
     <string name="event_type_add_event">Add New Event</string>
 
     <!-- ========== DIAPER TYPE ========== -->
-    <string name="diaper_type_wet">Wet</string>
-    <string name="diaper_type_dirty">Dirty</string>
-    <string name="diaper_type_mixed">Mixed</string>
+    <string name="diaper_type_wet">Pee</string>
+    <string name="diaper_type_dirty">Poop</string>
+    <string name="diaper_type_mixed">Both</string>
     <string name="diaper_type_dry">Dry</string>
 
     <!-- ========== POOP CONSISTENCY ========== -->
