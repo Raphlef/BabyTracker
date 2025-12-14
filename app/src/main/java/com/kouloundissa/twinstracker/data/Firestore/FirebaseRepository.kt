@@ -735,19 +735,36 @@ class FirebaseRepository @Inject constructor(
         now: Long
     ) {
         val isCompletedDay = dayEnd.time < now
-        var cacheableEvents = queriedEvents
-//        cacheableEvents = if (isCompletedDay) {
-//            // Completed day: cache all events
-//            queriedEvents
-//        } else {
-//            // Current day: only cache events older than 6h
-//            queriedEvents.filter { event ->
-//                now - event.timestamp.time >= CacheTTL.FRESH.ageThresholdMs
-//            }
-//        }
 
-        if (cacheableEvents.isNotEmpty()) {
-            firebaseCache.cacheDayEvents(babyId, dayStart, cacheableEvents)
+        if (isCompletedDay) {
+            // ✓ COMPLETED DAY: Cache all events as isComplete=true
+            if (queriedEvents.isNotEmpty()) {
+                firebaseCache.cacheDayEvents(
+                    babyId = babyId,
+                    dayStart = dayStart,
+                    events = queriedEvents,
+                    isComplete = true
+                )
+                Log.d(TAG, "  ✓ Cached COMPLETE day: ${queriedEvents.size} events")
+            }
+        } else {
+            // CURRENT DAY: Only cache events older than 6h as isComplete=false
+            val stableEvents = queriedEvents.filter { event ->
+                now - event.timestamp.time >= CacheTTL.FRESH.ageThresholdMs
+            }
+
+            if (stableEvents.isNotEmpty()) {
+                firebaseCache.cacheDayEvents(
+                    babyId = babyId,
+                    dayStart = dayStart,
+                    events = stableEvents,
+                    isComplete = false
+                )
+                Log.d(
+                    TAG,
+                    "  ✓ Cached PARTIAL day: ${stableEvents.size} stable events (of ${queriedEvents.size} total)"
+                )
+            }
         }
     }
 
@@ -986,7 +1003,10 @@ class FirebaseRepository @Inject constructor(
                 nowStableEvents
             }
 
-            firebaseCache.cacheDayEvents(babyId, dayStart, eventsToCache)
+            firebaseCache.cacheDayEvents(
+                babyId, dayStart, eventsToCache,
+                isComplete = false
+            )
             Log.d(
                 TAG,
                 "  ✓ Cached ${nowStableEvents.size} newly-stable events for $dayStart"
