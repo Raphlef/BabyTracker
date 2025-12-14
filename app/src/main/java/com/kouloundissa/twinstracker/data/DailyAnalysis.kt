@@ -12,7 +12,8 @@ data class DailyAnalysis(
     val poopCount: Int = 0,
     val wetCount: Int = 0,
     val sleepMinutes: Long = 0,
-    val growthMeasurements: GrowthMeasurement? = null
+    val growthMeasurements: GrowthMeasurement? = null,
+    val events: List<Event> = emptyList()
 )
 
 data class GrowthMeasurement(
