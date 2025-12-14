@@ -63,7 +63,7 @@ enum class EventType(
             }
 
             val count = filterEvents.size
-            if (count == 0) return "No diaper today"
+            if (count == 0) return "No diaper"
 
             // Get breakdown by type
             val typeCount = filterEvents.filterIsInstance<DiaperEvent>()
@@ -177,7 +177,7 @@ enum class EventType(
                 val m = totalMin % 60
                 return "Total sleep: ${h}h ${m}m"
             }
-            return "No sleep today"
+            return "No sleep"
         }
     },
     GROWTH(
