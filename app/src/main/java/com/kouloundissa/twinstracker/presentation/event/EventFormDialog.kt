@@ -1134,7 +1134,7 @@ fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
         value = state.notes,
         onValueChange = { newNotes ->
             viewModel.updateForm {
-                (this as EventFormState.Drugs).copy(notes = newNotes)
+                (this as EventFormState.Pumping).copy(notes = newNotes)
             }
         },
         label = stringResource(id = R.string.notes_hint),
