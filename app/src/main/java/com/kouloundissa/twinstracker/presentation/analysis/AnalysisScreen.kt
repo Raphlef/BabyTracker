@@ -124,10 +124,14 @@ fun AnalysisScreen(
             AnalysisFilter.BabyFilter(selectedBabies = setOf(baby))
         } ?: AnalysisFilter.BabyFilter()
 
+        val selectedTypes = favoriteEventTypes.ifEmpty {
+            EventType.entries.toSet()
+        }
+
         filters.value = AnalysisFilters(
             dateRange = filters.value.dateRange,
             babyFilter = newBabyFilter,
-            eventTypeFilter = AnalysisFilter.EventTypeFilter(selectedTypes = favoriteEventTypes)
+            eventTypeFilter = AnalysisFilter.EventTypeFilter(selectedTypes = selectedTypes)
         )
     }
     LaunchedEffect(Unit) {
