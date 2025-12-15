@@ -297,26 +297,7 @@ class EventViewModel @Inject constructor(
     private var streamJob: Job? = null
     private var countsStreamJob: Job? = null
     private var analysisStreamJob: Job? = null
-    private val currentDaysWindow: Long
-        get() {
-            val request = _streamRequest.value ?: return 1L
-            val strategy = request.dateRange
 
-            // For LastDays strategy, extract the days directly
-            if (strategy is DateRangeStrategy.LastDays) {
-                return strategy.days
-            }
-
-            // For Custom range, calculate the days difference
-            if (strategy is DateRangeStrategy.Custom) {
-                val params = strategy.params
-                val daysDifference =
-                    ((params.endDate.time - params.startDate.time) / (1000 * 60 * 60 * 24)).toLong() + 1
-                return daysDifference.coerceAtMost(maxDaysWindow)
-            }
-
-            return 1L
-        }
     private val maxDaysWindow = 30L // Maximum 1 month of history
 
     fun updateEventTimestamp(date: Date) {
