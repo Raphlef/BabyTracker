@@ -142,6 +142,7 @@ fun AnalysisScreen(
                 babyViewModel.selectBaby(it)
                 Log.d("AnalysisScreen", "Starting stream for babyId: ${it}")
                 eventViewModel.refreshWithFilters(filters.value)
+
                 if (filters.value.dateRange != AnalysisFilter.DateRange(AnalysisRange.ONE_DAY) &&
                     filters.value.dateRange != AnalysisFilter.DateRange(AnalysisRange.THREE_DAYS)
                 ) {
