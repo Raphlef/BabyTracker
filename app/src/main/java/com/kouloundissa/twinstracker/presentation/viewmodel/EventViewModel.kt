@@ -182,6 +182,7 @@ class EventViewModel @Inject constructor(
             repository.getFavoriteEventTypes().collect { favorites ->
                 _favoriteEventTypes.value = favorites
             }
+            _lastNewEventTimestamp.value = repository.getLastNewEventTimestamp()
         }
     }
 
@@ -696,21 +697,20 @@ class EventViewModel @Inject constructor(
         _formState.value = state
     }
 
-    private var previousEvents: List<Event> = emptyList()
+    private val _lastNewEventTimestamp = MutableStateFlow<Long>(0L)
+    val lastNewEventTimestamp: StateFlow<Long> = _lastNewEventTimestamp.asStateFlow()
 
     private suspend fun checkForNewEvents(newEvents: List<Event>) {
         val currentUser = currentUserId.value
         if (currentUser == null) return
 
-        // Find events that are new compared to previous state
+        val lastTimestamp = _lastNewEventTimestamp.value
+
+        // Find events newer than last known timestamp
         val newlyAddedEvents = newEvents.filter { newEvent ->
-            // Event is new if it wasn't in previous events
-            previousEvents.none { it.id == newEvent.id } &&
-                    // Ensure userId exists
+            newEvent.timestamp.time > lastTimestamp &&  // Simpler check!
                     newEvent.userId.isNotEmpty() &&
-                    // Event is not from current user
                     newEvent.userId != currentUser &&
-                    // Event was created recently (within last 5 minutes to avoid old events)
                     System.currentTimeMillis() - newEvent.timestamp.time < 5 * 60 * 1000
         }
 
@@ -719,8 +719,17 @@ class EventViewModel @Inject constructor(
             processEventNotification(event)
         }
 
-        // Update previous events for next comparison
-        previousEvents = newEvents
+        // Save the most recent timestamp
+        if (newlyAddedEvents.isNotEmpty()) {
+            val mostRecentTimestamp = newlyAddedEvents.maxOf { it.timestamp.time }
+            _lastNewEventTimestamp.value = mostRecentTimestamp
+            repository.saveLastNewEventTimestamp(mostRecentTimestamp)
+
+            Log.d("CheckForNewEvents",
+                "Found ${newlyAddedEvents.size} new events, " +
+                        "updated timestamp to $mostRecentTimestamp"
+            )
+        }
     }
 
     private suspend fun processEventNotification(event: Event) {
