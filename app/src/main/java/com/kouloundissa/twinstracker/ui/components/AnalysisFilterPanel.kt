@@ -284,7 +284,6 @@ sealed class AnalysisFilter {
 
     data class BabyFilter(val selectedBabies: Set<Baby> = emptySet()) : AnalysisFilter()
     data class EventTypeFilter(val selectedTypes: Set<EventType> = emptySet()) : AnalysisFilter()
-    // Easy to add more filters in the future
 }
 
 data class AnalysisFilters(
