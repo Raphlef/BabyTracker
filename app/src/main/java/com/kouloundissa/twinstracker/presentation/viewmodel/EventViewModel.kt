@@ -255,7 +255,8 @@ class EventViewModel @Inject constructor(
 
     data class EventStreamRequest(
         val babyId: String,
-        val dateRange: DateRangeParams
+        val dateRange: DateRangeParams,
+        val eventTypes: Set<EventType> = EventType.entries.toSet()
     )
 
     fun refreshWithFilters(
@@ -273,7 +274,7 @@ class EventViewModel @Inject constructor(
             )
 
             // Start analysis streaming
-            startAnalysisStreaming(baby.id, strategy)
+            startAnalysisStreaming(baby.id, strategy, eventTypes = selectedTypes)
         }
     }
 
@@ -506,7 +507,8 @@ class EventViewModel @Inject constructor(
                 repository.streamAnalysisMetrics(
                     request.babyId,
                     request.dateRange.startDate,
-                    request.dateRange.endDate
+                    request.dateRange.endDate,
+                    eventTypes = request.eventTypes
                 )
             }
             .onStart {
@@ -529,7 +531,8 @@ class EventViewModel @Inject constructor(
 
     fun startAnalysisStreaming(
         babyId: String,
-        strategy: DateRangeStrategy
+        strategy: DateRangeStrategy,
+        eventTypes: Set<EventType> = EventType.entries.toSet()
     ) {
         if (babyId.isEmpty()) return
 
@@ -537,7 +540,10 @@ class EventViewModel @Inject constructor(
         setupAnalysisStreamListener()
 
         val dateRange = calculateRange(strategy)
-        val request = EventStreamRequest(babyId, dateRange)
+        val request = EventStreamRequest(
+            babyId, dateRange,
+            eventTypes = eventTypes
+        )
 
         if (_analysisStreamRequest.value != request) {
             Log.i("EventViewModel", "✓ Analysis StreamRequest UPDATED")
