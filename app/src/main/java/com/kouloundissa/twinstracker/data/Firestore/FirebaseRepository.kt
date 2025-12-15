@@ -5,6 +5,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -230,6 +231,7 @@ class FirebaseRepository @Inject constructor(
     private val favoriteEventTypesKey = stringSetPreferencesKey("favorite_event_types")
     private val lastSelectedFamilyIdKey = stringPreferencesKey("last_selected_family_id")
 
+    private val lastNewEventTimestampKey = longPreferencesKey("last_new_event_timestamp")
     suspend fun saveUserSession() {
         context.userDataStore.edit { prefs -> prefs[rememberMeKey] = true }
     }
@@ -276,6 +278,22 @@ class FirebaseRepository @Inject constructor(
         context.userDataStore.edit { prefs -> prefs.remove(favoriteEventTypesKey) }
     }
 
+    suspend fun saveLastNewEventTimestamp(timestamp: Long) {
+        context.userDataStore.edit { prefs ->
+            prefs[lastNewEventTimestampKey] = timestamp
+        }
+    }
+
+    suspend fun getLastNewEventTimestamp(): Long {
+        return context.userDataStore.data
+            .map { it[lastNewEventTimestampKey] ?: 0L }
+            .first()
+    }
+
+    fun getLastNewEventTimestampFlow(): Flow<Long> {
+        return context.userDataStore.data
+            .map { it[lastNewEventTimestampKey] ?: 0L }
+    }
     // ===== PHOTO OPERATIONS (Delegated) =====
     suspend fun addPhotoToEntity(
         entityType: String,
