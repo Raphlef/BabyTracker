@@ -17,10 +17,15 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 
+
 object AdManager {
 
     private const val TAG = "AdManager"
+
+
+    private const val ADS_ENABLED = false
     private const val INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-8151974596806893/1549328889"
+    private const val INLINE_BANNER_AD_UNIT_ID = "ca-app-pub-8151974596806893/9208327057"
 
     //test id "ca-app-pub-3940256099942544/1033173712"
     //real id "ca-app-pub-8151974596806893/1549328889"
@@ -121,6 +126,13 @@ object AdManager {
             false
         }
     }
+
+    fun isAdsEnabled(): Boolean = ADS_ENABLED
+    fun getInlineBannerAdUnitId(): String {
+        return INLINE_BANNER_AD_UNIT_ID
+        // Future: Add BuildConfig support
+        // return if (BuildConfig.DEBUG) INLINE_BANNER_TEST_ID else INLINE_BANNER_AD_UNIT_ID
+    }
 }
 
 @Composable
@@ -129,14 +141,18 @@ fun InlineBannerAd(
         .fillMaxWidth()
 ) {
     val context = LocalContext.current
-    val INLINE_AD_UNIT_ID = "ca-app-pub-8151974596806893/9208327057"
+
+    if (!AdManager.isAdsEnabled()) {
+        Log.d("InlineBannerAd", "Ads disabled - skipping banner")
+        return
+    }
     AndroidView(
         modifier = modifier,
         factory = {
             AdView(context).apply {
                 // Simple banner; you can switch to adaptive later
                 setAdSize(AdSize.BANNER)
-                this.adUnitId = INLINE_AD_UNIT_ID
+                this.adUnitId =  AdManager.getInlineBannerAdUnitId()
 
                 val request = AdRequest.Builder().build()
                 loadAd(request)
