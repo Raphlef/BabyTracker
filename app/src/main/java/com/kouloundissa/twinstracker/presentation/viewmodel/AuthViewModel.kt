@@ -34,7 +34,7 @@ class AuthViewModel @Inject constructor(
     private val _state = MutableStateFlow(
         AuthState(
             email = "",
-            currentStep = AuthStep.IdleForm
+            currentStep = AuthStep.Initial
         )
     )
     val state: StateFlow<AuthState> = _state.asStateFlow()
@@ -60,7 +60,7 @@ class AuthViewModel @Inject constructor(
                 if (remembered && repository.isUserLoggedIn()) {
                     performPostAuthSetup()
                 } else {
-                    _state.value = _state.value.copy(currentStep = AuthStep.IdleForm)
+                    _state.value = _state.value.copy(currentStep = AuthStep.Initial)
                 }
             } catch (e: Exception) {
                 Log.e("AuthViewModel", "Init error", e)
@@ -79,7 +79,7 @@ class AuthViewModel @Inject constructor(
     fun retryAfterError() {
         _state.update {
             it.copy(
-                currentStep = AuthStep.IdleForm,
+                currentStep = AuthStep.Initial,
                 error = null,
                 password = ""
             )
@@ -90,7 +90,7 @@ class AuthViewModel @Inject constructor(
     fun clearError() {
         _state.update {
             it.copy(
-                currentStep = AuthStep.IdleForm,
+                currentStep = AuthStep.Initial,
                 error = null
             )
         }
@@ -440,7 +440,7 @@ class AuthViewModel @Inject constructor(
             verificationCheckJob?.cancel()
 
             repository.clearUserSession()
-            _state.value = AuthState(currentStep = AuthStep.IdleForm)
+            _state.value = AuthState(currentStep = AuthStep.Initial)
         }
     }
 
@@ -452,7 +452,34 @@ class AuthViewModel @Inject constructor(
             )
         }
     }
+    fun showLoginForm() {
+        _state.value = _state.value.copy(
+            currentStep = AuthStep.IdleForm,
+            isLoginMode = true,
+            email = "",
+            password = "",
+            error = null
+        )
+    }
 
+    fun showRegisterForm() {
+        _state.value = _state.value.copy(
+            currentStep = AuthStep.IdleForm,
+            isLoginMode = false,
+            email = "",
+            password = "",
+            error = null
+        )
+    }
+
+    fun backToInitial() {
+        _state.value = _state.value.copy(
+            currentStep = AuthStep.Initial,
+            email = "",
+            password = "",
+            error = null
+        )
+    }
     fun resetVerificationState() {
         _state.update {
             it.copy(
@@ -473,6 +500,7 @@ class AuthViewModel @Inject constructor(
 // ============================================================================
 
 sealed class AuthStep {
+    object Initial : AuthStep()
     object IdleForm : AuthStep()  // User at login/register form
     object Authenticating : AuthStep()  // Firebase auth in progress
     object LoadingProfile : AuthStep()  // Firestore profile loading
@@ -486,11 +514,12 @@ data class AuthState(
     val email: String = "",
     val password: String = "",
     val rememberMe: Boolean = false,
-    val currentStep: AuthStep = AuthStep.IdleForm,
+    val currentStep: AuthStep = AuthStep.Initial,
     val userProfile: User? = null,
     val error: String? = null,
     val showEmailVerificationFlow: Boolean = false,
-    val emailVerificationState: EmailVerificationState = EmailVerificationState.Initial
+    val emailVerificationState: EmailVerificationState = EmailVerificationState.Initial,
+    val isLoginMode: Boolean = true
 )
 
 sealed class AuthEvent {
