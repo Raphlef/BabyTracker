@@ -42,6 +42,7 @@ import com.kouloundissa.twinstracker.data.toEvent
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -114,6 +115,10 @@ class FirebaseRepository @Inject constructor(
             .document(userId)
             .set(user)
             .await()
+
+        // Wait a moment for user to be fully created
+        delay(1000)
+
         sendVerificationEmail()
     }
 
