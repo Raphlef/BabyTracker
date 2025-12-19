@@ -140,7 +140,13 @@ fun AuthScreen(
                         Spacer(Modifier.height(40.dp))
 
                         when (state.currentStep) {
-                            // USER AT FORM
+                            AuthStep.Initial -> {
+                                AuthEntryPointPanel(
+                                    onLoginClick = viewModel::showLoginForm,
+                                    onRegisterClick = viewModel::showRegisterForm
+                                )
+                            }
+
                             AuthStep.IdleForm -> {
                                 LoginForm(
                                     state = state,
@@ -151,6 +157,7 @@ fun AuthScreen(
                                     onRegisterClick = viewModel::register,
                                     onGoogleSignInClick = viewModel::loginWithGoogle,
                                     onForgotPasswordClick = viewModel::navigateToForgotPassword,
+                                    onBackClick = viewModel::backToInitial
                                 )
                             }
 
@@ -445,6 +452,44 @@ private fun VerificationStatusMessage(verificationState: EmailVerificationState)
 }
 
 @Composable
+private fun AuthEntryPointPanel(
+    onLoginClick: () -> Unit,
+    onRegisterClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            stringResource(id = R.string.welcome_message),
+            style = MaterialTheme.typography.bodyLarge,
+            color = DarkGrey,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(24.dp))
+
+        // LOGIN BUTTON
+        PrimaryButton(
+            text = stringResource(id = R.string.already_have_account),
+            onClick = onLoginClick,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // REGISTER BUTTON
+        SecondaryButton(
+            text = stringResource(id = R.string.create_account),
+            onClick = onRegisterClick,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
 private fun LoginForm(
     state: AuthState,
     onEmailChange: (String) -> Unit,
@@ -453,7 +498,8 @@ private fun LoginForm(
     onLoginClick: () -> Unit,
     onRegisterClick: () -> Unit,
     onGoogleSignInClick: () -> Unit,
-    onForgotPasswordClick: () -> Unit
+    onForgotPasswordClick: () -> Unit,
+    onBackClick: () -> Unit
 ) {
     val backgroundColor = BackgroundColor
     val content = DarkGrey
@@ -461,7 +507,23 @@ private fun LoginForm(
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     var emailError by remember { mutableStateOf<String?>(null) }
+    var confirmPasswordError by remember { mutableStateOf<String?>(null) }
+    var confirmPassword by remember { mutableStateOf("") }
+
+    val confirmPasswordRequiredError = stringResource(id = R.string.confirm_password_required)
+    val passwordNotMatchError = stringResource(id = R.string.password_not_match)
+
+
+    fun validateConfirmPassword(confirm: String): String? {
+        return when {
+            confirm.isEmpty() -> confirmPasswordRequiredError
+            confirm != state.password -> passwordNotMatchError
+            else -> null
+        }
+    }
+
     val isEnabled = state.currentStep == AuthStep.IdleForm
+    val isLoginMode = state.isLoginMode
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -512,123 +574,173 @@ private fun LoginForm(
                                         state.email.isNotBlank() &&
                                         state.password.isNotBlank()
 
-                                if (isFormValid) {
+                                if (isFormValid && isLoginMode) {
                                     onLoginClick()
                                 }
                             }
                         },
                     )
+                    if (!isLoginMode) {
+                        LabeledTextField(
+                            value = confirmPassword,
+                            onValueChange = { confirm ->
+                                confirmPassword = confirm
+                                confirmPasswordError =
+                                    validateConfirmPassword(confirm)
+                            },
+                            label = stringResource(id = R.string.confirm_password_label),
+                            visualTransformation = PasswordVisualTransformation(),
+                            enabled = isEnabled,
+                            imeAction = ImeAction.Send,
+                            keyboardType = KeyboardType.Password,
+                            onImeAction = { imeAction ->
+                                if (imeAction == ImeAction.Send) {
+                                    // Validate before submitting
+                                    val isFormValid = emailError == null &&
+                                            state.email.isNotBlank() &&
+                                            state.password.isNotBlank()
+                                    val passwordMatch =
+                                        confirmPassword.isNotEmpty() && confirmPassword == state.password
+                                    if (isFormValid && passwordMatch) {
+                                        onRegisterClick()
+                                    }
+                                }
+                            },
+                            isError = confirmPasswordError != null,
+                            errorMessage = confirmPasswordError,
+                        )
+                    }
                 }
             }
         }
         // ============================================================================
         // TIER 2: OPTIONS ROW - Remember Me (left) + Forgot Password (right)
         // ============================================================================
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    color = backgroundColor.copy(alpha = 0.15f),
-                    shape = cornerShape
-                )
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Remember Me - Left side
+        if (isLoginMode) {
             Row(
                 modifier = Modifier
-                    .clip(cornerShape)
-                    .clickable(enabled = isEnabled) { onRememberMeChange(!state.rememberMe) }
-                    .padding(8.dp),
+                    .fillMaxWidth()
+                    .background(
+                        color = backgroundColor.copy(alpha = 0.15f),
+                        shape = cornerShape
+                    )
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(22.dp)
-                        .background(
-                            color = if (state.rememberMe)
-                                tint
-                            else
-                                backgroundColor.copy(alpha = 0.08f),
-                            shape = cornerShape
-                        )
-                        .border(
-                            width = 2.dp,
-                            color = if (state.rememberMe)
-                                tint
-                            else
-                                content.copy(alpha = 0.25f),
-                            shape = cornerShape
-                        ),
-                    contentAlignment = Alignment.Center
+
                 ) {
-                    if (state.rememberMe) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            tint = backgroundColor,
-                            modifier = Modifier.size(14.dp)
-                        )
+                // Remember Me - Left side
+                Row(
+                    modifier = Modifier
+                        .clip(cornerShape)
+                        .clickable(enabled = isEnabled) { onRememberMeChange(!state.rememberMe) }
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .background(
+                                color = if (state.rememberMe)
+                                    tint
+                                else
+                                    backgroundColor.copy(alpha = 0.08f),
+                                shape = cornerShape
+                            )
+                            .border(
+                                width = 2.dp,
+                                color = if (state.rememberMe)
+                                    tint
+                                else
+                                    content.copy(alpha = 0.25f),
+                                shape = cornerShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (state.rememberMe) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = backgroundColor,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
                     }
+
+                    Text(
+                        stringResource(id = R.string.remember_me),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = tint,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 13.sp
+                    )
                 }
 
-                Text(
-                    stringResource(id = R.string.remember_me),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = tint,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 13.sp
-                )
-            }
-
-            // Forgot Password - Right side
-            TextButton(
-                onClick = onForgotPasswordClick,
-                enabled = isEnabled,
-                modifier = Modifier
-                    .heightIn(40.dp)
-                    .padding(horizontal = 4.dp, vertical = 0.dp),
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = tint,
-                    disabledContentColor = tint.copy(alpha = 0.5f)
-                ),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-            ) {
-                Text(
-                    stringResource(id = R.string.forgot_password),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium
-                )
+                // Forgot Password - Right side
+                TextButton(
+                    onClick = onForgotPasswordClick,
+                    enabled = isEnabled,
+                    modifier = Modifier
+                        .heightIn(40.dp)
+                        .padding(horizontal = 4.dp, vertical = 0.dp),
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = tint,
+                        disabledContentColor = tint.copy(alpha = 0.5f)
+                    ),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        stringResource(id = R.string.forgot_password),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
-
         // ============================================================================
         // TIER 3: PRIMARY ACTION - Login button (full width, prominent)
         // ============================================================================
-
+        val passwordsMatch = if (isLoginMode) {
+            true
+        } else {
+            confirmPassword.isNotEmpty() && confirmPassword == state.password
+        }
         val canSubmit = emailError == null &&
                 state.email.isNotBlank() &&
                 state.password.isNotBlank()
 
-        PrimaryButton(
-            text = stringResource(id = R.string.login_button),
-            onClick = onLoginClick,
-            enabled = canSubmit && isEnabled,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        // ============================================================================
-        // TIER 4: SECONDARY ACTION - Register button (full width, subtle)
-        // ============================================================================
-        SecondaryButton(
-            text = stringResource(id = R.string.register_button),
-            onClick = onRegisterClick,
-            enabled = isEnabled,
-            modifier = Modifier.fillMaxWidth()
-        )
+        if (isLoginMode) {
+            // LOGIN BUTTON
+            PrimaryButton(
+                text = stringResource(id = R.string.login_button),
+                onClick = onLoginClick,
+                enabled = canSubmit && isEnabled,
+                modifier = Modifier.fillMaxWidth()
+            )
+        } else {
+            // CREATE ACCOUNT BUTTON
+            PrimaryButton(
+                text = stringResource(id = R.string.create_account_button),
+                onClick = onRegisterClick,
+                enabled = canSubmit && isEnabled && passwordsMatch,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        TextButton(
+            onClick = onBackClick,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            colors = ButtonDefaults.textButtonColors(
+                contentColor = DarkBlue
+            )
+        ) {
+            Text(
+                stringResource(id = R.string.back),  // "Back"
+                style = MaterialTheme.typography.labelSmall,
+                fontSize = 12.sp
+            )
+        }
     }
 }
 
