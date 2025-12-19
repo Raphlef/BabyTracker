@@ -36,6 +36,10 @@ object AdManager {
     private val maxAttempts = 3
 
     fun preloadInterstitial(context: Context) {
+        if (!ADS_ENABLED) {
+            Log.d(TAG, "preloadInterstitial: ⚠️ SKIPPED - Ads are disabled globally")
+            return
+        }
         if (interstitialAd != null || isLoading) {
             Log.d(
                 TAG,
@@ -112,6 +116,10 @@ object AdManager {
     }
 
     fun showInterstitial(activity: Activity): Boolean {
+        if (!ADS_ENABLED) {
+            Log.d(TAG, "showInterstitial: ⚠️ SKIPPED - Ads are disabled globally")
+            return false
+        }
         val ad = interstitialAd
         return if (ad != null && !isLoading) {
             Log.d(TAG, "🎬 showInterstitial: SUCCESS")
