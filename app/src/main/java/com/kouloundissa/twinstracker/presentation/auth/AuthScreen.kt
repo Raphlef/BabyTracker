@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -44,8 +45,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -501,7 +504,19 @@ private fun LoginForm(
                         visualTransformation = PasswordVisualTransformation(),
                         enabled = isEnabled,
                         imeAction = ImeAction.Send,
-                        keyboardType = KeyboardType.Password
+                        keyboardType = KeyboardType.Password,
+                        onImeAction = { imeAction ->
+                            if (imeAction == ImeAction.Send) {
+                                // Validate before submitting
+                                val isFormValid = emailError == null &&
+                                        state.email.isNotBlank() &&
+                                        state.password.isNotBlank()
+
+                                if (isFormValid) {
+                                    onLoginClick()
+                                }
+                            }
+                        },
                     )
                 }
             }
@@ -704,10 +719,13 @@ fun LabeledTextField(
     singleLine: Boolean = true,
     imeAction: ImeAction = ImeAction.Next,
     keyboardType: KeyboardType = KeyboardType.Unspecified,
+    onImeAction: ((ImeAction) -> Unit)? = null,
     visualTransformation: VisualTransformation = VisualTransformation.None
 ) {
     val backgroundColor = BackgroundColor
     val cornerShape = MaterialTheme.shapes.extraLarge
+
+    val focusManager = LocalFocusManager.current
     Column {
         OutlinedTextField(
             value = value,
@@ -718,7 +736,23 @@ fun LabeledTextField(
             singleLine = singleLine,
             enabled = enabled,
             visualTransformation = visualTransformation,
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType).copy(imeAction = imeAction),
+            keyboardOptions = KeyboardOptions(
+                imeAction = imeAction,
+                keyboardType = keyboardType
+            ),
+            keyboardActions = KeyboardActions(
+                onNext = {
+                    if (imeAction == ImeAction.Next) {
+                        focusManager.moveFocus(FocusDirection.Down)
+                    }
+                },
+                onSend = {
+                    if (imeAction == ImeAction.Send) {
+                        onImeAction?.invoke(ImeAction.Send)  // ✨ Trigger callback
+                        focusManager.clearFocus()
+                    }
+                }
+            ),
             shape = cornerShape,
             modifier = Modifier.fillMaxWidth()
         )
