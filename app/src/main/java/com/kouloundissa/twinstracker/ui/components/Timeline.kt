@@ -6,6 +6,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -359,6 +360,7 @@ fun EventCard(
     val grey = DarkGrey
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
+    val borderWidth = 1.dp
 
     val context = LocalContext.current
     val deleteAction: () -> Unit = onDelete ?: {
@@ -382,6 +384,7 @@ fun EventCard(
         Surface(
             color = backgroundColor.copy(alpha = 0.3f),
             shape = cornerShape,
+            border = BorderStroke(borderWidth, eventType.color),
             modifier = Modifier
                 .fillMaxWidth()
                 .offset { IntOffset(animatedOffset.roundToInt(), 0) }
@@ -431,7 +434,7 @@ fun EventCard(
                         Brush.horizontalGradient(
                             colors = listOf(
                                 eventType.color.copy(alpha = 0.25f),
-                                eventType.color.copy(alpha = 0.95f)
+                                eventType.color.copy(alpha = 1f)
                             )
                         ),
                         shape = cornerShape

@@ -502,7 +502,8 @@ fun EventTypeCard(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            type.color.copy(alpha = 0.75f),
+                            type.color.copy(alpha = 1f),
+                            type.color.copy(alpha = 0.45f),
                             type.color.copy(alpha = 0.15f),
                             backgroundColor.copy(alpha = 0.45f)
                         )
