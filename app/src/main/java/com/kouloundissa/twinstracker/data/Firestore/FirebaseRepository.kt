@@ -126,7 +126,6 @@ class FirebaseRepository @Inject constructor(
         val credential = GoogleAuthProvider.getCredential(idToken, null)
         auth.signInWithCredential(credential).await()
     }
-
     /**
      * Envoie un email de vérification à l'utilisateur actuel
      * @return true si envoi réussi, false sinon
@@ -134,26 +133,24 @@ class FirebaseRepository @Inject constructor(
     suspend fun sendVerificationEmail(): Boolean = withContext(Dispatchers.IO) {
         return@withContext try {
             val user = auth.currentUser
-            user?.sendEmailVerification()?.await()
+
+            if (user == null) {
+                Log.e("EmailVerification", "No current user found")
+                return@withContext false
+            }
+
+            if (user.isEmailVerified) {
+                Log.i("EmailVerification", "Email already verified for ${user.email}")
+                return@withContext true
+            }
+
+            user.sendEmailVerification().await()
+            Log.i("EmailVerification", "Verification email sent to ${user.email}")
             true
         } catch (e: Exception) {
             Log.e("EmailVerification", "Erreur envoi email", e)
             false
         }
-    }
-
-    /**
-     * Vérifie si l'utilisateur a confirmé son email
-     */
-    fun isEmailVerified(): Boolean {
-        return auth.currentUser?.isEmailVerified ?: false
-    }
-
-    /**
-     * Recharge l'état utilisateur depuis Firebase
-     */
-    suspend fun reloadUser() = withContext(Dispatchers.IO) {
-        auth.currentUser?.reload()?.await()
     }
 
     /**
@@ -163,6 +160,7 @@ class FirebaseRepository @Inject constructor(
     suspend fun resendVerificationEmail(minDelaySeconds: Int = 60): Result<Unit> =
         withContext(Dispatchers.IO) {
             return@withContext try {
+
                 auth.currentUser?.sendEmailVerification()?.await()
                 Result.success(Unit)
             } catch (e: Exception) {
@@ -174,6 +172,20 @@ class FirebaseRepository @Inject constructor(
                 }
             }
         }
+
+    /**
+     * Vérifie si l'utilisateur a confirmé son email
+     */
+    fun isEmailVerified(): Boolean {
+        return auth.currentUser?.isEmailVerified ?: false
+    }
+    /**
+     * Recharge l'état utilisateur depuis Firebase
+     */
+    suspend fun reloadUser() = withContext(Dispatchers.IO) {
+        auth.currentUser?.reload()?.await()
+    }
+
 
     // Helper instances
     val queryHelper = FirestoreQueryHelper(db)
@@ -294,6 +306,7 @@ class FirebaseRepository @Inject constructor(
         return context.userDataStore.data
             .map { it[lastNewEventTimestampKey] ?: 0L }
     }
+
     // ===== PHOTO OPERATIONS (Delegated) =====
     suspend fun addPhotoToEntity(
         entityType: String,
