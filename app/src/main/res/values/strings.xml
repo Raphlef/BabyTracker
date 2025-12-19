@@ -163,6 +163,7 @@
     <string name="event_type_drugs">Drugs</string>
     <string name="event_type_today_summary">Today\'s Summary</string>
     <string name="event_type_add_event">Add New Event</string>
+    <string name="no_pumping">No Pumping</string>
 
     <!-- ========== DIAPER TYPE ========== -->
     <string name="diaper_type_wet">Pee</string>
@@ -237,6 +238,11 @@
     <string name="breast_side_label">Breast Side</string>
     <string name="amount_label">Amount (ml)</string>
     <string name="duration_label">Duration (min)</string>
+    <string name="no_feeding">No Feeding</string>
+    <plurals name="feeding_summary">
+        <item quantity="one">%1$dml • %2$d feeding • avg %3$dml • %4$d breast</item>
+        <item quantity="other">%1$dml • %2$d feedings • avg %3$dml • %4$d breast</item>
+    </plurals>
 
     <!-- ========== EVENT FORM DIALOG - DIAPER ========== -->
     <string name="wet_diaper">Wet</string>
@@ -244,6 +250,11 @@
     <string name="diaper_type_label">Diaper Type</string>
     <string name="poop_color_label">Poop Color</string>
     <string name="consistency_label">Consistency</string>
+    <string name="no_diaper">No Diaper</string>
+    <plurals name="diaper_count_format">
+        <item quantity="one">%d diaper%s</item>
+        <item quantity="other">%d diapers%s</item>
+    </plurals>
 
     <!-- ========== EVENT FORM DIALOG - SLEEP ========== -->
     <string name="sleep_duration_label">Sleep Duration (min)</string>
@@ -251,6 +262,8 @@
     <string name="begin_sleep_label">Begin sleep</string>
     <string name="end_sleep_label">End sleep</string>
     <string name="duration">Duration</string>
+    <string name="no_sleep">No Sleep</string>
+    <string name="total_sleep_summary">Total sleep: %1$dh %2$dm</string>
 
     <!-- ========== EVENT FORM DIALOG - GROWTH ========== -->
     <string name="body_measurements_title">Body Measurements</string>

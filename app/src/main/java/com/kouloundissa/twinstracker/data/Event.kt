@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.IgnoreExtraProperties
 import com.kouloundissa.twinstracker.R
@@ -61,7 +62,7 @@ enum class EventType(
             val filterEvents = filterEventsByType(todayList)
 
             val count = filterEvents.size
-            if (count == 0) return "No diaper"
+            if (count == 0) return context.getString(R.string.no_diaper)
 
             // Get breakdown by type
             val typeCount = filterEvents.filterIsInstance<DiaperEvent>()
@@ -88,12 +89,12 @@ enum class EventType(
                 }
             }
 
-            val plural = if (count > 1) "s" else ""
-            return if (breakdown.isNotEmpty()) {
-                "$count diaper$plural ($breakdown)"
-            } else {
-                "$count diaper$plural"
-            }
+            return context.resources.getQuantityString(
+                R.plurals.diaper_count_format,
+                count,
+                count,
+                if (breakdown.isNotEmpty()) " ($breakdown)" else ""
+            )
         }
     },
     FEEDING(
@@ -120,10 +121,11 @@ enum class EventType(
     ) {
         override fun generateSummary(
             todayList: List<Event>,
-            lastGrowthEvent: GrowthEvent?, context: Context
+            lastGrowthEvent: GrowthEvent?,
+            context: Context
         ): String {
             val filterEvents = filterEventsByType(todayList)
-            if (filterEvents.isEmpty()) return "No feeding"
+            if (filterEvents.isEmpty()) return context.getString(R.string.no_feeding)
 
             val totalMl = filterEvents.sumOf { (it as FeedingEvent).amountMl ?: 0.0 }.toInt()
             val count = filterEvents.size
@@ -131,7 +133,14 @@ enum class EventType(
             val breastCount =
                 filterEvents.count { (it as FeedingEvent).feedType == FeedType.BREAST_MILK }
 
-            return "${totalMl}ml • $count feeding${if (count > 1) "s" else ""} • avg ${averageMl}ml • $breastCount breast"
+            return context.resources.getQuantityString(
+                R.plurals.feeding_summary,
+                count,
+                totalMl,
+                count,
+                averageMl,
+                breastCount
+            )
         }
     },
     SLEEP(
@@ -170,9 +179,9 @@ enum class EventType(
             if (totalMin > 0) {
                 val h = totalMin / 60
                 val m = totalMin % 60
-                return "Total sleep: ${h}h ${m}m"
+                return context.getString(R.string.total_sleep_summary, h, m)
             }
-            return "No sleep"
+            return context.getString(R.string.no_sleep)
         }
     },
     GROWTH(
@@ -211,7 +220,7 @@ enum class EventType(
             lastGrowthEvent: GrowthEvent?, context: Context
         ): String {
             val filterEvents = filterEventsByType(todayList)
-            if (filterEvents.isEmpty()) return "No pumping"
+            if (filterEvents.isEmpty()) return context.getString(R.string.no_pumping)
 
             val totalMl = filterEvents.sumOf { (it as PumpingEvent).amountMl ?: 0.0 }.toInt()
             val count = filterEvents.size
