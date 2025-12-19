@@ -36,10 +36,13 @@
     <!-- ========== LOGIN FORM ========== -->
     <string name="email_label">Email</string>
     <string name="password_label">Password</string>
+    <string name="confirm_password_required">Confirm password is required</string>
+    <string name="password_not_match">Passwords do not match</string>
+    <string name="confirm_password_label">Confirm Password</string>
     <string name="remember_me">Remember me</string>
     <string name="forgot_password">Forgot password?</string>
     <string name="login_button">Login</string>
-    <string name="register_button">Create Account</string>
+    <string name="create_account_button">Create Account</string>
 
     <!-- ========== FORGOT PASSWORD PANEL ========== -->
     <string name="reset_password_title">Reset Password</string>
