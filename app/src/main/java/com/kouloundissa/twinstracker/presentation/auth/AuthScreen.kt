@@ -7,11 +7,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -202,17 +204,6 @@ fun AuthScreen(
                             }
                         }
                     }
-                }
-
-                // Only show overlay during async operations
-                when (state.currentStep) {
-                    AuthStep.Authenticating,
-                    AuthStep.LoadingProfile,
-                    AuthStep.Success -> {
-                        LoadingOverlay(isVisible = true)
-                    }
-
-                    else -> {} // No overlay
                 }
             }
         }
@@ -521,6 +512,10 @@ private fun LoginForm(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(
+                    color = backgroundColor.copy(alpha = 0.15f),
+                    shape = cornerShape
+                )
                 .padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -567,7 +562,7 @@ private fun LoginForm(
                 Text(
                     stringResource(id = R.string.remember_me),
                     style = MaterialTheme.typography.labelSmall,
-                    color = backgroundColor,
+                    color = tint,
                     fontWeight = FontWeight.Medium,
                     fontSize = 13.sp
                 )
@@ -578,12 +573,13 @@ private fun LoginForm(
                 onClick = onForgotPasswordClick,
                 enabled = isEnabled,
                 modifier = Modifier
-                    .height(40.dp)
-                    .padding(0.dp),
+                    .heightIn(40.dp)
+                    .padding(horizontal = 4.dp, vertical = 0.dp),
                 colors = ButtonDefaults.textButtonColors(
                     contentColor = tint,
                     disabledContentColor = tint.copy(alpha = 0.5f)
-                )
+                ),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Text(
                     stringResource(id = R.string.forgot_password),
@@ -774,6 +770,7 @@ fun SecondaryButton(
     modifier: Modifier = Modifier
 ) {
     val backgroundColor = BackgroundColor
+    val grey = DarkGrey
     val tint = DarkBlue
 
     Button(
@@ -783,9 +780,9 @@ fun SecondaryButton(
             .height(50.dp),
         shape = MaterialTheme.shapes.medium,
         colors = ButtonDefaults.buttonColors(
-            containerColor = backgroundColor.copy(alpha = 0.1f),
+            containerColor = backgroundColor.copy(alpha = 0.5f),
             contentColor = tint,
-            disabledContainerColor = backgroundColor.copy(alpha = 0.05f),
+            disabledContainerColor = grey.copy(alpha = 0.1f),
             disabledContentColor = tint.copy(alpha = 0.5f)
         ),
         border = BorderStroke(
@@ -799,19 +796,5 @@ fun SecondaryButton(
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Medium
         )
-    }
-}
-
-@Composable
-fun LoadingOverlay(isVisible: Boolean) {
-    if (isVisible) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f)),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator()
-        }
     }
 }
