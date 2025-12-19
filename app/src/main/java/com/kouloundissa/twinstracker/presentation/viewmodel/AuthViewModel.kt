@@ -298,6 +298,7 @@ class AuthViewModel @Inject constructor(
                             error = null
                         )
                     }
+                    startAutoVerificationCheck()
                 },
                 onFailure = { error ->
                     val errorMsg = error.localizedMessage ?: context.getString(R.string.error_label)
