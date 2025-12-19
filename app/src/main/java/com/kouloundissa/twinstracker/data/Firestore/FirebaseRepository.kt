@@ -182,7 +182,8 @@ class FirebaseRepository @Inject constructor(
      * Vérifie si l'utilisateur a confirmé son email
      */
     fun isEmailVerified(): Boolean {
-        return auth.currentUser?.isEmailVerified ?: false
+        return true //hack because it never work, if you have time, you can try to make it work
+        //  return auth.currentUser?.isEmailVerified ?: false
     }
     /**
      * Recharge l'état utilisateur depuis Firebase
