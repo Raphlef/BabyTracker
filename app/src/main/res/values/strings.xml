@@ -5,10 +5,13 @@
 
     <!-- ========== AUTH SCREEN - MAIN TITLE ========== -->
     <string name="twins_tracker_title" translatable="false">TwinsTracker</string>
+    <string name="welcome_message">Welcome to TwinsTracker</string>
+    <string name="already_have_account">I already have an account</string>
+    <string name="create_account">Create account</string>
 
     <!-- ========== AUTH SCREEN - LOADING STATES ========== -->
-    <string name="authenticating">Authenticating...</string>
-    <string name="loading_profile">Loading profile...</string>
+    <string name="authenticating">Authenticating…</string>
+    <string name="loading_profile">Loading profile…</string>
 
     <!-- ========== ERROR PANEL ========== -->
     <string name="error_label">Error</string>
@@ -17,7 +20,7 @@
 
     <!-- ========== SUCCESS PANEL ========== -->
     <string name="success_label">Success</string>
-    <string name="auth_success_redirect">Authentication successful! Redirecting...</string>
+    <string name="auth_success_redirect">Authentication successful! Redirecting…</string>
 
     <!-- ========== EMAIL VERIFICATION PANEL ========== -->
     <string name="email_verification_title">Email Verification</string>
