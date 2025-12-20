@@ -219,10 +219,10 @@ fun AnalysisScreen(
                         ) {
                             ComboChartView(
                                 labels = chartLabels,
-                                barValues = mealCounts.map { it.toFloat() },
-                                lineValues = mealVolumes,
-                                barLabel = stringResource(id = R.string.chart_meals_label),
-                                lineLabel = stringResource(id = R.string.chart_meals_volumes_label),
+                                barValues = mealVolumes.map { it.toFloat() },
+                                lineValues = mealCounts,
+                                barLabel = stringResource(id = R.string.chart_meals_volumes_label),
+                                lineLabel = stringResource(id = R.string.chart_meals_label),
                                 onDaySelected = { index ->
                                     selectedDayIndex = index
                                 }
