@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -215,7 +214,7 @@ fun BabyFormDialogInternal(
         containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = Modifier.fillMaxSize()
-    ) {
+    ) { innerPadding ->
         BabyFormBottomSheetContent(
             state = formState,
             isEditMode = isEditMode,
@@ -254,7 +253,10 @@ fun BabyFormDialogInternal(
                     savedBabyLocal = it1
                     onCompleted(savedBabyLocal)
                 }
-            }
+            },
+            modifier = Modifier
+                .padding(innerPadding)
+                .padding(bottom = 80.dp)
         )
     }
 
@@ -275,9 +277,6 @@ fun BabyFormDialogInternal(
         )
     }
 }
-/* -----------------------
-   State holder and mapping
-   ----------------------- */
 
 @Stable
 class BabyFormState(
@@ -365,6 +364,7 @@ private fun BabyFormBottomSheetContent(
     onSave: (Baby, Uri?, Boolean) -> Unit,
     babyViewModel: BabyViewModel = hiltViewModel(),
     familyViewModel: FamilyViewModel = hiltViewModel(),
+    modifier: Modifier = Modifier,
 ) {
     val backgroundColor = BackgroundColor
     val contentColor = DarkGrey
@@ -374,28 +374,17 @@ private fun BabyFormBottomSheetContent(
     val selectedFamily by familyViewModel.selectedFamily.collectAsState()
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 8.dp)
-            .navigationBarsPadding()
     ) {
-        // Header
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth()
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        backgroundColor.copy(alpha = 0.95f),
-                        shape = cornerShape
-                    )
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            Column {
                 Text(
                     text = if (isEditMode)
                         stringResource(id = R.string.baby_form_title_edit)
@@ -406,18 +395,7 @@ private fun BabyFormBottomSheetContent(
                     modifier = Modifier.padding(vertical = 8.dp),
                     color = tint,
                 )
-            }
-        }
-        Spacer(Modifier.height(8.dp))
-        // Form content with scroll
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-        ) {
 
-            Column {
                 BabyFormContent(
                     state = state,
                     isEditMode = isEditMode,
@@ -435,6 +413,26 @@ private fun BabyFormBottomSheetContent(
                     }
                 )
 
+                Spacer(Modifier.height(8.dp))
+
+                // Action buttons
+                BabyFormActionButtons(
+                    isEditMode = isEditMode,
+                    onDelete = onOpenDeleteDialog,
+                    onSave = {
+                        Log.d("BabyForm", "request to save baby")
+                        // Validate required fields
+                        val valid = state.validate()
+                        if (!valid) return@BabyFormActionButtons
+
+                        val (babyData, newPhotoUri, photoRemoved) = state.toBabyTriple(
+                            isEditMode,
+                            currentBaby
+                        )
+                        onSave(babyData, newPhotoUri, photoRemoved)
+                    }
+                )
+
                 babyError?.let {
                     Spacer(Modifier.height(16.dp))
                     Text(
@@ -445,24 +443,6 @@ private fun BabyFormBottomSheetContent(
                 }
             }
         }
-
-        // Action buttons - fixed at bottom
-        BabyFormActionButtons(
-            isEditMode = isEditMode,
-            onDelete = onOpenDeleteDialog,
-            onSave = {
-                Log.d("BabyForm", "request to save baby")
-                // Validate required fields
-                val valid = state.validate()
-                if (!valid) return@BabyFormActionButtons
-
-                val (babyData, newPhotoUri, photoRemoved) = state.toBabyTriple(
-                    isEditMode,
-                    currentBaby
-                )
-                onSave(babyData, newPhotoUri, photoRemoved)
-            }
-        )
     }
 }
 
@@ -484,8 +464,6 @@ private fun BabyFormActionButtons(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(top = 12.dp, bottom = 54.dp)
             .background(
                 color = backgroundColor.copy(alpha = 0.7f),
                 shape = cornerShape
