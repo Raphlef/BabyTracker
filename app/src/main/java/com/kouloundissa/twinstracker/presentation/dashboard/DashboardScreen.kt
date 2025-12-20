@@ -84,7 +84,7 @@ fun DashboardScreen(
     eventViewModel: EventViewModel = androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel()
 ) {
     val backgroundColor = BackgroundColor
-    val contentcolor = DarkGrey
+    val grey = DarkGrey
     val tint = DarkBlue
 
     // HazeState for glassmorphic blur
