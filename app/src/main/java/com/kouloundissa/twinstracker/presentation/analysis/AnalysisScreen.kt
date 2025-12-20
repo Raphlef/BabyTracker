@@ -201,15 +201,16 @@ fun AnalysisScreen(
                         var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
 
                         val summary = selectedDayIndex?.let { index ->
-                            analysisSnapshot.dailyAnalysis.getOrNull(index)?.let { selectedDayData ->
-                                type.generateSummary(
-                                    selectedDayData.events.filter { event ->
-                                        EventType.forClass(event::class) == type
-                                    },
-                                    lastGrowthEvent,
-                                    context
-                                )
-                            }
+                            analysisSnapshot.dailyAnalysis.getOrNull(index)
+                                ?.let { selectedDayData ->
+                                    type.generateSummary(
+                                        selectedDayData.events.filter { event ->
+                                            EventType.forClass(event::class) == type
+                                        },
+                                        lastGrowthEvent,
+                                        context
+                                    )
+                                }
                         }
 
                         AnalysisCard(
@@ -234,23 +235,24 @@ fun AnalysisScreen(
                     filters.value.eventTypeFilter.selectedTypes.contains(EventType.PUMPING)
                 ) {
                     item {
-                        val pumpingVolumes =
+                        val pumpingCounts =
                             analysisSnapshot.dailyAnalysis.map { it.pumpingCount.toFloat() }
-                        val pumpingCounts = analysisSnapshot.dailyAnalysis.map { it.pumpingVolume }
+                        val pumpingVolumes = analysisSnapshot.dailyAnalysis.map { it.pumpingVolume }
 
                         val type = EventType.PUMPING
                         var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
 
                         val summary = selectedDayIndex?.let { index ->
-                            analysisSnapshot.dailyAnalysis.getOrNull(index)?.let { selectedDayData ->
-                                type.generateSummary(
-                                    selectedDayData.events.filter { event ->
-                                        EventType.forClass(event::class) == type
-                                    },
-                                    lastGrowthEvent,
-                                    context
-                                )
-                            }
+                            analysisSnapshot.dailyAnalysis.getOrNull(index)
+                                ?.let { selectedDayData ->
+                                    type.generateSummary(
+                                        selectedDayData.events.filter { event ->
+                                            EventType.forClass(event::class) == type
+                                        },
+                                        lastGrowthEvent,
+                                        context
+                                    )
+                                }
                         }
                         AnalysisCard(
                             title = stringResource(id = R.string.chart_pumping),
@@ -258,10 +260,10 @@ fun AnalysisScreen(
                         ) {
                             ComboChartView(
                                 labels = chartLabels,
-                                barValues = pumpingCounts.map { it.toFloat() },
-                                lineValues = pumpingVolumes,
-                                barLabel = stringResource(id = R.string.chart_pumping_number_label),
-                                lineLabel = stringResource(id = R.string.chart_pumping_volumes_label),
+                                barValues = pumpingVolumes,
+                                lineValues = pumpingCounts,
+                                barLabel = stringResource(id = R.string.chart_pumping_volumes_label),
+                                lineLabel = stringResource(id = R.string.chart_pumping_number_label),
                                 onDaySelected = { index ->
                                     selectedDayIndex = index
                                 }
@@ -282,15 +284,16 @@ fun AnalysisScreen(
                         var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
 
                         val summary = selectedDayIndex?.let { index ->
-                            analysisSnapshot.dailyAnalysis.getOrNull(index)?.let { selectedDayData ->
-                                type.generateSummary(
-                                    selectedDayData.events.filter { event ->
-                                        EventType.forClass(event::class) == type
-                                    },
-                                    lastGrowthEvent,
-                                    context
-                                )
-                            }
+                            analysisSnapshot.dailyAnalysis.getOrNull(index)
+                                ?.let { selectedDayData ->
+                                    type.generateSummary(
+                                        selectedDayData.events.filter { event ->
+                                            EventType.forClass(event::class) == type
+                                        },
+                                        lastGrowthEvent,
+                                        context
+                                    )
+                                }
                         }
                         AnalysisCard(
                             title = stringResource(id = R.string.chart_poop),
@@ -318,15 +321,16 @@ fun AnalysisScreen(
                         var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
 
                         val summary = selectedDayIndex?.let { index ->
-                            analysisSnapshot.dailyAnalysis.getOrNull(index)?.let { selectedDayData ->
-                                type.generateSummary(
-                                    selectedDayData.events.filter { event ->
-                                        EventType.forClass(event::class) == type
-                                    },
-                                    lastGrowthEvent,
-                                    context
-                                )
-                            }
+                            analysisSnapshot.dailyAnalysis.getOrNull(index)
+                                ?.let { selectedDayData ->
+                                    type.generateSummary(
+                                        selectedDayData.events.filter { event ->
+                                            EventType.forClass(event::class) == type
+                                        },
+                                        lastGrowthEvent,
+                                        context
+                                    )
+                                }
                         }
                         val sleepMinutes =
                             analysisSnapshot.dailyAnalysis.map { it.sleepMinutes.toFloat() }
@@ -397,17 +401,21 @@ fun AnalysisScreen(
                         var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
 
                         val summary = selectedDayIndex?.let { index ->
-                            analysisSnapshot.dailyAnalysis.getOrNull(index)?.let { selectedDayData ->
-                                type.generateSummary(
-                                    selectedDayData.events.filter { event ->
-                                        EventType.forClass(event::class) == type
-                                    },
-                                    lastGrowthEvent,
-                                    context
-                                )
-                            }
+                            analysisSnapshot.dailyAnalysis.getOrNull(index)
+                                ?.let { selectedDayData ->
+                                    type.generateSummary(
+                                        selectedDayData.events.filter { event ->
+                                            EventType.forClass(event::class) == type
+                                        },
+                                        lastGrowthEvent,
+                                        context
+                                    )
+                                }
                         }
-                        AnalysisCard(title = stringResource(id = R.string.chart_weight),summary = summary) {
+                        AnalysisCard(
+                            title = stringResource(id = R.string.chart_weight),
+                            summary = summary
+                        ) {
                             MultiLineChartView(
                                 labels = chartLabels,
                                 series = listOf(stringResource(id = R.string.chart_baby_label) to weights) + weightPercentileCurves.map { (label, data) ->
@@ -453,17 +461,21 @@ fun AnalysisScreen(
                         var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
 
                         val summary = selectedDayIndex?.let { index ->
-                            analysisSnapshot.dailyAnalysis.getOrNull(index)?.let { selectedDayData ->
-                                type.generateSummary(
-                                    selectedDayData.events.filter { event ->
-                                        EventType.forClass(event::class) == type
-                                    },
-                                    lastGrowthEvent,
-                                    context
-                                )
-                            }
+                            analysisSnapshot.dailyAnalysis.getOrNull(index)
+                                ?.let { selectedDayData ->
+                                    type.generateSummary(
+                                        selectedDayData.events.filter { event ->
+                                            EventType.forClass(event::class) == type
+                                        },
+                                        lastGrowthEvent,
+                                        context
+                                    )
+                                }
                         }
-                        AnalysisCard(title = stringResource(id = R.string.chart_height),summary = summary) {
+                        AnalysisCard(
+                            title = stringResource(id = R.string.chart_height),
+                            summary = summary
+                        ) {
                             MultiLineChartView(
                                 labels = chartLabels,
                                 series = listOf(stringResource(id = R.string.chart_baby_label) to heights) + lengthPercentileCurves.map { (label, data) ->
@@ -506,17 +518,21 @@ fun AnalysisScreen(
                         var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
 
                         val summary = selectedDayIndex?.let { index ->
-                            analysisSnapshot.dailyAnalysis.getOrNull(index)?.let { selectedDayData ->
-                                type.generateSummary(
-                                    selectedDayData.events.filter { event ->
-                                        EventType.forClass(event::class) == type
-                                    },
-                                    lastGrowthEvent,
-                                    context
-                                )
-                            }
+                            analysisSnapshot.dailyAnalysis.getOrNull(index)
+                                ?.let { selectedDayData ->
+                                    type.generateSummary(
+                                        selectedDayData.events.filter { event ->
+                                            EventType.forClass(event::class) == type
+                                        },
+                                        lastGrowthEvent,
+                                        context
+                                    )
+                                }
                         }
-                        AnalysisCard(title = stringResource(id = R.string.head_circumference),summary = summary) {
+                        AnalysisCard(
+                            title = stringResource(id = R.string.head_circumference),
+                            summary = summary
+                        ) {
                             MultiLineChartView(
                                 labels = chartLabels,
                                 series = listOf(stringResource(id = R.string.chart_baby_label) to heads) + headPercentileCurves.map { (label, data) ->
