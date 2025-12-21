@@ -1,5 +1,3 @@
-import java.io.ByteArrayOutputStream
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -19,8 +17,21 @@ android {
         applicationId = "com.kouloundissa.twinstracker"
         minSdk = 31
         targetSdk = 36
-        versionCode = getGitCommitCount()
-        versionName = getGitVersionName()
+        versionCode = providers.exec {
+            commandLine("git", "rev-list", "--count", "HEAD")
+        }.standardOutput.asText.get().trim().toIntOrNull() ?: 1
+
+        versionName = providers.exec {
+            commandLine("git", "describe", "--tags", "--long")
+        }.standardOutput.asText.get().trim().let { desc ->
+            if (desc.isEmpty()) "1.0.0.0"
+            else {
+                val parts = desc.split('-', limit = 3)
+                val tag = parts.getOrElse(0) { "1.0.0" }.removePrefix("v")
+                val commits = parts.getOrElse(1) { "0" }
+                "$tag.$commits"
+            }
+        }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -174,47 +185,3 @@ dependencies {
 
     implementation(libs.play.services.ads)
 }
-
-// --- Fonctions Git Versioning ---
-
-/**
- * Retourne le nombre total de commits Git (versionCode).
- * Renvoie 1 en cas d’erreur.
- */
-fun getGitCommitCount(): Int = runCatching {
-    val file = File(".git/HEAD")
-    if (!file.exists()) return@runCatching 1
-
-    ByteArrayOutputStream().use { stdout ->
-        exec {
-            commandLine("git", "rev-list", "--count", "HEAD")
-            standardOutput = stdout
-            isIgnoreExitValue = true
-        }
-        stdout.toString().trim().toIntOrNull() ?: 1
-    }
-}.getOrDefault(1)
-
-/**
- * Retourne la versionName basée sur le dernier tag Git et le nombre de commits depuis ce tag, sous la forme "X.Y.Z.N".
- * Renvoie "1.0.0.0" en cas d’erreur.
- */
-fun getGitVersionName(): String = runCatching {
-    val file = File(".git/HEAD")
-    if (!file.exists()) return@runCatching "1.0.0.0"
-
-    ByteArrayOutputStream().use { stdout ->
-        exec {
-            commandLine("git", "describe", "--tags", "--long")
-            standardOutput = stdout
-            isIgnoreExitValue = true
-        }
-        val desc = stdout.toString().trim()
-        if (desc.isEmpty()) return@runCatching "1.0.0.0"
-
-        val parts = desc.split('-', limit = 3)
-        val tag = parts.getOrElse(0) { "1.0.0" }.removePrefix("v")
-        val commits = parts.getOrElse(1) { "0" }
-        "$tag.$commits"
-    }
-}.getOrDefault("1.0.0.0")
