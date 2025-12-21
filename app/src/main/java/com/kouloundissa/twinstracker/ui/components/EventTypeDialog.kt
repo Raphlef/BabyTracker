@@ -197,7 +197,7 @@ private fun EventTypeDialogContent(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        val blurRadius = if (events.size > 5) 5.dp else 2.dp
+        val blurRadius = if (events.size > 5) 15.dp else 6.dp
 
         //  Background image sized to the dialog
         AsyncImage(
@@ -359,8 +359,8 @@ private fun EventTypeHeaderPanel(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(MaterialTheme.shapes.medium)
-                    .background(contentColor.copy(alpha = 0.12f))
-                    .border(1.dp, contentColor.copy(alpha = 0.3f), MaterialTheme.shapes.medium)
+                    .background(backgroundColor.copy(alpha = 0.3f))
+                    .border(1.dp, backgroundColor.copy(alpha = 0.4f), MaterialTheme.shapes.medium)
                     .padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -375,7 +375,7 @@ private fun EventTypeHeaderPanel(
                         Text(
                             text = overlay.description,
                             style = MaterialTheme.typography.bodySmall,
-                            color = contentColor.copy(alpha = 0.8f),
+                            color = tint.copy(alpha = 0.9f),
                             modifier = Modifier
                                 .weight(1f)
                                 .align(Alignment.CenterVertically)
@@ -396,7 +396,7 @@ private fun EventTypeHeaderPanel(
                     Text(
                         text = overlay.description,
                         style = MaterialTheme.typography.bodySmall,
-                        color = contentColor.copy(alpha = 0.8f),
+                        color = tint.copy(alpha = 0.9f),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -419,9 +419,9 @@ private fun EventTypeHeaderPanel(
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.medium),
             colors = CardDefaults.cardColors(
-                containerColor = contentColor.copy(alpha = 0.15f)
+                containerColor = backgroundColor.copy(alpha = 0.3f)
             ),
-            border = BorderStroke(1.dp, contentColor.copy(alpha = 0.3f))
+            border = BorderStroke(1.dp, backgroundColor.copy(alpha = 0.4f))
         ) {
             Column(
                 modifier = Modifier.padding(12.dp)
@@ -429,13 +429,13 @@ private fun EventTypeHeaderPanel(
                 Text(
                     text = stringResource(id = R.string.event_type_today_summary),
                     style = MaterialTheme.typography.labelSmall,
-                    color = contentColor.copy(alpha = 0.8f)
+                    color = tint.copy(alpha = 0.9f)
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = summary,
                     style = MaterialTheme.typography.titleMedium,
-                    color = contentColor
+                    color = tint
                 )
             }
         }
