@@ -176,11 +176,14 @@ private fun EventTypeDialogContent(
     }
     val lazyListState = rememberLazyListState()
     val context = LocalContext.current
-    // Generate summary using the new refactored method
-    val summary = remember(todayEvents) {
+
+    val summary = remember(todayEvents, lastGrowthEvent) {
         type.generateSummary(todayEvents, lastGrowthEvent, context)
     }
-
+    LaunchedEffect(selectedBaby)
+    {
+        selectedBaby?.let { eventViewModel.loadLastGrowth(it.id) }
+    }
     InfiniteScrollEffect(
         lazyListState = lazyListState,
         isLoading = isLoadingMore,
@@ -289,7 +292,7 @@ private fun EventTypeHeaderPanel(
     onDismiss: () -> Unit,
     overlay: EventOverlayInfo = EventOverlayInfo(),
     modifier: Modifier = Modifier,
-    babyViewModel: BabyViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
+    babyViewModel: BabyViewModel = hiltViewModel(),
 ) {
 
     val backgroundColor = BackgroundColor
@@ -341,7 +344,9 @@ private fun EventTypeHeaderPanel(
         BabySelectorRow(
             babies = babies,
             selectedBaby = selectedBaby,
-            onSelectBaby = { babyViewModel.selectBaby(it) }
+            onSelectBaby = { baby ->
+                babyViewModel.selectBaby(baby)
+            }
         )
 
         Spacer(Modifier.height(12.dp))
