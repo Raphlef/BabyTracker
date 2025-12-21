@@ -18,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.IgnoreExtraProperties
 import com.kouloundissa.twinstracker.R
@@ -199,8 +198,23 @@ enum class EventType(
             lastGrowthEvent: GrowthEvent?, context: Context
         ): String {
             val filterEvents = filterEventsByType(todayList)
-            return lastGrowthEvent?.let {
-                "${it.weightKg ?: "-"}kg • ${it.heightCm ?: "-"}cm"
+            return lastGrowthEvent?.let { event ->
+                val measurements = mutableListOf<String>()
+
+                event.weightKg?.takeIf { it > 0 }?.let {
+                    measurements.add("${String.format("%.2f", it)}kg")
+                }
+
+                event.heightCm?.takeIf { it > 0 }?.let {
+                    measurements.add("${event.heightCm.toInt()}cm")
+                }
+
+                event.headCircumferenceCm?.takeIf { it > 0 }?.let {
+                    measurements.add("HC ${String.format("%.1f", it)}cm")
+                }
+
+                measurements.takeIf { it.isNotEmpty() }
+                    ?.joinToString(" • ") ?: "No growth data"
             } ?: "No growth data"
         }
     },
