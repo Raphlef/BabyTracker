@@ -1,10 +1,12 @@
 package com.kouloundissa.twinstracker.presentation.viewmodel
 
+import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.storage.StorageException
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.Service.NotificationService
 import com.kouloundissa.twinstracker.data.AnalysisRange
 import com.kouloundissa.twinstracker.data.AnalysisSnapshot
@@ -725,7 +727,8 @@ class EventViewModel @Inject constructor(
             _lastNewEventTimestamp.value = mostRecentTimestamp
             repository.saveLastNewEventTimestamp(mostRecentTimestamp)
 
-            Log.d("CheckForNewEvents",
+            Log.d(
+                "CheckForNewEvents",
                 "Found ${newlyAddedEvents.size} new events, " +
                         "updated timestamp to $mostRecentTimestamp"
             )
@@ -760,15 +763,14 @@ class EventViewModel @Inject constructor(
     }
 
     // Entry-point to validate & save whichever event type is active
-    fun SaveEvent(babyId: String, familyViewModel: FamilyViewModel) {
+    fun SaveEvent(babyId: String, familyViewModel: FamilyViewModel, context: Context) {
         if (babyId.isBlank()) {
             _errorMessage.value = "Baby ID is missing."
             return
         }
 
         if (!familyViewModel.canUserSaveEvent()) {
-            _errorMessage.value =
-                "You don't have permission to save events. Only members and admins can save."
+            _errorMessage.value = context.getString(R.string.event_error_permission_denied)
             return
         }
         _isSaving.value = true

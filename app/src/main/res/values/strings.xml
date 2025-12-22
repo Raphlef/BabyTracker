@@ -214,6 +214,9 @@
     <string name="event_form_title_new">New Event</string>
     <string name="event_form_title_edit">Edit Event</string>
 
+    <!-- ========== EVENT FORM DIALOG - Error ========== -->
+    <string name="event_error_permission_denied"> "You don't have permission to save events. Only members and admins can save."</string>
+
     <!-- ========== EVENT FORM DIALOG - DATE & TIME ========== -->
     <string name="date_label">Date</string>
     <string name="date_placeholder">Select date</string>

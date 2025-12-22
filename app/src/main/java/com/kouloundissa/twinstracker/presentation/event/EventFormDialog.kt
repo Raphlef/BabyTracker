@@ -616,7 +616,7 @@ fun EventFormDialogContent(
                             return@Button  // Stop execution
                         }
                         haptic.performHapticFeedback(HapticFeedbackType.Confirm)
-                        eventViewModel.SaveEvent(it.id, familyViewModel)
+                        eventViewModel.SaveEvent(it.id, familyViewModel, context)
                     }
                 },
                 enabled = !isSaving,
