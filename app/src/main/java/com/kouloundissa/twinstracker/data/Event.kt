@@ -729,16 +729,7 @@ sealed class EventFormState {
             is EventFormState.Drugs -> {
                 val dose = dosage.toDoubleOrNull()
 
-                // Only validate dosage if it's NOT a cream
-                val isDosageValid = if (drugType == DrugType.CREAM) {
-                    true // Skip dosage validation for creams
-                } else {
-                    dose != null && dose > 0
-                }
-
-                if (!isDosageValid) {
-                    Result.failure(IllegalArgumentException("Enter a positive numeric dosage."))
-                } else if (drugType == DrugType.OTHER && otherDrugName.isBlank()) {
+                if (drugType == DrugType.OTHER && otherDrugName.isBlank()) {
                     Result.failure(IllegalArgumentException("Specify the drug name for “Other”."))
                 } else {
                     Result.success(
