@@ -4,10 +4,8 @@ import com.kouloundissa.twinstracker.data.Event
 import java.time.Duration
 import java.time.ZoneId
 import java.util.Date
-import kotlin.math.atan2
-import kotlin.math.cos
+import kotlin.math.pow
 import kotlin.math.roundToInt
-import kotlin.math.sin
 import kotlin.math.sqrt
 
 object EventPrediction {
@@ -27,7 +25,6 @@ object EventPrediction {
         val pattern: FeedingPattern,
         val confidence: Double,  // 0.0 to 1.0
         val estimatedIntervalMs: Long? = null,
-        val preferredHourOfDay: Int? = null  // 0-23
     )
     // ==================== FEEDING TIME PREDICTION ====================
 
@@ -46,8 +43,7 @@ object EventPrediction {
      * @return Predicted next feeding time in milliseconds, or null if calculation fails
      */
     fun <T : Event> predictNextFeedingTimeMs(
-        events: List<T>,
-        now: Date = Date()
+        events: List<T>
     ): FeedingPrediction? {
         // Need at least 2 events to calculate intervals
         if (events.size < 2) return null
@@ -59,17 +55,16 @@ object EventPrediction {
         val intervals = calculateIntervals(sortedEvents)
         if (intervals.size < 2) return null
 
-        // Analyser la variance des heures
-        val hourDistribution = extractHourOfDay(sortedEvents)
+        val clusters = extractFeedingClusters(sortedEvents, clusterWindowMinutes = 45)
 
         // Détecter le pattern
-        val pattern = detectFeedingPattern(intervals, hourDistribution)
+        val pattern = detectFeedingPattern(intervals, clusters)
 
         // Prédire selon le pattern
         val prediction = when (pattern) {
-            FeedingPattern.INTERVAL_BASED -> predictByInterval(lastFeeding, intervals, now)
-            FeedingPattern.TIME_BASED -> predictByHourOfDay(lastFeeding, hourDistribution, now)
-            FeedingPattern.MIXED -> predictHybrid(lastFeeding, intervals, hourDistribution, now)
+            FeedingPattern.INTERVAL_BASED -> predictByInterval(lastFeeding, intervals)
+            FeedingPattern.TIME_BASED -> predictByHourOfDay(lastFeeding, clusters)
+            FeedingPattern.MIXED -> predictHybrid(lastFeeding, intervals, clusters)
         }
 
         return prediction
@@ -84,30 +79,91 @@ object EventPrediction {
      */
     private fun detectFeedingPattern(
         intervals: List<Long>,
-        hourDistribution: Map<Int, Int>
+        clusters: List<FeedingCluster>
     ): FeedingPattern {
-        if (intervals.size < 3) return FeedingPattern.INTERVAL_BASED
+        if (intervals.size < 3 || clusters.isEmpty()) {
+            return FeedingPattern.INTERVAL_BASED
+        }
 
-        // Variance des intervalles (régularité temporelle)
+        // METRIC 1: Interval Regularity
         val intervalMean = intervals.average()
         val intervalVariance = intervals.map { (it - intervalMean) * (it - intervalMean) }.average()
-        val intervalCV = sqrt(intervalVariance) / intervalMean  // Coefficient de variation
+        val intervalCV = sqrt(intervalVariance) / intervalMean
 
-        // Concentration des heures (régularité horaire)
-        val hoursWithFeedings = hourDistribution.size
-        val maxFeedingsInHour = hourDistribution.values.maxOrNull() ?: 1
-        val hourConcentration = maxFeedingsInHour.toDouble() / intervals.size
+        // METRIC 2: Cluster Consistency
+        val avgClusterVariance = clusters.map { it.variance }.average()
+        val clusterConsistency = 1.0 / (1.0 + (sqrt(avgClusterVariance) / 10.0))
 
-        // Décision
+        // METRIC 3: Cluster Count
+        val clusterCount = clusters.size
+
+        // METRIC 4: Cluster Spacing (gaps between feeding times)
+        val clusterGaps = mutableListOf<Int>()
+        for (i in 0 until clusters.size - 1) {
+            val gap = clusters[i + 1].centerMinutes - clusters[i].centerMinutes
+            clusterGaps.add(gap)
+        }
+        if (clusters.isNotEmpty()) {
+            val dayWrapGap =
+                (24 * 60) - clusters.last().centerMinutes + clusters.first().centerMinutes
+            clusterGaps.add(dayWrapGap)
+        }
+
+        val gapMean = clusterGaps.average()
+        val gapVariance = clusterGaps.map { (it - gapMean) * (it - gapMean) }.average()
+        val gapCV = sqrt(gapVariance) / gapMean
+        val gapConsistency = 1.0 - minOf(gapCV, 1.0)
+
+        // METRIC 5: Sample Quality
+        val totalFeedings = intervals.size + 1
+        val avgClusterSize = clusters.map { it.count }.average()
+        val hasGoodSamples = (totalFeedings.toDouble() / clusterCount) >= 2.0
+        val allClustersConsistent = clusters.all { it.stdDev < 15 }
+
+        // ==================== DECISION LOGIC ====================
+
         return when {
-            // Intervalles très réguliers (CV < 0.3) = jeune bébé
-            intervalCV < 0.3 -> FeedingPattern.INTERVAL_BASED
+            // Very regular intervals = young baby
+            intervalCV < 0.25 -> {
+                FeedingPattern.INTERVAL_BASED
+            }
 
-            // Heures très concentrées = bébé plus grand
-            hourConcentration > 0.5 && hoursWithFeedings < 6 -> FeedingPattern.TIME_BASED
+            // Multiple clusters (4+), all consistent, regular spacing
+            clusterCount >= 4 &&
+                    clusterConsistency > 0.80 &&
+                    gapConsistency > 0.70 &&
+                    hasGoodSamples &&
+                    allClustersConsistent -> {
+                FeedingPattern.TIME_BASED
+            }
 
-            // Les deux patterns présents = transition
-            else -> FeedingPattern.MIXED
+            // Fewer clusters (3-5), very tight, very consistent
+            clusterCount in 3..5 &&
+                    clusterConsistency > 0.85 &&
+                    gapConsistency > 0.75 &&
+                    avgClusterSize >= 3.0 &&
+                    allClustersConsistent -> {
+                FeedingPattern.TIME_BASED
+            }
+
+            // Mix: Moderate intervals + clustering
+            intervalCV in 0.25..0.50 &&
+                    clusterConsistency > 0.70 &&
+                    clusterCount >= 4 -> {
+                FeedingPattern.MIXED
+            }
+
+            // Mix: Weak patterns on both sides
+            intervalCV < 0.50 &&
+                    clusterConsistency > 0.60 &&
+                    clusterCount >= 3 -> {
+                FeedingPattern.MIXED
+            }
+
+            // Default
+            else -> {
+                FeedingPattern.MIXED
+            }
         }
     }
 
@@ -119,8 +175,7 @@ object EventPrediction {
      */
     private fun <T : Event> predictByInterval(
         lastFeeding: T,
-        intervals: List<Long>,
-        now: Date
+        intervals: List<Long>
     ): FeedingPrediction {
         val predictedIntervalMs = calculatePredictedInterval(intervals)
         val minIntervalMs = 10 * 60 * 1000L  // 10 minutes minimum
@@ -143,82 +198,136 @@ object EventPrediction {
     }
 
     // ==================== TIME-BASED PREDICTION ====================
-
-    /**
-     * Prédire par heures fixes (bébé plus grand)
-     * Utilise la moyenne circulaire pour les heures
-     */
-    private fun <T : Event> predictByHourOfDay(
-        lastFeeding: T,
-        hourDistribution: Map<Int, Int>,
-        now: Date
-    ): FeedingPrediction? {
-        if (hourDistribution.isEmpty()) return null
-
-        // Trouver l'heure "moyenne" des repas
-        val preferredHour = getCircularMeanHour(hourDistribution)
-
-        // Calculer la concentration (confiance)
-        val totalFeedings = hourDistribution.values.sum()
-        val maxFeedingsInHour = hourDistribution.values.maxOrNull() ?: 1
-        val confidence = maxFeedingsInHour.toDouble() / totalFeedings
-
-        // Générer prochaine heure de repas
-        val nextTime = calculateNextTimeAtHour(lastFeeding.timestamp, preferredHour)
-
-        return FeedingPrediction(
-            nextFeedingTimeMs = nextTime,
-            pattern = FeedingPattern.TIME_BASED,
-            confidence = confidence,
-            preferredHourOfDay = preferredHour
-        )
+    data class FeedingCluster(
+        val centerMinutes: Int,
+        val feedings: List<Int>,
+        val variance: Double
+    ) {
+        val hour: Int = centerMinutes / 60
+        val minute: Int = centerMinutes % 60
+        val count: Int = feedings.size
+        val stdDev: Double = sqrt(variance)
     }
-
     /**
-     * Calculer l'heure "moyenne" using circular mean
-     * Gère le wraparound (23h et 1h = minuit)
+     * Extract and cluster feeding times (handles hour boundaries!)
+     * Groups feedings within clusterWindowMinutes together
      */
-    private fun getCircularMeanHour(hourDistribution: Map<Int, Int>): Int {
-        if (hourDistribution.isEmpty()) return 12
+    private fun <T : Event> extractFeedingClusters(
+        events: List<T>,
+        clusterWindowMinutes: Int
+    ): List<FeedingCluster> {
+        val zoneId = ZoneId.systemDefault()
 
-        var sinSum = 0.0
-        var cosSum = 0.0
+        // Convert each feeding to minutes from midnight
+        val feedingMinutes = events.map { event ->
+            val zoned = event.timestamp.toInstant().atZone(zoneId)
+            zoned.hour * 60 + zoned.minute
+        }.sorted()
 
-        for ((hour, count) in hourDistribution) {
-            val angle = (hour / 24.0) * 2.0 * Math.PI
-            sinSum += count * sin(angle)
-            cosSum += count * cos(angle)
+        if (feedingMinutes.isEmpty()) return emptyList()
+
+        // Cluster nearby times
+        val clusters = mutableListOf<MutableList<Int>>()
+        var currentCluster = mutableListOf(feedingMinutes[0])
+
+        for (i in 1 until feedingMinutes.size) {
+            val timeDiff = feedingMinutes[i] - feedingMinutes[i - 1]
+
+            if (timeDiff <= clusterWindowMinutes) {
+                currentCluster.add(feedingMinutes[i])
+            } else {
+                clusters.add(currentCluster)
+                currentCluster = mutableListOf(feedingMinutes[i])
+            }
         }
+        clusters.add(currentCluster)
 
-        val meanAngle = atan2(sinSum, cosSum)
-        val meanHour = ((meanAngle / (2.0 * Math.PI)) * 24.0 + 24.0) % 24.0
+        // Convert to FeedingCluster objects
+        return clusters.map { cluster ->
+            val center = cluster.average().toInt()
+            val variance = cluster.map { (it - center).toDouble().pow(2) }.average()
 
-        return meanHour.toInt()
+            FeedingCluster(
+                centerMinutes = center,
+                feedings = cluster,
+                variance = variance
+            )
+        }.sortedBy { it.centerMinutes }
     }
 
     /**
-     * Calculer le prochain créneau à une heure donnée
-     * Gère le passage du jour
+     * Find next cluster in sequence
      */
-    private fun calculateNextTimeAtHour(lastTime: Date, preferredHour: Int): Long {
+    private fun getNextFeedingCluster(
+        lastFeedingMinutes: Int,
+        clusters: List<FeedingCluster>
+    ): FeedingCluster {
+        val nextInSequence = clusters.firstOrNull { it.centerMinutes > lastFeedingMinutes }
+        return nextInSequence ?: clusters.first()
+    }
+    /**
+     * Calculate next feeding time based on cluster
+     */
+    private fun calculateNextTimeAtMinutes(
+        lastTime: Date,
+        nextClusterCenterMinutes: Int,
+        needsNextDay: Boolean = false
+    ): Long {
         val instant = lastTime.toInstant()
         val zoneId = ZoneId.systemDefault()
         val lastLocalTime = instant.atZone(zoneId)
 
-        // Prochaine occurrence de l'heure préférée
-        var nextLocal = lastLocalTime
-            .withHour(preferredHour)
-            .withMinute(0)
-            .withSecond(0)
+        val nextHour = nextClusterCenterMinutes / 60
+        val nextMinute = nextClusterCenterMinutes % 60
 
-        // Si l'heure est passée aujourd'hui, demain
-        if (nextLocal.isBefore(lastLocalTime)) {
+        var nextLocal = lastLocalTime
+            .withHour(nextHour)
+            .withMinute(nextMinute)
+            .withSecond(0)
+            .withNano(0)
+
+        if (needsNextDay || nextLocal.isBefore(lastLocalTime)) {
             nextLocal = nextLocal.plusDays(1)
         }
 
         return nextLocal.toInstant().toEpochMilli()
     }
 
+    /**
+     * Updated TIME_BASED prediction using clusters
+     */
+    private fun <T : Event> predictByHourOfDay(
+        lastFeeding: T,
+        clusters: List<FeedingCluster>
+    ): FeedingPrediction? {
+        if (clusters.isEmpty()) return null
+
+        // Get last feeding in minutes
+        val lastFeedingZoned = lastFeeding.timestamp.toInstant()
+            .atZone(ZoneId.systemDefault())
+        val lastFeedingMinutes = lastFeedingZoned.hour * 60 + lastFeedingZoned.minute
+
+        // Find next cluster
+        val nextCluster = getNextFeedingCluster(lastFeedingMinutes, clusters)
+        val needsNextDay = nextCluster.centerMinutes <= lastFeedingMinutes
+
+        // Calculate next feeding time
+        val nextTime = calculateNextTimeAtMinutes(
+            lastFeeding.timestamp,
+            nextCluster.centerMinutes,
+            needsNextDay
+        )
+
+        // Confidence based on cluster consistency (stdDev)
+        val maxStdDev = 30.0
+        val confidence = 1.0 / (1.0 + (nextCluster.stdDev / maxStdDev))
+
+        return FeedingPrediction(
+            nextFeedingTimeMs = nextTime,
+            pattern = FeedingPattern.TIME_BASED,
+            confidence = confidence,
+        )
+    }
     // ==================== HYBRID PREDICTION ====================
 
     /**
@@ -228,11 +337,10 @@ object EventPrediction {
     private fun <T : Event> predictHybrid(
         lastFeeding: T,
         intervals: List<Long>,
-        hourDistribution: Map<Int, Int>,
-        now: Date
+        clusters: List<FeedingCluster>
     ): FeedingPrediction? {
-        val byInterval = predictByInterval(lastFeeding, intervals, now) ?: return null
-        val byHour = predictByHourOfDay(lastFeeding, hourDistribution, now) ?: return null
+        val byInterval = predictByInterval(lastFeeding, intervals) ?: return null
+        val byHour = predictByHourOfDay(lastFeeding, clusters) ?: return null
 
         // Pondération intelligente
         val weight = 0.6  // 60% intervalle, 40% heure
@@ -244,7 +352,6 @@ object EventPrediction {
             pattern = FeedingPattern.MIXED,
             confidence = (byInterval.confidence + byHour.confidence) / 2.0,
             estimatedIntervalMs = byInterval.estimatedIntervalMs,
-            preferredHourOfDay = byHour.preferredHourOfDay
         )
     }
 
@@ -258,18 +365,6 @@ object EventPrediction {
             }
             .filter { it > 0 }
             .sorted()
-    }
-
-    private fun <T : Event> extractHourOfDay(events: List<T>): Map<Int, Int> {
-        return events
-            .map { event ->
-                event.timestamp
-                    .toInstant()
-                    .atZone(ZoneId.systemDefault())
-                    .hour
-            }
-            .groupingBy { it }
-            .eachCount()
     }
 
     private fun calculatePredictedInterval(sortedIntervals: List<Long>): Long {
@@ -544,14 +639,4 @@ fun <T : Number> List<T>.calculatePresetsFromNumbers(
 fun <T : Event> List<T>.predictNextFeedingTime(
     now: Date = Date()
 ): EventPrediction.FeedingPrediction? =
-    EventPrediction.predictNextFeedingTimeMs(this.sortedByDescending { it.timestamp.time }, now)
-
-fun <T : Event> List<T>.getPatternType(): EventPrediction.FeedingPattern? {
-    val prediction = this.predictNextFeedingTime() ?: return null
-    return prediction.pattern
-}
-
-fun <T : Event> List<T>.getFeedingConfidence(): Double? {
-    val prediction = this.predictNextFeedingTime() ?: return null
-    return prediction.confidence
-}
+    EventPrediction.predictNextFeedingTimeMs(this.sortedByDescending { it.timestamp.time })
