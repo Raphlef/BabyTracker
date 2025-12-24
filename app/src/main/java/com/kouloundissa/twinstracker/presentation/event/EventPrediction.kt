@@ -55,7 +55,7 @@ object EventPrediction {
         val intervals = calculateIntervals(sortedEvents)
         if (intervals.size < 2) return null
 
-        val clusters = extractFeedingClusters(sortedEvents, clusterWindowMinutes = 45)
+        val clusters = extractFeedingClusters(sortedEvents, clusterWindowMinutes = 60)
 
         // Détecter le pattern
         val pattern = detectFeedingPattern(intervals, clusters)
