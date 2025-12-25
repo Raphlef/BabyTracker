@@ -38,12 +38,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -73,25 +75,13 @@ fun AmountInput(
         textValue = value
     }
     fun stringToInt(str: String): Int = str.toDoubleOrNull()?.toInt() ?: 0
-
+    val currentValue = stringToInt(value)
+    val haptic = LocalHapticFeedback.current
     val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
     val contentcolor = DarkGrey
     val tint = DarkBlue
 
-    val haptic = LocalHapticFeedback.current
 
-    var isDecreasePressed by remember { mutableStateOf(false) }
-    var isIncreasePressed by remember { mutableStateOf(false) }
-    val decreaseScale by animateFloatAsState(
-        targetValue = if (isDecreasePressed) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
-        label = "button_scale_decrease"
-    )
-    val increaseScale by animateFloatAsState(
-        targetValue = if (isIncreasePressed) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
-        label = "button_scale_increase"
-    )
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = backgroundcolor,
@@ -116,41 +106,18 @@ fun AmountInput(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Decrement button
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .graphicsLayer {
-                            scaleX = decreaseScale
-                            scaleY = decreaseScale
-                        }
-                        .border(
-                            BorderStroke(1.dp, contentcolor.copy(alpha = 0.5f)),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(
-                            if (isDecreasePressed) Color.White.copy(alpha = 0.8f)
-                            else BackgroundColor.copy(alpha = 0.25f)
-                        )
-                        .pointerInput(value) {
-                            awaitEachGesture {
-                                awaitFirstDown()
-                                isDecreasePressed = true
-                                waitForUpOrCancellation()
-                                val currentValue = stringToInt(value)
-                                val newValue = maxOf(min, currentValue - step)
-                                if (newValue != currentValue) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                }
-                                textValue = newValue.toString()
-                                onValueChange(textValue)
-                                isDecreasePressed = false
-                            }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Remove, contentDescription = "Decrease", tint = contentcolor)
-                }
+                AdjustmentButton(
+                    icon = Icons.Default.Remove,
+                    contentDescription = "Decrease",
+                    delta = -step,
+                    onValueChange = { newValue ->
+                        textValue = newValue.toString()
+                        onValueChange(textValue)
+                    },
+                    currentValue = currentValue,
+                    min = min,
+                    max = max,
+                )
 
                 // Text input (center, editable)
                 OutlinedTextField(
@@ -179,41 +146,18 @@ fun AmountInput(
                 )
 
                 // Increment button
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .graphicsLayer {
-                            scaleX = increaseScale
-                            scaleY = increaseScale
-                        }
-                        .border(
-                            BorderStroke(1.dp, contentcolor.copy(alpha = 0.5f)),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(
-                            if (isIncreasePressed) Color.White.copy(alpha = 0.8f)
-                            else BackgroundColor.copy(alpha = 0.25f)
-                        )
-                        .pointerInput(value) {
-                            awaitEachGesture {
-                                awaitFirstDown()
-                                isIncreasePressed = true
-                                waitForUpOrCancellation()
-                                val currentValue = stringToInt(value)
-                                val newValue = minOf(max, currentValue + step)
-                                if (newValue != currentValue) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                }
-                                textValue = newValue.toString()
-                                onValueChange(textValue)
-                                isIncreasePressed = false
-                            }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Increase", tint = contentcolor)
-                }
+                AdjustmentButton(
+                    icon = Icons.Default.Add,
+                    contentDescription = "Increase",
+                    delta = step,
+                    onValueChange = { newValue ->
+                        textValue = newValue.toString()
+                        onValueChange(textValue)
+                    },
+                    currentValue = currentValue,
+                    min = min,
+                    max = max,
+                )
             }
 
             // Quick preset buttons
@@ -257,3 +201,66 @@ fun AmountInput(
     }
 }
 
+@Composable
+fun AdjustmentButton(
+    icon: ImageVector,
+    contentDescription: String,
+    delta: Int,
+    onValueChange: (Int) -> Unit,
+    currentValue: Int,
+    min: Int,
+    max: Int,
+) {
+    val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
+    val contentcolor = DarkGrey
+    val tint = DarkBlue
+    val haptic = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
+
+    var isPressed by remember { mutableStateOf(false) }
+    var isRepeating by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        label = "button_scale"
+    )
+
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .border(
+                BorderStroke(1.dp, contentcolor.copy(alpha = 0.5f)),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                if (isPressed) Color.White.copy(alpha = 0.8f)
+                else backgroundcolor.copy(alpha = 0.25f)
+            )
+            .pointerInput(currentValue) {
+                awaitEachGesture {
+                    awaitFirstDown()
+                    isPressed = true
+                    waitForUpOrCancellation()
+                    val newValue = when {
+                        delta > 0 -> minOf(max, currentValue + delta)
+                        delta < 0 -> maxOf(min, currentValue + delta)
+                        else -> currentValue
+                    }
+                    if (newValue != currentValue) {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    }
+                    onValueChange(newValue)
+                    isPressed = false
+                }
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icon, contentDescription = contentDescription, tint = contentcolor)
+    }
+}
