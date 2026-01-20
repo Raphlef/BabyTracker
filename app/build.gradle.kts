@@ -4,9 +4,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
     id("dagger.hilt.android.plugin")
-    kotlin("kapt")
-    id("kotlin-kapt")
     id("com.google.firebase.crashlytics")
+    kotlin("kapt")
 }
 
 android {
@@ -107,83 +106,86 @@ android {
 
 dependencies {
 
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    // Compose
+    // === BOMs (Platforms) - Must be declared first ===
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
-    implementation(libs.navigation.compose)
-    implementation(libs.navigation.compose)
-    implementation(libs.hilt.navigation.compose)
-    implementation(libs.hilt.android)
-    implementation(libs.androidx.compose.ui.text)
-
-    //icons
-    implementation(libs.material.icons.core) // Or the latest version
-    implementation(libs.material.icons.extended) // For a wider selection, including all themes
-
-    // VieModel
-    implementation(libs.lifecycle.viewmodel.compose)
-
-    // Firebase
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.firestore)
-    implementation(libs.firebase.auth)
-    implementation(libs.firebase.storage.ktx)
-    implementation(libs.firebase.appcheck)// App Check dependency
-    implementation(libs.firebase.appcheck.playintegrity)   // Play Integrity provider (recommended for production)
-    implementation(libs.firebase.appcheck.debug)// Debug provider (for development/testing)
-    implementation(libs.firebase.crashlytics.ktx)   // Firebase Crashlytics
-    implementation(libs.firebase.database.ktx)
 
-    // Graphics
-    implementation(libs.mpandroidchart)
-
-    // Dates
-    implementation(libs.joda.time)
-    implementation(libs.androidx.compose.foundation.layout)
-    implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.runtime.saveable)
-    implementation(libs.google.firebase.crashlytics.ktx)
-    implementation(libs.room.ktx)
-    implementation(libs.androidx.foundation.layout)
-    implementation(libs.androidx.foundation)
-    implementation(libs.androidx.compose.animation)
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.room.room.ktx)
+    // === AndroidX - Core ===
+    implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.i18n)
-    implementation(libs.foundation.layout)
-    implementation(libs.androidx.compose.runtime)
-    implementation(libs.firebase.config.ktx)
+    implementation(libs.androidx.datastore.preferences)
 
+    // === AndroidX - Activity & Compose ===
+    implementation(libs.androidx.activity.compose)
+
+    // === AndroidX - Lifecycle & ViewModel ===
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+
+    // === AndroidX - Navigation ===
+    implementation(libs.androidx.navigation.compose)
+
+    // === AndroidX - Room (Database) ===
+    implementation(libs.androidx.room.ktx)
+
+    // === AndroidX - Compose UI (managed by composeBom) ===
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.ui.text)
+    implementation(libs.androidx.compose.ui.test.junit4)
+
+    // === AndroidX - Compose Foundation ===
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.foundation.layout)
+
+    // === AndroidX - Compose Material & Icons ===
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.androidx.compose.material.icons.extended)
+
+    // === AndroidX - Compose Animation & Runtime ===
+    implementation(libs.androidx.compose.animation)
+    implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.compose.runtime.saveable)
+
+    // === Dependency Injection (Hilt) ===
+    implementation(libs.hilt.android)
+    implementation(libs.hilt.navigation.compose)
+    kapt(libs.hilt.compiler)
+
+    // === Firebase (managed by firebaseBom) ===
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.database.ktx)
+    implementation(libs.firebase.storage.ktx)
+    implementation(libs.firebase.config.ktx)
+    implementation(libs.firebase.crashlytics.ktx)
+    implementation(libs.firebase.appcheck)
+    implementation(libs.firebase.appcheck.playintegrity)
+    implementation(libs.firebase.appcheck.debug)
+
+    // === Google Play Services ===
+    implementation(libs.play.services.auth)
+    implementation(libs.play.services.ads)
+
+    // === External Libraries ===
+    implementation(libs.coil.compose)
+    implementation(libs.gson)
+    implementation(libs.haze)
+    implementation(libs.mpandroidchart)
+    implementation(libs.joda.time)
+    implementation(libs.kotlin.reflect)
+    implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.kotlinx.datetime)
+
+    // === Testing ===
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
 
-    kapt(libs.hilt.compiler)
-
-    implementation(libs.androidx.datastore.preferences)
-    implementation(libs.androidx.compose.foundation)
-    implementation(libs.kotlinx.datetime)
-    implementation(libs.kotlin.reflect)
-
-    implementation(libs.haze)
-
-    implementation(libs.coil.compose)
-    // auth
-    implementation(libs.play.services.auth)
-    implementation(libs.kotlinx.coroutines.play.services)
-
-    implementation(libs.gson)
-
-    implementation(libs.play.services.ads)
+    // === Debug ===
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
