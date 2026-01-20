@@ -213,6 +213,8 @@
     <string name="ok_button">OK</string>
     <string name="event_form_title_new">New Event</string>
     <string name="event_form_title_edit">Edit Event</string>
+    <string name="created_by">Created by</string>
+    <string name="you_badge">(You)</string>
 
     <!-- ========== EVENT FORM DIALOG - Error ========== -->
     <string name="event_error_permission_denied"> "You don't have permission to save events. Only members and admins can save."</string>
