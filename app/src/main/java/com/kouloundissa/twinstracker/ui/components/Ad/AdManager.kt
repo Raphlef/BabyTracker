@@ -16,28 +16,47 @@ import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
+import com.kouloundissa.twinstracker.data.Settings.AdLevel
+import com.kouloundissa.twinstracker.data.Settings.AdminSettingsManager
+import com.kouloundissa.twinstracker.data.Settings.SettingsValidator
 
+
+private const val TAG = "AdManager"
+
+private const val ADS_ENABLED = false
+private const val INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-8151974596806893/1549328889"
+private const val INLINE_BANNER_AD_UNIT_ID = "ca-app-pub-8151974596806893/9208327057"
+
+
+//test id "ca-app-pub-3940256099942544/1033173712"
+//real id "ca-app-pub-8151974596806893/1549328889"
 
 object AdManager {
-
-    private const val TAG = "AdManager"
-
-
-    private const val ADS_ENABLED = false
-    private const val INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-8151974596806893/1549328889"
-    private const val INLINE_BANNER_AD_UNIT_ID = "ca-app-pub-8151974596806893/9208327057"
-
-    //test id "ca-app-pub-3940256099942544/1033173712"
-    //real id "ca-app-pub-8151974596806893/1549328889"
     // Interstitial cache
     private var interstitialAd: InterstitialAd? = null
     private var isLoading = false
     private var loadAttempts = 0
     private val maxAttempts = 3
 
+    /**
+     * Check if interstitial ads are allowed (HIGH level required)
+     */
+    private fun canShowInterstitial(context: Context): Boolean {
+        val settings = AdminSettingsManager.getInstance(context).getSettings()
+        return SettingsValidator.hasAdLevel(settings, AdLevel.HIGH)
+    }
+
+    /**
+     * Get current ad level
+     */
+    fun getAdLevel(context: Context): AdLevel {
+        val settings = AdminSettingsManager.getInstance(context).getSettings()
+        return settings.getAdLevel()
+    }
     fun preloadInterstitial(context: Context) {
-        if (!ADS_ENABLED) {
-            Log.d(TAG, "preloadInterstitial: ⚠️ SKIPPED - Ads are disabled globally")
+        if (!canShowInterstitial(context)) {
+            val level = getAdLevel(context)
+            Log.d(TAG, "preloadInterstitial: ⚠️ SKIPPED - Ad level is $level (HIGH required)")
             return
         }
         if (interstitialAd != null || isLoading) {
@@ -116,8 +135,10 @@ object AdManager {
     }
 
     fun showInterstitial(activity: Activity): Boolean {
-        if (!ADS_ENABLED) {
-            Log.d(TAG, "showInterstitial: ⚠️ SKIPPED - Ads are disabled globally")
+        // Check admin settings
+        if (!canShowInterstitial(activity)) {
+            val level = getAdLevel(activity)
+            Log.d(TAG, "showInterstitial: ⚠️ SKIPPED - Ad level is $level (HIGH required)")
             return false
         }
         val ad = interstitialAd
@@ -134,8 +155,6 @@ object AdManager {
             false
         }
     }
-
-    fun isAdsEnabled(): Boolean = ADS_ENABLED
     fun getInlineBannerAdUnitId(): String {
         return INLINE_BANNER_AD_UNIT_ID
         // Future: Add BuildConfig support
@@ -150,10 +169,18 @@ fun InlineBannerAd(
 ) {
     val context = LocalContext.current
 
-    if (!AdManager.isAdsEnabled()) {
-        Log.d("InlineBannerAd", "Ads disabled - skipping banner")
+    // Check if banner ads are allowed
+    val settings = AdminSettingsManager.getInstance(context).getSettings()
+    val canShowBanners = SettingsValidator.canShowAds(settings)
+
+    if (!canShowBanners) {
+        val level = settings.getAdLevel()
+        Log.d("InlineBannerAd", "Banner ads disabled - Ad level: $level")
         return
     }
+
+    Log.d("InlineBannerAd", "Showing banner - Ad level: ${settings.getAdLevel()}")
+
     AndroidView(
         modifier = modifier,
         factory = {
