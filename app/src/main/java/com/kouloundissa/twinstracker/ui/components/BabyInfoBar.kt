@@ -82,7 +82,7 @@ fun BabyInfoBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         ExpandablePanel(
             headerContent = { isExpandedState ->
