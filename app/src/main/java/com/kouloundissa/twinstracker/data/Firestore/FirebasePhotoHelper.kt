@@ -15,6 +15,7 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
 class FirebasePhotoHelper(
+    private val authManager: FirebaseAuthorizationManager,
     private val storage: FirebaseStorage,
     private val db: FirebaseFirestore,
     private val context: Context,
@@ -25,6 +26,7 @@ class FirebasePhotoHelper(
         entityId: String,
         uri: Uri
     ): String = withContext(Dispatchers.IO) {
+        authManager.requirePhotoUpload()
         val userId = repo.getCurrentUserIdOrThrow()
         val photoPath = FirebaseStorageUtils.buildPhotoStoragePath(entityType, entityId)
 
@@ -60,6 +62,8 @@ class FirebasePhotoHelper(
         entityType: String,
         entityId: String
     ) = withContext(Dispatchers.IO) {
+        authManager.canWrite()
+
         repo.getCurrentUserIdOrThrow() // Verify auth
         val photoRef = storage.getPhotoReference(entityType, entityId)
 
