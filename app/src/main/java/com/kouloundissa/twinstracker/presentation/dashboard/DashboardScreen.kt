@@ -190,7 +190,6 @@ fun DashboardScreen(
                                 modifier = Modifier.weight(1f)
                             )
 
-
                             // Settings button
                             IconButton(
                                 onClick = {
@@ -234,6 +233,7 @@ fun DashboardScreen(
                                 )
 
                                 DashboardTab.Analysis -> AnalysisScreen(
+                                    navController = navController,
                                     contentPadding = contentPadding,
                                     isVisible = isCurrentPage
                                 )
