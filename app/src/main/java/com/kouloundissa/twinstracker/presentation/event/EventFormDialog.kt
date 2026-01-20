@@ -42,6 +42,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
@@ -98,6 +99,7 @@ import com.kouloundissa.twinstracker.data.EventFormState.Pumping
 import com.kouloundissa.twinstracker.data.EventFormState.Sleep
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
+import com.kouloundissa.twinstracker.data.FamilyUser
 import com.kouloundissa.twinstracker.data.FeedType
 import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.PoopColor
@@ -215,6 +217,8 @@ fun EventFormDialogContent(
     val focusManager = LocalFocusManager.current
 
     val currentUserIsViewer = familyViewModel.isCurrentUserViewer()
+    val familyMembers by familyViewModel.familyUsers.collectAsState()
+    val currentUserId by familyViewModel.currentUserId.collectAsState()
 
     val formState by eventViewModel.formState.collectAsState()
     val lastGrowthEvent by eventViewModel.lastGrowthEvent.collectAsState()
@@ -391,7 +395,14 @@ fun EventFormDialogContent(
                     fontWeight = FontWeight.Bold,
                     color = tint,
                 )
-
+                Spacer(Modifier.width(12.dp))
+                if (formState.eventId != null && formState.event != null) {
+                    CreatorInfoSection(
+                        creatorUserId = formState.event!!.userId,
+                        familyMembers = familyMembers,
+                        isCurrentUserCreator = formState.event!!.userId == currentUserId
+                    )
+                }
             }
             Column(
                 modifier = Modifier
@@ -423,6 +434,7 @@ fun EventFormDialogContent(
                     },
                     onAddBaby = null
                 )
+
                 // Event Type Selector (only for new events)
                 val isEditMode = formState.eventId != null
                 if (isEditMode) {
@@ -644,6 +656,56 @@ fun EventFormDialogContent(
         }
     }
 }
+
+@Composable
+fun CreatorInfoSection(
+    creatorUserId: String,
+    familyMembers: List<FamilyUser>,
+    isCurrentUserCreator: Boolean,
+    modifier: Modifier = Modifier
+) {
+
+    val cornerShape = MaterialTheme.shapes.extraLarge
+    val backgroundColor = BackgroundColor
+    val tint = DarkBlue
+    val creatorName = familyMembers
+        .find { it.userId == creatorUserId }
+        ?.displayName
+        ?: creatorUserId
+
+    val displayText = buildString {
+        append(stringResource(id = R.string.created_by))
+        append(" $creatorName")
+        if (isCurrentUserCreator) {
+            append(" ${stringResource(id = R.string.you_badge)}")
+        }
+    }
+
+    Surface(
+        shape = cornerShape,
+        color = backgroundColor.copy(0.5f),
+    ) {
+        Row(
+            modifier = Modifier.padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = DarkGrey.copy(0.8f),
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = displayText,
+                style = MaterialTheme.typography.labelSmall,
+                color = DarkGrey.copy(0.8f),
+                modifier = modifier
+            )
+        }
+    }
+}
+
 
 @Composable
 fun ViewerCannotModifyDialog(onDismiss: () -> Unit) {
