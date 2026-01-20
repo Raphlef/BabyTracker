@@ -39,7 +39,7 @@ class AdminSettingsManager private constructor(
         private const val PREFS_NAME = "admin_settings"
         private const val KEY_SETTINGS = "admin_settings_json"
         private const val CONFIG_KEY = "admin_settings_config"
-        private const val FETCH_INTERVAL_SECONDS = 3600L // 1 hour
+        private const val FETCH_INTERVAL_SECONDS = 600L // 10 min
 
         @Volatile
         private var instance: AdminSettingsManager? = null
