@@ -33,6 +33,7 @@ import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.kouloundissa.twinstracker.data.Settings.AdminSettingsManager
 import com.kouloundissa.twinstracker.presentation.Family.FamilyCheckScreen
 import com.kouloundissa.twinstracker.presentation.auth.AuthScreen
 import com.kouloundissa.twinstracker.presentation.dashboard.DashboardScreen
@@ -191,8 +192,14 @@ class BabyTrackerApplication : Application() {
         // Initialize App Check
         initializeAppCheck()
 
+        // Initialize Admin Settings Manager
+        val settingsManager = AdminSettingsManager.getInstance(this)
+
+        // Initial sync from Firebase (optional - will retry automatically)
+        settingsManager.syncSettingsFromFirebase()
+
         // Optional: enable or disable Crashlytics collection
-        FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true)
+        configureCrashlytics(settingsManager)
     }
 
     private fun initializeAppCheck() {
@@ -210,5 +217,11 @@ class BabyTrackerApplication : Application() {
                 PlayIntegrityAppCheckProviderFactory.getInstance()
             )
         }
+    }
+
+    private fun configureCrashlytics(settingsManager: AdminSettingsManager) {
+        val settings = settingsManager.getSettings()
+        FirebaseCrashlytics.getInstance()
+            .setCrashlyticsCollectionEnabled(settings.crashlyticsEnabled)
     }
 }
