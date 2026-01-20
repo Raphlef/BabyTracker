@@ -57,6 +57,7 @@ fun AnalysisFilterPanel(
     filters: AnalysisFilters,
     onFiltersChanged: (AnalysisFilters) -> Unit,
     eventViewModel: EventViewModel = hiltViewModel(),
+    modifier: Modifier = Modifier
 ) {
     val isLoading by eventViewModel.isLoading.collectAsState()
     var isExpanded by remember { mutableStateOf(false) }
@@ -67,7 +68,7 @@ fun AnalysisFilterPanel(
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
@@ -80,8 +81,8 @@ fun AnalysisFilterPanel(
                 // Right section: Action buttons
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(start = 12.dp)
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier.padding(start = 20.dp)
                 ) {
                     IconButton(
                         onClick = { isExpanded = !isExpanded },
@@ -141,7 +142,9 @@ private fun FilterPanelHeader(
             imageVector = Icons.Default.FilterList,
             contentDescription = "Filters",
             tint = tint,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier
+                .padding(end = 12.dp)
+                .size(20.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
 
