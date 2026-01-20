@@ -138,6 +138,7 @@ dependencies {
     implementation(libs.firebase.appcheck.playintegrity)   // Play Integrity provider (recommended for production)
     implementation(libs.firebase.appcheck.debug)// Debug provider (for development/testing)
     implementation(libs.firebase.crashlytics.ktx)   // Firebase Crashlytics
+    implementation(libs.firebase.database.ktx)
 
     // Graphics
     implementation(libs.mpandroidchart)
@@ -158,6 +159,7 @@ dependencies {
     implementation(libs.androidx.core.i18n)
     implementation(libs.foundation.layout)
     implementation(libs.androidx.compose.runtime)
+    implementation(libs.firebase.config.ktx)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
