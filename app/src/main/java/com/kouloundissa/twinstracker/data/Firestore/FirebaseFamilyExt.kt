@@ -18,6 +18,7 @@ import java.util.UUID
 
 // --- Family Methods ---
 suspend fun FirebaseRepository.addOrUpdateFamily(family: Family): Result<Family> = runCatching {
+    authManager.requireWrite()
     val currentUserId = getCurrentUserIdOrThrow()
 
     val isNew = family.id.isBlank()
@@ -37,6 +38,7 @@ suspend fun FirebaseRepository.addOrUpdateFamily(family: Family): Result<Family>
 }
 
 fun FirebaseRepository.streamFamilies(): Flow<List<Family>> {
+    authManager.requireRead()
     val currentUserId = getCurrentUserIdOrThrow()
 
     return callbackFlow {
@@ -51,22 +53,23 @@ fun FirebaseRepository.streamFamilies(): Flow<List<Family>> {
         )
 
         // Reusable listener creation function
-        fun createFamilyListener(fieldName: String) = db.collection(FirestoreConstants.Collections.FAMILIES)
-            .whereArrayContains(fieldName, currentUserId)
-            .orderBy(FirestoreConstants.Fields.CREATED_AT, Query.Direction.DESCENDING)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
-                }
-                snapshot?.documents?.forEach { doc ->
-                    doc.toObjectSafely<Family>()?.let { family ->
-                        familiesMap[family.id] = family
+        fun createFamilyListener(fieldName: String) =
+            db.collection(FirestoreConstants.Collections.FAMILIES)
+                .whereArrayContains(fieldName, currentUserId)
+                .orderBy(FirestoreConstants.Fields.CREATED_AT, Query.Direction.DESCENDING)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        close(error)
+                        return@addSnapshotListener
                     }
+                    snapshot?.documents?.forEach { doc ->
+                        doc.toObjectSafely<Family>()?.let { family ->
+                            familiesMap[family.id] = family
+                        }
+                    }
+                    val sortedFamilies = familiesMap.values.sortedByDescending { it.createdAt }
+                    trySend(sortedFamilies)
                 }
-                val sortedFamilies = familiesMap.values.sortedByDescending { it.createdAt }
-                trySend(sortedFamilies)
-            }
 
         // Add listeners for all roles
         roles.forEach { (fieldName, _) ->
@@ -84,6 +87,7 @@ suspend fun FirebaseRepository.addMemberToFamily(
     familyId: String,
     userIdToAdd: String
 ): Result<Unit> = runCatching {
+    authManager.requireWrite()
     FirebaseValidators.validateFamilyId(familyId)
     require(userIdToAdd.isNotBlank()) { "User ID cannot be empty" }
 
@@ -122,8 +126,13 @@ suspend fun FirebaseRepository.addMemberToFamily(
     batch.commit().await()
 }
 
-suspend fun FirebaseRepository.removeUserFromAllRoles(familyId: String, userId: String): Result<Unit> {
+suspend fun FirebaseRepository.removeUserFromAllRoles(
+    familyId: String,
+    userId: String
+): Result<Unit> {
     return runCatching {
+
+        authManager.requireWrite()
         FirebaseValidators.validateFamilyId(familyId)
         require(userId.isNotBlank()) { "User ID cannot be empty" }
 
@@ -160,6 +169,8 @@ suspend fun FirebaseRepository.removeUserFromAllRoles(familyId: String, userId: 
 
 
 suspend fun FirebaseRepository.deleteFamily(familyId: String): Result<Unit> = runCatching {
+
+    authManager.requireWrite()
     FirebaseValidators.validateFamilyId(familyId)
 
     db.collection(FirestoreConstants.Collections.FAMILIES)
@@ -186,6 +197,7 @@ suspend fun FirebaseRepository.joinFamilyByCode(
     code: String,
     userId: String
 ): Result<Unit> = runCatching {
+    authManager.requireWrite()
     require(code.isNotBlank()) { "Invite code cannot be empty" }
     require(userId.isNotBlank()) { "User ID cannot be empty" }
 
