@@ -3,6 +3,7 @@ package com.kouloundissa.twinstracker.di
 import android.content.Context
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.kouloundissa.twinstracker.data.Firestore.FirebaseAuthorizationManager
 import com.kouloundissa.twinstracker.data.Firestore.FirebaseRepository
 import dagger.Module
 import dagger.Provides
@@ -30,12 +31,23 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideFirebaseAuthorizationManager(
+        @ApplicationContext context: Context,
+        auth: FirebaseAuth,
+        firestore: FirebaseFirestore
+    ): FirebaseAuthorizationManager {
+        return FirebaseAuthorizationManager(context, auth, firestore)
+    }
+
+    @Provides
+    @Singleton
     fun provideFirebaseRepository(
         auth: FirebaseAuth,
         firestore: FirebaseFirestore,
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        authManager: FirebaseAuthorizationManager
     ): FirebaseRepository {
-        return FirebaseRepository(auth, firestore, context)
+        return FirebaseRepository(auth, firestore, context, authManager)
     }
 
 }
