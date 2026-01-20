@@ -66,7 +66,8 @@ import javax.inject.Inject
 class FirebaseRepository @Inject constructor(
     val auth: FirebaseAuth,
     val db: FirebaseFirestore,
-    private val context: Context
+    private val context: Context,
+    val authManager: FirebaseAuthorizationManager
 ) {
     private val TAG = "FirebaseRepository"
 
@@ -131,6 +132,7 @@ class FirebaseRepository @Inject constructor(
         val credential = GoogleAuthProvider.getCredential(idToken, null)
         auth.signInWithCredential(credential).await()
     }
+
     /**
      * Envoie un email de vérification à l'utilisateur actuel
      * @return true si envoi réussi, false sinon
@@ -185,6 +187,7 @@ class FirebaseRepository @Inject constructor(
         return true //hack because it never work, if you have time, you can try to make it work
         //  return auth.currentUser?.isEmailVerified ?: false
     }
+
     /**
      * Recharge l'état utilisateur depuis Firebase
      */
@@ -196,7 +199,8 @@ class FirebaseRepository @Inject constructor(
     // Helper instances
     val queryHelper = FirestoreQueryHelper(db)
     private val photoHelper = FirebasePhotoHelper(
-        FirebaseStorage.getInstance(),
+        authManager = authManager,
+        storage = FirebaseStorage.getInstance(),
         db,
         context,
         this
@@ -204,6 +208,7 @@ class FirebaseRepository @Inject constructor(
 
     // ===== USER PROFILE =====
     suspend fun getCurrentUserProfile(): User {
+        authManager.requireRead()
         val userId = getCurrentUserIdOrThrow()
         val doc = db.collection(FirestoreConstants.Collections.USERS)
             .document(userId)
@@ -214,6 +219,7 @@ class FirebaseRepository @Inject constructor(
     }
 
     suspend fun getUserProfileById(userId: String): User {
+        authManager.requireRead()
         val doc = db.collection(FirestoreConstants.Collections.USERS)
             .document(userId)
             .get()
@@ -231,6 +237,7 @@ class FirebaseRepository @Inject constructor(
     }
 
     suspend fun findUserIdByEmail(email: String): String? {
+        authManager.requireRead()
         val normalized = FirebaseValidators.normalizeEmail(email)
         return db.collection(FirestoreConstants.Collections.USERS)
             .whereEqualTo(FirestoreConstants.Fields.EMAIL, normalized)
@@ -328,6 +335,8 @@ class FirebaseRepository @Inject constructor(
 
     // ===== BABY OPERATIONS =====
     suspend fun addOrUpdateBaby(baby: Baby, family: Family?): Result<Baby> = runCatching {
+
+        authManager.requireWrite()
         val userId = getCurrentUserIdOrThrow()
 
         if (family == null) {
@@ -396,6 +405,7 @@ class FirebaseRepository @Inject constructor(
     }
 
     fun streamBabiesByFamily(family: Family): Flow<List<Baby>> {
+        authManager.requireRead()
         val babyIds = family.babyIds.distinct()
         return if (babyIds.isEmpty()) {
             flowOf(emptyList())
@@ -456,6 +466,7 @@ class FirebaseRepository @Inject constructor(
     }
 
     suspend fun deleteBabyAndEvents(babyId: String): Result<Unit> = runCatching {
+        authManager.requireWrite()
         FirebaseValidators.validateBabyId(babyId)
         val batch = db.batch()
 
@@ -478,6 +489,8 @@ class FirebaseRepository @Inject constructor(
     }
 
     suspend fun removeBabyFromAllFamilies(babyId: String) = withContext(Dispatchers.IO) {
+
+        authManager.requireWrite()
         FirebaseValidators.validateBabyId(babyId)
         val familiesSnapshot = db.collection(FirestoreConstants.Collections.FAMILIES)
             .whereArrayContains(FirestoreConstants.Fields.BABY_IDS, babyId)
@@ -497,38 +510,13 @@ class FirebaseRepository @Inject constructor(
         batch.commit().await()
     }
 
-    suspend fun addParentToBaby(babyId: String, parentEmail: String) {
-        FirebaseValidators.validateBabyId(babyId)
-        FirebaseValidators.validateEmail(parentEmail)
-
-        val userId = findUserIdByEmail(parentEmail)
-            ?: throw IllegalArgumentException("No user found with this email")
-
-        val babyRef = db.collection(FirestoreConstants.Collections.BABIES).document(babyId)
-
-        db.runTransaction { tx ->
-            val snapshot = tx.get(babyRef)
-            val current = (snapshot.get(FirestoreConstants.Fields.PARENT_IDS) as? List<String>)
-                .orEmpty()
-
-            if (!current.contains(userId)) {
-                tx.update(
-                    babyRef,
-                    FirestoreConstants.Fields.PARENT_IDS,
-                    current + userId,
-                    FirestoreConstants.Fields.UPDATED_AT,
-                    FirestoreTimestampUtils.getCurrentTimestamp()
-                )
-            }
-        }.await()
-    }
-
     // ===== EVENT OPERATIONS =====
     suspend fun addEvent(
         event: Event,
         firebaseCache: FirebaseCache = FirebaseCache(context, db),
     ): Result<Unit> {
         return try {
+            authManager.requireWrite()
             val userId = getCurrentUserIdOrThrow()
             val data = event.toMap()
                 .withUserIdAndTimestamp(userId)
@@ -549,6 +537,7 @@ class FirebaseRepository @Inject constructor(
         eventId: String, event: Event,
         firebaseCache: FirebaseCache = FirebaseCache(context, db),
     ): Result<Unit> = runCatching {
+        authManager.requireWrite()
         getCurrentUserIdOrThrow()
         val data = event.toMap()
             .withUpdatedAt()
@@ -578,6 +567,8 @@ class FirebaseRepository @Inject constructor(
         firebaseCache: FirebaseCache = FirebaseCache(context, db),
     ): Result<Unit> {
         return try {
+
+            authManager.requireRead()
             db.collection(FirestoreConstants.Collections.EVENTS)
                 .document(event.id)
                 .delete()
@@ -618,6 +609,8 @@ class FirebaseRepository @Inject constructor(
         crossinline transform: (Map<String, Event>) -> T?,
         crossinline logPrefix: () -> String = { "Stream" }
     ): Flow<T> = flow {
+
+        authManager.requireRead()
         // STEP 0: Shared validation
         FirebaseValidators.validateBabyId(babyId)
         FirebaseValidators.validateDateRange(startDate, endDate)
