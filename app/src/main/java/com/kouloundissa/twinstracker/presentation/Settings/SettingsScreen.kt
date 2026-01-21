@@ -197,7 +197,7 @@ fun SettingsScreenContent(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 12.dp)
+                    .padding(horizontal = 4.dp, vertical = 12.dp)
             ) {
                 IconButton(
                     onClick = onDismiss,
@@ -407,7 +407,7 @@ fun SectionCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 8.dp),
         colors = CardDefaults.cardColors(
             containerColor = baseColor.copy(alpha = 0.7f)
         ),
@@ -422,7 +422,7 @@ fun SectionCard(
                         onClickHeader?.invoke()
                     }
                     .background(color = baseColor.copy(alpha = 0.9f))
-                    .padding(16.dp)
+                    .padding(8.dp)
             ) {
                 icon?.let {
                     Icon(
@@ -454,7 +454,7 @@ fun SectionCard(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(horizontal = 4.dp, vertical = 16.dp)
             ) {
                 content()
             }

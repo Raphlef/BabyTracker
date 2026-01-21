@@ -439,9 +439,7 @@ private fun FamilyMemberSection(
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .padding(
-                            top = 12.dp, bottom = 12.dp
-                        ),
+                        .padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconSelector(
@@ -454,7 +452,6 @@ private fun FamilyMemberSection(
                         getIcon = { it.icon },
                         getLabel = { it.label },
                         getColor = { it.color },
-                        modifier = Modifier.padding(end = 8.dp),
                         enabled = isCurrentAdmin && !isLoading
                     )
                     IconButton(
