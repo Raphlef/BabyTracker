@@ -275,45 +275,6 @@ class FamilyViewModel @Inject constructor(
             }
         }
     }
-
-    fun removeUserFromFamily(family: Family, userId: String) {
-        viewModelScope.launch {
-            setLoading(true)
-            try {
-                // Prevent removing sole admin
-                if (family.adminIds.contains(userId) && family.adminIds.size == 1) {
-                    _state.update {
-                        it.copy(
-                            isLoading = false,
-                            error = "Assign another admin before removing this user."
-                        )
-                    }
-                    return@launch
-                }
-                val updatedFamily = family.copy(
-                    adminIds = family.adminIds - userId,
-                    memberIds = family.memberIds - userId
-                )
-                repository.addOrUpdateFamily(updatedFamily)
-                    .onSuccess {
-                        if (_currentUserId.value == userId) {
-                            selectFamily(null)
-                        } else {
-                            selectFamily(updatedFamily)
-                        }
-                        loadFamilyUsers(updatedFamily)
-                        clearError()
-                        setLoading(false)
-                    }
-                    .onFailure { e ->
-                        handleError(e as Exception, "Failed to remove user from family")
-                    }
-            } catch (e: Exception) {
-                handleError(e, "Failed to remove user from family")
-            }
-        }
-    }
-
     fun createOrUpdateFamily(family: Family) {
         viewModelScope.launch {
             setLoading(true)
