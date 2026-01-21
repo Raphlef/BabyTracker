@@ -426,6 +426,15 @@ private fun FamilyMemberSection(
     val isCurrentAdmin = familyViewModel.isCurrentUserAdmin()
 
     var userToRemove: FamilyUser? by remember { mutableStateOf(null) }
+    val sortedUsers = familyUsers.sortedWith(
+        compareBy<FamilyUser> { user ->
+            when (user.role) {
+                FamilyRole.ADMIN -> 0
+                FamilyRole.MEMBER -> 1
+                FamilyRole.VIEWER -> 2
+            }
+        }.thenBy { it.displayNameOrEmail }
+    )
     Column {
         Text(
             stringResource(R.string.family_member_section_title),
@@ -437,7 +446,7 @@ private fun FamilyMemberSection(
             modifier = Modifier
                 .fillMaxWidth()
         ) {
-            familyUsers.forEach { user ->
+            sortedUsers.forEach { user ->
                 Row(
                     Modifier
                         .fillMaxWidth()
