@@ -154,7 +154,7 @@ fun DateRangeFilterSection(
                             }
                         )
                     },
-                    selected = filter.selectedRange == range,
+                    selected = isSelected,
                     colors = FilterChipDefaults.filterChipColors(
                         containerColor = backgroundColor.copy(alpha = 0.25f),
                         labelColor = contentColor.copy(alpha = 0.5f),
@@ -163,11 +163,11 @@ fun DateRangeFilterSection(
                     ),
                     border = FilterChipDefaults.filterChipBorder(
                         enabled = true,
-                        selected = false,
+                        selected = isSelected,
                         borderColor = contentColor.copy(alpha = 0.55f),
                         selectedBorderColor = tint.copy(alpha = 0.55f),
                         borderWidth = 0.5.dp,
-                        selectedBorderWidth = 1.dp
+                        selectedBorderWidth = 1.5.dp
                     ),
                     shape = cornerShape
                 )
@@ -318,11 +318,11 @@ fun EventTypeFilterSection(
                     ),
                     border = FilterChipDefaults.filterChipBorder(
                         enabled = true,
-                        selected = false,
-                        borderColor = eventType.color.copy(alpha = 0.55f),
-                        selectedBorderColor = tint.copy(alpha = 0.55f),
+                        selected = isSelected,
+                        borderColor = eventType.color.copy(alpha = 0.25f),
+                        selectedBorderColor = eventType.color.copy(alpha = 0.65f),
                         borderWidth = 0.5.dp,
-                        selectedBorderWidth = 1.dp
+                        selectedBorderWidth = 1.5.dp
                     ),
                     leadingIcon = {
                         Icon(
