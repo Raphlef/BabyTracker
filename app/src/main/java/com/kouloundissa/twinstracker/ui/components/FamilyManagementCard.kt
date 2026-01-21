@@ -20,7 +20,6 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FamilyRestroom
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Lock
@@ -191,13 +190,14 @@ fun FamilyManagementCard(
             HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
             selectedFamily?.let { family ->
                 FamilyMemberSection(
+                    family = family,
                     familyUsers = familyUsers,
                     isLoading = isLoading,
                     onRoleChange = { userId, newRole ->
                         familyViewModel.updateUserRole(family, userId, newRole, context)
                     },
                     onRemoveUser = { userId ->
-                        familyViewModel.removeUserFromFamily(family, userId)
+                        familyViewModel.removeMember(family.id, userId, context)
                     },
                     familyViewModel = familyViewModel
                 )
@@ -416,6 +416,7 @@ fun FamilyManagementCard(
 
 @Composable
 private fun FamilyMemberSection(
+    family: Family,
     familyUsers: List<FamilyUser>,
     isLoading: Boolean,
     onRoleChange: (String, FamilyRole) -> Unit,
@@ -424,6 +425,8 @@ private fun FamilyMemberSection(
 ) {
     val tintColor = DarkGrey
     val isCurrentAdmin = familyViewModel.isCurrentUserAdmin()
+
+    var userToRemove: FamilyUser? by remember { mutableStateOf(null) }
     Column {
         Text(
             stringResource(R.string.family_member_section_title),
@@ -440,8 +443,10 @@ private fun FamilyMemberSection(
                     Modifier
                         .fillMaxWidth()
                         .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    val isOnlyAdmin = user.role == FamilyRole.ADMIN && family.adminIds.size == 1
                     IconSelector(
                         title = user.displayNameOrEmail,
                         options = FamilyRole.entries,
@@ -452,21 +457,76 @@ private fun FamilyMemberSection(
                         getIcon = { it.icon },
                         getLabel = { it.label },
                         getColor = { it.color },
-                        enabled = isCurrentAdmin && !isLoading
+                        enabled = isCurrentAdmin && !isLoading,
+                        modifier = Modifier.weight(1f)
                     )
                     IconButton(
-                        onClick = { onRemoveUser(user.userId) },
-                        enabled = isCurrentAdmin && !isLoading
+                        onClick = {
+                            userToRemove = user
+                        },
+                        enabled = isCurrentAdmin && !isLoading && !isOnlyAdmin,
+                        modifier = Modifier.size(20.dp)
                     ) {
                         Icon(
-                            Icons.Default.Delete,
+                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                             contentDescription = stringResource(R.string.delete_button),
-                            tint = Color.Red
+                            tint = if (isCurrentAdmin && !isLoading && !isOnlyAdmin) {
+                                Color.Red
+                            } else {
+                                Color.Red.copy(alpha = 0.4f)  // Grayed red when disabled
+                            }
                         )
                     }
                 }
             }
         }
+    }
+    // Confirmation Dialog
+    userToRemove?.let { user ->
+        val isOnlyAdmin = user.role == FamilyRole.ADMIN && family.adminIds.size == 1
+        AlertDialog(
+            onDismissRequest = { userToRemove = null },
+            title = { Text(stringResource(R.string.family_leave_dialog_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        if (isOnlyAdmin) {
+                            R.string.family_user_leave_dialog_only_admin_message
+                        } else {
+                            R.string.family_user_leave_dialog_confirm_message
+                        },
+
+                        user.displayNameOrEmail,
+                        family.name,
+                    )
+                )
+            },
+            confirmButton = {
+                if (!isOnlyAdmin) {
+                    TextButton(
+                        onClick = {
+                            onRemoveUser(user.userId)
+                            userToRemove = null
+                        }
+                    ) {
+                        Text(
+                            stringResource(R.string.family_remove_dialog_confirm_button),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { userToRemove = null }) {
+                    Text(
+                        stringResource(
+                            if (isOnlyAdmin) R.string.family_leave_dialog_dismiss_only_admin
+                            else R.string.cancel_button
+                        )
+                    )
+                }
+            }
+        )
     }
 }
 
@@ -584,7 +644,7 @@ fun FamilyLeaveButton(
     familyViewModel: FamilyViewModel,
     isLoading: Boolean
 ) {
-    var context= LocalContext.current
+    var context = LocalContext.current
     var showConfirmDialog by remember { mutableStateOf(false) }
     val nonNullUserIdFlow = familyViewModel.currentUserId.map { it.orEmpty() }
     val currentUserId: String by nonNullUserIdFlow
@@ -646,7 +706,6 @@ fun FamilyLeaveButton(
                                     currentUserId,
                                     context
                                 )
-
                             }
                         ) {
                             Text(
