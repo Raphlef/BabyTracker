@@ -52,7 +52,7 @@ kotlinxCoroutinesPlayServices = "1.10.2"
 kotlinxDatetime = "0.7.1"
 
 # Google Services Plugin
-googleServices = "4.4.3"
+googleServices = "4.4.4"
 
 
 # Testing
