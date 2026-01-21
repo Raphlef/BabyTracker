@@ -19,7 +19,7 @@ lifecycleVersion = "2.9.4"
 navigationCompose = "2.9.4"
 
 # AndroidX - Room (Database)
-roomKtx = "2.8.0"
+roomKtx = "2.8.4"
 
 # AndroidX - Compose (Version unified)
 # ℹ️ Managed by composeBom - versions below used when BOM not applied
