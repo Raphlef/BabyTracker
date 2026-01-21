@@ -264,7 +264,7 @@ private fun LoadingMoreIndicator(modifier: Modifier = Modifier) {
  * @param isLoading Whether data is currently being loaded
  * @param hasMore Whether more data is available
  * @param onLoadMore Callback to trigger loading
- * @param threshold Number of items from end to trigger load
+ * @param itemsBeforeEndToLoad Number of items from end to trigger load
  * @param debounceMs Milliseconds to wait between load attempts
  */
 @Composable
@@ -273,12 +273,11 @@ fun InfiniteScrollEffect(
     isLoading: Boolean,
     hasMore: Boolean,
     onLoadMore: () -> Unit,
-    threshold: Int = 3,
+    itemsBeforeEndToLoad: Int = 3,
     debounceMs: Long = 300,
     maxConsecutiveEmptyLoads: Int = 3
 ) {
     var lastLoadAttempt by remember { mutableLongStateOf(0L) }
-    var lastLoadedCount by remember { mutableIntStateOf(0) }
     var consecutiveEmptyLoads by remember { mutableIntStateOf(0) }
     var loadingStartCount by remember { mutableIntStateOf(0) }
 
@@ -307,11 +306,7 @@ fun InfiniteScrollEffect(
                 }
             } else {
                 consecutiveEmptyLoads = 0
-                lastLoadedCount = currentCount
-                Log.d(
-                    "InfiniteScroll",
-                    "Load returned $itemsAdded items. Total: $currentCount. Reset empty load counter."
-                )
+                Log.d("InfiniteScroll", "Added $itemsAdded items. Total: $currentCount")
             }
 
             loadingStartCount = 0
@@ -325,23 +320,18 @@ fun InfiniteScrollEffect(
                 val totalItems = lazyListState.layoutInfo.totalItemsCount
                 val currentTime = System.currentTimeMillis()
 
-                if (lastVisibleIndex != null && lastVisibleIndex >= totalItems - threshold) {
-                    val shouldAttemptLoad = hasMore &&
-                            !isLoading &&
-                            consecutiveEmptyLoads < maxConsecutiveEmptyLoads &&
-                            (lastLoadedCount == 0 || totalItems > lastLoadedCount) &&
-                            (currentTime - lastLoadAttempt > debounceMs)
+                val shouldStop = !hasMore && consecutiveEmptyLoads >= maxConsecutiveEmptyLoads
 
-                    if (shouldAttemptLoad) {
-                        lastLoadAttempt = currentTime
-                        Log.d("InfiniteScroll", "Triggering load. Current items: $totalItems")
-                        onLoadMore()
-                    } else if (consecutiveEmptyLoads >= maxConsecutiveEmptyLoads) {
-                        Log.d(
-                            "InfiniteScroll",
-                            "Skipping load - max consecutive empty loads reached ($consecutiveEmptyLoads/$maxConsecutiveEmptyLoads)"
-                        )
-                    }
+                if (lastVisibleIndex != null &&
+                    lastVisibleIndex >= totalItems - itemsBeforeEndToLoad &&
+                    hasMore && !isLoading &&
+                    !shouldStop &&
+                    (currentTime - lastLoadAttempt > debounceMs)
+                ) {
+
+                    lastLoadAttempt = currentTime
+                    Log.d("InfiniteScroll", "Loading more... (total: $totalItems)")
+                    onLoadMore()
                 }
             }
     }
