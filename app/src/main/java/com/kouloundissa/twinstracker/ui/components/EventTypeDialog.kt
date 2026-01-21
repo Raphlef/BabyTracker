@@ -72,6 +72,8 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.ZoneId
+import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
@@ -184,12 +186,34 @@ private fun EventTypeDialogContent(
     {
         selectedBaby?.let { eventViewModel.loadLastGrowth(it.id) }
     }
+
+    if (type == EventType.GROWTH) {
+        LaunchedEffect(selectedBaby) {
+            selectedBaby?.let { baby ->
+                val startDate = today.minusDays(30)
+                    .atStartOfDay(ZoneId.systemDefault())
+                    .toInstant()
+                val endDate = today
+                    .atTime(23, 59, 59)
+                    .atZone(ZoneId.systemDefault())
+                    .toInstant()
+
+                eventViewModel.refreshWithCustomRange(
+                    baby.id,
+                    Date.from(startDate),
+                    Date.from(endDate)
+                )
+            }
+        }
+    }
+
     InfiniteScrollEffect(
         lazyListState = lazyListState,
         isLoading = isLoadingMore,
         hasMore = hasMoreHistory,
         onLoadMore = { eventViewModel.loadMoreHistoricalEvents() },
-        threshold = 3
+        itemsBeforeEndToLoad = 3,
+        maxConsecutiveEmptyLoads = if (type == EventType.GROWTH) 20 else 6,
     )
     BackHandler(onBack = onDismiss)
 
@@ -254,7 +278,7 @@ private fun EventTypeDialogContent(
                         onEdit = onEdit,
                         onDelete = { event ->
                             selectedBaby?.let {
-                                eventViewModel.deleteEvent(event,familyViewModel)
+                                eventViewModel.deleteEvent(event, familyViewModel)
                             }
                         },
                         isLoadingMore = isLoadingMore,
@@ -273,7 +297,10 @@ private fun EventTypeDialogContent(
                 TextButton(
                     onClick = { onAdd(type) }
                 ) {
-                    Text(stringResource(id = R.string.event_type_add_event), color = backgroundColor)
+                    Text(
+                        stringResource(id = R.string.event_type_add_event),
+                        color = backgroundColor
+                    )
                 }
             }
         }
