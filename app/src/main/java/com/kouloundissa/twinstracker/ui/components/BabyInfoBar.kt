@@ -62,6 +62,7 @@ fun BabyInfoBar(
     onSelectBaby: (Baby) -> Unit,
     onEditBaby: () -> Unit = {},
     onAddBaby: (() -> Unit)? = null,
+    onExpandedChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
     babyViewModel: BabyViewModel = hiltViewModel(),
     eventViewModel: EventViewModel = hiltViewModel(),
@@ -103,6 +104,7 @@ fun BabyInfoBar(
                         onClick = {
                             onEditBaby.invoke()
                             isExpanded = false
+                            onExpandedChanged(isExpanded)
                         },
                         modifier = Modifier
                             .size(40.dp)
@@ -119,7 +121,10 @@ fun BabyInfoBar(
                     // Expand/Collapse indicator (visible when multiple babies)
                     if (babies.size > 1) {
                         IconButton(
-                            onClick = { isExpanded = !isExpanded },
+                            onClick = {
+                                isExpanded = !isExpanded
+                                onExpandedChanged(isExpanded)
+                            },
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
@@ -142,16 +147,23 @@ fun BabyInfoBar(
                     onSelectBaby = { baby ->
                         onSelectBaby(baby)
                         isExpanded = false
+                        onExpandedChanged(isExpanded)
                     },
                     onAddBaby = {
                         onAddBaby?.invoke()
                         isExpanded = false
+                        onExpandedChanged(isExpanded)
                     },
                     onDismiss = { isExpanded = false }
                 )
             },
             isExpanded = isExpanded,
-            onExpandToggle = { if (babies.size > 1) isExpanded = !isExpanded },
+            onExpandToggle = {
+                if (babies.size > 1) {
+                    isExpanded = !isExpanded
+                    onExpandedChanged(isExpanded)
+                }
+            },
             onLongClick = {
                 selectedBaby?.let { eventViewModel.clearBabyCache(it.id) }
             },

@@ -105,6 +105,7 @@ fun DashboardScreen(
     var selectedEventFormState by remember { mutableStateOf<EventFormState?>(null) }
     val babyError by babyViewModel.errorMessage.collectAsState()
 
+    var isBabyInfoExpanded by remember { mutableStateOf(false) }
 
     // Initialize selectedBaby on first composition
     LaunchedEffect(babies, initialBabyId) {
@@ -187,26 +188,31 @@ fun DashboardScreen(
                                         pagerState.animateScrollToPage(babyTabIndex)
                                     }
                                 },
+                                onExpandedChanged = { isExpanded ->
+                                    isBabyInfoExpanded = isExpanded
+                                },
                                 modifier = Modifier.weight(1f)
                             )
 
                             // Settings button
-                            IconButton(
-                                onClick = {
-                                    showSettingsDialog = true
-                                },
-                                modifier = Modifier
-                                    .background(
-                                        backgroundColor,
-                                        CircleShape
+                            if (!isBabyInfoExpanded) {
+                                IconButton(
+                                    onClick = {
+                                        showSettingsDialog = true
+                                    },
+                                    modifier = Modifier
+                                        .background(
+                                            backgroundColor,
+                                            CircleShape
+                                        )
+                                        .size(40.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Settings,
+                                        contentDescription = "Settings",
+                                        tint = tint
                                     )
-                                    .size(40.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Settings,
-                                    contentDescription = "Settings",
-                                    tint = tint
-                                )
+                                }
                             }
                         }
 
