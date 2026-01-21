@@ -107,7 +107,7 @@ enum class FamilyRole(
     ADMIN(
         label = "Admin",
         icon = Icons.Default.Shield,
-        color = Color(0xFFD32F2F)      // Red for administrators
+        color = Color(0xFFffa500)      // orange for administrators
     ),
     MEMBER(
         label = "Membre",
