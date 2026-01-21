@@ -145,10 +145,14 @@ fun AnalysisScreen(
             EventType.entries.toSet()
         }
 
+        val eventTypeFilter = filters.value.eventTypeFilter
+            .takeIf { it.selectedTypes.isNotEmpty() }
+            ?: AnalysisFilter.EventTypeFilter(selectedTypes = selectedTypes)
+
         filters.value = AnalysisFilters(
             dateRange = filters.value.dateRange,
             babyFilter = newBabyFilter,
-            eventTypeFilter = AnalysisFilter.EventTypeFilter(selectedTypes = selectedTypes)
+            eventTypeFilter = eventTypeFilter
         )
     }
     LaunchedEffect(Unit) {
