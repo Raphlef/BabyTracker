@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.FamilyRestroom
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
@@ -328,7 +327,6 @@ fun FamilyManagementCard(
                         when (level) {
                             PrivacyLevel.PRIVATE -> Icons.Default.Lock
                             PrivacyLevel.FAMILY_ONLY -> Icons.Default.Group
-                            PrivacyLevel.PUBLIC -> Icons.Default.Public
                         }
                     },
                     getLabel = { it.name.replace('_', ' ').lowercase() },

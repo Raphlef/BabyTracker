@@ -79,7 +79,6 @@ data class FamilySettings(
 enum class PrivacyLevel {
     PRIVATE,      // Noone can join
     FAMILY_ONLY,  // People with code can join
-    PUBLIC        // Every one can join
 }
 
 @IgnoreExtraProperties
@@ -131,8 +130,7 @@ fun Family.validateCanAcceptMembers() {
         PrivacyLevel.PRIVATE ->
             throw IllegalArgumentException("Cette famille est privée et n'accepte pas de nouveaux membres")
 
-        PrivacyLevel.FAMILY_ONLY -> {} // Allow - requires valid invite code
-        PrivacyLevel.PUBLIC -> {} // Allow - open to everyone
+        PrivacyLevel.FAMILY_ONLY -> {} // Allow
     }
 }
 
