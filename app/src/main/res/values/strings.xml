@@ -353,6 +353,9 @@
     <string name="family_leave_dialog_title">Leave family</string>
     <string name="family_leave_dialog_only_admin_message">You cannot leave this family because you are the only administrator. Please assign another member as administrator first.</string>
     <string name="family_leave_dialog_confirm_message">Are you sure you want to leave \"%1$s\"? You will lose access to all babies and data in this family.</string>
+    <string name="family_user_leave_dialog_only_admin_message">%1$s cannot leave this family because they are the only administrator. Please assign another member as administrator first.</string>
+    <string name="family_user_leave_dialog_confirm_message">Are you sure you want to remove %1$s from \"%2$s\"? They will lose access to all babies and data in this family.</string>
+    <string name="family_remove_dialog_confirm_button">Remove</string>
     <string name="family_leave_dialog_confirm_button">Leave</string>
     <string name="family_leave_dialog_dismiss_only_admin">Understood</string>
     <string name="family_leave_dialog_dismiss_cancel">Cancel</string>
