@@ -23,7 +23,7 @@ roomKtx = "2.8.4"
 
 # AndroidX - Compose (Version unified)
 # ℹ️ Managed by composeBom - versions below used when BOM not applied
-composeBom = "2025.09.00"
+composeBom = "2026.01.00"
 # Only use these for non-BOM Compose dependencies
 composeVersion = "1.9.4"
 
