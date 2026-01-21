@@ -549,7 +549,8 @@ fun rememberBabyFormState(initial: Baby?): BabyFormState {
     // Avoid serializing Calendar directly; persist millis.
     val initialMillis = initial?.birthDate
     val state = rememberSaveable(
-        inputs = arrayOf(initial?.id, initialMillis),
+        initial?.id,
+        initialMillis,
         saver = listSaver(
             save = { s ->
                 listOf(
