@@ -51,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -440,41 +441,55 @@ private fun FamilyMemberSection(
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .padding(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val isOnlyAdmin = user.role == FamilyRole.ADMIN && family.adminIds.size == 1
+                    data class RoleOption(
+                        val role: FamilyRole?,
+                        val icon: ImageVector,
+                        val label: String,
+                        val color: Color,
+                        val isLeave: Boolean = false
+                    )
+
+                    val displayOptions = FamilyRole.entries.map { role ->
+                        RoleOption(
+                            role = role,
+                            icon = role.icon,
+                            label = role.label,
+                            color = role.color,
+                            isLeave = false
+                        )
+                    }.toMutableList().apply {
+                        add(
+                            RoleOption(
+                                role = null,
+                                icon = Icons.AutoMirrored.Filled.ExitToApp,
+                                label = stringResource(R.string.delete_button),
+                                color = Color.Red,
+                                isLeave = true
+                            )
+                        )
+                    }
                     IconSelector(
                         title = user.displayNameOrEmail,
-                        options = FamilyRole.entries,
-                        selected = user.role,
-                        onSelect = { newRole ->
-                            onRoleChange(user.userId, newRole)
+                        options = displayOptions,
+                        selected = displayOptions.first { !it.isLeave && it.role == user.role },
+                        onSelect = { selectedOption ->
+                            if (selectedOption.isLeave) {
+                                // Trigger leave/remove flow
+                                userToRemove = user
+                            } else {
+                                selectedOption.role?.let { role ->
+                                    onRoleChange(user.userId, role)
+                                }
+                            }
                         },
                         getIcon = { it.icon },
                         getLabel = { it.label },
                         getColor = { it.color },
-                        enabled = isCurrentAdmin && !isLoading,
-                        modifier = Modifier.weight(1f)
+                        enabled = isCurrentAdmin && !isLoading
                     )
-                    IconButton(
-                        onClick = {
-                            userToRemove = user
-                        },
-                        enabled = isCurrentAdmin && !isLoading && !isOnlyAdmin,
-                        modifier = Modifier.size(20.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = stringResource(R.string.delete_button),
-                            tint = if (isCurrentAdmin && !isLoading && !isOnlyAdmin) {
-                                Color.Red
-                            } else {
-                                Color.Red.copy(alpha = 0.4f)  // Grayed red when disabled
-                            }
-                        )
-                    }
                 }
             }
         }
