@@ -301,7 +301,7 @@ class EventViewModel @Inject constructor(
     private var countsStreamJob: Job? = null
     private var analysisStreamJob: Job? = null
 
-    private val maxDaysWindow = 30L // Maximum 1 month of history
+    private val maxDaysWindow = 365L // Maximum 1 year of history
 
     fun updateEventTimestamp(date: Date) {
         _formState.update { state ->
