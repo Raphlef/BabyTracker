@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.presentation.analysis
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.util.Log
 import androidx.compose.foundation.background
@@ -7,14 +8,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -68,6 +66,7 @@ import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun AnalysisScreen(
     navController: NavController,
@@ -184,11 +183,11 @@ fun AnalysisScreen(
         }
     }
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = Color.Transparent,
-        contentWindowInsets = WindowInsets.systemBars,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = Modifier.fillMaxSize()
-    ) { innerPadding ->
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -196,7 +195,7 @@ fun AnalysisScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -228,22 +227,19 @@ fun AnalysisScreen(
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
             if (showSettingsDialog) {
                 SettingsScreen(
                     navController = navController,
                     onDismiss = { showSettingsDialog = false }
                 )
             }
-            Spacer(Modifier.height(8.dp))
 
             LazyColumn(
                 contentPadding = contentPadding,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
                     .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
                     filters.value.eventTypeFilter.selectedTypes.contains(EventType.FEEDING)
