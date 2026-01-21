@@ -56,12 +56,12 @@ import java.time.LocalDate
 fun AnalysisFilterPanel(
     filters: AnalysisFilters,
     onFiltersChanged: (AnalysisFilters) -> Unit,
+    onExpandedChanged: (Boolean) -> Unit,
     eventViewModel: EventViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val isLoading by eventViewModel.isLoading.collectAsState()
     var isExpanded by remember { mutableStateOf(false) }
-
     val backgroundColor = BackgroundColor
     val contentColor = DarkGrey
     val tint = DarkBlue
@@ -85,7 +85,10 @@ fun AnalysisFilterPanel(
                     modifier = Modifier.padding(start = 20.dp)
                 ) {
                     IconButton(
-                        onClick = { isExpanded = !isExpanded },
+                        onClick = {
+                            isExpanded = !isExpanded
+                            onExpandedChanged(isExpanded)
+                        },
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
@@ -110,12 +113,16 @@ fun AnalysisFilterPanel(
                         onFiltersChanged(newFilters)
                         if (shouldCollapse) {
                             isExpanded = false
+                            onExpandedChanged(isExpanded)
                         }
                     },
                 )
             },
             isExpanded = isExpanded,
-            onExpandToggle = { isExpanded = !isExpanded },
+            onExpandToggle = {
+                isExpanded = !isExpanded
+                onExpandedChanged(isExpanded)
+            },
             modifier = Modifier,
             isLoading = isLoading,
         )

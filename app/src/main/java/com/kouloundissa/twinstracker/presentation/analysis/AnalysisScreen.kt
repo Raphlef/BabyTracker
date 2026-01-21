@@ -85,6 +85,7 @@ fun AnalysisScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val filters = remember { mutableStateOf(AnalysisFilters()) }
+    var isFilterExpanded by remember { mutableStateOf(false) }
     val analysisSnapshot by eventViewModel.analysisSnapshot.collectAsState()
     val selectedRange = filters.value.dateRange.selectedRange
 
@@ -192,6 +193,7 @@ fun AnalysisScreen(
             modifier = Modifier
                 .fillMaxSize()
         ) {
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -204,26 +206,31 @@ fun AnalysisScreen(
                     onFiltersChanged = { newFilters ->
                         filters.value = newFilters
                     },
+                    onExpandedChanged = { isExpanded ->
+                        isFilterExpanded = isExpanded
+                    },
                     modifier = Modifier.weight(1f)
                 )
 
                 // Settings button
-                IconButton(
-                    onClick = {
-                        showSettingsDialog = true
-                    },
-                    modifier = Modifier
-                        .background(
-                            backgroundcolor,
-                            CircleShape
+                if (!isFilterExpanded) {
+                    IconButton(
+                        onClick = {
+                            showSettingsDialog = true
+                        },
+                        modifier = Modifier
+                            .background(
+                                backgroundcolor,
+                                CircleShape
+                            )
+                            .size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = tint
                         )
-                        .size(40.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = tint
-                    )
+                    }
                 }
             }
 
