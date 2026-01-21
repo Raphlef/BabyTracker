@@ -35,8 +35,8 @@ firebaseConfig = "22.1.2"
 firebaseCrashlytics = "19.4.4"
 
 # Google Play Services
-playServicesAds = "24.2.0"
-playServicesAuth = "21.4.0"
+playServicesAds = "24.9.0"
+playServicesAuth = "21.5.0"
 
 # Dependency Injection
 hiltAndroid = "2.58"
