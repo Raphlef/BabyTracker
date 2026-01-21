@@ -191,7 +191,7 @@ fun SettingsScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .systemBarsPadding()
-                .padding(vertical = 12.dp, horizontal = 8.dp)
+                .padding(vertical = 12.dp, horizontal = 4.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -477,7 +477,7 @@ fun GlassCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
+                .padding(4.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             content = content
         )
