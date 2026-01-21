@@ -85,7 +85,8 @@ import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.FlowPreview
 import java.time.LocalDate
-import java.util.Calendar
+import java.time.ZoneId
+import java.util.Date
 import kotlin.math.ceil
 
 @OptIn(FlowPreview::class)
@@ -161,23 +162,20 @@ fun HomeScreen(
         if (isVisible) {
             selectedBaby?.id?.let {
                 Log.d("HomeScreen", "Starting stream - babyId: $it, isVisible: $isVisible")
-                val endDate = Calendar.getInstance().apply {
-                    set(Calendar.HOUR_OF_DAY, 23)
-                    set(Calendar.MINUTE, 59)
-                    set(Calendar.SECOND, 59)
-                    set(Calendar.MILLISECOND, 999)
-                }.time
+                val today = LocalDate.now()
+                val startDate = today.minusDays(1)
+                    .atStartOfDay(ZoneId.systemDefault())
+                    .toInstant()
+                val endDate = today
+                    .atTime(23, 59, 59)
+                    .atZone(ZoneId.systemDefault())
+                    .toInstant()
 
-                val startDate = Calendar.getInstance().apply {
-                    time = endDate
-                    add(Calendar.DAY_OF_MONTH, -1)
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }.time
-
-                eventViewModel.refreshWithCustomRange(it, startDate, endDate)
+                eventViewModel.refreshWithCustomRange(
+                    it,
+                    Date.from(startDate),
+                    Date.from(endDate)
+                )
                 eventViewModel.loadLastGrowth(it)
             }
         }
