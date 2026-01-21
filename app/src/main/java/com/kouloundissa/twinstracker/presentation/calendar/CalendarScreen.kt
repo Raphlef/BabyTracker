@@ -93,6 +93,7 @@ fun CalendarScreen(
                     .toInstant()
                 val endDate = selectedDate.plusDays(1)
                     .atStartOfDay(ZoneId.systemDefault())
+                    .minusNanos(1)  // 23:59:59.999
                     .toInstant()
 
                 eventViewModel.refreshWithCustomRange(
