@@ -255,13 +255,17 @@ fun AnalysisScreen(
                         val summary = selectedDayIndex?.let { index ->
                             analysisSnapshot.dailyAnalysis.getOrNull(index)
                                 ?.let { selectedDayData ->
-                                    type.generateSummary(
+                                    val formattedDate = selectedDayData.date.format(
+                                        DateTimeFormatter.ofPattern("dd/MM")
+                                    )
+                                    val daySummary = type.generateSummary(
                                         selectedDayData.events.filter { event ->
                                             EventType.forClass(event::class) == type
                                         },
                                         lastGrowthEvent,
                                         context
                                     )
+                                    "$formattedDate: $daySummary"
                                 }
                         }
 
@@ -297,13 +301,17 @@ fun AnalysisScreen(
                         val summary = selectedDayIndex?.let { index ->
                             analysisSnapshot.dailyAnalysis.getOrNull(index)
                                 ?.let { selectedDayData ->
-                                    type.generateSummary(
+                                    val formattedDate = selectedDayData.date.format(
+                                        DateTimeFormatter.ofPattern("dd/MM")
+                                    )
+                                    val daySummary = type.generateSummary(
                                         selectedDayData.events.filter { event ->
                                             EventType.forClass(event::class) == type
                                         },
                                         lastGrowthEvent,
                                         context
                                     )
+                                    "$formattedDate: $daySummary"
                                 }
                         }
                         AnalysisCard(
@@ -338,13 +346,17 @@ fun AnalysisScreen(
                         val summary = selectedDayIndex?.let { index ->
                             analysisSnapshot.dailyAnalysis.getOrNull(index)
                                 ?.let { selectedDayData ->
-                                    type.generateSummary(
+                                    val formattedDate = selectedDayData.date.format(
+                                        DateTimeFormatter.ofPattern("dd/MM")
+                                    )
+                                    val daySummary = type.generateSummary(
                                         selectedDayData.events.filter { event ->
                                             EventType.forClass(event::class) == type
                                         },
                                         lastGrowthEvent,
                                         context
                                     )
+                                    "$formattedDate: $daySummary"
                                 }
                         }
                         AnalysisCard(
@@ -376,13 +388,17 @@ fun AnalysisScreen(
                         val summary = selectedDayIndex?.let { index ->
                             analysisSnapshot.dailyAnalysis.getOrNull(index)
                                 ?.let { selectedDayData ->
-                                    type.generateSummary(
+                                    val formattedDate = selectedDayData.date.format(
+                                        DateTimeFormatter.ofPattern("dd/MM")
+                                    )
+                                    val daySummary = type.generateSummary(
                                         selectedDayData.events.filter { event ->
                                             EventType.forClass(event::class) == type
                                         },
                                         lastGrowthEvent,
                                         context
                                     )
+                                    "$formattedDate: $daySummary"
                                 }
                         }
                         val sleepMinutes =
@@ -457,13 +473,17 @@ fun AnalysisScreen(
                         val summary = selectedDayIndex?.let { index ->
                             analysisSnapshot.dailyAnalysis.getOrNull(index)
                                 ?.let { selectedDayData ->
-                                    type.generateSummary(
+                                    val formattedDate = selectedDayData.date.format(
+                                        DateTimeFormatter.ofPattern("dd/MM")
+                                    )
+                                    val daySummary = type.generateSummary(
                                         selectedDayData.events.filter { event ->
                                             EventType.forClass(event::class) == type
                                         },
                                         lastGrowthEvent,
                                         context
                                     )
+                                    "$formattedDate: $daySummary"
                                 }
                         }
                         AnalysisCard(
@@ -517,13 +537,17 @@ fun AnalysisScreen(
                         val summary = selectedDayIndex?.let { index ->
                             analysisSnapshot.dailyAnalysis.getOrNull(index)
                                 ?.let { selectedDayData ->
-                                    type.generateSummary(
+                                    val formattedDate = selectedDayData.date.format(
+                                        DateTimeFormatter.ofPattern("dd/MM")
+                                    )
+                                    val daySummary = type.generateSummary(
                                         selectedDayData.events.filter { event ->
                                             EventType.forClass(event::class) == type
                                         },
                                         lastGrowthEvent,
                                         context
                                     )
+                                    "$formattedDate: $daySummary"
                                 }
                         }
                         AnalysisCard(
@@ -574,13 +598,17 @@ fun AnalysisScreen(
                         val summary = selectedDayIndex?.let { index ->
                             analysisSnapshot.dailyAnalysis.getOrNull(index)
                                 ?.let { selectedDayData ->
-                                    type.generateSummary(
+                                    val formattedDate = selectedDayData.date.format(
+                                        DateTimeFormatter.ofPattern("dd/MM")
+                                    )
+                                    val daySummary = type.generateSummary(
                                         selectedDayData.events.filter { event ->
                                             EventType.forClass(event::class) == type
                                         },
                                         lastGrowthEvent,
                                         context
                                     )
+                                    "$formattedDate: $daySummary"
                                 }
                         }
                         AnalysisCard(
