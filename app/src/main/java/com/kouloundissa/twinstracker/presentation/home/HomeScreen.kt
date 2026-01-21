@@ -151,7 +151,7 @@ fun HomeScreen(
         isLoading = isLoadingMore,
         hasMore = hasMoreHistory,
         onLoadMore = { eventViewModel.loadMoreHistoricalEvents() },
-        threshold = 3
+        itemsBeforeEndToLoad = 3
     )
     LaunchedEffect(editingEvent) {
         editingEvent?.let {
@@ -163,7 +163,7 @@ fun HomeScreen(
             selectedBaby?.id?.let {
                 Log.d("HomeScreen", "Starting stream - babyId: $it, isVisible: $isVisible")
                 val today = LocalDate.now()
-                val startDate = today.minusDays(1)
+                val startDate = today.minusDays(3)
                     .atStartOfDay(ZoneId.systemDefault())
                     .toInstant()
                 val endDate = today
