@@ -119,13 +119,13 @@ fun EventTypeDialog(
                     stiffness = Spring.StiffnessLow
                 )
             ) + fadeIn(
-                animationSpec = tween(300)
+                animationSpec = tween(150)
             ),
             exit = slideOutVertically(
                 targetOffsetY = { it },
-                animationSpec = tween(250)
+                animationSpec = tween(100)
             ) + fadeOut(
-                animationSpec = tween(250)
+                animationSpec = tween(150)
             )
         ) {
             EventTypeDialogContent(
