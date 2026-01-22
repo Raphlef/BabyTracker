@@ -2,8 +2,6 @@ package com.kouloundissa.twinstracker.presentation.settings
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -121,16 +119,13 @@ fun SettingsScreen(
         AnimatedVisibility(
             visible = isVisible,
             enter = slideInVertically(
-                initialOffsetY = { it },
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
+                initialOffsetY = { it / 2 },
+                animationSpec = tween(200)
             ) + fadeIn(
                 animationSpec = tween(150)
             ),
             exit = slideOutVertically(
-                targetOffsetY = { it },
+                targetOffsetY = { it / 2 },
                 animationSpec = tween(100)
             ) + fadeOut(
                 animationSpec = tween(150)
