@@ -419,7 +419,7 @@ object EventPrediction {
         }
 
         // Calculate the predicted amount at current time
-        val predictedAmount = predictNextAmount(events, now)
+        var predictedAmount = predictNextAmount(events, now)
 
         // If prediction failed or resulted in unrealistic value, fallback to average
         if (predictedAmount <= 0) {
@@ -429,6 +429,12 @@ object EventPrediction {
                 factors
             )
         }
+
+        // Constrain predicted amount within realistic bounds (50% - 150% of average)
+        val averageAmount = events.mapNotNull { it.getAmountValue() }.average()
+        val minAmount = averageAmount * 0.50
+        val maxAmount = averageAmount * 1.50
+        predictedAmount = predictedAmount.coerceIn(minAmount, maxAmount)
 
         // Generate presets based on predicted amount
         return factors.map { factor ->
