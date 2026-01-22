@@ -179,7 +179,7 @@ object EventPrediction {
         lastFeeding: T,
         intervals: List<Long>
     ): FeedingPrediction {
-        val predictedIntervalMs = calculatePredictedInterval(intervals)
+        val predictedIntervalMs = calculateSafeMedianAverage(intervals)
         val minIntervalMs = 10 * 60 * 1000L  // 10 minutes minimum
         val finalIntervalMs = maxOf(predictedIntervalMs, minIntervalMs)
 
@@ -369,17 +369,17 @@ object EventPrediction {
             .sorted()
     }
 
-    private fun calculatePredictedInterval(sortedIntervals: List<Long>): Long {
-        if (sortedIntervals.isEmpty()) return 0L
+    private fun calculateSafeMedianAverage(values: List<Long>): Long {
+        if (values.isEmpty()) return 0L
 
-        val outlierThreshold = maxOf(1, sortedIntervals.size / 5)
-        val filteredIntervals = sortedIntervals
+        val outlierThreshold = maxOf(1, values.size / 5)
+        val filteredValues = values
             .drop(outlierThreshold)
             .dropLast(outlierThreshold)
-            .ifEmpty { sortedIntervals }
+            .ifEmpty { values }
 
-        val medianInterval = getMedian(filteredIntervals)
-        val averageInterval = filteredIntervals.average().toLong()
+        val medianInterval = getMedian(filteredValues)
+        val averageInterval = filteredValues.average().toLong()
 
         return (medianInterval * 0.4 + averageInterval * 0.6).toLong()
     }
@@ -430,10 +430,10 @@ object EventPrediction {
             )
         }
 
-        // Constrain predicted amount within realistic bounds (50% - 150% of average)
-        val averageAmount = events.mapNotNull { it.getAmountValue() }.average()
-        val minAmount = averageAmount * 0.50
-        val maxAmount = averageAmount * 1.50
+        // Constrain predicted amount within realistic bounds (50% - 150% of median)
+        val medianAmount = calculateSafeMedianAverage(events.mapNotNull { it.getAmountValue()?.toLong() })
+        val minAmount = medianAmount * 0.50
+        val maxAmount = medianAmount * 1.50
         predictedAmount = predictedAmount.coerceIn(minAmount, maxAmount)
 
         // Generate presets based on predicted amount
@@ -567,7 +567,7 @@ object EventPrediction {
             return defaultPresets
         }
 
-        val avg = amounts.average()
+        val avg = calculateSafeMedianAverage(amounts.map { it.toLong() })
         val nicAvg = roundToNiceNumber(avg.toInt())
 
         // Calculate presets
