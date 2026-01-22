@@ -1136,7 +1136,7 @@ fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
             .calculatePresets()
     }
 
-    val presets2 = allEvents
+    val durationPreset = allEvents
         .filterIsInstance<PumpingEvent>()
         .filter { it.durationMinutes != null && it.durationMinutes > 0 }
         .mapNotNull { it.durationMinutes }
@@ -1151,7 +1151,7 @@ fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
         }
         if (state.durationMin.isEmpty()) {
             viewModel.updateForm {
-                (this as EventFormState.Pumping).copy(durationMin = presets2[1].toString())
+                (this as EventFormState.Pumping).copy(durationMin = durationPreset[1].toString())
             }
         }
     }
