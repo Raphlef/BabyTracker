@@ -27,29 +27,31 @@ object EventPrediction {
         val estimatedIntervalMs: Long? = null,
     )
     // ==================== FEEDING TIME PREDICTION ====================
-
     /**
-     * Predict next feeding time based on historical feeding intervals
+     * Predicts the next feeding time based on historical event data.
      *
-     * Algorithm:
-     * 1. Take last 10 events to calculate feeding intervals
-     * 2. Remove outliers (drop first/last 20% of sorted intervals)
-     * 3. Calculate weighted prediction using median + average of filtered intervals
-     * 4. Apply minimum interval threshold (90 minutes)
-     * 5. Return last feeding time + predicted interval
+     * Analyzes feeding patterns from events within the last 3 days to determine
+     * the most likely next feeding time. Uses interval-based, time-based, or hybrid
+     * prediction strategies depending on detected feeding patterns.
      *
-     * @param events List of recent feeding events (must be sorted by timestamp descending)
-     * @param now Current timestamp (defaults to now)
-     * @return Predicted next feeding time in milliseconds, or null if calculation fails
+     * @param events List of feeding events to analyze
+     * @return FeedingPrediction with predicted time, confidence, and pattern type,
+     *         or null if insufficient data (fewer than 2 events in last 3 days)
      */
     fun <T : Event> predictNextFeedingTimeMs(
         events: List<T>
     ): FeedingPrediction? {
-        // Need at least 2 events to calculate intervals
-        if (events.size < 2) return null
 
-        val lastFeeding = events.maxBy { it.timestamp.time }
-        val sortedEvents = events.sortedByDescending { it.timestamp.time }
+        // Keep only events from last 3 days
+        val now = System.currentTimeMillis()
+        val threeDaysAgo = now - (3 * 24 * 60 * 60 * 1000)
+        val recentEvents = events.filter { it.timestamp.time >= threeDaysAgo }
+
+        // Need at least 2 events to calculate intervals
+        if (recentEvents.size < 2) return null
+
+        val lastFeeding = recentEvents.maxBy { it.timestamp.time }
+        val sortedEvents = recentEvents.sortedByDescending { it.timestamp.time }
 
         // Calculate intervals between consecutive feedings
         val intervals = calculateIntervals(sortedEvents)
