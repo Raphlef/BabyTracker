@@ -72,7 +72,7 @@ fun BottomNavBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 12.dp, end = 12.dp, bottom = 24.dp),
+            .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
         GlassIslandNavBar(
@@ -117,8 +117,8 @@ fun GlassIslandNavBar(
     val scope = rememberCoroutineScope()
 
     Surface(
-        modifier = modifier.height(64.dp),
-        color = baseColor.copy(alpha = 0.95f),
+        modifier = modifier.height(66.dp),
+        color = baseColor.copy(alpha = 0.99f),
         shape = cornerShape
     ) {
 
