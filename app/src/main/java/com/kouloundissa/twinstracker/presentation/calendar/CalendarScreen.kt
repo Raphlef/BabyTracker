@@ -43,6 +43,7 @@ import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.FilterBar
+import com.kouloundissa.twinstracker.ui.components.FilterBarLayoutMode
 import com.kouloundissa.twinstracker.ui.components.SwipeableCalendar
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
@@ -156,7 +157,8 @@ fun CalendarScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(16.dp),
+                layoutMode = FilterBarLayoutMode.HORIZONTAL_SCROLL
             )
             LazyColumn(
                 modifier = Modifier

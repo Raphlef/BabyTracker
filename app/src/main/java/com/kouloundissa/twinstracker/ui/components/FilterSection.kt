@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.ui.components
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -167,7 +169,7 @@ fun DateRangeFilterSection(
                         borderColor = contentColor.copy(alpha = 0.55f),
                         selectedBorderColor = tint.copy(alpha = 0.55f),
                         borderWidth = 0.5.dp,
-                        selectedBorderWidth = 1.5.dp
+                        selectedBorderWidth = 1.dp
                     ),
                     shape = cornerShape
                 )
@@ -285,55 +287,126 @@ fun EventTypeFilterSection(
             verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            eventTypes.forEach { eventType ->
-                val isSelected = filter.selectedTypes.contains(eventType)
-                FilterChip(
-                    selected = isSelected,
-                    onClick = {
-                        val newSelected = filter.selectedTypes.toMutableSet().apply {
-                            if (contains(eventType)) {
-                                remove(eventType)
-                            } else {
-                                add(eventType)
-                            }
-                        }
-                        onFilterChanged(filter.copy(selectedTypes = newSelected))
-                    },
-                    label = {
-                        Text(
-                            eventType.getDisplayName(context = LocalContext.current),
-                            style = if (isSelected) {
-                                MaterialTheme.typography.labelMedium
-                            } else {
-                                MaterialTheme.typography.labelSmall
-                            }
-                        )
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        containerColor = backgroundColor.copy(alpha = 0.25f),
-                        labelColor = contentColor.copy(alpha = 0.5f),
-                        selectedContainerColor = backgroundColor.copy(alpha = 0.85f),
-                        selectedLabelColor = eventType.color
-                    ),
-                    border = FilterChipDefaults.filterChipBorder(
-                        enabled = true,
-                        selected = isSelected,
-                        borderColor = eventType.color.copy(alpha = 0.25f),
-                        selectedBorderColor = eventType.color.copy(alpha = 0.65f),
-                        borderWidth = 0.5.dp,
-                        selectedBorderWidth = 1.5.dp
-                    ),
-                    leadingIcon = {
-                        Icon(
-                            imageVector = eventType.icon,
-                            contentDescription = eventType.getDisplayName(context = LocalContext.current),
-                            modifier = Modifier.size(16.dp),
-                            tint = if (isSelected) eventType.color else contentColor.copy(alpha = 0.6f)
-                        )
-                    },
-                    shape = MaterialTheme.shapes.extraLarge
-                )
+            FilterBar(
+                types = eventTypes.toSet(),
+                selected = filter.selectedTypes,
+                onToggle = { eventType ->
+                    val newSelected = filter.selectedTypes.toMutableSet().apply {
+                        if (contains(eventType)) remove(eventType) else add(eventType)
+                    }
+                    onFilterChanged(filter.copy(selectedTypes = newSelected))
+                },
+                layoutMode = FilterBarLayoutMode.FLOW_WRAP
+            )
+        }
+    }
+}
+
+@Composable
+fun FilterBar(
+    types: Set<EventType>,
+    selected: Set<EventType>,
+    onToggle: (EventType) -> Unit,
+    modifier: Modifier = Modifier,
+    layoutMode: FilterBarLayoutMode = FilterBarLayoutMode.HORIZONTAL_SCROLL,
+) {
+    val containerModifier = when (layoutMode) {
+        FilterBarLayoutMode.HORIZONTAL_SCROLL -> {
+            modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+        }
+
+        FilterBarLayoutMode.FLOW_WRAP -> {
+            modifier.fillMaxWidth()
+        }
+    }
+
+    val content: @Composable () -> Unit = {
+        types.forEach { type ->
+            FilterChipContent(
+                type = type,
+                isSelected = selected.contains(type),
+                onToggle = onToggle,
+            )
+        }
+    }
+    when (layoutMode) {
+        FilterBarLayoutMode.HORIZONTAL_SCROLL -> {
+            Row(
+                modifier = containerModifier,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                content()
+            }
+        }
+
+        FilterBarLayoutMode.FLOW_WRAP -> {
+            FlowRow(
+                modifier = containerModifier,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                content()
             }
         }
     }
 }
+
+/**
+ * Extracted FilterChip logic for reusability
+ * Reduces duplication and makes styling changes easier
+ */
+@Composable
+fun FilterChipContent(
+    type: EventType,
+    isSelected: Boolean,
+    onToggle: (EventType) -> Unit,
+) {
+    val contentColor = DarkGrey.copy(alpha = 0.5f)
+    val backgroundColor = BackgroundColor.copy(alpha = 0.2f)
+    val tint = DarkBlue
+    FilterChip(
+        selected = isSelected,
+        onClick = { onToggle(type) },
+        label = {
+            Text(
+                type.getDisplayName(context = LocalContext.current),
+                style = if (isSelected) {
+                    MaterialTheme.typography.labelMedium
+                } else {
+                    MaterialTheme.typography.labelSmall
+                }
+            )
+        },
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = backgroundColor.copy(alpha = 0.25f),
+            labelColor = contentColor.copy(alpha = 0.5f),
+            selectedContainerColor = backgroundColor.copy(alpha = 0.85f),
+            selectedLabelColor = type.color
+        ),
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = isSelected,
+            borderColor = type.color.copy(alpha = 0.25f),
+            selectedBorderColor = type.color.copy(alpha = 0.65f),
+            borderWidth = 0.5.dp,
+            selectedBorderWidth = 1.dp
+        ),
+        leadingIcon = {
+            Icon(
+                imageVector = type.icon,
+                contentDescription = type.getDisplayName(context = LocalContext.current),
+                modifier = Modifier.size(16.dp),
+                tint = if (isSelected) type.color else DarkGrey.copy(alpha = 0.6f)
+            )
+        },
+        shape = MaterialTheme.shapes.extraLarge
+    )
+}
+enum class FilterBarLayoutMode {
+    HORIZONTAL_SCROLL,
+    FLOW_WRAP
+}
+
+
