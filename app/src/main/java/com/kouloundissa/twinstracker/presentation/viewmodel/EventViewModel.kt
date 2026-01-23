@@ -97,11 +97,29 @@ class EventViewModel @Inject constructor(
 
     val eventsByDay: StateFlow<Map<LocalDate, List<Event>>> = _events
         .map { events ->
-            events.groupBy {
-                it.timestamp.toInstant()
-                    .atZone(ZoneId.systemDefault())
+            val result = mutableMapOf<LocalDate, MutableList<Event>>()
+            val systemZone = ZoneId.systemDefault()
+
+            events.forEach { event ->
+                val eventStartDate = event.timestamp.toInstant()
+                    .atZone(systemZone)
                     .toLocalDate()
+
+                val eventEndDate = when (event) {
+                    is SleepEvent -> event.endTime?.toInstant()
+                        ?.atZone(systemZone)
+                        ?.toLocalDate() ?: eventStartDate
+                    else -> eventStartDate
+                }
+
+                // Add event to ALL dates it spans
+                var currentDate = eventStartDate
+                while (!currentDate.isAfter(eventEndDate)) {
+                    result.getOrPut(currentDate) { mutableListOf() }.add(event)
+                    currentDate = currentDate.plusDays(1)
+                }
             }
+            result
         }
         .stateIn(
             scope = viewModelScope,
