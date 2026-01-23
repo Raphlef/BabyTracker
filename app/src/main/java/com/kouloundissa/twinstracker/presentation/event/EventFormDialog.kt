@@ -3,8 +3,6 @@ package com.kouloundissa.twinstracker.presentation.event
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -173,11 +171,8 @@ fun EventFormDialog(
         AnimatedVisibility(
             visible = isVisible,
             enter = slideInVertically(
-                initialOffsetY = { it },
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
+                initialOffsetY = { it / 2 },
+                animationSpec = tween(200)
             ) + fadeIn(
                 animationSpec = tween(150)
             ),
