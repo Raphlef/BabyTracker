@@ -6,9 +6,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -36,11 +37,34 @@ fun FilterBar(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         types.forEach { type ->
-            val isSelected = type in selected
+            val isSelected = selected.contains(type)
             FilterChip(
                 selected = isSelected,
                 onClick = { onToggle(type) },
-                label = { Text(type.getDisplayName(context = LocalContext.current)) },
+                label = {
+                    Text(
+                        type.getDisplayName(context = LocalContext.current),
+                        style = if (isSelected) {
+                            MaterialTheme.typography.labelMedium
+                        } else {
+                            MaterialTheme.typography.labelSmall
+                        }
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = backgroundColor.copy(alpha = 0.25f),
+                    labelColor = contentColor.copy(alpha = 0.5f),
+                    selectedContainerColor = backgroundColor.copy(alpha = 0.85f),
+                    selectedLabelColor = type.color
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = isSelected,
+                    borderColor = type.color.copy(alpha = 0.25f),
+                    selectedBorderColor = type.color.copy(alpha = 0.65f),
+                    borderWidth = 0.5.dp,
+                    selectedBorderWidth = 1.5.dp
+                ),
                 leadingIcon = {
                     Icon(
                         imageVector = type.icon,
@@ -49,7 +73,7 @@ fun FilterBar(
                         tint = if (isSelected) type.color else DarkGrey.copy(alpha = 0.6f)
                     )
                 },
-                shape = CircleShape
+                shape = MaterialTheme.shapes.extraLarge
             )
         }
     }

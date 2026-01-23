@@ -287,8 +287,8 @@ fun EventTypeFilterSection(
         ) {
             eventTypes.forEach { eventType ->
                 val isSelected = filter.selectedTypes.contains(eventType)
-
                 FilterChip(
+                    selected = isSelected,
                     onClick = {
                         val newSelected = filter.selectedTypes.toMutableSet().apply {
                             if (contains(eventType)) {
@@ -309,7 +309,6 @@ fun EventTypeFilterSection(
                             }
                         )
                     },
-                    selected = isSelected,
                     colors = FilterChipDefaults.filterChipColors(
                         containerColor = backgroundColor.copy(alpha = 0.25f),
                         labelColor = contentColor.copy(alpha = 0.5f),
