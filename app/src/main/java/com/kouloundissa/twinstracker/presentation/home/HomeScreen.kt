@@ -358,7 +358,7 @@ fun HomeScreen(
                             Text(
                                 stringResource(id = R.string.recent_events),
                                 fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.headlineMedium,
+                                style = MaterialTheme.typography.headlineSmall,
                                 modifier = Modifier
                                     .padding(vertical = 8.dp),
                                 color = tint,
