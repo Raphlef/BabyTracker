@@ -171,14 +171,14 @@ fun CalendarScreen(
             ) {
 
                 item {
-                    val eventsByDayForCalendar: Map<LocalDate, Int> =
+                    val eventsByDayForCalendar: Map<LocalDate, List<Event>> =
                         remember(analysisSnapshot, currentMonth, filterTypes) {
                             analysisSnapshot.eventsByDay
                                 .filterKeys { date ->
                                     date.monthValue == currentMonth.monthValue && date.year == currentMonth.year
                                 }
                                 .mapValues { (_, dayEvents) ->
-                                    dayEvents.count { event ->
+                                    dayEvents.filter { event ->
                                         filterTypes.contains(EventType.forClass(event::class))
                                     }
                                 }
@@ -187,7 +187,7 @@ fun CalendarScreen(
                     SwipeableCalendar(
                         currentMonth = currentMonth,
                         onMonthChange = { delta -> currentMonth = currentMonth.plusMonths(delta) },
-                        eventCountsByDay = eventsByDayForCalendar,
+                        eventsByDay = eventsByDayForCalendar,
                         selectedDate = selectedDate,
                         onDayClick = { selectedDate = it }
                     )

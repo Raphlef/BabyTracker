@@ -1,19 +1,16 @@
 package com.kouloundissa.twinstracker.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -40,7 +37,7 @@ import java.time.LocalDate
 fun CalendarGrid(
     year: Int,
     month: Int,
-    eventCountsByDay: Map<LocalDate, Int>,
+    eventsByDay: Map<LocalDate, List<Event>>,
     selectedDate: LocalDate,
     onDayClick: (LocalDate) -> Unit
 ) {
@@ -79,7 +76,7 @@ fun CalendarGrid(
                     val date = LocalDate.of(year, month, dayNum)
                     DayCell(
                         date = date,
-                        eventCount = eventCountsByDay[date] ?: 0,
+                        events = eventsByDay[date] ?: emptyList(),
                         isSelected = date == selectedDate,
                         onClick = onDayClick
                     )
@@ -93,18 +90,14 @@ fun CalendarGrid(
 @Composable
 fun DayCell(
     date: LocalDate,
-    eventCount: Int,
+    events: List<Event>,
     isSelected: Boolean,
     onClick: (LocalDate) -> Unit
 ) {
     val tint = DarkBlue
+    val eventCount = events.size
 
-    val activityLevel = when {
-        eventCount == 0 -> ActivityLevel.NONE
-        eventCount <= 7 -> ActivityLevel.LOW
-        eventCount <= 15 -> ActivityLevel.MEDIUM
-        else -> ActivityLevel.HIGH
-    }
+    val activityLevel = ActivityLevel.fromEventCount(eventCount)
 
     val backgroundColor = when {
         isSelected -> tint.copy(alpha = 0.6f)
@@ -116,6 +109,15 @@ fun DayCell(
         isSelected -> BackgroundColor
         else -> DarkGrey
     }
+
+    val eventTypesByFrequency =
+        events
+            .groupingBy { EventType.forClass(it::class) }
+            .eachCount()
+            .toList()
+            .sortedByDescending { it.second }
+            .map { it.first }
+
 
     Box(
         Modifier
@@ -144,30 +146,37 @@ fun DayCell(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Icône d'activité
+
+
                 when (activityLevel) {
                     ActivityLevel.LOW -> {
-                        // Point simple
-                        Box(
-                            Modifier
-                                .size(5.dp)
-                                .clip(CircleShape)
-                                .background(tint.copy(alpha = if (isSelected) 1f else 0.7f))
-                        )
+                        eventTypesByFrequency.take(1).forEach { eventType ->
+                            // Point simple
+                            Box(
+                                Modifier
+                                    .size(5.dp)
+                                    .clip(CircleShape)
+                                    .background(eventType.color.copy(alpha = if (isSelected) 1f else 0.7f))
+                            )
+                        }
                     }
+
                     ActivityLevel.MEDIUM -> {
                         // Deux points
                         Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                            repeat(2) {
+
+                            eventTypesByFrequency.take(2).forEach { eventType ->
                                 Box(
                                     Modifier
                                         .size(4.dp)
                                         .clip(CircleShape)
-                                        .background(tint.copy(alpha = if (isSelected) 1f else 0.8f))
+                                        .background(eventType.color.copy(alpha = if (isSelected) 1f else 0.8f))
                                 )
                             }
                         }
+
                     }
+
                     ActivityLevel.HIGH -> {
                         // Badge avec nombre
                         Box(
@@ -175,8 +184,11 @@ fun DayCell(
                                 .height(11.dp)
                                 .widthIn(min = 16.dp)
                                 .clip(RoundedCornerShape(5.dp))
-                                .background(tint.copy(alpha = if (isSelected) 1f else 0.9f))
-                                .padding(horizontal = 3.dp),
+                                .background(
+                                    eventTypesByFrequency.getOrNull(0)?.color?.copy(
+                                        alpha = if (isSelected) 1f else 0.9f
+                                    ) ?: tint
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -188,13 +200,29 @@ fun DayCell(
                             )
                         }
                     }
-                    ActivityLevel.NONE -> { /* Rien */ }
+
+                    ActivityLevel.NONE -> { /* Rien */
+                    }
                 }
             }
         }
     }
 }
 
-enum class ActivityLevel {
-    NONE, LOW, MEDIUM, HIGH
+enum class ActivityLevel(val maxCount: Int) {
+    NONE(0),
+    LOW(5),
+    MEDIUM(10),
+    HIGH(Int.MAX_VALUE);
+
+    companion object {
+        fun fromEventCount(count: Int): ActivityLevel {
+            return when {
+                count == 0 -> NONE
+                count <= LOW.maxCount -> LOW
+                count <= MEDIUM.maxCount -> MEDIUM
+                else -> HIGH
+            }
+        }
+    }
 }

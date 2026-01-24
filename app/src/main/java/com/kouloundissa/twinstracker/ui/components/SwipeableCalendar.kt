@@ -1,14 +1,12 @@
 package com.kouloundissa.twinstracker.ui.components
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.with
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,7 +31,7 @@ import java.time.LocalDate
 fun SwipeableCalendar(
     currentMonth: LocalDate,
     onMonthChange: (delta: Long) -> Unit,
-    eventCountsByDay : Map<LocalDate, Int>,
+    eventsByDay : Map<LocalDate, List<Event>>,
     selectedDate: LocalDate,
     onDayClick: (LocalDate) -> Unit,
     modifier: Modifier = Modifier
@@ -86,7 +84,7 @@ fun SwipeableCalendar(
                 CalendarGrid(
                     year = month.year,
                     month = month.monthValue,
-                    eventCountsByDay = eventCountsByDay,
+                    eventsByDay = eventsByDay,
                     selectedDate = selectedDate,
                     onDayClick = onDayClick
                 )
