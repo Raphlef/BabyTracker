@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
@@ -178,8 +179,9 @@ fun DayCell(
                         // Badge avec nombre
                         Box(
                             Modifier
-                                .size(12.dp)
-                                .clip(RoundedCornerShape(6.dp))
+                                .height(11.dp)
+                                .widthIn(min = 16.dp)
+                                .clip(RoundedCornerShape(5.dp))
                                 .background(
                                     eventTypesByFrequency.getOrNull(0)?.color?.copy(
                                         alpha = if (isSelected) 1f else 0.9f
@@ -189,9 +191,10 @@ fun DayCell(
                         ) {
                             Text(
                                 text = if (eventCount > 99) "99+" else eventCount.toString(),
+                                style = MaterialTheme.typography.labelSmall,
                                 color = BackgroundColor,
-                                fontSize = 6.sp,
-                                fontWeight = FontWeight.Bold
+                                fontSize = 7.sp,
+                                fontWeight = FontWeight.Bold,
                             )
                         }
                     }
