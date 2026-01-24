@@ -82,11 +82,14 @@ fun CalendarScreen(
                 val eventDate = event.timestamp.toLocalDate()
                 eventDate.monthValue == currentMonth.monthValue && eventDate.year == currentMonth.year
             }
-            .map { EventType.forClass(it::class) }
+            .groupingBy { EventType.forClass(it::class) }
+            .eachCount()
+            .toList()
+            .sortedByDescending { it.second }
+            .map { it.first }
             .distinct()
             .toSet()
     }
-
     LaunchedEffect(availableTypes) { filterTypes = availableTypes }
 
     LaunchedEffect(isVisible, currentMonth, selectedBaby?.id) {
