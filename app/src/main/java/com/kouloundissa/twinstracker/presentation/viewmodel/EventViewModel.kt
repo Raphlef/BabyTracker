@@ -49,13 +49,11 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.Calendar
 import java.util.Date
-import java.util.Locale
 import javax.inject.Inject
 import kotlin.reflect.KClass
 
@@ -69,24 +67,23 @@ class EventViewModel @Inject constructor(
     private val _formState = MutableStateFlow<EventFormState>(EventFormState.Diaper())
     val formState: StateFlow<EventFormState> = _formState.asStateFlow()
 
-    private val _eventCountsByDay =
-        MutableStateFlow<Map<String, FirebaseRepository.EventDayCount>>(emptyMap())
-    val eventCountsByDay: StateFlow<Map<String, FirebaseRepository.EventDayCount>> =
-        _eventCountsByDay.asStateFlow()
 
-    private val _analysisSnapshot =
-        MutableStateFlow(
-            AnalysisSnapshot(
-                emptyList(),
-                AnalysisFilter.DateRange(AnalysisRange.CUSTOM),
-                ""
-            )
+    private val _analysisSnapshot = MutableStateFlow(
+        AnalysisSnapshot(
+            dailyAnalysis = emptyList(),
+            events = emptyList(),
+            eventsByDay = emptyMap(),
+            dateRange = AnalysisFilter.DateRange(AnalysisRange.CUSTOM),
+            babyId = ""
         )
+    )
     val analysisSnapshot: StateFlow<AnalysisSnapshot> = _analysisSnapshot.asStateFlow()
 
     private val _events = MutableStateFlow<List<Event>>(emptyList())
+    @Deprecated("Use analysisSnapshot instead")
     val events: StateFlow<List<Event>> = _events
 
+    @Deprecated("Use analysisSnapshot instead")
     val eventsByType: StateFlow<Map<KClass<out Event>, List<Event>>> = _events
         .map { eventList -> eventList.groupBy { it::class } }
         .stateIn(
@@ -95,6 +92,7 @@ class EventViewModel @Inject constructor(
             initialValue = emptyMap()
         )
 
+    @Deprecated("Use analysisSnapshot instead")
     val eventsByDay: StateFlow<Map<LocalDate, List<Event>>> = _events
         .map { events ->
             val result = mutableMapOf<LocalDate, MutableList<Event>>()
@@ -302,14 +300,11 @@ class EventViewModel @Inject constructor(
     /**
      * Convenience method for custom range
      */
+    @Deprecated("Use refreshWithFilters() instead")
     fun refreshWithCustomRange(babyId: String, startDate: Date, endDate: Date) {
         val strategy = DateRangeStrategy.Custom(DateRangeParams(startDate, endDate))
         resetDateRangeAndHistory()
         startStreaming(babyId, strategy)
-    }
-
-    fun refreshCountWithCustomRange(babyId: String, startDate: Date, endDate: Date) {
-        startCountStreaming(babyId, DateRangeStrategy.Custom(DateRangeParams(startDate, endDate)))
     }
 
     private val _streamRequest = MutableStateFlow<EventStreamRequest?>(null)
@@ -387,6 +382,7 @@ class EventViewModel @Inject constructor(
      * Centralized stream setup - only called once in init
      * Responds to changes in _streamRequest only
      */
+    @Deprecated("Use setupAnalysisStreamListener() instead")
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun setupStreamListener() {
         // Only set up the listener once
@@ -440,18 +436,12 @@ class EventViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    /**
-     * Configure le stream pour les compteurs d'événements par jour
-     * Permet d'afficher les indicateurs de jours avec événements dans le calendrier
-     * sans charger tous les détails des événements
-     */
     @OptIn(ExperimentalCoroutinesApi::class)
-    private fun setupEventCountsStreamListener() {
-        // Only set up the listener once
-        if (countsStreamJob != null) return
+    private fun setupAnalysisStreamListener() {
+        if (analysisStreamJob != null) return
 
-        countsStreamJob?.cancel()
-        countsStreamJob = _countStreamRequest // Utilise la nouvelle request
+        analysisStreamJob?.cancel()
+        analysisStreamJob = _analysisStreamRequest
             .onEach { request ->
                 request?.let {
                     val daysBetween = ChronoUnit.DAYS.between(
@@ -459,47 +449,11 @@ class EventViewModel @Inject constructor(
                         it.dateRange.endDate.toInstant()
                     ) + 1
                     Log.d(
-                        "EventCountStream",
+                        "AnalysisStream",
                         "BabyId: ${it.babyId}, DateRange: ${it.dateRange.startDate} to ${it.dateRange.endDate} ($daysBetween days)"
                     )
-                } ?: Log.d("EventCountStream", "CountStreamRequest is null")
+                } ?: Log.d("AnalysisStream", "AnalysisStreamRequest is null")
             }
-            .filterNotNull()
-            .distinctUntilChanged()
-            .onEach { request ->
-                Log.d("EventCountStream", "Processing count request for babyId: ${request.babyId}")
-            }
-            .flatMapLatest { request ->
-                repository.streamEventCountsByDayTyped(
-                    request.babyId,
-                    request.dateRange.startDate,
-                    request.dateRange.endDate
-                )
-            }
-            .onStart {
-                Log.d("EventCountStream", "Count stream started")
-                if (!_isLoadingMore.value) {
-                    _isLoading.value = true
-                }
-            }
-            .catch { e ->
-                Log.e("EventCountStream", "Count stream error occurred", e)
-                _isLoading.value = false
-            }
-            .onEach { counts ->
-                Log.d("EventCountStream", "Received counts for ${counts.size} days")
-                _eventCountsByDay.value = counts
-                _isLoading.value = false
-            }
-            .launchIn(viewModelScope)
-    }
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private fun setupAnalysisStreamListener() {
-        if (analysisStreamJob != null) return
-
-        analysisStreamJob?.cancel()
-        analysisStreamJob = _analysisStreamRequest
             .filterNotNull()
             .distinctUntilChanged()
             .onEach { request ->
@@ -524,9 +478,11 @@ class EventViewModel @Inject constructor(
                 _isLoading.value = false
             }
             .onEach { snapshot ->
-                Log.d("AnalysisStream", "Received analysis for ${snapshot.dailyAnalysis.size} days")
+                Log.d("AnalysisStream", "Received complete snapshot: ${snapshot.dailyAnalysis.size} days, ${snapshot.events.size} events, ${snapshot.eventsByDay.size} day counts")
+                checkForNewEvents(snapshot.events)
                 _analysisSnapshot.value = snapshot
                 _isLoading.value = false
+                _isLoadingMore.value = false
             }
             .launchIn(viewModelScope)
     }
@@ -557,34 +513,10 @@ class EventViewModel @Inject constructor(
     }
 
     /**
-     * Démarre le streaming des comptages uniquement (léger, pour calendrier)
-     */
-    fun startCountStreaming(
-        babyId: String,
-        strategy: DateRangeStrategy
-    ) {
-        if (babyId.isEmpty()) return
-
-        _isLoading.value = true
-        setupEventCountsStreamListener()
-
-        Log.d("CalculateRange", "from startCountStreaming")
-        val dateRange = calculateRange(strategy)
-        val request = EventStreamRequest(babyId, dateRange)
-
-        if (_countStreamRequest.value != request) {
-            Log.i("EventViewModel", "✓ Count StreamRequest UPDATED")
-            _countStreamRequest.value = request
-        } else {
-            Log.i("EventViewModel", "✗ Count StreamRequest UNCHANGED - skipped")
-            _isLoading.value = false
-        }
-    }
-
-    /**
      * Single entry point for all event stream requests
      * Ensures babyId and dateRange are always in sync
      */
+    @Deprecated("Use startAnalysisStreaming() instead")
     fun startStreaming(
         babyId: String,
         strategy: DateRangeStrategy
@@ -1045,22 +977,6 @@ class EventViewModel @Inject constructor(
         }.mapValues { (_, list) ->
             list.size
         }
-    }
-
-    /**
-     * Vérifie si un jour spécifique a des événements
-     */
-    fun hasEventsOnDay(date: Date): Boolean {
-        val dateKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(date)
-        return _eventCountsByDay.value[dateKey]?.hasEvents ?: false
-    }
-
-    /**
-     * Obtient le nombre d'événements pour un jour spécifique
-     */
-    fun getEventCountForDay(date: Date): Int {
-        val dateKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(date)
-        return _eventCountsByDay.value[dateKey]?.count ?: 0
     }
 
     fun clearErrorMessage() {

@@ -36,12 +36,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.R
+import com.kouloundissa.twinstracker.data.AnalysisRange
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
-import com.kouloundissa.twinstracker.data.SleepEvent
+import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.toLocalDate
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
+import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
+import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
 import com.kouloundissa.twinstracker.ui.components.FilterBar
 import com.kouloundissa.twinstracker.ui.components.FilterBarLayoutMode
 import com.kouloundissa.twinstracker.ui.components.SwipeableCalendar
@@ -49,9 +52,7 @@ import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Date
 
 @Composable
 fun CalendarScreen(
@@ -61,12 +62,11 @@ fun CalendarScreen(
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
     /** State **/
-    val allEvents by eventViewModel.events.collectAsState()
-    val eventCountsByDay by eventViewModel.eventCountsByDay.collectAsState()
     val isLoading by eventViewModel.isLoading.collectAsState()
     val errorMessage by eventViewModel.errorMessage.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
-    val eventsByDay by eventViewModel.eventsByDay.collectAsState()
+
+    val analysisSnapshot by eventViewModel.analysisSnapshot.collectAsState()
 
     var currentMonth by rememberSaveable { mutableStateOf(LocalDate.now()) }
     var selectedDate by rememberSaveable { mutableStateOf(LocalDate.now()) }
@@ -76,47 +76,40 @@ fun CalendarScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     /** Compute available types & init filter **/
-    val availableTypes = remember(eventsByDay, currentMonth) {
-        eventsByDay.filterKeys {
-            it.monthValue == currentMonth.monthValue && it.year == currentMonth.year
-        }
-            .values.flatten()
-            .map { EventType.forClass(it::class) }
-            .distinct().toSet()
-    }
-    LaunchedEffect(availableTypes) { filterTypes = availableTypes }
-    fun LocalDate.toDate(): Date = Date.from(this.atStartOfDay(ZoneId.systemDefault()).toInstant())
-    LaunchedEffect(isVisible, selectedDate, selectedBaby?.id) {
-        if (isVisible) {
-            selectedBaby?.id?.let {
-                val startDate = selectedDate.minusDays(1)
-                    .atStartOfDay(ZoneId.systemDefault())
-                    .toInstant()
-                val endDate = selectedDate.plusDays(1)
-                    .atStartOfDay(ZoneId.systemDefault())
-                    .minusNanos(1)  // 23:59:59.999
-                    .toInstant()
-
-                eventViewModel.refreshWithCustomRange(
-                    it,
-                    Date.from(startDate),
-                    Date.from(endDate)
-                )
+    val availableTypes = remember(analysisSnapshot, currentMonth) {
+        analysisSnapshot.events
+            .filter { event ->
+                val eventDate = event.timestamp.toLocalDate()
+                eventDate.monthValue == currentMonth.monthValue && eventDate.year == currentMonth.year
             }
-        }
+            .map { EventType.forClass(it::class) }
+            .distinct()
+            .toSet()
     }
+
+    LaunchedEffect(availableTypes) { filterTypes = availableTypes }
+
     LaunchedEffect(isVisible, currentMonth, selectedBaby?.id) {
         if (isVisible) {
-            selectedBaby?.id?.let { babyId ->
+            selectedBaby?.let { baby ->
                 val startOfMonth = currentMonth.withDayOfMonth(1)
                 val endOfMonth = currentMonth.withDayOfMonth(currentMonth.lengthOfMonth())
                     .plusDays(1)
 
-                eventViewModel.refreshCountWithCustomRange(
-                    babyId,
-                    startOfMonth.toDate(),
-                    endOfMonth.toDate()
+                val dateRange = AnalysisFilter.DateRange(
+                    AnalysisRange.CUSTOM,
+                    startOfMonth,
+                    endOfMonth
                 )
+                val newBabyFilter = AnalysisFilter.BabyFilter(selectedBabies = setOf(baby))
+                val eventTypeFilter = AnalysisFilter.EventTypeFilter(selectedTypes = filterTypes)
+
+                val filterValue = AnalysisFilters(
+                    dateRange = dateRange,
+                    babyFilter = newBabyFilter,
+                    eventTypeFilter = eventTypeFilter
+                )
+                eventViewModel.refreshWithFilters(filterValue)
             }
         }
     }
@@ -131,6 +124,14 @@ fun CalendarScreen(
             eventViewModel.loadEventIntoForm(it)
             showDialog = true
         }
+    }
+    val dailyEvents = remember(analysisSnapshot, selectedDate, filterTypes) {
+        analysisSnapshot.eventsByDay[selectedDate]
+            ?.filter { event ->
+                filterTypes.contains(EventType.forClass(event::class))
+            }
+            ?.takeIf { filterTypes.isNotEmpty() }
+            ?: emptyList()
     }
     val backgroundColor = BackgroundColor.copy(alpha = 0.2f)
     val contentColor = DarkGrey.copy(alpha = 0.5f)
@@ -171,16 +172,18 @@ fun CalendarScreen(
 
                 item {
                     val eventsByDayForCalendar: Map<LocalDate, Int> =
-                        remember(eventCountsByDay, currentMonth) {
-                            eventCountsByDay.mapKeys { (dateStr, _) ->
-                                LocalDate.parse(dateStr) // "yyyy-MM-dd" -> LocalDate
-                            }
-                                .filterKeys {
-                                    it.monthValue == currentMonth.monthValue &&
-                                            it.year == currentMonth.year
+                        remember(analysisSnapshot, currentMonth, filterTypes) {
+                            analysisSnapshot.eventsByDay
+                                .filterKeys { date ->
+                                    date.monthValue == currentMonth.monthValue && date.year == currentMonth.year
                                 }
-                                .mapValues { (_, count) -> count.count }
+                                .mapValues { (_, dayEvents) ->
+                                    dayEvents.count { event ->
+                                        filterTypes.contains(EventType.forClass(event::class))
+                                    }
+                                }
                         }
+
                     SwipeableCalendar(
                         currentMonth = currentMonth,
                         onMonthChange = { delta -> currentMonth = currentMonth.plusMonths(delta) },
@@ -190,27 +193,7 @@ fun CalendarScreen(
                     )
                 }
 
-                val dailyEvents = allEvents
-                    .filter { filterTypes.contains(EventType.forClass(it::class)) }
-                    .filter { event ->
-                        val systemZone = ZoneId.systemDefault()
 
-                        // Get event start date
-                        val eventStartDate = event.timestamp.toInstant()
-                            .atZone(systemZone)
-                            .toLocalDate()
-
-                        // Get event end date (handles duration for SleepEvent)
-                        val eventEndDate = when (event) {
-                            is SleepEvent -> event.endTime?.toInstant()
-                                ?.atZone(systemZone)
-                                ?.toLocalDate() ?: eventStartDate
-                            else -> eventStartDate  // Punctual events
-                        }
-
-                        // Event occurs on selectedDate if selectedDate is between start and end
-                        !selectedDate.isBefore(eventStartDate) && !selectedDate.isAfter(eventEndDate)
-                    }
                 item {
                     Row(
                         modifier = Modifier
@@ -262,7 +245,10 @@ fun CalendarScreen(
                 }
                 item {
                     if (dailyEvents.isEmpty()) {
-                        Text(stringResource(id = R.string.no_events), style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            stringResource(id = R.string.no_events),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     } else {
                         DayTimeline(
                             date = selectedDate,

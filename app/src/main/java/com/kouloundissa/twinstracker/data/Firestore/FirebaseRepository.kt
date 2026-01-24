@@ -38,6 +38,7 @@ import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.data.Theme
 import com.kouloundissa.twinstracker.data.User
+import com.kouloundissa.twinstracker.data.groupByDateSpanning
 import com.kouloundissa.twinstracker.data.toEvent
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import kotlinx.coroutines.Dispatchers
@@ -1129,12 +1130,20 @@ class FirebaseRepository @Inject constructor(
         endDate = endDate,
         firebaseCache = firebaseCache,
         transform = { events ->
-            buildAnalysisSnapshot(
+            val sortedEvents = events.values.sortedByDescending { it.timestamp }
+
+            val eventsByDate = sortedEvents.groupByDateSpanning()
+
+            val analysisSnapshot = buildAnalysisSnapshot(
                 startDate = startDate,
                 endDate = endDate,
                 babyId = babyId,
-                events = events.values.toList(),
+                events = sortedEvents,
                 eventTypes = eventTypes
+            )
+            analysisSnapshot.copy(
+                events = sortedEvents,
+                eventsByDay = eventsByDate
             )
         },
         logPrefix = { "streamAnalysisMetrics" }
