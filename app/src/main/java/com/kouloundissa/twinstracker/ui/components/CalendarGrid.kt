@@ -146,8 +146,6 @@ fun DayCell(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-
-
                 when (activityLevel) {
                     ActivityLevel.LOW -> {
                         eventTypesByFrequency.take(1).forEach { eventType ->
