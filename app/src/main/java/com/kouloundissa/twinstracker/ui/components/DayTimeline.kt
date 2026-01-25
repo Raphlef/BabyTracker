@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
@@ -244,28 +245,52 @@ fun EventBar(
 @Composable
 fun EventContent(span: DaySpan, type: EventType) {
     val context = LocalContext.current
-    Row(
-        modifier = Modifier.fillMaxSize(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Start
-    ) {
-        Icon(
-            imageVector = type.icon,
-            contentDescription = type.getDisplayName(context),
-            tint = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.size(12.dp)
-        )
-        Spacer(modifier = Modifier.width(3.dp))
-        Text(
-            text = span.evt.notes.takeIf { !it.isNullOrBlank() } ?: type.getDisplayName(context),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onPrimary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
-        )
+
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        when {
+            // Grand: afficher icon + texte
+            maxHeight >= 28.dp -> {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    Icon(
+                        imageVector = type.icon,
+                        contentDescription = type.getDisplayName(context),
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        text = span.evt.notes.takeIf { !it.isNullOrBlank() }
+                            ?: type.getDisplayName(context),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontSize = 8.sp
+                    )
+                }
+            }
+            // Moyen: afficher juste l'icon
+            maxHeight >= 16.dp -> {
+                Icon(
+                    imageVector = type.icon,
+                    contentDescription = type.getDisplayName(context),
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier
+                        .size(10.dp)
+                        .align(Alignment.Center)
+                )
+            }
+            // Petit: ne rien afficher (juste la couleur)
+            else -> {}
+        }
     }
 }
+
+
 
 data class DaySpan(
     val evt: Event,
