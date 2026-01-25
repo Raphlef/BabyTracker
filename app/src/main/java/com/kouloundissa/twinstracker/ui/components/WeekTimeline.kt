@@ -4,7 +4,6 @@ import DrawEventsForDay
 import HourRowLabel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -77,7 +75,6 @@ fun WeekTimeline(
         // HEADERS
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
 
             Box(Modifier.width(WEEK_HOUR_LABEL_WIDTH))
@@ -110,7 +107,6 @@ fun WeekTimeline(
                                     modifier = Modifier
                                         .weight(1f)
                                         .fillMaxHeight()
-                                        .clip(RoundedCornerShape(3.dp))
                                         .background(
                                             if (day == selectedDate) {
                                                 DarkBlue.copy(alpha = 0.1f)
@@ -168,15 +164,13 @@ private fun DayHeader(
     Box(
         modifier = modifier
             .clickable { onClick() }
-            .padding(vertical = 4.dp)
             .background(
                 if (isSelected) {
                     DarkBlue.copy(alpha = 0.1f)
                 } else {
                     BackgroundColor.copy(alpha = 0.1f)
                 }
-            )
-            .clip(CircleShape),
+            ),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
