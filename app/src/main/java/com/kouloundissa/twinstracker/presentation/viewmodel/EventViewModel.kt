@@ -310,10 +310,10 @@ class EventViewModel @Inject constructor(
     }
 
     private val _streamRequest = MutableStateFlow<EventStreamRequest?>(null)
-    private val _countStreamRequest = MutableStateFlow<EventStreamRequest?>(null)
+   // private val _countStreamRequest = MutableStateFlow<EventStreamRequest?>(null)
     private val _analysisStreamRequest = MutableStateFlow<EventStreamRequest?>(null)
     private var streamJob: Job? = null
-    private var countsStreamJob: Job? = null
+   // private var countsStreamJob: Job? = null
     private var analysisStreamJob: Job? = null
 
     private val maxDaysWindow = 365L // Maximum 1 year of history
@@ -557,14 +557,10 @@ class EventViewModel @Inject constructor(
         streamJob?.cancel()
         streamJob = null
 
-        countsStreamJob?.cancel()
-        countsStreamJob = null
-
         analysisStreamJob?.cancel()
         analysisStreamJob = null
 
         _streamRequest.value = null
-        _countStreamRequest.value = null
         _analysisStreamRequest.value = null
 
         _isLoading.value = false
