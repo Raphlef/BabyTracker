@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -47,6 +49,7 @@ import java.util.Date
 
 private val DAY_HOUR_ROW_HEIGHT = 60.dp
 private val DAY_HOUR_LABEL_WIDTH = 50.dp
+
 @Composable
 fun DayTimeline(
     date: LocalDate,
@@ -59,7 +62,7 @@ fun DayTimeline(
 
     // Process events into day spans
     val daySpans = remember(date, events) {
-        computeDaySpans( events)
+        computeDaySpans(events)
     }
 
     Box(
@@ -81,7 +84,9 @@ fun DayTimeline(
             repeat(24) { hour ->
                 HourRowLabel(
                     hour = hour,
-                    hourRowHeight = DAY_HOUR_ROW_HEIGHT
+                    hourRowHeight = DAY_HOUR_ROW_HEIGHT,
+                    hourLabelWidth = DAY_HOUR_LABEL_WIDTH,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
@@ -93,7 +98,8 @@ fun DayTimeline(
             hourRowHeight = DAY_HOUR_ROW_HEIGHT,
             onEdit = onEdit,
             modifier = Modifier
-                .fillMaxHeight().padding(start = DAY_HOUR_ROW_HEIGHT)
+                .fillMaxHeight()
+                .padding(start = DAY_HOUR_ROW_HEIGHT)
         )
     }
 }
@@ -166,34 +172,35 @@ fun DrawEventsForDay(
         }
     }
 }
+
 @Composable
-private fun HourRowLabel(
+fun HourRowLabel(
     hour: Int,
-    hourRowHeight: Dp
+    hourRowHeight: Dp,
+    hourLabelWidth: Dp,
+    contentColumns: @Composable (RowScope.() -> Unit)? = null,
+    modifier: Modifier = Modifier
 ) {
     val contentColor = DarkGrey.copy(alpha = 0.5f)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(hourRowHeight)
-            .padding(vertical = 2.dp),
-        verticalAlignment = Alignment.Top
-    ) {
+
+    Row(modifier = modifier.height(hourRowHeight)) {
         Box(
             modifier = Modifier
-                .width(DAY_HOUR_LABEL_WIDTH)
-                .fillMaxHeight(),
+                .width(hourLabelWidth)
+                .fillMaxHeight()
+                .padding(vertical = VERTICAL_SPACING_BETWEEN_STACKED),
             contentAlignment = Alignment.TopCenter
         ) {
             Text(
                 text = "%02d:00".format(hour),
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                ),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
                 color = contentColor,
-                modifier = Modifier.padding(top = 2.dp)
+                modifier = Modifier.padding(top = VERTICAL_SPACING_BETWEEN_STACKED)
             )
         }
+        // ✅ COLUMNS (optionnel)
+        contentColumns?.invoke(this)
     }
 }
 
@@ -339,8 +346,6 @@ fun EventContent(span: DaySpan, type: EventType) {
         }
     }
 }
-
-
 
 
 data class DaySpan(

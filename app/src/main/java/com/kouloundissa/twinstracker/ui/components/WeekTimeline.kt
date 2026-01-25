@@ -1,6 +1,7 @@
 package com.kouloundissa.twinstracker.ui.components
 
 import DrawEventsForDay
+import HourRowLabel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,11 +10,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -21,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kouloundissa.twinstracker.data.AnalysisSnapshot
@@ -29,7 +29,6 @@ import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
-import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import computeDaySpans
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -102,9 +101,26 @@ fun WeekTimeline(
                 repeat(24) { hour ->
                     HourRowLabel(
                         hour = hour,
-                        weekStart = weekStart,
-                        selectedDate = selectedDate,
                         hourRowHeight = WEEK_HOUR_ROW_HEIGHT,
+                        hourLabelWidth = WEEK_HOUR_LABEL_WIDTH,
+                        contentColumns = {  // RowScope disponible!
+                            repeat(7) { index ->
+                                val day = weekStart.plusDays(index.toLong())
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .clip(RoundedCornerShape(3.dp))
+                                        .background(
+                                            if (day == selectedDate) {
+                                                DarkBlue.copy(alpha = 0.1f)
+                                            } else {
+                                                BackgroundColor.copy(alpha = 0.1f)
+                                            }
+                                        )
+                                )
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -186,56 +202,6 @@ private fun DayHeader(
                         .background(dominantEventType.color.copy(alpha = 0.8f))
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun HourRowLabel(
-    hour: Int,
-    weekStart: LocalDate,
-    selectedDate: LocalDate,
-    hourRowHeight: Dp,
-    modifier: Modifier = Modifier
-) {
-    val contentColor = DarkGrey.copy(alpha = 0.5f)
-
-    Row(modifier = modifier.height(hourRowHeight)) {
-        // COLONNE HEURES
-        Box(
-            modifier = Modifier
-                .width(WEEK_HOUR_LABEL_WIDTH)
-                .fillMaxHeight()
-                .padding(vertical = VERTICAL_SPACING_BETWEEN_STACKED),
-            contentAlignment = Alignment.TopCenter
-        ) {
-            Text(
-                text = "%02d:00".format(hour),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                color = contentColor,
-                modifier = Modifier.padding(top = VERTICAL_SPACING_BETWEEN_STACKED)
-            )
-        }
-
-        // GRILLE 7 JOURS (juste background, pas d'events)
-        repeat(7) { index ->
-            val day = weekStart.plusDays(index.toLong())
-            val isSelectedDay = day == selectedDate
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    //.clip(RoundedCornerShape(3.dp))
-                    .background(
-                        if (isSelectedDay) {
-                            DarkBlue.copy(alpha = 0.1f)
-                        } else {
-                            BackgroundColor.copy(alpha = 0.1f)
-                        }
-                    )
-            )
         }
     }
 }
