@@ -50,6 +50,10 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 
+private val HOUR_LABEL_WIDTH = 32.dp
+private val HOUR_ROW_HEIGHT = 48.dp
+private val VERTICAL_SPACING_BETWEEN_STACKED = 2.dp
+
 @Composable
 fun WeekTimeline(
     analysisSnapshot: AnalysisSnapshot,
@@ -80,7 +84,6 @@ fun WeekTimeline(
         }
     }
 
-    val hourRowHeight = 48.dp
 
     Column(modifier = modifier) {
         // HEADERS
@@ -89,7 +92,7 @@ fun WeekTimeline(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
 
-            Box(Modifier.width(32.dp))
+            Box(Modifier.width(HOUR_LABEL_WIDTH))
 
             repeat(7) { index ->
                 val day = weekStart.plusDays(index.toLong())
@@ -114,8 +117,7 @@ fun WeekTimeline(
                         hour = hour,
                         weekStart = weekStart,
                         selectedDate = selectedDate,
-                        weekEventsByDay = weekEventsByDay,
-                        hourRowHeight = hourRowHeight,
+                        hourRowHeight = HOUR_ROW_HEIGHT,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -125,7 +127,7 @@ fun WeekTimeline(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 32.dp)  // Offset du label d'heure
+                    .padding(start = HOUR_LABEL_WIDTH)  // Offset du label d'heure
             ) {
                 repeat(7) { dayIndex ->
                     val day = weekStart.plusDays(dayIndex.toLong())
@@ -133,10 +135,8 @@ fun WeekTimeline(
 
                     DrawContinuousEventsForDay(
                         day = day,
-                        dayIndex = dayIndex,
                         daySpans = daySpans,
-                        hourRowHeight = hourRowHeight,
-                        weekStart = weekStart,
+                        hourRowHeight = HOUR_ROW_HEIGHT,
                         onEdit = onEdit,
                         modifier = Modifier
                             .weight(1f)
@@ -198,7 +198,6 @@ private fun HourRowStructure(
     hour: Int,
     weekStart: LocalDate,
     selectedDate: LocalDate,
-    weekEventsByDay: Map<LocalDate, List<Event>>,
     hourRowHeight: Dp,
     modifier: Modifier = Modifier
 ) {
@@ -208,9 +207,9 @@ private fun HourRowStructure(
         // COLONNE HEURES
         Box(
             modifier = Modifier
-                .width(32.dp)
+                .width(HOUR_LABEL_WIDTH)
                 .fillMaxHeight()
-                .padding(vertical = 2.dp),
+                .padding(vertical = VERTICAL_SPACING_BETWEEN_STACKED),
             contentAlignment = Alignment.TopCenter
         ) {
             Text(
@@ -218,7 +217,7 @@ private fun HourRowStructure(
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
                 color = contentColor,
-                modifier = Modifier.padding(top = 2.dp)
+                modifier = Modifier.padding(top = VERTICAL_SPACING_BETWEEN_STACKED)
             )
         }
 
@@ -247,46 +246,40 @@ private fun HourRowStructure(
 @Composable
 private fun DrawContinuousEventsForDay(
     day: LocalDate,
-    dayIndex: Int,
     daySpans: List<DaySpan>,
     hourRowHeight: Dp,
-    weekStart: LocalDate,
     onEdit: (Event) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (daySpans.isEmpty()) return
 
     Box(modifier = modifier) {
-        val dayEventsForThisDay = mutableListOf<DaySpan>()
-
-        daySpans.forEach { span ->
+        val dayEventsForThisDay = daySpans.mapNotNull { span ->
             val spanStart = span.start.toLocalDate()
             val spanEnd = span.end.toLocalDate()
 
             when {
-                // Event sur un seul jour
-                spanStart == spanEnd && spanStart == day -> {
-                    dayEventsForThisDay.add(span)
-                }
-                // Event traverse minuit ET c'est le jour de début
+                spanStart == spanEnd && spanStart == day -> span
                 spanStart < spanEnd && spanStart == day -> {
-                    // Créer un segment jusqu'à 23:59:59
                     val endOfDay = span.start.toLocalDate().atTime(23, 59, 59)
                         .atZone(ZoneId.systemDefault())
-                    dayEventsForThisDay.add(span.copy(end = endOfDay))
+                    span.copy(end = endOfDay)
                 }
-                // Event traverse minuit ET c'est le jour de fin
+
                 spanStart < spanEnd && spanEnd == day -> {
-                    // Créer un segment depuis 00:00:00
                     val startOfDay = day.atTime(0, 0, 0)
                         .atZone(ZoneId.systemDefault())
-                    dayEventsForThisDay.add(span.copy(start = startOfDay))
+                    span.copy(start = startOfDay)
                 }
+
+                else -> null
             }
         }
 
         val sleepEvents = dayEventsForThisDay.filter { it.evt is SleepEvent }
-        val otherEvents = dayEventsForThisDay.filter { it.evt !is SleepEvent }
+        val otherEventsByHour = dayEventsForThisDay
+            .filter { it.evt !is SleepEvent }
+            .groupBy { it.startHour }
 
         // SLEEP: full width
         sleepEvents.forEachIndexed { stackIndex, span ->
@@ -301,9 +294,8 @@ private fun DrawContinuousEventsForDay(
             )
         }
 
-        val otherEventsByStartHour = otherEvents.groupBy { it.startHour }
 
-        otherEventsByStartHour.forEach { (_, eventsInSameHour) ->
+        otherEventsByHour.forEach { (_, eventsInSameHour) ->
             // Pour chaque groupe d'événements à la même heure
             val numConcurrent = eventsInSameHour.size
 
@@ -343,56 +335,53 @@ private fun ContinuousEventBar(
     // Position absolue depuis le top (hour de début + minutes)
     val topFraction = span.startHour + (span.startMinute / 60f)
 
-    Box(
-        modifier = modifier.fillMaxWidth()
+
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxWidth()
     ) {
-        BoxWithConstraints(
-            modifier = modifier.fillMaxWidth()
+        val parentWidth = maxWidth
+
+        val eventWidth = parentWidth * widthFraction - 2.dp
+        val eventOffset = parentWidth * xOffsetFraction
+        val eventHeight = hourRowHeight * heightFraction
+        val topOffset = hourRowHeight * topFraction
+        val verticalSpacing = stackIndex * VERTICAL_SPACING_BETWEEN_STACKED
+
+        Box(
+            modifier = Modifier
+                .offset(
+                    x = eventOffset,
+                    y = topOffset + verticalSpacing
+                )
+                .width(eventWidth)
+                .height(eventHeight)
+                .clip(RoundedCornerShape(3.dp))
+                .background(type.color.copy(alpha = 0.8f))
+                .clickable { onEdit(span.evt) }
+                .padding(4.dp),
+            contentAlignment = Alignment.TopStart
         ) {
-            val parentWidth = maxWidth
-
-            val eventWidth = parentWidth * widthFraction - 2.dp
-            val eventOffset = parentWidth * xOffsetFraction
-            val eventHeight = hourRowHeight * heightFraction
-            val topOffset = hourRowHeight * topFraction
-            val verticalSpacing = stackIndex * 2.dp
-
-            Box(
-                modifier = Modifier
-                    .offset(
-                        x = eventOffset,
-                        y = topOffset + verticalSpacing
-                    )
-                    .width(eventWidth)
-                    .height(eventHeight)
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(type.color.copy(alpha = 0.8f))
-                    .clickable { onEdit(span.evt) }
-                    .padding(4.dp),
-                contentAlignment = Alignment.TopStart
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start
             ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    Icon(
-                        imageVector = type.icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(3.dp))
-                    Text(
-                        text = span.evt.notes.takeIf { !it.isNullOrBlank() }
-                            ?: type.getDisplayName(LocalContext.current),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        fontSize = 8.sp
-                    )
-                }
+                Icon(
+                    imageVector = type.icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(12.dp)
+                )
+                Spacer(modifier = Modifier.width(3.dp))
+                Text(
+                    text = span.evt.notes.takeIf { !it.isNullOrBlank() }
+                        ?: type.getDisplayName(LocalContext.current),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 8.sp
+                )
             }
         }
     }
@@ -402,171 +391,26 @@ fun computeDaySpansForWeek(date: LocalDate, events: List<Event>): List<DaySpan> 
     return events.mapNotNull { event ->
         val (start, end) = when (event) {
             is SleepEvent -> {
-                val startZdt = event.timestamp.toInstant()
-                    .atZone(ZoneId.systemDefault())
-                val endZdt = event.endTime?.toInstant()
-                    ?.atZone(ZoneId.systemDefault())
+                val startZdt = event.timestamp.toInstant().atZone(ZoneId.systemDefault())
+                val endZdt = event.endTime?.toInstant()?.atZone(ZoneId.systemDefault())
                     ?: startZdt.plusHours(1)
                 startZdt to endZdt
             }
-
             is FeedingEvent -> {
-                val startZdt = event.timestamp.toInstant()
-                    .atZone(ZoneId.systemDefault())
-                val durationMinutes = event.durationMinutes ?: 0
-                val endZdt = startZdt.plusMinutes(durationMinutes.toLong())
+                val startZdt = event.timestamp.toInstant().atZone(ZoneId.systemDefault())
+                val endZdt = startZdt.plusMinutes((event.durationMinutes ?: 0).toLong())
                 startZdt to endZdt
             }
-
             is PumpingEvent -> {
-                val startZdt = event.timestamp.toInstant()
-                    .atZone(ZoneId.systemDefault())
-                val durationMinutes = event.durationMinutes ?: 0
-                val endZdt = startZdt.plusMinutes(durationMinutes.toLong())
+                val startZdt = event.timestamp.toInstant().atZone(ZoneId.systemDefault())
+                val endZdt = startZdt.plusMinutes((event.durationMinutes ?: 0).toLong())
                 startZdt to endZdt
             }
-
             else -> {
-                // Événements ponctuels : durée de 6 minutes (MIN_INSTANT_FRAC)
-                val startZdt = event.timestamp.toInstant()
-                    .atZone(ZoneId.systemDefault())
+                val startZdt = event.timestamp.toInstant().atZone(ZoneId.systemDefault())
                 startZdt to startZdt.plusMinutes(6)
             }
         }
         DaySpan(event, start, end)
-    }
-}
-
-
-@Composable
-private fun DrawEventsForWeekHour(
-    hour: Int,
-    day: LocalDate,
-    daySpans: List<DaySpan>,
-    hourRowHeight: Dp
-) {
-    // Afficher l'event dans TOUTES ses heures
-    val eventsInHour = daySpans.filter { span ->
-        // L'event s'affiche si: startHour <= hour < endHour
-        hour in span.startHour..span.endHour
-    }
-
-    if (eventsInHour.isEmpty()) return
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 1.dp, vertical = 1.dp)
-    ) {
-
-        val sleepEvents = eventsInHour.filter { it.evt is SleepEvent }
-        val otherEvents = eventsInHour.filter { it.evt !is SleepEvent }
-
-        // SLEEP: empilées verticalement (full width)
-        sleepEvents.forEachIndexed { index, span ->
-            EventOverlayWeek(
-                span = span,
-                currentHour = hour,
-                widthFraction = 1f,
-                xOffsetFraction = 0f,
-                stackIndex = index,
-                hourRowHeight = hourRowHeight
-            )
-        }
-
-        // AUTRES: côte à côte
-        val numOtherEvents = otherEvents.size
-        otherEvents.forEachIndexed { index, span ->
-            EventOverlayWeek(
-                span = span,
-                currentHour = hour,
-                widthFraction = 1f / numOtherEvents,
-                xOffsetFraction = index.toFloat() / numOtherEvents,
-                stackIndex = sleepEvents.size,
-                hourRowHeight = hourRowHeight
-            )
-        }
-    }
-}
-
-// 4️⃣ VARIANT COMPACTE D'EventOverlay POUR SEMAINE
-@Composable
-private fun EventOverlayWeek(
-    span: DaySpan,
-    currentHour: Int,
-    widthFraction: Float,
-    xOffsetFraction: Float,
-    stackIndex: Int,
-    hourRowHeight: Dp
-) {
-    val type = EventType.forClass(span.evt::class)
-
-    val hasDuration = when (span.evt) {
-        is SleepEvent -> span.evt.endTime != null
-        is FeedingEvent -> (span.evt.durationMinutes ?: 0) > 0
-        is PumpingEvent -> (span.evt.durationMinutes ?: 0) > 0
-        else -> false
-    }
-
-    // ✅ Calcul correct de la hauteur pour cette ligne spécifique
-    val heightFraction = when {
-        // Si c'est la première heure (où commence l'event)
-        currentHour == span.startHour -> {
-            // Hauteur = fin de cette heure jusqu'à fin de l'event
-            val minutesToEndOfHour = 60 - span.startMinute
-            val totalMinutes =
-                minutesToEndOfHour + (span.endHour - span.startHour - 1) * 60 + span.endMinute
-            (totalMinutes / 60f).coerceAtLeast(if (hasDuration) 0.5f else 0.1f)
-        }
-        // Si c'est la dernière heure (où finit l'event)
-        currentHour == span.endHour -> {
-            // Hauteur = du début de cette heure jusqu'à fin de l'event
-            (span.endMinute / 60f).coerceAtLeast(if (hasDuration) 0.5f else 0.1f)
-        }
-        // Si c'est une heure intermédiaire
-        else -> {
-            // Hauteur = 1 heure complète
-            1f
-        }
-    }
-
-    // ✅ TopOffset seulement si c'est le début
-    val topOffsetFraction = if (currentHour == span.startHour) {
-        span.startMinute / 60f
-    } else {
-        0f  // Commence au top de la cellule pour heures intermédiaires
-    }
-
-    BoxWithConstraints(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        val parentWidth = maxWidth
-        val eventWidth = parentWidth * widthFraction - 1.dp
-        val eventOffset = parentWidth * xOffsetFraction
-        val eventHeight = hourRowHeight * heightFraction
-        val topOffset = hourRowHeight * topOffsetFraction
-        val verticalSpacing = stackIndex * 1.dp
-
-        Box(
-            modifier = Modifier
-                .offset(x = eventOffset, y = topOffset + verticalSpacing)
-                .width(eventWidth)
-                .height(eventHeight)
-                .clip(RoundedCornerShape(2.dp))
-                .background(type.color.copy(alpha = 0.75f))
-                .padding(2.dp),
-            contentAlignment = Alignment.TopStart
-        ) {
-            // Version compacte du contenu
-            Text(
-                text = span.evt.notes.takeIf { !it.isNullOrBlank() }
-                    ?: type.getDisplayName(LocalContext.current),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                fontSize = 8.sp
-            )
-        }
     }
 }
