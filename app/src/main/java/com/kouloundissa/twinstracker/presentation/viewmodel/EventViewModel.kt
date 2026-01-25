@@ -80,6 +80,7 @@ class EventViewModel @Inject constructor(
     val analysisSnapshot: StateFlow<AnalysisSnapshot> = _analysisSnapshot.asStateFlow()
 
     private val _events = MutableStateFlow<List<Event>>(emptyList())
+
     @Deprecated("Use analysisSnapshot instead")
     val events: StateFlow<List<Event>> = _events
 
@@ -107,6 +108,7 @@ class EventViewModel @Inject constructor(
                     is SleepEvent -> event.endTime?.toInstant()
                         ?.atZone(systemZone)
                         ?.toLocalDate() ?: eventStartDate
+
                     else -> eventStartDate
                 }
 
@@ -478,7 +480,10 @@ class EventViewModel @Inject constructor(
                 _isLoading.value = false
             }
             .onEach { snapshot ->
-                Log.d("AnalysisStream", "Received complete snapshot: ${snapshot.dailyAnalysis.size} days, ${snapshot.events.size} events, ${snapshot.eventsByDay.size} day counts")
+                Log.d(
+                    "AnalysisStream",
+                    "Received complete snapshot: ${snapshot.dailyAnalysis.size} days, ${snapshot.events.size} events, ${snapshot.eventsByDay.size} day counts"
+                )
                 checkForNewEvents(snapshot.events)
                 _analysisSnapshot.value = snapshot
                 _isLoading.value = false
@@ -907,6 +912,8 @@ class EventViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
+                //0. force invalidate cache,
+                repository.invalidateCacheDay(event.babyId, event.timestamp)
                 // 1. Delete photo from Storage & clear Firestore field
                 try {
                     repository.deletePhotoFromEntity("events", event.id)

@@ -414,7 +414,7 @@ fun EventFormDialogContent(
                         shape = cornerShape
                     ) {
                         Text(
-                            errorMessage!!,
+                            displayMessage,
                             color = Color.Red,
                             modifier = Modifier.padding(12.dp)
                         )

@@ -582,7 +582,14 @@ class FirebaseRepository @Inject constructor(
             Result.failure(e)
         }
     }
-
+    suspend fun invalidateCacheDay(
+        babyId: String,
+        timestamp: Date,
+        firebaseCache: FirebaseCache = FirebaseCache(context, db)
+    ) {
+        val dayKey = timestamp.toLocalDate().toString()
+        firebaseCache.invalidateCacheDay(babyId, timestamp)
+    }
     suspend fun clearBabyCache(
         babyId: String,
         firebaseCache: FirebaseCache = FirebaseCache(context, db),
