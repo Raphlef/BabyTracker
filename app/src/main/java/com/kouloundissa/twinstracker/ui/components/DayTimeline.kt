@@ -55,7 +55,7 @@ fun DayTimeline(
 
     // Process events into day spans
     val daySpans = remember(date, events) {
-        computeDaySpans(date, events)
+        computeDaySpans( events)
     }
 
     Box(
@@ -237,7 +237,7 @@ private fun EventOverlay(
 
 
 @Composable
-private fun EventContent(span: DaySpan, type: EventType) {
+fun EventContent(span: DaySpan, type: EventType) {
     val context = LocalContext.current
     Row(
         modifier = Modifier.fillMaxSize(),
@@ -248,9 +248,9 @@ private fun EventContent(span: DaySpan, type: EventType) {
             imageVector = type.icon,
             contentDescription = type.getDisplayName(context),
             tint = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.size(14.dp)
+            modifier = Modifier.size(12.dp)
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(3.dp))
         Text(
             text = span.evt.notes.takeIf { !it.isNullOrBlank() } ?: type.getDisplayName(context),
             style = MaterialTheme.typography.labelSmall,
@@ -273,7 +273,7 @@ data class DaySpan(
     val endMinute = end.minute
 }
 
-fun computeDaySpans(date: LocalDate, events: List<Event>): List<DaySpan> {
+fun computeDaySpans(events: List<Event>): List<DaySpan> {
     val systemZone = ZoneId.systemDefault()
 
     return events.flatMap { evt ->
@@ -324,7 +324,18 @@ fun computeDaySpans(date: LocalDate, events: List<Event>): List<DaySpan> {
             listOf(DaySpan(evt, startZ, endZ))
         }
     }
-        .filter { it.start.toLocalDate() == date }  // Keep only spans for requested day
+    //    .filter { it.start.toLocalDate() == date }  // Keep only spans for requested day
+//    val systemZone = ZoneId.systemDefault()
+//    return events.mapNotNull { event ->
+//        val startZdt = event.timestamp.toInstant().atZone(systemZone)
+//        val endZdt = when (event) {
+//            is SleepEvent -> event.endTime?.toInstant()?.atZone(systemZone) ?: startZdt.plusHours(1)
+//            is FeedingEvent -> startZdt.plusMinutes((event.durationMinutes ?: 0).toLong())
+//            is PumpingEvent -> startZdt.plusMinutes((event.durationMinutes ?: 0).toLong())
+//            else -> startZdt.plusMinutes(6)
+//        }
+//        DaySpan(event, startZdt, endZdt)
+//    }
 }
 
 fun calculateTotalHeightFraction(span: DaySpan): Float {
