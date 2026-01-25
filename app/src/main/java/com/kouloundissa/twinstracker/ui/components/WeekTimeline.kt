@@ -156,19 +156,29 @@ private fun DayHeader(
     Box(
         modifier = modifier
             .clickable { onClick() }
-            .padding(vertical = 4.dp),
+            .padding(vertical = 4.dp)
+            .background(
+                if (isSelected) {
+                    DarkBlue.copy(alpha = 0.1f)
+                } else {
+                    BackgroundColor.copy(alpha = 0.1f)
+                }
+            )
+            .clip(CircleShape),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = day.format(DateTimeFormatter.ofPattern("E", Locale.getDefault())),
                 fontSize = 10.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                color = DarkBlue
             )
             Text(
                 text = day.dayOfMonth.toString(),
                 fontSize = 14.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                color = DarkBlue
             )
 
             if (events.isNotEmpty() && dominantEventType != null) {
