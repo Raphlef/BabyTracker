@@ -1,7 +1,6 @@
 package com.kouloundissa.twinstracker.ui.components
 
-import DaySpan
-import EventBar
+import DrawEventsForDay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,20 +27,18 @@ import androidx.compose.ui.unit.sp
 import com.kouloundissa.twinstracker.data.AnalysisSnapshot
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
-import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import computeDaySpans
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 
-private val HOUR_LABEL_WIDTH = 32.dp
-private val HOUR_ROW_HEIGHT = 48.dp
+private val WEEK_HOUR_LABEL_WIDTH = 32.dp
+private val WEEK_HOUR_ROW_HEIGHT = 48.dp
 val VERTICAL_SPACING_BETWEEN_STACKED = 2.dp
 
 @Composable
@@ -82,7 +79,7 @@ fun WeekTimeline(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
 
-            Box(Modifier.width(HOUR_LABEL_WIDTH))
+            Box(Modifier.width(WEEK_HOUR_LABEL_WIDTH))
 
             repeat(7) { index ->
                 val day = weekStart.plusDays(index.toLong())
@@ -103,11 +100,11 @@ fun WeekTimeline(
             // LAYER 1: Grille des heures (structure)
             Column(modifier = Modifier.fillMaxWidth()) {
                 repeat(24) { hour ->
-                    HourRowStructure(
+                    HourRowLabel(
                         hour = hour,
                         weekStart = weekStart,
                         selectedDate = selectedDate,
-                        hourRowHeight = HOUR_ROW_HEIGHT,
+                        hourRowHeight = WEEK_HOUR_ROW_HEIGHT,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -117,7 +114,7 @@ fun WeekTimeline(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = HOUR_LABEL_WIDTH)  // Offset du label d'heure
+                    .padding(start = WEEK_HOUR_LABEL_WIDTH)  // Offset du label d'heure
             ) {
                 repeat(7) { dayIndex ->
                     val day = weekStart.plusDays(dayIndex.toLong())
@@ -126,7 +123,7 @@ fun WeekTimeline(
                     DrawEventsForDay(
                         day = day,
                         daySpans = daySpans,
-                        hourRowHeight = HOUR_ROW_HEIGHT,
+                        hourRowHeight = WEEK_HOUR_ROW_HEIGHT,
                         onEdit = onEdit,
                         modifier = Modifier
                             .weight(1f)
@@ -194,7 +191,7 @@ private fun DayHeader(
 }
 
 @Composable
-private fun HourRowStructure(
+private fun HourRowLabel(
     hour: Int,
     weekStart: LocalDate,
     selectedDate: LocalDate,
@@ -207,7 +204,7 @@ private fun HourRowStructure(
         // COLONNE HEURES
         Box(
             modifier = Modifier
-                .width(HOUR_LABEL_WIDTH)
+                .width(WEEK_HOUR_LABEL_WIDTH)
                 .fillMaxHeight()
                 .padding(vertical = VERTICAL_SPACING_BETWEEN_STACKED),
             contentAlignment = Alignment.TopCenter
@@ -243,74 +240,7 @@ private fun HourRowStructure(
     }
 }
 
-@Composable
-private fun DrawEventsForDay(
-    day: LocalDate,
-    daySpans: List<DaySpan>,
-    hourRowHeight: Dp,
-    onEdit: (Event) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    if (daySpans.isEmpty()) return
 
-    Box(modifier = modifier) {
-        val dayEventsForThisDay = daySpans.mapNotNull { span ->
-            val spanStart = span.start.toLocalDate()
-            val spanEnd = span.end.toLocalDate()
-
-            when {
-                spanStart == spanEnd && spanStart == day -> span
-                spanStart < spanEnd && spanStart == day -> {
-                    val endOfDay = span.start.toLocalDate().atTime(23, 59, 59)
-                        .atZone(ZoneId.systemDefault())
-                    span.copy(end = endOfDay)
-                }
-
-                spanStart < spanEnd && spanEnd == day -> {
-                    val startOfDay = day.atTime(0, 0, 0)
-                        .atZone(ZoneId.systemDefault())
-                    span.copy(start = startOfDay)
-                }
-
-                else -> null
-            }
-        }
-
-        val sleepEvents = dayEventsForThisDay.filter { it.evt is SleepEvent }
-        val otherEventsByHour = dayEventsForThisDay
-            .filter { it.evt !is SleepEvent }
-            .groupBy { it.startHour }
-
-        // SLEEP: full width
-        sleepEvents.forEachIndexed { stackIndex, span ->
-            EventBar(
-                span = span,
-                stackIndex = stackIndex,
-                hourRowHeight = hourRowHeight,
-                onEdit = onEdit,
-                isAbsoluteOffset = true
-            )
-        }
-
-
-        otherEventsByHour.forEach { (_, eventsInSameHour) ->
-            // Pour chaque groupe d'événements à la même heure
-            val numConcurrent = eventsInSameHour.size
-
-            eventsInSameHour.forEachIndexed { index, span ->
-                EventBar(
-                    span = span,
-                    widthFraction = 1f / numConcurrent,
-                    xOffsetFraction = index.toFloat() / numConcurrent,
-                    stackIndex = sleepEvents.size,
-                    hourRowHeight = hourRowHeight,
-                    onEdit = onEdit,
-                    isAbsoluteOffset = true
-                )
-            }
-        }
-    }
-}
 
 
 

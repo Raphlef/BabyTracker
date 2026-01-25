@@ -24,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -45,12 +44,14 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.Date
 
+
+private val DAY_HOUR_ROW_HEIGHT = 60.dp
+private val DAY_HOUR_LABEL_WIDTH = 50.dp
 @Composable
 fun DayTimeline(
     date: LocalDate,
     events: List<Event>,
-    onEdit: (Event) -> Unit,
-    hourRowHeight: Dp = 60.dp
+    onEdit: (Event) -> Unit
 ) {
     val contentColor = DarkGrey.copy(alpha = 0.5f)
     val backgroundColor = BackgroundColor.copy(alpha = 0.2f)
@@ -80,32 +81,97 @@ fun DayTimeline(
             repeat(24) { hour ->
                 HourRowLabel(
                     hour = hour,
-                    contentColor = contentColor,
-                    hourRowHeight = hourRowHeight
+                    hourRowHeight = DAY_HOUR_ROW_HEIGHT
                 )
             }
         }
 
         // LAYER 2: Events overlay (drawn on top, with absolute positioning)
-        Box(modifier = Modifier.fillMaxWidth()) {
-            repeat(24) { hour ->
-                DrawEventsForHour(
-                    hour = hour,
-                    daySpans = daySpans,
+        DrawEventsForDay(
+            day = date,
+            daySpans = daySpans,
+            hourRowHeight = DAY_HOUR_ROW_HEIGHT,
+            onEdit = onEdit,
+            modifier = Modifier
+                .fillMaxHeight().padding(start = DAY_HOUR_ROW_HEIGHT)
+        )
+    }
+}
+
+@Composable
+fun DrawEventsForDay(
+    day: LocalDate,
+    daySpans: List<DaySpan>,
+    hourRowHeight: Dp,
+    onEdit: (Event) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (daySpans.isEmpty()) return
+
+    Box(modifier = modifier) {
+        val dayEventsForThisDay = daySpans.mapNotNull { span ->
+            val spanStart = span.start.toLocalDate()
+            val spanEnd = span.end.toLocalDate()
+
+            when {
+                spanStart == spanEnd && spanStart == day -> span
+                spanStart < spanEnd && spanStart == day -> {
+                    val endOfDay = span.start.toLocalDate().atTime(23, 59, 59)
+                        .atZone(ZoneId.systemDefault())
+                    span.copy(end = endOfDay)
+                }
+
+                spanStart < spanEnd && spanEnd == day -> {
+                    val startOfDay = day.atTime(0, 0, 0)
+                        .atZone(ZoneId.systemDefault())
+                    span.copy(start = startOfDay)
+                }
+
+                else -> null
+            }
+        }
+
+        val sleepEvents = dayEventsForThisDay.filter { it.evt is SleepEvent }
+        val otherEventsByHour = dayEventsForThisDay
+            .filter { it.evt !is SleepEvent }
+            .groupBy { it.startHour }
+
+        // SLEEP: full width
+        sleepEvents.forEachIndexed { stackIndex, span ->
+            EventBar(
+                span = span,
+                stackIndex = stackIndex,
+                hourRowHeight = hourRowHeight,
+                onEdit = onEdit,
+                isAbsoluteOffset = true
+            )
+        }
+
+
+        otherEventsByHour.forEach { (_, eventsInSameHour) ->
+            // Pour chaque groupe d'événements à la même heure
+            val numConcurrent = eventsInSameHour.size
+
+            eventsInSameHour.forEachIndexed { index, span ->
+                EventBar(
+                    span = span,
+                    widthFraction = 1f / numConcurrent,
+                    xOffsetFraction = index.toFloat() / numConcurrent,
+                    stackIndex = sleepEvents.size,
+                    hourRowHeight = hourRowHeight,
                     onEdit = onEdit,
-                    hourRowHeight = hourRowHeight
+                    isAbsoluteOffset = true
                 )
             }
         }
     }
 }
-
 @Composable
 private fun HourRowLabel(
     hour: Int,
-    contentColor: Color,
     hourRowHeight: Dp
 ) {
+    val contentColor = DarkGrey.copy(alpha = 0.5f)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -115,7 +181,7 @@ private fun HourRowLabel(
     ) {
         Box(
             modifier = Modifier
-                .width(50.dp)
+                .width(DAY_HOUR_LABEL_WIDTH)
                 .fillMaxHeight(),
             contentAlignment = Alignment.TopCenter
         ) {
@@ -131,57 +197,6 @@ private fun HourRowLabel(
     }
 }
 
-@Composable
-private fun DrawEventsForHour(
-    hour: Int,
-    daySpans: List<DaySpan>,
-    onEdit: ((Event) -> Unit)? = null,
-    hourRowHeight: Dp
-) {
-    // Only get events that START in this hour
-    val eventsStartingInHour = daySpans.filter { it.startHour == hour }
-
-    if (eventsStartingInHour.isEmpty()) return
-
-    // Absolute positioning at the hour's vertical position
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .offset(y = hourRowHeight * hour)  // Position at start of this hour
-            //.height(hourRowHeight)  // Only anchors the starting point
-            .padding(start = 60.dp, end = 8.dp, top = 2.dp)
-    ) {
-        val sleepEvents = eventsStartingInHour.filter { it.evt is SleepEvent }
-        val otherEvents = eventsStartingInHour.filter { it.evt !is SleepEvent }
-
-        // Render sleep events (full width, stacked)
-        sleepEvents.forEachIndexed { index, span ->
-            EventBar(
-                span = span,
-                onEdit = onEdit,
-                stackIndex = index,
-                hourRowHeight = hourRowHeight,
-                minHeightFraction = 0.5f,
-                isAbsoluteOffset = false
-            )
-        }
-
-        // Render other events (side-by-side)
-        val numOtherEvents = otherEvents.size
-        otherEvents.forEachIndexed { index, span ->
-            EventBar(
-                span = span,
-                onEdit = onEdit,
-                widthFraction = 1f / numOtherEvents,
-                xOffsetFraction = index.toFloat() / numOtherEvents,
-                stackIndex = sleepEvents.size,
-                hourRowHeight = hourRowHeight,
-                minHeightFraction = 0.5f,
-                isAbsoluteOffset = false
-            )
-        }
-    }
-}
 
 @Composable
 fun EventBar(
