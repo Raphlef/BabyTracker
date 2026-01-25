@@ -298,7 +298,7 @@ data class DaySpan(
         }
     }
 }
-private fun computeDaySpans(date: LocalDate, events: List<Event>): List<DaySpan> {
+fun computeDaySpans(date: LocalDate, events: List<Event>): List<DaySpan> {
     val systemZone = ZoneId.systemDefault()
 
     return events.flatMap { evt ->
