@@ -42,6 +42,7 @@ import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -80,7 +81,7 @@ fun WeekTimeline(
     }
     val weekDaySpans = remember(weekEventsByDay) {
         weekEventsByDay.mapValues { (_, events) ->
-            computeDaySpansForWeek(LocalDate.now(), events)
+            computeDaySpansForWeek(events)
         }
     }
 
@@ -230,10 +231,10 @@ private fun HourRowStructure(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(3.dp))
+                    //.clip(RoundedCornerShape(3.dp))
                     .background(
                         if (isSelectedDay) {
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                            DarkBlue.copy(alpha = 0.1f)
                         } else {
                             BackgroundColor.copy(alpha = 0.1f)
                         }
@@ -289,8 +290,7 @@ private fun DrawContinuousEventsForDay(
                 xOffsetFraction = 0f,
                 stackIndex = stackIndex,
                 hourRowHeight = hourRowHeight,
-                onEdit = onEdit,
-                modifier = Modifier.fillMaxWidth()
+                onEdit = onEdit
             )
         }
 
@@ -306,7 +306,6 @@ private fun DrawContinuousEventsForDay(
                     xOffsetFraction = index.toFloat() / numConcurrent,
                     stackIndex = sleepEvents.size,
                     hourRowHeight = hourRowHeight,
-                    modifier = Modifier.fillMaxWidth(),
                     onEdit = onEdit
                 )
             }
@@ -322,7 +321,6 @@ private fun ContinuousEventBar(
     xOffsetFraction: Float,
     stackIndex: Int,
     hourRowHeight: Dp,
-    modifier: Modifier = Modifier,
     onEdit: (Event) -> Unit
 ) {
     val type = EventType.forClass(span.evt::class)
@@ -339,10 +337,8 @@ private fun ContinuousEventBar(
     BoxWithConstraints(
         modifier = Modifier.fillMaxWidth()
     ) {
-        val parentWidth = maxWidth
-
-        val eventWidth = parentWidth * widthFraction - 2.dp
-        val eventOffset = parentWidth * xOffsetFraction
+        val eventWidth = maxWidth * widthFraction //- 2.dp
+        val eventOffset = maxWidth * xOffsetFraction
         val eventHeight = hourRowHeight * heightFraction
         val topOffset = hourRowHeight * topFraction
         val verticalSpacing = stackIndex * VERTICAL_SPACING_BETWEEN_STACKED
@@ -387,30 +383,16 @@ private fun ContinuousEventBar(
     }
 }
 
-fun computeDaySpansForWeek(date: LocalDate, events: List<Event>): List<DaySpan> {
+fun computeDaySpansForWeek(events: List<Event>): List<DaySpan> {
+    val systemZone = ZoneId.systemDefault()
     return events.mapNotNull { event ->
-        val (start, end) = when (event) {
-            is SleepEvent -> {
-                val startZdt = event.timestamp.toInstant().atZone(ZoneId.systemDefault())
-                val endZdt = event.endTime?.toInstant()?.atZone(ZoneId.systemDefault())
-                    ?: startZdt.plusHours(1)
-                startZdt to endZdt
-            }
-            is FeedingEvent -> {
-                val startZdt = event.timestamp.toInstant().atZone(ZoneId.systemDefault())
-                val endZdt = startZdt.plusMinutes((event.durationMinutes ?: 0).toLong())
-                startZdt to endZdt
-            }
-            is PumpingEvent -> {
-                val startZdt = event.timestamp.toInstant().atZone(ZoneId.systemDefault())
-                val endZdt = startZdt.plusMinutes((event.durationMinutes ?: 0).toLong())
-                startZdt to endZdt
-            }
-            else -> {
-                val startZdt = event.timestamp.toInstant().atZone(ZoneId.systemDefault())
-                startZdt to startZdt.plusMinutes(6)
-            }
+        val startZdt = event.timestamp.toInstant().atZone(systemZone)
+        val endZdt = when (event) {
+            is SleepEvent -> event.endTime?.toInstant()?.atZone(systemZone) ?: startZdt.plusHours(1)
+            is FeedingEvent -> startZdt.plusMinutes((event.durationMinutes ?: 0).toLong())
+            is PumpingEvent -> startZdt.plusMinutes((event.durationMinutes ?: 0).toLong())
+            else -> startZdt.plusMinutes(6)
         }
-        DaySpan(event, start, end)
+        DaySpan(event, startZdt, endZdt)
     }
 }
