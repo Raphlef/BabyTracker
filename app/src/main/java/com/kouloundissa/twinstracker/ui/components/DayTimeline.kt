@@ -1,4 +1,3 @@
-import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -232,124 +230,6 @@ private fun EventOverlay(
     }
 }
 
-@SuppressLint("UnusedBoxWithConstraintsScope")
-@Composable
-private fun HourRow(
-    hour: Int,
-    daySpans: List<DaySpan>,
-    onEdit: (Event) -> Unit,
-    contentColor: Color,
-    hourRowHeight: Dp
-) {
-
-    val eventsStartingInHour = daySpans.filter { it.startHour == hour }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .wrapContentHeight()
-            .padding(vertical = 2.dp),
-        verticalAlignment = Alignment.Top  // Top-align for proper hour label alignment
-    ) {
-        // Time label - fixed width, top-aligned
-        Box(
-            modifier = Modifier
-                .width(50.dp)
-                .fillMaxHeight(),
-            contentAlignment = Alignment.TopCenter  // Align at top
-        ) {
-            Text(
-                text = "%02d:00".format(hour),
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                ),
-                color = contentColor,
-                modifier = Modifier.padding(top = 2.dp)
-            )
-        }
-
-        // Events area
-        if (eventsStartingInHour.isNotEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth()
-                    .padding(start = 8.dp, end = 8.dp)
-            ) {
-                val sleepEvents = eventsStartingInHour.filter { it.evt is SleepEvent }
-                val otherEvents = eventsStartingInHour.filter { it.evt !is SleepEvent }
-
-                sleepEvents.forEachIndexed { index, span ->
-                    ContinuousEventBox(
-                        span = span,
-                        onEdit = onEdit,
-                        widthFraction = 1f,
-                        xOffsetFraction = 0f,
-                        stackIndex = index,
-                        hourRowHeight = hourRowHeight
-                    )
-                }
-
-                val numOtherEvents = otherEvents.size
-                otherEvents.forEachIndexed { index, span ->
-                    ContinuousEventBox(
-                        span = span,
-                        onEdit = onEdit,
-                        widthFraction = 1f / numOtherEvents,
-                        xOffsetFraction = index.toFloat() / numOtherEvents,
-                        stackIndex = sleepEvents.size,
-                        hourRowHeight = hourRowHeight
-                    )
-                }
-            }
-        } else {
-            Spacer(modifier = Modifier.weight(1f))
-        }
-    }
-}
-@Composable
-private fun ContinuousEventBox(
-    span: DaySpan,
-    onEdit: (Event) -> Unit,
-    widthFraction: Float,
-    xOffsetFraction: Float,
-    stackIndex: Int,
-    hourRowHeight: Dp
-) {
-    val cornerShape = MaterialTheme.shapes.medium
-    val type = EventType.forClass(span.evt::class)
-
-    // FIXED: Calculate total height for entire event, not per-hour
-    val totalHeightFraction = calculateTotalHeightFraction(span, hourRowHeight)
-    val heightFraction = totalHeightFraction.coerceAtLeast(MIN_INSTANT_FRAC)
-
-    // Top offset based on start minute within first hour
-    val topOffsetFraction = span.startMinute / 60f
-
-    BoxWithConstraints(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        val parentWidth = maxWidth
-        val eventWidth = parentWidth * widthFraction - 2.dp
-        val eventOffset = parentWidth * xOffsetFraction
-        val eventHeight = hourRowHeight * heightFraction
-        val topOffset = hourRowHeight * topOffsetFraction
-        val verticalSpacing = stackIndex * 2.dp
-
-        Box(
-            modifier = Modifier
-                .offset(x = eventOffset, y = topOffset + verticalSpacing)
-                .width(eventWidth)
-                .height(eventHeight)
-                .clip(cornerShape)
-                .background(type.color.copy(alpha = 0.85f))
-                .clickable { onEdit(span.evt) }
-                .padding(4.dp)
-        ) {
-            EventContent(span = span, type = type)
-        }
-    }
-}
 
 
 @Composable
