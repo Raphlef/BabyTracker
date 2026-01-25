@@ -248,47 +248,83 @@ fun EventContent(span: DaySpan, type: EventType) {
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         when {
-            // Grand: afficher icon + texte
-            maxHeight >= 28.dp -> {
+            // ✅ LARGE: Icon + Text complet
+            maxWidth > 80.dp -> {
                 Row(
                     modifier = Modifier.fillMaxSize(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
+                    horizontalArrangement = Arrangement.Start,
+                    // Add horizontal padding to account for container padding
                 ) {
                     Icon(
                         imageVector = type.icon,
-                        contentDescription = type.getDisplayName(context),
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(12.dp)
+                        contentDescription = null,
+                        tint = BackgroundColor,
+                        modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(3.dp))
                     Text(
                         text = span.evt.notes.takeIf { !it.isNullOrBlank() }
                             ?: type.getDisplayName(context),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = BackgroundColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        fontSize = 8.sp
+                        fontSize = 12.sp
                     )
                 }
             }
-            // Moyen: afficher juste l'icon
-            maxHeight >= 16.dp -> {
-                Icon(
-                    imageVector = type.icon,
-                    contentDescription = type.getDisplayName(context),
-                    tint = MaterialTheme.colorScheme.onPrimary,
+
+            // 🟡 MEDIUM: Icon + Text court (pas de spacer)
+            maxWidth > 40.dp -> {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        imageVector = type.icon,
+                        contentDescription = null,
+                        tint = BackgroundColor,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Text(
+                        text = span.evt.notes?.take(3) ?: type.getDisplayName(context).take(1),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontSize = 10.sp
+                    )
+                }
+            }
+
+            // 🔴 SMALL: Icon seul
+            maxWidth > 20.dp -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = type.icon,
+                        contentDescription = type.getDisplayName(context),
+                        tint = BackgroundColor,
+                        modifier = Modifier.size(10.dp)
+                    )
+                }
+            }
+
+            // ⚫ TINY: Juste un point/background
+            else -> {
+                Box(
                     modifier = Modifier
-                        .size(10.dp)
-                        .align(Alignment.Center)
+                        .fillMaxSize()
                 )
             }
-            // Petit: ne rien afficher (juste la couleur)
-            else -> {}
         }
     }
 }
+
 
 
 
