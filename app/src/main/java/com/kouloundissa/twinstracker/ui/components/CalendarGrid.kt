@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,7 +32,10 @@ import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.Locale
 
 @Composable
 fun CalendarGrid(
@@ -51,9 +55,15 @@ fun CalendarGrid(
     val totalCells = ((startDow + daysInMonth + 6) / 7) * 7
     val weeks = totalCells / 7
 
+    val locale = Locale.getDefault()
+    val shortDayNames = remember(locale) {
+        (1..7).map { dayOfWeek ->
+            DayOfWeek.of(dayOfWeek).getDisplayName(TextStyle.SHORT_STANDALONE, locale)
+        }
+    }
     Column {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            listOf("M", "T", "W", "T", "F", "S", "S").forEach { dow ->
+            shortDayNames.forEach { dow ->
                 Text(
                     dow, Modifier.weight(1f), textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelMedium,

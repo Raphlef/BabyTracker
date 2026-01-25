@@ -28,7 +28,7 @@ import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
-fun SwipeableCalendar(
+fun Calendar(
     currentMonth: LocalDate,
     onMonthChange: (delta: Long) -> Unit,
     eventsByDay : Map<LocalDate, List<Event>>,
