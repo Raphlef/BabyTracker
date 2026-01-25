@@ -96,6 +96,7 @@ fun DayTimeline(
         }
     }
 }
+
 @Composable
 private fun HourRowLabel(
     hour: Int,
@@ -126,11 +127,12 @@ private fun HourRowLabel(
         }
     }
 }
+
 @Composable
 private fun DrawEventsForHour(
     hour: Int,
     daySpans: List<DaySpan>,
-    onEdit: (Event) -> Unit,
+    onEdit: ((Event) -> Unit)? = null,
     hourRowHeight: Dp
 ) {
     // Only get events that START in this hour
@@ -175,10 +177,11 @@ private fun DrawEventsForHour(
         }
     }
 }
+
 @Composable
 private fun EventOverlay(
     span: DaySpan,
-    onEdit: (Event) -> Unit,
+    onEdit: ((Event) -> Unit)? = null,
     widthFraction: Float,
     xOffsetFraction: Float,
     stackIndex: Int,
@@ -222,14 +225,15 @@ private fun EventOverlay(
                 .height(eventHeight)  // e.g., 120.dp for 2-hour event
                 .clip(cornerShape)
                 .background(type.color.copy(alpha = 0.85f))
-                .clickable { onEdit(span.evt) }
+                .clickable(enabled = onEdit != null) {
+                    onEdit?.invoke(span.evt)
+                }
                 .padding(4.dp)
         ) {
             EventContent(span = span, type = type)
         }
     }
 }
-
 
 
 @Composable
@@ -257,6 +261,7 @@ private fun EventContent(span: DaySpan, type: EventType) {
         )
     }
 }
+
 data class DaySpan(
     val evt: Event,
     val start: ZonedDateTime,
@@ -283,14 +288,17 @@ data class DaySpan(
                 // Event is completely within this hour
                 (endMinute - startMinute) / 60f
             }
+
             hour == startHour -> {
                 // Event starts in this hour and continues
                 (60 - startMinute) / 60f
             }
+
             hour == endHour -> {
                 // Event ends in this hour
                 endMinute / 60f
             }
+
             else -> {
                 // Event completely fills this hour
                 1f
@@ -298,6 +306,7 @@ data class DaySpan(
         }
     }
 }
+
 fun computeDaySpans(date: LocalDate, events: List<Event>): List<DaySpan> {
     val systemZone = ZoneId.systemDefault()
 
@@ -313,11 +322,13 @@ fun computeDaySpans(date: LocalDate, events: List<Event>): List<DaySpan> {
             } else {
                 startInstant.plusSeconds(30 * 60)
             }
+
             is PumpingEvent -> if ((evt.durationMinutes ?: 0) > 0) {
                 startInstant.plusSeconds((evt.durationMinutes!! * 60).toLong())
             } else {
                 startInstant.plusSeconds(30 * 60)
             }
+
             else -> startInstant.plusSeconds(30 * 60)
         }
         val endZ = endInstant.atZone(systemZone)
@@ -349,6 +360,7 @@ fun computeDaySpans(date: LocalDate, events: List<Event>): List<DaySpan> {
     }
         .filter { it.start.toLocalDate() == date }  // Keep only spans for requested day
 }
+
 private fun calculateTotalHeightFraction(span: DaySpan, hourRowHeight: Dp): Float {
     val startHour = span.startHour
     val endHour = span.endHour
@@ -359,6 +371,7 @@ private fun calculateTotalHeightFraction(span: DaySpan, hourRowHeight: Dp): Floa
         startHour == endHour -> {
             (endMinute - startMinute) / 60f
         }
+
         else -> {
             var totalMinutes = 0
             totalMinutes += (60 - startMinute)
@@ -372,6 +385,7 @@ private fun calculateTotalHeightFraction(span: DaySpan, hourRowHeight: Dp): Floa
         }
     }
 }
+
 private val systemZone: ZoneId
     get() = ZoneId.systemDefault()
 
