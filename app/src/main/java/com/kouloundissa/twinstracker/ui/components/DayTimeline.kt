@@ -271,40 +271,6 @@ data class DaySpan(
     val endHour = end.hour
     val startMinute = start.minute
     val endMinute = end.minute
-    val spansMultipleHours = endHour > startHour
-
-    fun coversHour(hour: Int): Boolean =
-        when {
-            hour == startHour && hour == endHour -> true
-            hour == startHour -> true
-            hour in (startHour + 1) until endHour -> true
-            hour == endHour && endMinute > 0 -> true
-            else -> false
-        }
-
-    fun getHeightFraction(hour: Int): Float {
-        return when {
-            hour == startHour && hour == endHour -> {
-                // Event is completely within this hour
-                (endMinute - startMinute) / 60f
-            }
-
-            hour == startHour -> {
-                // Event starts in this hour and continues
-                (60 - startMinute) / 60f
-            }
-
-            hour == endHour -> {
-                // Event ends in this hour
-                endMinute / 60f
-            }
-
-            else -> {
-                // Event completely fills this hour
-                1f
-            }
-        }
-    }
 }
 
 fun computeDaySpans(date: LocalDate, events: List<Event>): List<DaySpan> {
@@ -361,7 +327,7 @@ fun computeDaySpans(date: LocalDate, events: List<Event>): List<DaySpan> {
         .filter { it.start.toLocalDate() == date }  // Keep only spans for requested day
 }
 
-private fun calculateTotalHeightFraction(span: DaySpan, hourRowHeight: Dp): Float {
+ fun calculateTotalHeightFraction(span: DaySpan, hourRowHeight: Dp): Float {
     val startHour = span.startHour
     val endHour = span.endHour
     val startMinute = span.startMinute
