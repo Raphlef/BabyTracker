@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +49,7 @@ import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
 import com.kouloundissa.twinstracker.ui.components.FilterBar
 import com.kouloundissa.twinstracker.ui.components.FilterBarLayoutMode
 import com.kouloundissa.twinstracker.ui.components.SwipeableCalendar
+import com.kouloundissa.twinstracker.ui.components.WeekTimeline
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
@@ -196,6 +198,22 @@ fun CalendarScreen(
                     )
                 }
 
+
+                item {
+                    WeekTimeline(
+                        analysisSnapshot = analysisSnapshot,
+                        selectedDate = selectedDate,
+                        filterTypes = filterTypes,
+                        onDayClick = { selectedDate = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                backgroundColor.copy(alpha = 0.95f),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .padding(12.dp)
+                    )
+                }
 
                 item {
                     Row(
