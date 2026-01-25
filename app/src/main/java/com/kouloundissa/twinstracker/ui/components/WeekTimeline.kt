@@ -30,10 +30,8 @@ import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import computeDaySpans
-import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 
 private val WEEK_HOUR_LABEL_WIDTH = 32.dp
@@ -49,14 +47,18 @@ fun WeekTimeline(
     onEdit: (Event) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val weekStart = remember(selectedDate) {
-        selectedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+    val weekDays = remember(selectedDate) {
+        // 🆕 Calculer les 7 jours FINISSANT par selectedDate
+        (0..6).map { offset ->
+            selectedDate.minusDays(offset.toLong())
+        }.reversed()  // selectedDate en dernier!
     }
+    val weekStart = remember(weekDays) { weekDays.first() }
 
-    val weekEventsByDay = remember(analysisSnapshot, weekStart, filterTypes) {
+    val weekEventsByDay = remember(analysisSnapshot, weekDays, filterTypes) {
         analysisSnapshot.eventsByDay
             .filterKeys { date ->
-                !date.isBefore(weekStart) && !date.isAfter(weekStart.plusDays(6))
+                weekDays.contains(date)  // Utilise exactement ces 7 jours
             }
             .mapValues { (_, dayEvents) ->
                 dayEvents.filter { event ->
@@ -80,8 +82,7 @@ fun WeekTimeline(
 
             Box(Modifier.width(WEEK_HOUR_LABEL_WIDTH))
 
-            repeat(7) { index ->
-                val day = weekStart.plusDays(index.toLong())
+            weekDays.forEach { day  ->
                 DayHeader(
                     day = day,
                     events = weekEventsByDay[day] ?: emptyList(),
@@ -104,8 +105,7 @@ fun WeekTimeline(
                         hourRowHeight = WEEK_HOUR_ROW_HEIGHT,
                         hourLabelWidth = WEEK_HOUR_LABEL_WIDTH,
                         contentColumns = {  // RowScope disponible!
-                            repeat(7) { index ->
-                                val day = weekStart.plusDays(index.toLong())
+                            weekDays.forEach { day ->
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
@@ -132,8 +132,7 @@ fun WeekTimeline(
                     .fillMaxWidth()
                     .padding(start = WEEK_HOUR_LABEL_WIDTH)  // Offset du label d'heure
             ) {
-                repeat(7) { dayIndex ->
-                    val day = weekStart.plusDays(dayIndex.toLong())
+                weekDays.forEach { day ->
                     val daySpans = weekDaySpans[day] ?: emptyList()
 
                     DrawEventsForDay(
