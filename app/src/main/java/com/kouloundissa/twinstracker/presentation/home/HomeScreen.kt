@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,7 +28,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,19 +55,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import com.kouloundissa.twinstracker.data.EventTypeOverlayContext
-import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.toLocalDate
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.presentation.baby.BabyCreateDialog
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
@@ -79,7 +73,6 @@ import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.components.EventOverlayInfo
 import com.kouloundissa.twinstracker.ui.components.EventTypeDialog
 import com.kouloundissa.twinstracker.ui.components.InfiniteScrollEffect
-import com.kouloundissa.twinstracker.ui.components.timelineItemsContent
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
@@ -106,10 +99,10 @@ fun HomeScreen(
 
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
-    val spacing = 12.dp
+    val spacing = 8.dp
     val columns = 2
     val cardWidth = (screenWidth - spacing * (columns + 1)) / columns
-    val cardHeight = cardWidth * 1.2f
+    val cardHeight = cardWidth * 1f
     // Number of rows needed for the grid
     val rows = ceil(EventType.entries.size / columns.toFloat()).toInt()
     val gridHeight = cardHeight * rows + spacing * (rows - 1)
@@ -343,47 +336,47 @@ fun HomeScreen(
                         }
                     }
 
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    backgroundColor.copy(alpha = 0.95f),
-                                    shape = cornerShape
-                                )
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                stringResource(id = R.string.recent_events),
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.headlineSmall,
-                                modifier = Modifier
-                                    .padding(vertical = 8.dp),
-                                color = tint,
-                            )
-
-                            Divider(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = 12.dp),
-                                color = tint.copy(alpha = 0.5f),
-                                thickness = 2.dp
-                            )
-                        }
-                    }
-                    timelineItemsContent(
-                        eventsByDate = babyEvents.groupBy { it.timestamp.toLocalDate() },
-                        onEdit = { event ->
-                            editingEvent = event
-                            eventViewModel.loadEventIntoForm(event)
-                            showEventDialog = true
-                        },
-                        onDelete = { eventViewModel.deleteEvent(it, familyViewModel) },
-                        isLoadingMore = isLoadingMore,
-                        hasMoreHistory = hasMoreHistory,
-                    )
+//                    item {
+//                        Row(
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .background(
+//                                    backgroundColor.copy(alpha = 0.95f),
+//                                    shape = cornerShape
+//                                )
+//                                .padding(horizontal = 16.dp, vertical = 8.dp),
+//                            verticalAlignment = Alignment.CenterVertically,
+//                            horizontalArrangement = Arrangement.SpaceBetween
+//                        ) {
+//                            Text(
+//                                stringResource(id = R.string.recent_events),
+//                                fontWeight = FontWeight.Bold,
+//                                style = MaterialTheme.typography.headlineSmall,
+//                                modifier = Modifier
+//                                    .padding(vertical = 8.dp),
+//                                color = tint,
+//                            )
+//
+//                            Divider(
+//                                modifier = Modifier
+//                                    .weight(1f)
+//                                    .padding(start = 12.dp),
+//                                color = tint.copy(alpha = 0.5f),
+//                                thickness = 2.dp
+//                            )
+//                        }
+//                    }
+//                    timelineItemsContent(
+//                        eventsByDate = babyEvents.groupBy { it.timestamp.toLocalDate() },
+//                        onEdit = { event ->
+//                            editingEvent = event
+//                            eventViewModel.loadEventIntoForm(event)
+//                            showEventDialog = true
+//                        },
+//                        onDelete = { eventViewModel.deleteEvent(it, familyViewModel) },
+//                        isLoadingMore = isLoadingMore,
+//                        hasMoreHistory = hasMoreHistory,
+//                    )
                 }
             }
 
