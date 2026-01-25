@@ -46,7 +46,7 @@ import java.util.Locale
 
 private val HOUR_LABEL_WIDTH = 32.dp
 private val HOUR_ROW_HEIGHT = 48.dp
-private val VERTICAL_SPACING_BETWEEN_STACKED = 2.dp
+val VERTICAL_SPACING_BETWEEN_STACKED = 2.dp
 
 @Composable
 fun WeekTimeline(
@@ -127,7 +127,7 @@ fun WeekTimeline(
                     val day = weekStart.plusDays(dayIndex.toLong())
                     val daySpans = weekDaySpans[day] ?: emptyList()
 
-                    DrawContinuousEventsForDay(
+                    DrawEventsForDay(
                         day = day,
                         daySpans = daySpans,
                         hourRowHeight = HOUR_ROW_HEIGHT,
@@ -238,7 +238,7 @@ private fun HourRowStructure(
 }
 
 @Composable
-private fun DrawContinuousEventsForDay(
+private fun DrawEventsForDay(
     day: LocalDate,
     daySpans: List<DaySpan>,
     hourRowHeight: Dp,
@@ -277,7 +277,7 @@ private fun DrawContinuousEventsForDay(
 
         // SLEEP: full width
         sleepEvents.forEachIndexed { stackIndex, span ->
-            ContinuousEventBar(
+            EventBar(
                 span = span,
                 widthFraction = 1f,
                 xOffsetFraction = 0f,
@@ -293,7 +293,7 @@ private fun DrawContinuousEventsForDay(
             val numConcurrent = eventsInSameHour.size
 
             eventsInSameHour.forEachIndexed { index, span ->
-                ContinuousEventBar(
+                EventBar(
                     span = span,
                     widthFraction = 1f / numConcurrent,
                     xOffsetFraction = index.toFloat() / numConcurrent,
@@ -308,13 +308,13 @@ private fun DrawContinuousEventsForDay(
 
 
 @Composable
-private fun ContinuousEventBar(
+private fun EventBar(
     span: DaySpan,
-    widthFraction: Float= 1f,
-    xOffsetFraction: Float= 0f,
-    stackIndex:  Int = 0,
+    widthFraction: Float = 1f,
+    xOffsetFraction: Float = 0f,
+    stackIndex: Int = 0,
     hourRowHeight: Dp,
-    onEdit: ((Event) -> Unit)? = null,
+    onEdit: ((Event) -> Unit)? = null
 ) {
     val type = EventType.forClass(span.evt::class)
 

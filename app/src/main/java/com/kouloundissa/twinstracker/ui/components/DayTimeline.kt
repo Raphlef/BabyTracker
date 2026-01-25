@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,6 +36,7 @@ import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
+import com.kouloundissa.twinstracker.ui.components.VERTICAL_SPACING_BETWEEN_STACKED
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.time.LocalDate
@@ -153,7 +155,7 @@ private fun DrawEventsForHour(
 
         // Render sleep events (full width, stacked)
         sleepEvents.forEachIndexed { index, span ->
-            EventOverlay(
+            EventBar(
                 span = span,
                 onEdit = onEdit,
                 widthFraction = 1f,
@@ -166,7 +168,7 @@ private fun DrawEventsForHour(
         // Render other events (side-by-side)
         val numOtherEvents = otherEvents.size
         otherEvents.forEachIndexed { index, span ->
-            EventOverlay(
+            EventBar(
                 span = span,
                 onEdit = onEdit,
                 widthFraction = 1f / numOtherEvents,
@@ -179,56 +181,54 @@ private fun DrawEventsForHour(
 }
 
 @Composable
-private fun EventOverlay(
+private fun EventBar(
     span: DaySpan,
+    widthFraction: Float = 1f,
+    xOffsetFraction: Float = 0f,
+    stackIndex: Int = 0,
+    hourRowHeight: Dp,
     onEdit: ((Event) -> Unit)? = null,
-    widthFraction: Float,
-    xOffsetFraction: Float,
-    stackIndex: Int,
-    hourRowHeight: Dp
 ) {
-    val cornerShape = MaterialTheme.shapes.medium
     val type = EventType.forClass(span.evt::class)
 
-    // Calculate total height for entire event duration
-    val totalHeightFraction = calculateTotalHeightFraction(span)
-    // ✅ NEW: Differentiate between punctual and duration events
+    // Hauteur TOTALE de l'event (start à end, peut être plusieurs heures)
+    val totalMinutes = (span.endHour - span.startHour) * 60 +
+            (span.endMinute - span.startMinute)
     val hasDuration = when (span.evt) {
         is SleepEvent -> span.evt.endTime != null
         is FeedingEvent -> (span.evt.durationMinutes ?: 0) > 0
         is PumpingEvent -> (span.evt.durationMinutes ?: 0) > 0
-        else -> false  // Punctual events: diaper, growth, drugs
+        else -> false
     }
 
-    val minFraction = if (hasDuration) 0.5f else MIN_INSTANT_FRAC  // 30 min or 6 min
-
-    val heightFraction = totalHeightFraction.coerceAtLeast(minFraction)
-
-    // Offset from start minute within first hour
+    val minFraction = if (hasDuration) 0.5f else 0.1f
+    val heightFraction = (totalMinutes / 60f).coerceAtLeast(minFraction)
     val topOffsetFraction = span.startMinute / 60f
 
     BoxWithConstraints(
         modifier = Modifier.fillMaxWidth()
     ) {
-        val parentWidth = maxWidth
-        val eventWidth = parentWidth * widthFraction - 2.dp
-        val eventOffset = parentWidth * xOffsetFraction
-        val eventHeight = hourRowHeight * heightFraction  // Can be 2.0, 3.5, etc.
+        val eventWidth = maxWidth * widthFraction //- 2.dp
+        val eventOffset = maxWidth * xOffsetFraction
+        val eventHeight = hourRowHeight * heightFraction
         val topOffset = hourRowHeight * topOffsetFraction
-        val verticalSpacing = stackIndex * 2.dp
+        val verticalSpacing = stackIndex * VERTICAL_SPACING_BETWEEN_STACKED
 
-        // This Box is NOT constrained by parent - it can overflow
         Box(
             modifier = Modifier
-                .offset(x = eventOffset, y = topOffset + verticalSpacing)
+                .offset(
+                    x = eventOffset,
+                    y = topOffset + verticalSpacing
+                )
                 .width(eventWidth)
-                .height(eventHeight)  // e.g., 120.dp for 2-hour event
-                .clip(cornerShape)
-                .background(type.color.copy(alpha = 0.85f))
+                .height(eventHeight)
+                .clip(RoundedCornerShape(3.dp))
+                .background(type.color.copy(alpha = 0.8f))
                 .clickable(enabled = onEdit != null) {
                     onEdit?.invoke(span.evt)
                 }
-                .padding(4.dp)
+                .padding(4.dp),
+            contentAlignment = Alignment.TopStart
         ) {
             EventContent(span = span, type = type)
         }
