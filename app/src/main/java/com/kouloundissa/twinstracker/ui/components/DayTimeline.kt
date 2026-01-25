@@ -158,10 +158,10 @@ private fun DrawEventsForHour(
             EventBar(
                 span = span,
                 onEdit = onEdit,
-                widthFraction = 1f,
-                xOffsetFraction = 0f,
                 stackIndex = index,
-                hourRowHeight = hourRowHeight
+                hourRowHeight = hourRowHeight,
+                minHeightFraction = 0.5f,
+                isAbsoluteOffset = false
             )
         }
 
@@ -174,36 +174,41 @@ private fun DrawEventsForHour(
                 widthFraction = 1f / numOtherEvents,
                 xOffsetFraction = index.toFloat() / numOtherEvents,
                 stackIndex = sleepEvents.size,
-                hourRowHeight = hourRowHeight
+                hourRowHeight = hourRowHeight,
+                minHeightFraction = 0.5f,
+                isAbsoluteOffset = false
             )
         }
     }
 }
 
 @Composable
-private fun EventBar(
+fun EventBar(
     span: DaySpan,
     widthFraction: Float = 1f,
     xOffsetFraction: Float = 0f,
     stackIndex: Int = 0,
     hourRowHeight: Dp,
     onEdit: ((Event) -> Unit)? = null,
+    minHeightFraction: Float = 0.1f,
+    isAbsoluteOffset: Boolean = false
 ) {
     val type = EventType.forClass(span.evt::class)
 
     // Hauteur TOTALE de l'event (start à end, peut être plusieurs heures)
     val totalMinutes = (span.endHour - span.startHour) * 60 +
             (span.endMinute - span.startMinute)
-    val hasDuration = when (span.evt) {
-        is SleepEvent -> span.evt.endTime != null
-        is FeedingEvent -> (span.evt.durationMinutes ?: 0) > 0
-        is PumpingEvent -> (span.evt.durationMinutes ?: 0) > 0
-        else -> false
+    val heightFraction = (totalMinutes / 60f).coerceAtLeast(minHeightFraction)
+
+    // Position absolue depuis le top (hour de début + minutes)
+    val topOffsetFraction = if (isAbsoluteOffset) {
+        // DayTimeline: position absolue depuis le top (hour + minutes)
+        span.startHour + (span.startMinute / 60f)
+    } else {
+        // WeekTimeline: position relative à l'hour (juste minutes)
+        span.startMinute / 60f
     }
 
-    val minFraction = if (hasDuration) 0.5f else 0.1f
-    val heightFraction = (totalMinutes / 60f).coerceAtLeast(minFraction)
-    val topOffsetFraction = span.startMinute / 60f
 
     BoxWithConstraints(
         modifier = Modifier.fillMaxWidth()

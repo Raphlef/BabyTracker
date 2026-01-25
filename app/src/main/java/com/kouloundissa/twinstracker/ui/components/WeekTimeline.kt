@@ -1,23 +1,20 @@
 package com.kouloundissa.twinstracker.ui.components
 
 import DaySpan
-import EventContent
+import EventBar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -28,7 +25,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.times
 import com.kouloundissa.twinstracker.data.AnalysisSnapshot
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
@@ -279,11 +275,10 @@ private fun DrawEventsForDay(
         sleepEvents.forEachIndexed { stackIndex, span ->
             EventBar(
                 span = span,
-                widthFraction = 1f,
-                xOffsetFraction = 0f,
                 stackIndex = stackIndex,
                 hourRowHeight = hourRowHeight,
-                onEdit = onEdit
+                onEdit = onEdit,
+                isAbsoluteOffset = true
             )
         }
 
@@ -299,7 +294,8 @@ private fun DrawEventsForDay(
                     xOffsetFraction = index.toFloat() / numConcurrent,
                     stackIndex = sleepEvents.size,
                     hourRowHeight = hourRowHeight,
-                    onEdit = onEdit
+                    onEdit = onEdit,
+                    isAbsoluteOffset = true
                 )
             }
         }
@@ -307,53 +303,5 @@ private fun DrawEventsForDay(
 }
 
 
-@Composable
-private fun EventBar(
-    span: DaySpan,
-    widthFraction: Float = 1f,
-    xOffsetFraction: Float = 0f,
-    stackIndex: Int = 0,
-    hourRowHeight: Dp,
-    onEdit: ((Event) -> Unit)? = null
-) {
-    val type = EventType.forClass(span.evt::class)
 
-    // Hauteur TOTALE de l'event (start à end, peut être plusieurs heures)
-    val totalMinutes = (span.endHour - span.startHour) * 60 +
-            (span.endMinute - span.startMinute)
-    val heightFraction = (totalMinutes / 60f).coerceAtLeast(0.1f)
-
-    // Position absolue depuis le top (hour de début + minutes)
-    val topFraction = span.startHour + (span.startMinute / 60f)
-
-
-    BoxWithConstraints(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        val eventWidth = maxWidth * widthFraction //- 2.dp
-        val eventOffset = maxWidth * xOffsetFraction
-        val eventHeight = hourRowHeight * heightFraction
-        val topOffset = hourRowHeight * topFraction
-        val verticalSpacing = stackIndex * VERTICAL_SPACING_BETWEEN_STACKED
-
-        Box(
-            modifier = Modifier
-                .offset(
-                    x = eventOffset,
-                    y = topOffset + verticalSpacing
-                )
-                .width(eventWidth)
-                .height(eventHeight)
-                .clip(RoundedCornerShape(3.dp))
-                .background(type.color.copy(alpha = 0.8f))
-                .clickable(enabled = onEdit != null) {
-                    onEdit?.invoke(span.evt)
-                }
-                .padding(4.dp),
-            contentAlignment = Alignment.TopStart
-        ) {
-            EventContent(span = span, type = type)
-        }
-    }
-}
 
