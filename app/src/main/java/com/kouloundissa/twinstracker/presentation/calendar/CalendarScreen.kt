@@ -205,6 +205,7 @@ fun CalendarScreen(
                         selectedDate = selectedDate,
                         filterTypes = filterTypes,
                         onDayClick = { selectedDate = it },
+                        onEdit = { editingEvent = it },
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(

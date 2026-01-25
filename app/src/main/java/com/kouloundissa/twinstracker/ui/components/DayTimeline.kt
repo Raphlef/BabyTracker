@@ -191,7 +191,7 @@ private fun EventOverlay(
     val type = EventType.forClass(span.evt::class)
 
     // Calculate total height for entire event duration
-    val totalHeightFraction = calculateTotalHeightFraction(span, hourRowHeight)
+    val totalHeightFraction = calculateTotalHeightFraction(span)
     // ✅ NEW: Differentiate between punctual and duration events
     val hasDuration = when (span.evt) {
         is SleepEvent -> span.evt.endTime != null
@@ -327,7 +327,7 @@ fun computeDaySpans(date: LocalDate, events: List<Event>): List<DaySpan> {
         .filter { it.start.toLocalDate() == date }  // Keep only spans for requested day
 }
 
- fun calculateTotalHeightFraction(span: DaySpan, hourRowHeight: Dp): Float {
+fun calculateTotalHeightFraction(span: DaySpan): Float {
     val startHour = span.startHour
     val endHour = span.endHour
     val startMinute = span.startMinute
@@ -360,5 +360,5 @@ private fun Date.toInstant() = java.time.Instant.ofEpochMilli(time)
 private fun Date.toZoned() = toInstant().atZone(systemZone)
 
 // Minimum visible height for punctual events (10% of hour)
-private val MIN_INSTANT_FRAC = 0.1f
+val MIN_INSTANT_FRAC = 0.1f
 
