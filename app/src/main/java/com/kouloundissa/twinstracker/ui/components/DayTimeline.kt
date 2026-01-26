@@ -225,7 +225,7 @@ fun CurrentHourIndicator(
             color = Color(0xFFFF9800),
             fontSize = 10.sp,
             modifier = Modifier
-                .offset(y = topOffset - 1.dp, x = 2.dp)
+                .offset(y = topOffset - 10.dp, x = 2.dp)
                 .background(
                     color = backgroundColor,
                     shape = RoundedCornerShape(2.dp)
