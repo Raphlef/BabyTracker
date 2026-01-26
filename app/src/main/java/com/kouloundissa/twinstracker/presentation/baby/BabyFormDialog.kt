@@ -2,12 +2,14 @@ package com.kouloundissa.twinstracker.presentation.baby
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.ContactsContract
 import android.util.Log
+import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -147,15 +149,17 @@ fun BabyFormDialogInternal(
 ) {
     val isEditMode = babyToEdit != null
 
-    // VM states
+    // ========== COLLECT STATES ==========
     val isLoading by babyViewModel.isLoading.collectAsState()
     val babyError by babyViewModel.errorMessage.collectAsState()
     val babies by babyViewModel.babies.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
-
     val selectedFamily by familyViewModel.selectedFamily.collectAsState()
+
     val currentUserIsViewer = familyViewModel.isCurrentUserViewer()
     val haptic = LocalHapticFeedback.current
+
+    // ========== PERMISSION & VIEWER WARNINGS ==========
     var showViewerWarning by remember { mutableStateOf(false) }
     if (showViewerWarning) {
         ViewerCannotModifyBaby(onDismiss = {
@@ -163,20 +167,20 @@ fun BabyFormDialogInternal(
             onCancel()
         })
     }
-    // Resolve latest baby reference when editing
+
     val currentBaby = remember(babies, babyToEdit) {
         babyToEdit?.let { b -> babies.find { it.id == b.id } ?: babyToEdit }
     }
+
+    val formState = rememberBabyFormState(currentBaby)
+
+    // ========== OPERATION TRACKING ==========
     var saveRequested by remember { mutableStateOf(false) }
     var deleteRequested by remember { mutableStateOf(false) }
     var wasLoading by remember { mutableStateOf(false) }
-
     val openDeleteDialog = remember { mutableStateOf(false) }
-    var savedBabyLocal by remember { mutableStateOf<Baby?>(null) }
 
-    // Form State
-    val formState = rememberBabyFormState(currentBaby)
-
+    // ========== LISTEN FOR SAVE COMPLETION ==========
     LaunchedEffect(isLoading, selectedBaby, babyError) {
         if (saveRequested && wasLoading && !isLoading) {
             if (babyError == null && selectedBaby != null) {
@@ -191,7 +195,7 @@ fun BabyFormDialogInternal(
         wasLoading = isLoading
     }
 
-    // ✅ Listen for delete completion
+    // ========== LISTEN FOR DELETE COMPLETION ==========
     LaunchedEffect(deleteRequested, isLoading, babies) {
         if (deleteRequested && !isLoading) {
             // Check if baby was actually deleted
@@ -215,7 +219,7 @@ fun BabyFormDialogInternal(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
-        BabyFormBottomSheetContent(
+        BabyFormSheetContent(
             state = formState,
             isEditMode = isEditMode,
             currentBaby = currentBaby,
@@ -226,7 +230,7 @@ fun BabyFormDialogInternal(
                 if (currentUserIsViewer && isEditMode) {
                     showViewerWarning = true
                     haptic.performHapticFeedback(HapticFeedbackType.Reject)
-                    return@BabyFormBottomSheetContent  // Stop execution
+                    return@BabyFormSheetContent  // Stop execution
                 }
                 babyViewModel.saveBaby(
                     selectedFamily,
@@ -249,10 +253,6 @@ fun BabyFormDialogInternal(
                     photoRemoved = photoRemoved,
                     familyViewModel
                 )
-                selectedBaby?.let { it1 ->
-                    savedBabyLocal = it1
-                    onCompleted(savedBabyLocal)
-                }
             },
             modifier = Modifier
                 .padding(innerPadding)
@@ -260,7 +260,7 @@ fun BabyFormDialogInternal(
         )
     }
 
-    // Delete confirmation dialog remains as AlertDialog for critical action
+    // ========== DELETE CONFIRMATION DIALOG ==========
     if (isEditMode && openDeleteDialog.value && currentBaby != null) {
         DeleteConfirmationDialog(
             babyName = currentBaby.name,
@@ -276,6 +276,630 @@ fun BabyFormDialogInternal(
             onDismiss = { openDeleteDialog.value = false }
         )
     }
+}
+
+@Composable
+private fun BabyFormSheetContent(
+    state: BabyFormState,
+    isEditMode: Boolean,
+    currentBaby: Baby?,
+    babyError: String?,
+    onOpenDeleteDialog: () -> Unit,
+    onSave: (Baby, Uri?, Boolean) -> Unit,
+    babyViewModel: BabyViewModel = hiltViewModel(),
+    familyViewModel: FamilyViewModel = hiltViewModel(),
+    modifier: Modifier = Modifier,
+) {
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
+    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Column {
+                // ========== TITLE ==========
+                Text(
+                    text = if (isEditMode)
+                        stringResource(id = R.string.baby_form_title_edit)
+                    else
+                        stringResource(id = R.string.baby_form_title_create),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    //modifier = Modifier.padding(vertical = 8.dp),
+                    color = tint,
+                )
+
+                // ========== FORM SECTIONS ==========
+                BabyFormContent(
+                    state = state,
+                    isEditMode = isEditMode,
+                    existingPhotoUrl = currentBaby?.photoUrl,
+                    onRequestDeletePhoto = {
+                        if (isEditMode && currentBaby != null) {
+                            selectedFamily?.let {
+                                babyViewModel.deleteBabyPhoto(
+                                    currentBaby.id,
+                                    it,
+                                    familyViewModel
+                                )
+                            }
+                        }
+                    }
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                // ========== ACTION BUTTONS ==========
+                BabyFormActionButtons(
+                    isEditMode = isEditMode,
+                    onDelete = onOpenDeleteDialog,
+                    onSave = {
+                        Log.d("BabyForm", "request to save baby")
+                        // Validate required fields
+                        val valid = state.validate()
+                        if (!valid) return@BabyFormActionButtons
+
+                        val (babyData, newPhotoUri, photoRemoved) = state.toBabyTriple(
+                            isEditMode,
+                            currentBaby
+                        )
+                        onSave(babyData, newPhotoUri, photoRemoved)
+                    }
+                )
+
+                babyError?.let {
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        it,
+                        color = Color.Red, // MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ==================== FORM SECTIONS ================
+
+@Composable
+private fun BabyFormContent(
+    state: BabyFormState,
+    isEditMode: Boolean,
+    existingPhotoUrl: String?,
+    onRequestDeletePhoto: () -> Unit,
+) {
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
+    val context = LocalContext.current
+
+    BabyFormNameSection(state = state)
+
+    Spacer(Modifier.height(16.dp))
+
+    PhotoPicker(
+        photoUrl = state.newPhotoUrl ?: existingPhotoUrl?.toUri(),
+        onPhotoSelected = {
+            state.newPhotoUrl = it
+            state.photoRemoved = false
+        },
+        onPhotoRemoved = {
+            if (isEditMode) onRequestDeletePhoto()
+            state.newPhotoUrl = null
+            state.photoRemoved = true
+        }
+    )
+    Spacer(Modifier.height(16.dp))
+
+    ModernDateSelector(
+        label = stringResource(id = R.string.date_of_birth_label),
+        selectedDate = Date(state.birthDateTimeMillis),
+        onDateSelected = { dt -> state.birthDateTimeMillis = dt.time },
+        modifier = Modifier.fillMaxWidth()
+    )
+
+    Spacer(Modifier.height(16.dp))
+
+    IconSelector(
+        title = stringResource(id = R.string.gender_label),
+        options = Gender.entries,
+        selected = state.gender,
+        onSelect = { state.gender = it },
+        getIcon = { it.icon },
+        getColor = { it.color },
+        getLabel = { it.getDisplayName(context) }
+    )
+    Spacer(Modifier.height(16.dp))
+
+    BabyFormMeasurementsSection(state)
+
+    Spacer(Modifier.height(12.dp))
+
+    BabyFormMedicalSection(state)
+
+    Spacer(Modifier.height(12.dp))
+
+    OutlinedTextField(
+        value = state.notes,
+        onValueChange = { state.notes = it },
+        textStyle = LocalTextStyle.current.copy(color = backgroundColor),
+        label = { Text(stringResource(id = R.string.notes_label), color = backgroundColor) },
+        shape = cornerShape,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp)
+    )
+}
+
+// ========== SECTION: NAME ==========
+@Composable
+private fun BabyFormNameSection(
+    state: BabyFormState,
+) {
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
+    OutlinedTextField(
+        value = state.name,
+        onValueChange = {
+            state.name = it
+            if (state.nameError) state.nameError = false
+        },
+        textStyle = LocalTextStyle.current.copy(color = backgroundColor),
+        label = { Text(stringResource(id = R.string.baby_name_label), color = backgroundColor) },
+        isError = state.nameError,
+        modifier = Modifier.fillMaxWidth(),
+        shape = cornerShape,
+    )
+    if (state.nameError) {
+        Text(stringResource(id = R.string.baby_name_error), color = Color.Red)
+    }
+}
+
+@Composable
+private fun BabyFormMeasurementsSection(
+    state: BabyFormState,
+) {
+    NumericFieldSection(
+        label = stringResource(id = R.string.weight_form_label),
+        value = state.weight,
+        onChange = { state.weight = it },
+        error = state.weightError,
+        onErrorChange = { state.weightError = it }
+    )
+    Spacer(Modifier.height(12.dp))
+
+    NumericFieldSection(
+        label = stringResource(id = R.string.length_form_label),
+        value = state.lengthCm,
+        onChange = { state.lengthCm = it },
+        error = state.lengthError,
+        onErrorChange = { state.lengthError = it }
+    )
+    Spacer(Modifier.height(12.dp))
+
+    NumericFieldSection(
+        label = stringResource(id = R.string.head_circumference),
+        value = state.headCirc,
+        onChange = { state.headCirc = it },
+        error = state.headCircError,
+        onErrorChange = { state.headCircError = it }
+    )
+    Spacer(Modifier.height(12.dp))
+
+    IconSelector(
+        title = stringResource(id = R.string.blood_type_label),
+        options = BloodType.entries.toList(),
+        selected = state.bloodType,
+        onSelect = { state.bloodType = it },
+        getIcon = { it.icon },
+        getColor = { it.color },
+        getLabel = { it.name }
+    )
+}
+
+// ========== SECTION: MEDICAL ==========
+@Composable
+private fun BabyFormMedicalSection(
+    state: BabyFormState,
+) {
+
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
+    // Allergies
+    OutlinedTextField(
+        value = state.allergies,
+        onValueChange = { state.allergies = it },
+        textStyle = LocalTextStyle.current.copy(color = backgroundColor),
+        label = { Text(stringResource(id = R.string.allergies_label), color = backgroundColor) },
+        shape = cornerShape,
+        modifier = Modifier.fillMaxWidth()
+    )
+    Spacer(Modifier.height(12.dp))
+
+    // Medical Conditions
+    OutlinedTextField(
+        value = state.conditions,
+        onValueChange = { state.conditions = it },
+        textStyle = LocalTextStyle.current.copy(color = backgroundColor),
+        label = {
+            Text(
+                stringResource(id = R.string.medical_conditions_label),
+                color = backgroundColor
+            )
+        },
+        modifier = Modifier.fillMaxWidth(),
+        shape = cornerShape,
+    )
+    Spacer(Modifier.height(12.dp))
+
+    // Pediatrician Contact
+    PediatricianContactPicker(
+        state = state,
+    )
+}
+// ========== SECTION:  PEDIATRICIAN CONTACT PICKER ====================
+
+@Composable
+private fun PediatricianContactPicker(
+    state: BabyFormState,
+) {
+    val context = LocalContext.current
+
+    val contactLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickContact()
+    ) { uri ->
+        uri?.let {
+            extractContactData(it, context) { name, phone ->
+                state.pediatricianName = name
+                state.pediatricianPhone = phone
+            }
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            contactLauncher.launch(null)
+        } else {
+            Log.e("ContactPicker", "READ_CONTACTS permission denied")
+        }
+    }
+    Column {
+        // ========== PEDIATRICIAN NAME FIELD ==========
+        OutlinedTextField(
+            value = state.pediatricianName ?: "",
+            onValueChange = { },
+            label = { Text("Pediatrician") },
+            readOnly = true,
+            trailingIcon = {
+                IconButton(onClick = {
+                    launchContactPicker(context, permissionLauncher, contactLauncher)
+                }) {
+                    Icon(Icons.Default.Person, contentDescription = null)
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // ========== QUICK ACTIONS ==========
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(
+                onClick = {
+                    dialPhoneNumber(context, state.pediatricianPhone)
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(
+                    Icons.Default.Phone,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text("Call")
+            }
+
+            Button(
+                onClick = {
+                    saveContactToPhone(context, state.pediatricianName, state.pediatricianPhone)
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text("Save")
+            }
+        }
+    }
+}
+
+@Composable
+private fun BabyFormActionButtons(
+    isEditMode: Boolean,
+    onDelete: () -> Unit,
+    onSave: () -> Unit,
+    babyViewModel: BabyViewModel = hiltViewModel(),
+) {
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
+    val isLoading by babyViewModel.isLoading.collectAsState()
+
+    val haptic = LocalHapticFeedback.current
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = backgroundColor.copy(alpha = 0.7f),
+                shape = cornerShape
+            )
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // ========== DELETE BUTTON (EDIT MODE ONLY) ==========
+            if (isEditMode) {
+                OutlinedButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onDelete()
+                    },
+                    enabled = !isLoading,
+                    shape = cornerShape,
+                    border = BorderStroke(
+                        1.dp,
+                        if (isLoading) Color.Gray else Color.Red
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color.Red,
+                        disabledContentColor = Color.Gray
+                    )
+                ) {
+                    Text(stringResource(id = R.string.delete_button))
+                }
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            // ========== SAVE/CREATE BUTTON ==========
+            Button(
+                onClick = onSave,
+                enabled = !isLoading,
+                shape = cornerShape,
+                modifier = Modifier
+                    .height(56.dp)
+                    .pointerInput(Unit) {
+                        // ✅ Force la capture des clics
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                event.changes.forEach { it.consume() }
+                            }
+                        }
+                    }
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (isEditMode)
+                            stringResource(id = R.string.saving_button)
+                        else
+                            stringResource(id = R.string.baby_form_creating_button)
+                    )
+                } else {
+                    Text(
+                        if (isEditMode)
+                            stringResource(id = R.string.baby_form_save_button)
+                        else
+                            stringResource(id = R.string.baby_form_create_button)
+                    )
+                }
+            }
+        }
+    }
+}
+// ========== UTILITY FUNCTIONS FOR CONTACT OPERATIONS ==========
+
+private fun launchContactPicker(
+    context: Context,
+    permissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
+    contactLauncher: ManagedActivityResultLauncher<Void?, Uri?>,
+) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_CONTACTS
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            contactLauncher.launch(null)
+        } else {
+            permissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+        }
+    } else {
+        contactLauncher.launch(null)
+    }
+}
+
+private fun extractContactData(
+    uri: Uri,
+    context: Context,
+    onDataExtracted: (String, String) -> Unit,
+) {
+    try {
+        context.contentResolver.query(
+            uri,
+            arrayOf(
+                ContactsContract.Contacts.DISPLAY_NAME,
+                ContactsContract.Contacts._ID
+            ),
+            null, null, null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val name = cursor.getString(0)
+                val contactId = cursor.getString(1)
+
+                context.contentResolver.query(
+                    ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                    arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
+                    "${ContactsContract.CommonDataKinds.Phone.CONTACT_ID} = ?",
+                    arrayOf(contactId),
+                    null
+                )?.use { phoneCursor ->
+                    val phone = if (phoneCursor.moveToFirst()) {
+                        phoneCursor.getString(0)
+                    } else {
+                        ""
+                    }
+                    onDataExtracted(name, phone)
+                }
+            }
+        }
+    } catch (e: Exception) {
+        Log.e("ContactPicker", "Error querying contact", e)
+    }
+}
+
+private fun dialPhoneNumber(context: Context, phone: String?) {
+    if (phone.isNullOrBlank()) return
+    val intent = Intent(Intent.ACTION_DIAL).apply {
+        data = Uri.parse("tel:$phone")
+    }
+    context.startActivity(intent)
+}
+
+private fun saveContactToPhone(context: Context, name: String?, phone: String?) {
+    val intent = Intent(ContactsContract.Intents.Insert.ACTION).apply {
+        type = ContactsContract.RawContacts.CONTENT_TYPE
+        putExtra(ContactsContract.Intents.Insert.NAME, name)
+        putExtra(ContactsContract.Intents.Insert.PHONE, phone)
+    }
+    context.startActivity(intent)
+}
+
+@Composable
+fun ViewerCannotModifyBaby(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.restricted_access)) },
+        text = { Text(stringResource(R.string.viewer_cannot_create_baby)) },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text(stringResource(R.string.ok_button))
+            }
+        }
+    )
+}
+/* -----------------------
+   Subcomponents
+   ----------------------- */
+
+
+@Composable
+private fun NumericFieldSection(
+    label: String,
+    value: String,
+    onChange: (String) -> Unit,
+    error: String?,
+    onErrorChange: (String?) -> Unit
+) {
+    val context = LocalContext.current
+    val contentColor = Color.White
+    val cornerShape = MaterialTheme.shapes.extraLarge
+    val invalidNumberError = stringResource(id = R.string.invalid_number)
+    OutlinedTextField(
+        value = value,
+        onValueChange = { new ->
+            // Allow only digits and at most one dot
+            val filtered = new.filter { it.isDigit() || it == '.' }
+            val cleaned = if (filtered.count { it == '.' } > 1) value else filtered
+            onChange(cleaned)
+            onErrorChange(
+                if (cleaned.isNotBlank() && cleaned.toDoubleOrNull() == null)
+                    invalidNumberError else null
+            )
+        },
+        textStyle = LocalTextStyle.current.copy(color = contentColor),
+        label = { Text(label, color = contentColor) },
+        isError = error != null,
+        singleLine = true,
+        shape = cornerShape,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = Modifier.fillMaxWidth(),
+
+        )
+    error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+}
+/* -----------------------
+   Delete dialog
+   ----------------------- */
+
+@Composable
+private fun DeleteConfirmationDialog(
+    babyName: String,
+    totalEventsProvider: () -> Int,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val totalEvents = remember { totalEventsProvider() }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(id = R.string.delete_baby_title, babyName)) },
+        text = {
+            Column {
+                Text(stringResource(id = R.string.delete_baby_irreversible))
+                if (totalEvents > 0) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        stringResource(id = R.string.delete_baby_events_warning, totalEvents),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(
+                    stringResource(id = R.string.delete_button),
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(id = R.string.cancel_button))
+            }
+        }
+    )
 }
 
 @Stable
@@ -355,195 +979,6 @@ class BabyFormState(
 }
 
 @Composable
-private fun BabyFormBottomSheetContent(
-    state: BabyFormState,
-    isEditMode: Boolean,
-    currentBaby: Baby?,
-    babyError: String?,
-    onOpenDeleteDialog: () -> Unit,
-    onSave: (Baby, Uri?, Boolean) -> Unit,
-    babyViewModel: BabyViewModel = hiltViewModel(),
-    familyViewModel: FamilyViewModel = hiltViewModel(),
-    modifier: Modifier = Modifier,
-) {
-    val backgroundColor = BackgroundColor
-    val contentColor = DarkGrey
-    val tint = DarkBlue
-    val cornerShape = MaterialTheme.shapes.extraLarge
-
-    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-        ) {
-            Column {
-                Text(
-                    text = if (isEditMode)
-                        stringResource(id = R.string.baby_form_title_edit)
-                    else
-                        stringResource(id = R.string.baby_form_title_create),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    color = tint,
-                )
-
-                BabyFormContent(
-                    state = state,
-                    isEditMode = isEditMode,
-                    existingPhotoUrl = currentBaby?.photoUrl,
-                    onRequestDeletePhoto = {
-                        if (isEditMode && currentBaby != null) {
-                            selectedFamily?.let {
-                                babyViewModel.deleteBabyPhoto(
-                                    currentBaby.id,
-                                    it,
-                                    familyViewModel
-                                )
-                            }
-                        }
-                    }
-                )
-
-                Spacer(Modifier.height(8.dp))
-
-                // Action buttons
-                BabyFormActionButtons(
-                    isEditMode = isEditMode,
-                    onDelete = onOpenDeleteDialog,
-                    onSave = {
-                        Log.d("BabyForm", "request to save baby")
-                        // Validate required fields
-                        val valid = state.validate()
-                        if (!valid) return@BabyFormActionButtons
-
-                        val (babyData, newPhotoUri, photoRemoved) = state.toBabyTriple(
-                            isEditMode,
-                            currentBaby
-                        )
-                        onSave(babyData, newPhotoUri, photoRemoved)
-                    }
-                )
-
-                babyError?.let {
-                    Spacer(Modifier.height(16.dp))
-                    Text(
-                        it,
-                        color = Color.Red, // MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun BabyFormActionButtons(
-    isEditMode: Boolean,
-    onDelete: () -> Unit,
-    onSave: () -> Unit,
-    babyViewModel: BabyViewModel = hiltViewModel(),
-) {
-    val backgroundColor = BackgroundColor
-    val contentColor = DarkGrey
-    val tint = DarkBlue
-    val cornerShape = MaterialTheme.shapes.extraLarge
-
-    val isLoading by babyViewModel.isLoading.collectAsState()
-
-    val haptic = LocalHapticFeedback.current
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                color = backgroundColor.copy(alpha = 0.7f),
-                shape = cornerShape
-            )
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            // Delete button - only in edit mode
-            if (isEditMode) {
-                OutlinedButton(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onDelete()
-                    },
-                    enabled = !isLoading,
-                    shape = cornerShape,
-                    border = BorderStroke(
-                        1.dp,
-                        if (isLoading) Color.Gray else Color.Red
-                    ),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color.Red,
-                        disabledContentColor = Color.Gray
-                    )
-                ) {
-                    Text(stringResource(id = R.string.delete_button))
-                }
-            }
-
-            Spacer(Modifier.weight(1f))
-
-            // Save/Create button
-            Button(
-                onClick = onSave,
-                enabled = !isLoading,
-                shape = cornerShape,
-                modifier = Modifier
-                    .height(56.dp)
-                    .pointerInput(Unit) {
-                        // ✅ Force la capture des clics
-                        awaitPointerEventScope {
-                            while (true) {
-                                val event = awaitPointerEvent()
-                                event.changes.forEach { it.consume() }
-                            }
-                        }
-                    }
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        if (isEditMode)
-                            stringResource(id = R.string.saving_button)
-                        else
-                            stringResource(id = R.string.baby_form_creating_button)
-                    )
-                } else {
-                    Text(
-                        if (isEditMode)
-                            stringResource(id = R.string.baby_form_save_button)
-                        else
-                            stringResource(id = R.string.baby_form_create_button)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun rememberBabyFormState(initial: Baby?): BabyFormState {
     // Using rememberSaveable selectively for UX persistence if dialog recomposes.
     // Avoid serializing Calendar directly; persist millis.
@@ -592,369 +1027,3 @@ fun rememberBabyFormState(initial: Baby?): BabyFormState {
     ) { BabyFormState(initial) }
     return state
 }
-
-/* -----------------------
-   Form content
-   ----------------------- */
-
-@Composable
-private fun BabyFormContent(
-    state: BabyFormState,
-    isEditMode: Boolean,
-    existingPhotoUrl: String?,
-    onRequestDeletePhoto: () -> Unit,
-) {
-    val backgroundColor = BackgroundColor
-    val contentColor = DarkGrey
-    val tint = DarkBlue
-    val cornerShape = MaterialTheme.shapes.extraLarge
-    val context = LocalContext.current
-
-    val contactLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickContact()
-    ) { uri ->
-        uri?.let {
-
-            try {
-                context.contentResolver.query(
-                    uri,
-                    arrayOf(
-                        ContactsContract.Contacts.DISPLAY_NAME,
-                        ContactsContract.Contacts._ID
-                    ),
-                    null, null, null
-                )?.use { cursor ->
-                    if (cursor.moveToFirst()) {
-                        val name = cursor.getString(0)
-                        val contactId = cursor.getString(1)
-
-                        // Query phone number
-                        context.contentResolver.query(
-                            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                            arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
-                            "${ContactsContract.CommonDataKinds.Phone.CONTACT_ID} = ?",
-                            arrayOf(contactId),
-                            null
-                        )?.use { phoneCursor ->
-                            val phone = if (phoneCursor.moveToFirst()) {
-                                phoneCursor.getString(0)
-                            } else {
-                                ""
-                            }
-
-                            state.pediatricianName = name
-                            state.pediatricianPhone = phone
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("ContactPicker", "Error querying contact", e)
-            }
-        }
-    }
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            // Permission granted, launch contact picker
-            contactLauncher.launch(null)
-        } else {
-            // Handle permission denied
-            // Show snackbar or toast
-            Log.e("ContactPicker", "READ_CONTACTS permission denied")
-        }
-    }
-
-    OutlinedTextField(
-        value = state.name,
-        onValueChange = {
-            state.name = it
-            if (state.nameError) state.nameError = false
-        },
-        textStyle = LocalTextStyle.current.copy(color = backgroundColor),
-        label = { Text(stringResource(id = R.string.baby_name_label), color = backgroundColor) },
-        isError = state.nameError,
-        modifier = Modifier.fillMaxWidth(),
-        shape = cornerShape,
-    )
-    if (state.nameError) Text(stringResource(id = R.string.baby_name_error), color = Color.Red)
-
-    Spacer(Modifier.height(16.dp))
-
-    PhotoPicker(
-        photoUrl = state.newPhotoUrl ?: existingPhotoUrl?.toUri(),
-        onPhotoSelected = {
-            state.newPhotoUrl = it
-            state.photoRemoved = false
-        },
-        onPhotoRemoved = {
-            if (isEditMode) onRequestDeletePhoto()
-            state.newPhotoUrl = null
-            state.photoRemoved = true
-        }
-    )
-    Spacer(Modifier.height(16.dp))
-
-    ModernDateSelector(
-        label = stringResource(id = R.string.date_of_birth_label),
-        selectedDate = Date(state.birthDateTimeMillis),
-        onDateSelected = { dt -> state.birthDateTimeMillis = dt.time },
-        modifier = Modifier.fillMaxWidth()
-    )
-
-    Spacer(Modifier.height(16.dp))
-
-    IconSelector(
-        title = stringResource(id = R.string.gender_label),
-        options = Gender.entries,
-        selected = state.gender,
-        onSelect = { state.gender = it },
-        getIcon = { it.icon },
-        getColor = { it.color },
-        getLabel = { it.getDisplayName(context) }
-    )
-    Spacer(Modifier.height(16.dp))
-
-    NumericFieldSection(
-        label = stringResource(id = R.string.weight_form_label),
-        value = state.weight,
-        onChange = { state.weight = it },
-        error = state.weightError,
-        onErrorChange = { state.weightError = it }
-    )
-
-    Spacer(Modifier.height(12.dp))
-
-    NumericFieldSection(
-        label = stringResource(id = R.string.length_form_label),
-        value = state.lengthCm,
-        onChange = { state.lengthCm = it },
-        error = state.lengthError,
-        onErrorChange = { state.lengthError = it }
-    )
-
-    Spacer(Modifier.height(12.dp))
-
-    NumericFieldSection(
-        label = stringResource(id = R.string.head_circumference),
-        value = state.headCirc,
-        onChange = { state.headCirc = it },
-        error = state.headCircError,
-        onErrorChange = { state.headCircError = it }
-    )
-
-    Spacer(Modifier.height(12.dp))
-
-
-    IconSelector(
-        title = stringResource(id = R.string.blood_type_label),
-        options = BloodType.entries.toList(),
-        selected = state.bloodType,
-        onSelect = { state.bloodType = it },
-        getIcon = { it.icon },
-        getColor = { it.color },
-        getLabel = { it.name }
-    )
-    Spacer(Modifier.height(12.dp))
-
-    OutlinedTextField(
-        value = state.allergies,
-        onValueChange = { state.allergies = it },
-        textStyle = LocalTextStyle.current.copy(color = backgroundColor),
-        label = { Text(stringResource(id = R.string.allergies_label), color = backgroundColor) },
-        shape = cornerShape,
-        modifier = Modifier.fillMaxWidth()
-    )
-    Spacer(Modifier.height(12.dp))
-
-    OutlinedTextField(
-        value = state.conditions,
-        onValueChange = { state.conditions = it },
-        textStyle = LocalTextStyle.current.copy(color = backgroundColor),
-        label = {
-            Text(
-                stringResource(id = R.string.medical_conditions_label),
-                color = backgroundColor
-            )
-        },
-        modifier = Modifier.fillMaxWidth(),
-        shape = cornerShape,
-    )
-    Spacer(Modifier.height(12.dp))
-
-    Column {
-        OutlinedTextField(
-            value = state.pediatricianName ?: "",
-            onValueChange = { },
-            label = { Text("Pediatrician") },
-            readOnly = true,
-            trailingIcon = {
-                IconButton(onClick = {
-                    // Check permission before launching
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        if (ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.READ_CONTACTS
-                            ) == PackageManager.PERMISSION_GRANTED
-                        ) {
-                            contactLauncher.launch(null)
-                        } else {
-                            permissionLauncher.launch(Manifest.permission.READ_CONTACTS)
-                        }
-                    } else {
-                        contactLauncher.launch(null)
-                    }
-                }) {
-                    Icon(Icons.Default.Person, contentDescription = null)
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        // Quick actions
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Button(
-                onClick = {
-                    val intent = Intent(Intent.ACTION_DIAL).apply {
-                        data = Uri.parse("tel:${state.pediatricianPhone}")
-                    }
-                    context.startActivity(intent)
-                },
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(
-                    Icons.Default.Phone,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text("Call")
-            }
-
-            Button(
-                onClick = {
-                    val intent = Intent(ContactsContract.Intents.Insert.ACTION).apply {
-                        type = ContactsContract.RawContacts.CONTENT_TYPE
-                        putExtra(ContactsContract.Intents.Insert.NAME, state.pediatricianName)
-                        putExtra(ContactsContract.Intents.Insert.PHONE, state.pediatricianPhone)
-                    }
-                    context.startActivity(intent)
-                },
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text("Save")
-            }
-        }
-    }
-    Spacer(Modifier.height(12.dp))
-    OutlinedTextField(
-        value = state.notes,
-        onValueChange = { state.notes = it },
-        textStyle = LocalTextStyle.current.copy(color = backgroundColor),
-        label = { Text(stringResource(id = R.string.notes_label), color = backgroundColor) },
-        shape = cornerShape,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp)
-    )
-}
-
-@Composable
-fun ViewerCannotModifyBaby(onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.restricted_access)) },
-        text = { Text(stringResource(R.string.viewer_cannot_create_baby)) },
-        confirmButton = {
-            Button(onClick = onDismiss) {
-                Text(stringResource(R.string.ok_button))
-            }
-        }
-    )
-}
-/* -----------------------
-   Subcomponents
-   ----------------------- */
-
-
-@Composable
-private fun NumericFieldSection(
-    label: String,
-    value: String,
-    onChange: (String) -> Unit,
-    error: String?,
-    onErrorChange: (String?) -> Unit
-) {
-    val context = LocalContext.current
-    val contentColor = Color.White
-    val cornerShape = MaterialTheme.shapes.extraLarge
-
-    OutlinedTextField(
-        value = value,
-        onValueChange = { new ->
-            // Allow only digits and at most one dot
-            val filtered = new.filter { it.isDigit() || it == '.' }
-            val cleaned = if (filtered.count { it == '.' } > 1) value else filtered
-            onChange(cleaned)
-            onErrorChange(
-                if (cleaned.isNotBlank() && cleaned.toDoubleOrNull() == null)
-                    context.getString(R.string.invalid_number) else null
-            )
-        },
-        textStyle = LocalTextStyle.current.copy(color = contentColor),
-        label = { Text(label, color = contentColor) },
-        isError = error != null,
-        singleLine = true,
-        shape = cornerShape,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        modifier = Modifier.fillMaxWidth(),
-
-        )
-    error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-}
-/* -----------------------
-   Delete dialog
-   ----------------------- */
-
-@Composable
-private fun DeleteConfirmationDialog(
-    babyName: String,
-    totalEventsProvider: () -> Int,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    val totalEvents = remember { totalEventsProvider() }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(id = R.string.delete_baby_title, babyName)) },
-        text = {
-            Column {
-                Text(stringResource(id = R.string.delete_baby_irreversible))
-                if (totalEvents > 0) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        stringResource(id = R.string.delete_baby_events_warning, totalEvents),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(
-                    stringResource(id = R.string.delete_button),
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(id = R.string.cancel_button))
-            }
-        }
-    )
-}
-
