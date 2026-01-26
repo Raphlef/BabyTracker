@@ -216,7 +216,8 @@ fun CurrentHourIndicator(
                 .offset(y = topOffset)
                 .fillMaxWidth()
                 .height(2.dp)
-                .background(Color(0xFFFF9800)).padding(vertical = VERTICAL_SPACING_BETWEEN_STACKED),
+                .background(Color(0xFFFF9800))
+                .padding(vertical = VERTICAL_SPACING_BETWEEN_STACKED),
         )
 
         Text(
