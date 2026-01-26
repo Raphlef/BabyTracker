@@ -1,8 +1,16 @@
-package com.kouloundissa.twinstracker.ui.components
+package com.kouloundissa.twinstracker.ui.components.Calendar
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.with
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,14 +25,20 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -38,6 +52,67 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
+@Composable
+fun Calendar(
+    currentMonth: LocalDate,
+    onMonthChange: (delta: Long) -> Unit,
+    eventsByDay : Map<LocalDate, List<Event>>,
+    selectedDate: LocalDate,
+    onDayClick: (LocalDate) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // Gesture detection state
+    var dragOffset by remember { mutableStateOf(0f) }
+    val swipeThreshold = with(LocalDensity.current) { 100.dp.toPx() }
+
+    Box(
+        modifier
+            .pointerInput(currentMonth) {
+                // Only intercept horizontal drags
+                detectHorizontalDragGestures(
+                    onDragStart = { dragOffset = 0f },
+                    onHorizontalDrag = { _, deltaX -> dragOffset += deltaX },
+                    onDragEnd = {
+                        when {
+                            dragOffset > swipeThreshold -> onMonthChange(-1L)
+                            dragOffset < -swipeThreshold -> onMonthChange(1L)
+                        }
+                        dragOffset = 0f
+                    }
+                )
+            }
+    ) {
+        AnimatedContent(
+            targetState = currentMonth,
+            transitionSpec = {
+                if (targetState > initialState) {
+                    slideInHorizontally { width -> width } + fadeIn() with
+                            slideOutHorizontally { width -> -width } + fadeOut()
+                } else {
+                    slideInHorizontally { width -> -width } + fadeIn() with
+                            slideOutHorizontally { width -> width } + fadeOut()
+                }
+            }
+        ) { month ->
+            Column {
+                MonthHeader(
+                    currentMonth = month,
+                    onMonthChange = onMonthChange
+                )
+                Spacer(Modifier.height(8.dp))
+                CalendarGrid(
+                    year = month.year,
+                    month = month.monthValue,
+                    eventsByDay = eventsByDay,
+                    selectedDate = selectedDate,
+                    onDayClick = onDayClick
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun CalendarGrid(
@@ -244,3 +319,5 @@ enum class ActivityLevel(val maxCount: Int) {
         }
     }
 }
+
+

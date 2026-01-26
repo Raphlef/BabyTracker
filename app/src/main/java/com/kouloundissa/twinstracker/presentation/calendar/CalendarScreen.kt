@@ -45,10 +45,10 @@ import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
-import com.kouloundissa.twinstracker.ui.components.Calendar
+import com.kouloundissa.twinstracker.ui.components.Calendar.Calendar
+import com.kouloundissa.twinstracker.ui.components.Calendar.WeekTimeline
 import com.kouloundissa.twinstracker.ui.components.FilterBar
 import com.kouloundissa.twinstracker.ui.components.FilterBarLayoutMode
-import com.kouloundissa.twinstracker.ui.components.WeekTimeline
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey

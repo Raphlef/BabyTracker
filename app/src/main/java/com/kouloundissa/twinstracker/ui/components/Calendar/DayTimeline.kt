@@ -43,7 +43,7 @@ import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
-import com.kouloundissa.twinstracker.ui.components.VERTICAL_SPACING_BETWEEN_STACKED
+import com.kouloundissa.twinstracker.ui.components.Calendar.VERTICAL_SPACING_BETWEEN_STACKED
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.delay
