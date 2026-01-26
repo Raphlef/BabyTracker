@@ -30,9 +30,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Cake
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -67,7 +73,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -78,6 +83,7 @@ import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.BloodType
 import com.kouloundissa.twinstracker.data.Gender
 import com.kouloundissa.twinstracker.data.getDisplayName
+import com.kouloundissa.twinstracker.presentation.settings.SectionCard
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
@@ -300,7 +306,7 @@ private fun BabyFormSheetContent(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .padding(top = 0.dp, end = 8.dp)
     ) {
         Box(
             modifier = Modifier
@@ -309,17 +315,6 @@ private fun BabyFormSheetContent(
                 .verticalScroll(rememberScrollState())
         ) {
             Column {
-                // ========== TITLE ==========
-                Text(
-                    text = if (isEditMode)
-                        stringResource(id = R.string.baby_form_title_edit)
-                    else
-                        stringResource(id = R.string.baby_form_title_create),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    //modifier = Modifier.padding(vertical = 8.dp),
-                    color = tint,
-                )
 
                 // ========== FORM SECTIONS ==========
                 BabyFormContent(
@@ -387,9 +382,103 @@ private fun BabyFormContent(
     val cornerShape = MaterialTheme.shapes.extraLarge
     val context = LocalContext.current
 
-    BabyFormNameSection(state = state)
+    SectionCard(
+        if (isEditMode)
+            stringResource(id = R.string.baby_form_title_edit)
+        else
+            stringResource(id = R.string.baby_form_title_create),
+        icon = if (isEditMode)
+            Icons.Default.Edit
+        else
+            Icons.Default.AddCircle
+    )
+    {
+        BabyFormNamePhotoSection(state = state, existingPhotoUrl, isEditMode, onRequestDeletePhoto)
+    }
+
 
     Spacer(Modifier.height(16.dp))
+
+    SectionCard(
+        stringResource(id = R.string.birth_label),
+        icon = Icons.Default.Cake
+    )
+    {
+        BabyFormBirthDetailsSection(state = state)
+    }
+
+    Spacer(Modifier.height(16.dp))
+
+    SectionCard(
+        stringResource(id = R.string.body_measurements_title),
+        icon = Icons.Default.Straighten
+    )
+    {
+        BabyFormMeasurementsSection(state)
+    }
+
+
+    Spacer(Modifier.height(12.dp))
+
+    SectionCard(
+        stringResource(id = R.string.medical_conditions_label),
+        icon = Icons.Default.LocalHospital
+    )
+    {
+        BabyFormMedicalSection(state)
+    }
+
+
+    Spacer(Modifier.height(12.dp))
+
+    SectionCard(
+        "",
+        icon = Icons.Default.Description
+    )
+    {
+        OutlinedTextField(
+            value = state.notes,
+            onValueChange = { state.notes = it },
+            textStyle = LocalTextStyle.current.copy(color = contentColor),
+            label = { Text(stringResource(id = R.string.notes_label), color = contentColor) },
+            shape = cornerShape,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp)
+        )
+    }
+
+}
+
+// ========== SECTION: NAME ==========
+@Composable
+private fun BabyFormNamePhotoSection(
+    state: BabyFormState,
+    existingPhotoUrl: String?,
+    isEditMode: Boolean,
+    onRequestDeletePhoto: () -> Unit,
+) {
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
+    OutlinedTextField(
+        value = state.name,
+        onValueChange = {
+            state.name = it
+            if (state.nameError) state.nameError = false
+        },
+        textStyle = LocalTextStyle.current.copy(color = contentColor),
+        label = { Text(stringResource(id = R.string.baby_name_label), color = contentColor) },
+        isError = state.nameError,
+        modifier = Modifier.fillMaxWidth(),
+        shape = cornerShape,
+    )
+    if (state.nameError) {
+        Text(stringResource(id = R.string.baby_name_error), color = Color.Red)
+    }
+    Spacer(Modifier.height(8.dp))
 
     PhotoPicker(
         photoUrl = state.newPhotoUrl ?: existingPhotoUrl?.toUri(),
@@ -403,7 +492,14 @@ private fun BabyFormContent(
             state.photoRemoved = true
         }
     )
-    Spacer(Modifier.height(16.dp))
+}
+
+// ========== SECTION: BIRTH DETAILS ==========
+@Composable
+private fun BabyFormBirthDetailsSection(
+    state: BabyFormState,
+) {
+    val context = LocalContext.current
 
     ModernDateSelector(
         label = stringResource(id = R.string.date_of_birth_label),
@@ -411,8 +507,7 @@ private fun BabyFormContent(
         onDateSelected = { dt -> state.birthDateTimeMillis = dt.time },
         modifier = Modifier.fillMaxWidth()
     )
-
-    Spacer(Modifier.height(16.dp))
+    Spacer(Modifier.height(8.dp))
 
     IconSelector(
         title = stringResource(id = R.string.gender_label),
@@ -423,53 +518,6 @@ private fun BabyFormContent(
         getColor = { it.color },
         getLabel = { it.getDisplayName(context) }
     )
-    Spacer(Modifier.height(16.dp))
-
-    BabyFormMeasurementsSection(state)
-
-    Spacer(Modifier.height(12.dp))
-
-    BabyFormMedicalSection(state)
-
-    Spacer(Modifier.height(12.dp))
-
-    OutlinedTextField(
-        value = state.notes,
-        onValueChange = { state.notes = it },
-        textStyle = LocalTextStyle.current.copy(color = backgroundColor),
-        label = { Text(stringResource(id = R.string.notes_label), color = backgroundColor) },
-        shape = cornerShape,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp)
-    )
-}
-
-// ========== SECTION: NAME ==========
-@Composable
-private fun BabyFormNameSection(
-    state: BabyFormState,
-) {
-    val backgroundColor = BackgroundColor
-    val contentColor = DarkGrey
-    val tint = DarkBlue
-    val cornerShape = MaterialTheme.shapes.extraLarge
-
-    OutlinedTextField(
-        value = state.name,
-        onValueChange = {
-            state.name = it
-            if (state.nameError) state.nameError = false
-        },
-        textStyle = LocalTextStyle.current.copy(color = backgroundColor),
-        label = { Text(stringResource(id = R.string.baby_name_label), color = backgroundColor) },
-        isError = state.nameError,
-        modifier = Modifier.fillMaxWidth(),
-        shape = cornerShape,
-    )
-    if (state.nameError) {
-        Text(stringResource(id = R.string.baby_name_error), color = Color.Red)
-    }
 }
 
 @Composable
@@ -483,7 +531,7 @@ private fun BabyFormMeasurementsSection(
         error = state.weightError,
         onErrorChange = { state.weightError = it }
     )
-    Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(8.dp))
 
     NumericFieldSection(
         label = stringResource(id = R.string.length_form_label),
@@ -492,7 +540,7 @@ private fun BabyFormMeasurementsSection(
         error = state.lengthError,
         onErrorChange = { state.lengthError = it }
     )
-    Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(8.dp))
 
     NumericFieldSection(
         label = stringResource(id = R.string.head_circumference),
@@ -501,7 +549,7 @@ private fun BabyFormMeasurementsSection(
         error = state.headCircError,
         onErrorChange = { state.headCircError = it }
     )
-    Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(8.dp))
 
     IconSelector(
         title = stringResource(id = R.string.blood_type_label),
@@ -528,28 +576,28 @@ private fun BabyFormMedicalSection(
     OutlinedTextField(
         value = state.allergies,
         onValueChange = { state.allergies = it },
-        textStyle = LocalTextStyle.current.copy(color = backgroundColor),
-        label = { Text(stringResource(id = R.string.allergies_label), color = backgroundColor) },
+        textStyle = LocalTextStyle.current.copy(color = contentColor),
+        label = { Text(stringResource(id = R.string.allergies_label), color = contentColor) },
         shape = cornerShape,
         modifier = Modifier.fillMaxWidth()
     )
-    Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(8.dp))
 
     // Medical Conditions
     OutlinedTextField(
         value = state.conditions,
         onValueChange = { state.conditions = it },
-        textStyle = LocalTextStyle.current.copy(color = backgroundColor),
+        textStyle = LocalTextStyle.current.copy(color = contentColor),
         label = {
             Text(
                 stringResource(id = R.string.medical_conditions_label),
-                color = backgroundColor
+                color = contentColor
             )
         },
         modifier = Modifier.fillMaxWidth(),
         shape = cornerShape,
     )
-    Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(8.dp))
 
     // Pediatrician Contact
     PediatricianContactPicker(
@@ -833,7 +881,7 @@ private fun NumericFieldSection(
     onErrorChange: (String?) -> Unit
 ) {
     val context = LocalContext.current
-    val contentColor = Color.White
+    val contentColor = DarkGrey
     val cornerShape = MaterialTheme.shapes.extraLarge
     val invalidNumberError = stringResource(id = R.string.invalid_number)
     OutlinedTextField(

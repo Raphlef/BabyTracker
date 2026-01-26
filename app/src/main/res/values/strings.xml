@@ -135,14 +135,15 @@
     <!-- ========== BABY FORM - FIELDS ========== -->
     <string name="baby_name_label">Baby Name</string>
     <string name="baby_name_error">Name is required</string>
+    <string name="birth_label">Birth</string>
     <string name="date_of_birth_label">Date of Birth</string>
     <string name="gender_label">Gender</string>
     <string name="weight_form_label">Weight (kg)</string>
     <string name="length_form_label">Length (cm)</string>
     <string name="head_circumference">Head Circumference (cm)</string>
     <string name="blood_type_label">Blood Type</string>
-    <string name="allergies_label">Allergies (comma separated)</string>
-    <string name="medical_conditions_label">Medical Conditions (comma separated)</string>
+    <string name="allergies_label">Allergies</string>
+    <string name="medical_conditions_label">Medical Conditions</string>
     <string name="pediatrician_contact_label">Pediatrician Contact</string>
     <string name="pick_contact_description">Pick Contact</string>
 
