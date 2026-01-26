@@ -119,8 +119,8 @@ fun DashboardScreen(
 
     val tabs = listOf(
         DashboardTab.Home,
-        DashboardTab.Calendar,
         DashboardTab.Baby,
+        DashboardTab.Calendar,
         DashboardTab.Analysis,
     )
     val pagerState = rememberPagerState(
