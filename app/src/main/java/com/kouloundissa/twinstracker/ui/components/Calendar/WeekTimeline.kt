@@ -2,27 +2,43 @@ package com.kouloundissa.twinstracker.ui.components.Calendar
 
 import DrawEventsForDay
 import HourRowLabel
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.with
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,23 +56,92 @@ private val WEEK_HOUR_LABEL_WIDTH = 32.dp
 private val WEEK_HOUR_ROW_HEIGHT = 48.dp
 val VERTICAL_SPACING_BETWEEN_STACKED = 2.dp
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun WeekTimeline(
     analysisSnapshot: AnalysisSnapshot,
+    onWeekChange: (delta: Long) -> Unit,
     selectedDate: LocalDate,
     filterTypes: Set<EventType>,
     onDayClick: (LocalDate) -> Unit,
     onEdit: (Event) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val weekDays = remember(selectedDate) {
-        val mondayOfWeek = selectedDate.minusDays(
-            (selectedDate.dayOfWeek.value - 1L) // DayOfWeek: lundi=1, dimanche=7
+    // Calculer le lundi à partir de selectedDate
+    val currentWeekMonday = remember(selectedDate) {
+        selectedDate.minusDays(
+            (selectedDate.dayOfWeek.value - 1L)
         )
+    }
+    // Gesture detection state
+    var dragOffset by remember { mutableStateOf(0f) }
+    val swipeThreshold = with(LocalDensity.current) { 100.dp.toPx() }
 
-        // Génère lundi (jour 0) -> dimanche (jour 6)
+    Box(
+        modifier
+            .pointerInput(currentWeekMonday) {
+                detectHorizontalDragGestures(
+                    onDragStart = { dragOffset = 0f },
+                    onHorizontalDrag = { _, deltaX -> dragOffset += deltaX },
+                    onDragEnd = {
+                        when {
+                            dragOffset > swipeThreshold -> onWeekChange(-1L)
+                            dragOffset < -swipeThreshold -> onWeekChange(1L)
+                        }
+                        dragOffset = 0f
+                    }
+                )
+            }
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            WeekHeader(
+                currentWeekMonday = currentWeekMonday,
+                onWeekChange = { delta ->
+                    val newDate = currentWeekMonday.plusWeeks(delta)
+                    onDayClick(newDate)
+                }
+            )
+            Spacer(Modifier.height(8.dp))
+            AnimatedContent(
+                targetState = currentWeekMonday,
+                transitionSpec = {
+                    if (targetState > initialState) {
+                        slideInHorizontally { width -> width } + fadeIn() with
+                                slideOutHorizontally { width -> -width } + fadeOut()
+                    } else {
+                        slideInHorizontally { width -> -width } + fadeIn() with
+                                slideOutHorizontally { width -> width } + fadeOut()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { weekMonday ->
+
+                WeekTimelineContent(
+                    analysisSnapshot = analysisSnapshot,
+                    currentWeekMonday = weekMonday,
+                    selectedDate = selectedDate,
+                    filterTypes = filterTypes,
+                    onDayClick = onDayClick,
+                    onEdit = onEdit
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun WeekTimelineContent(
+    analysisSnapshot: AnalysisSnapshot,
+    currentWeekMonday: LocalDate,
+    selectedDate: LocalDate,
+    filterTypes: Set<EventType>,
+    onDayClick: (LocalDate) -> Unit,
+    onEdit: (Event) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val weekDays = remember(currentWeekMonday) {
         (0..6).map { offset ->
-            mondayOfWeek.plusDays(offset.toLong())
+            currentWeekMonday.plusDays(offset.toLong())
         }
     }
 

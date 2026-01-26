@@ -214,7 +214,24 @@ fun CalendarScreen(
                         analysisSnapshot = analysisSnapshot,
                         selectedDate = selectedDate,
                         filterTypes = filterTypes,
-                        onDayClick = { selectedDate = it },
+                        onDayClick = { newDate ->
+                            selectedDate = newDate
+
+                            val newMonth = LocalDate.of(newDate.year, newDate.month, 1)
+                            if (newMonth != currentMonth) {
+                                currentMonth = newMonth
+                            }
+                        },onWeekChange = { delta ->
+                            // ✅ Calculer la nouvelle date en ajoutant/soustrayant des semaines
+                            val newDate = selectedDate.plusWeeks(delta)
+                            selectedDate = newDate
+
+                            // Sync mois automatiquement si changement de mois détecté
+                            val newMonth = LocalDate.of(newDate.year, newDate.month, 1)
+                            if (newMonth != currentMonth) {
+                                currentMonth = newMonth
+                            }
+                        },
                         onEdit = { editingEvent = it },
                         modifier = Modifier
                             .fillMaxWidth()
