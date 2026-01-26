@@ -478,7 +478,7 @@ private fun BabyFormNamePhotoSection(
     if (state.nameError) {
         Text(stringResource(id = R.string.baby_name_error), color = Color.Red)
     }
-    Spacer(Modifier.height(8.dp))
+    Spacer(Modifier.height(4.dp))
 
     PhotoPicker(
         photoUrl = state.newPhotoUrl ?: existingPhotoUrl?.toUri(),
@@ -507,7 +507,7 @@ private fun BabyFormBirthDetailsSection(
         onDateSelected = { dt -> state.birthDateTimeMillis = dt.time },
         modifier = Modifier.fillMaxWidth()
     )
-    Spacer(Modifier.height(8.dp))
+    Spacer(Modifier.height(4.dp))
 
     IconSelector(
         title = stringResource(id = R.string.gender_label),
@@ -531,7 +531,7 @@ private fun BabyFormMeasurementsSection(
         error = state.weightError,
         onErrorChange = { state.weightError = it }
     )
-    Spacer(Modifier.height(8.dp))
+    Spacer(Modifier.height(4.dp))
 
     NumericFieldSection(
         label = stringResource(id = R.string.length_form_label),
@@ -540,7 +540,7 @@ private fun BabyFormMeasurementsSection(
         error = state.lengthError,
         onErrorChange = { state.lengthError = it }
     )
-    Spacer(Modifier.height(8.dp))
+    Spacer(Modifier.height(4.dp))
 
     NumericFieldSection(
         label = stringResource(id = R.string.head_circumference),
@@ -549,7 +549,7 @@ private fun BabyFormMeasurementsSection(
         error = state.headCircError,
         onErrorChange = { state.headCircError = it }
     )
-    Spacer(Modifier.height(8.dp))
+    Spacer(Modifier.height(4.dp))
 
     IconSelector(
         title = stringResource(id = R.string.blood_type_label),
@@ -581,7 +581,7 @@ private fun BabyFormMedicalSection(
         shape = cornerShape,
         modifier = Modifier.fillMaxWidth()
     )
-    Spacer(Modifier.height(8.dp))
+    Spacer(Modifier.height(4.dp))
 
     // Medical Conditions
     OutlinedTextField(
@@ -597,7 +597,7 @@ private fun BabyFormMedicalSection(
         modifier = Modifier.fillMaxWidth(),
         shape = cornerShape,
     )
-    Spacer(Modifier.height(8.dp))
+    Spacer(Modifier.height(4.dp))
 
     // Pediatrician Contact
     PediatricianContactPicker(
