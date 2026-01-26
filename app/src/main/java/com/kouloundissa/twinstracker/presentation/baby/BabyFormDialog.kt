@@ -537,7 +537,6 @@ private fun BabyFormMeasurementsSection(
         error = state.lengthError,
         onErrorChange = { state.lengthError = it }
     )
-    Spacer(Modifier.height(4.dp))
 
     NumericFieldSection(
         label = stringResource(id = R.string.head_circumference),
