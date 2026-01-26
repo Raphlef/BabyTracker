@@ -1,6 +1,7 @@
 package com.kouloundissa.twinstracker.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -120,6 +122,9 @@ fun DayCell(
         else -> DarkGrey
     }
 
+    val today = LocalDate.now()
+    val isToday = date == today
+
     val eventTypesByFrequency =
         events
             .groupingBy { EventType.forClass(it::class) }
@@ -135,6 +140,11 @@ fun DayCell(
             .padding(2.dp)
             .clip(MaterialTheme.shapes.medium)
             .background(backgroundColor)
+            .border(
+                width = if (isToday) 1.dp else 0.dp,
+                color = if (isToday) Color(0xFFFF9800) else Color.Transparent,
+                shape = MaterialTheme.shapes.medium
+            )
             .clickable { onClick(date) },
         contentAlignment = Alignment.TopCenter
     ) {

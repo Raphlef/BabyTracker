@@ -3,6 +3,7 @@ package com.kouloundissa.twinstracker.ui.components
 import DrawEventsForDay
 import HourRowLabel
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,12 +14,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -79,7 +83,7 @@ fun WeekTimeline(
 
             Box(Modifier.width(WEEK_HOUR_LABEL_WIDTH))
 
-            weekDays.forEach { day  ->
+            weekDays.forEach { day ->
                 DayHeader(
                     day = day,
                     events = weekEventsByDay[day] ?: emptyList(),
@@ -154,22 +158,35 @@ private fun DayHeader(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val today = LocalDate.now()
+    val isToday = day == today
+
     val dominantEventType = remember(events) {
         events
             .groupingBy { EventType.forClass(it::class) }
             .eachCount()
             .maxByOrNull { it.value }?.key
     }
-
     Box(
         modifier = modifier
             .clickable { onClick() }
+            //.clip(if (isToday) MaterialTheme.shapes.medium else null)
             .background(
-                if (isSelected) {
+                color = if (isSelected) {
                     DarkBlue.copy(alpha = 0.1f)
                 } else {
                     BackgroundColor.copy(alpha = 0.1f)
+                },
+                shape = if (isToday) {
+                    MaterialTheme.shapes.medium
+                } else {
+                    RectangleShape
                 }
+            )
+            .border(
+                width = if (isToday) 1.dp else 0.dp,
+                color = if (isToday) Color(0xFFFF9800) else Color.Transparent,
+                shape = MaterialTheme.shapes.medium
             ),
         contentAlignment = Alignment.Center
     ) {
