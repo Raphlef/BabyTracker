@@ -50,10 +50,14 @@ fun WeekTimeline(
     modifier: Modifier = Modifier
 ) {
     val weekDays = remember(selectedDate) {
-        // 🆕 Calculer les 7 jours FINISSANT par selectedDate
+        val mondayOfWeek = selectedDate.minusDays(
+            (selectedDate.dayOfWeek.value - 1L) // DayOfWeek: lundi=1, dimanche=7
+        )
+
+        // Génère lundi (jour 0) -> dimanche (jour 6)
         (0..6).map { offset ->
-            selectedDate.minusDays(offset.toLong())
-        }.reversed()  // selectedDate en dernier!
+            mondayOfWeek.plusDays(offset.toLong())
+        }
     }
 
     val weekEventsByDay = remember(analysisSnapshot, weekDays, filterTypes) {
@@ -72,7 +76,6 @@ fun WeekTimeline(
             computeDaySpans(events)
         }
     }
-
 
     Column(modifier = modifier) {
         // HEADERS

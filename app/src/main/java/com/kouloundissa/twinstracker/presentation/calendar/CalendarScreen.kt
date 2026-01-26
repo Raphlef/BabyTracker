@@ -117,11 +117,12 @@ fun CalendarScreen(
                 )
                 eventViewModel.refreshWithFilters(filterValue)
                 val today = LocalDate.now()
-                selectedDate = if (today.year == currentMonth.year && today.monthValue == currentMonth.monthValue) {
-                    today  // ✅ Aujourd'hui si c'est dans le mois courant
-                } else {
-                    currentMonth.withDayOfMonth(1)  // ✅ Premier jour sinon
-                }
+                selectedDate =
+                    if (today.year == currentMonth.year && today.monthValue == currentMonth.monthValue) {
+                        today  // ✅ Aujourd'hui si c'est dans le mois courant
+                    } else {
+                        currentMonth.withDayOfMonth(1)  // ✅ Premier jour sinon
+                    }
             }
         }
     }
