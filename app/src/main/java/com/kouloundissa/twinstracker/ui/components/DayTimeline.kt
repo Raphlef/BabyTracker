@@ -112,9 +112,10 @@ fun DrawEventsForDay(
     onEdit: (Event) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (daySpans.isEmpty()) return
+   // if (daySpans.isEmpty()) return
 
     Box(modifier = modifier) {
+        if (daySpans.isEmpty()) return@Box
         val dayEventsForThisDay = daySpans.mapNotNull { span ->
             val spanStart = span.start.toLocalDate()
             val spanEnd = span.end.toLocalDate()
@@ -236,7 +237,7 @@ fun EventBar(
     BoxWithConstraints(
         modifier = Modifier.fillMaxWidth()
     ) {
-        val eventWidth = maxWidth * widthFraction //- 2.dp
+        val eventWidth = maxWidth * widthFraction
         val eventOffset = maxWidth * xOffsetFraction
         val eventHeight = hourRowHeight * heightFraction
         val topOffset = hourRowHeight * topOffsetFraction
