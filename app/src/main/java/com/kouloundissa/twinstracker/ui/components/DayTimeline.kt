@@ -1,3 +1,4 @@
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,10 +21,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,9 +46,12 @@ import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.ui.components.VERTICAL_SPACING_BETWEEN_STACKED
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
+import kotlinx.coroutines.delay
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Date
 
 
@@ -56,7 +65,7 @@ fun DayTimeline(
     onEdit: (Event) -> Unit
 ) {
     val contentColor = DarkGrey.copy(alpha = 0.5f)
-    val backgroundColor = BackgroundColor.copy(alpha = 0.2f)
+    val backgroundColor = BackgroundColor
     val cornerShape = MaterialTheme.shapes.large
 
     // Process events into day spans
@@ -68,7 +77,7 @@ fun DayTimeline(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-               color =BackgroundColor,
+                color = BackgroundColor,
                 shape = cornerShape
             )
             .padding(8.dp)
@@ -106,7 +115,7 @@ fun DrawEventsForDay(
     onEdit: (Event) -> Unit,
     modifier: Modifier = Modifier
 ) {
-   // if (daySpans.isEmpty()) return
+    // if (daySpans.isEmpty()) return
 
     Box(modifier = modifier) {
         if (daySpans.isEmpty()) return@Box
@@ -137,14 +146,19 @@ fun DrawEventsForDay(
             .filter { it.evt !is SleepEvent }
             .groupBy { it.startHour }
 
+        CurrentHourIndicator(
+            day = day,
+            hourRowHeight = hourRowHeight,
+            modifier = Modifier.fillMaxWidth()
+        )
+
         // SLEEP: full width
         sleepEvents.forEachIndexed { stackIndex, span ->
             EventBar(
                 span = span,
                 stackIndex = stackIndex,
                 hourRowHeight = hourRowHeight,
-                onEdit = onEdit,
-                isAbsoluteOffset = true
+                onEdit = onEdit
             )
         }
 
@@ -160,13 +174,67 @@ fun DrawEventsForDay(
                     xOffsetFraction = index.toFloat() / numConcurrent,
                     stackIndex = sleepEvents.size,
                     hourRowHeight = hourRowHeight,
-                    onEdit = onEdit,
-                    isAbsoluteOffset = true
+                    onEdit = onEdit
                 )
             }
         }
     }
 }
+
+@SuppressLint("UnusedBoxWithConstraintsScope")
+@Composable
+fun CurrentHourIndicator(
+    day: LocalDate,
+    hourRowHeight: Dp,
+    modifier: Modifier = Modifier
+) {
+    val contentColor = DarkGrey.copy(alpha = 0.5f)
+    val backgroundColor = BackgroundColor
+    val cornerShape = MaterialTheme.shapes.large
+
+    val today = remember { LocalDate.now() }
+    var currentHourFraction by remember { mutableStateOf(0f) }
+
+    // Mise à jour automatique chaque minute
+    LaunchedEffect(day) {
+        if (day == today) {
+            while (day == LocalDate.now()) {
+                val now = ZonedDateTime.now()
+                currentHourFraction = now.hour + (now.minute / 60f)
+                delay(60_000) // 1 minute
+            }
+        }
+    }
+
+    if (day != today) return
+
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val topOffset = hourRowHeight * currentHourFraction
+
+        Box(
+            modifier = Modifier
+                .offset(y = topOffset)
+                .fillMaxWidth()
+                .height(2.dp)
+                .background(Color(0xFFFF9800)).padding(vertical = VERTICAL_SPACING_BETWEEN_STACKED),
+        )
+
+        Text(
+            text = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm")),
+            style = MaterialTheme.typography.labelSmall,
+            color = Color(0xFFFF9800),
+            fontSize = 10.sp,
+            modifier = Modifier
+                .offset(y = topOffset - 1.dp, x = 2.dp)
+                .background(
+                    color = backgroundColor,
+                    shape = RoundedCornerShape(2.dp)
+                )
+                .padding(vertical = VERTICAL_SPACING_BETWEEN_STACKED),
+        )
+    }
+}
+
 
 @Composable
 fun HourRowLabel(
@@ -208,8 +276,7 @@ fun EventBar(
     stackIndex: Int = 0,
     hourRowHeight: Dp,
     onEdit: ((Event) -> Unit)? = null,
-    minHeightFraction: Float = 0.1f,
-    isAbsoluteOffset: Boolean = false
+    minHeightFraction: Float = 0.1f
 ) {
     val type = EventType.forClass(span.evt::class)
 
@@ -219,14 +286,7 @@ fun EventBar(
     val heightFraction = (totalMinutes / 60f).coerceAtLeast(minHeightFraction)
 
     // Position absolue depuis le top (hour de début + minutes)
-    val topOffsetFraction = if (isAbsoluteOffset) {
-        // DayTimeline: position absolue depuis le top (hour + minutes)
-        span.startHour + (span.startMinute / 60f)
-    } else {
-        // WeekTimeline: position relative à l'hour (juste minutes)
-        span.startMinute / 60f
-    }
-
+    val topOffsetFraction = span.startHour + (span.startMinute / 60f)
 
     BoxWithConstraints(
         modifier = Modifier.fillMaxWidth()
