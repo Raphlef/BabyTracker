@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,12 +35,6 @@ fun Calendar(
     onDayClick: (LocalDate) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Remember previous month to determine animation direction
-    var previousMonth by remember { mutableStateOf(currentMonth) }
-    LaunchedEffect(currentMonth) {
-        previousMonth = currentMonth
-    }
-
     // Gesture detection state
     var dragOffset by remember { mutableStateOf(0f) }
     val swipeThreshold = with(LocalDensity.current) { 100.dp.toPx() }

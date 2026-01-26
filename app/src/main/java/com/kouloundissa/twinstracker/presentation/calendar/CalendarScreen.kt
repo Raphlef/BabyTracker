@@ -54,6 +54,7 @@ import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 @Composable
 fun CalendarScreen(
@@ -97,12 +98,13 @@ fun CalendarScreen(
         if (isVisible) {
             selectedBaby?.let { baby ->
                 val startOfMonth = currentMonth.withDayOfMonth(1)
+                val startOfRange = startOfMonth.minus(1, ChronoUnit.WEEKS)
                 val endOfMonth = currentMonth.withDayOfMonth(currentMonth.lengthOfMonth())
                     .plusDays(1)
 
                 val dateRange = AnalysisFilter.DateRange(
                     AnalysisRange.CUSTOM,
-                    startOfMonth,
+                    startOfRange,
                     endOfMonth
                 )
                 val newBabyFilter = AnalysisFilter.BabyFilter(selectedBabies = setOf(baby))
@@ -114,6 +116,12 @@ fun CalendarScreen(
                     eventTypeFilter = eventTypeFilter
                 )
                 eventViewModel.refreshWithFilters(filterValue)
+                val today = LocalDate.now()
+                selectedDate = if (today.year == currentMonth.year && today.monthValue == currentMonth.monthValue) {
+                    today  // ✅ Aujourd'hui si c'est dans le mois courant
+                } else {
+                    currentMonth.withDayOfMonth(1)  // ✅ Premier jour sinon
+                }
             }
         }
     }
@@ -137,7 +145,7 @@ fun CalendarScreen(
             ?.takeIf { filterTypes.isNotEmpty() }
             ?: emptyList()
     }
-    val backgroundColor = BackgroundColor.copy(alpha = 0.2f)
+    val backgroundColor = BackgroundColor
     val contentColor = DarkGrey.copy(alpha = 0.5f)
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
@@ -190,7 +198,9 @@ fun CalendarScreen(
 
                     Calendar(
                         currentMonth = currentMonth,
-                        onMonthChange = { delta -> currentMonth = currentMonth.plusMonths(delta) },
+                        onMonthChange = { delta ->
+                            currentMonth = currentMonth.plusMonths(delta)
+                        },
                         eventsByDay = eventsByDayForCalendar,
                         selectedDate = selectedDate,
                         onDayClick = { selectedDate = it }
