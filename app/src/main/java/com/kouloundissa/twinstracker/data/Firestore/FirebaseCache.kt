@@ -505,13 +505,15 @@ class FirebaseCache(
      */
     suspend fun clearCacheForBaby(babyId: String) {
         try {
+            var clearedCount = 0
             context.cacheDataStore.edit { preferences ->
-                preferences.asMap()
+                val keysToRemove = preferences.asMap()
                     .keys
                     .filter { it.name.startsWith("events_${babyId}_") }
-                    .forEach { preferences.remove(it) }
+                clearedCount = keysToRemove.size
+                keysToRemove.forEach { preferences.remove(it) }
             }
-            Log.d(TAG, "Cleared cache for baby=$babyId")
+            Log.d(TAG, "Cleared cache for baby=$babyId - Removed $clearedCount entries")
         } catch (e: Exception) {
             Log.e(TAG, "Error clearing cache for baby=$babyId", e)
         }
