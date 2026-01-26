@@ -306,7 +306,7 @@ private fun BabyFormSheetContent(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = 0.dp, end = 12.dp)
+            .padding(top = 0.dp, bottom = 12.dp, start = 8.dp, end = 8.dp)
     ) {
         Box(
             modifier = Modifier
@@ -604,6 +604,11 @@ private fun BabyFormMedicalSection(
 private fun PediatricianContactPicker(
     state: BabyFormState,
 ) {
+    val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
     val context = LocalContext.current
 
     val contactLauncher = rememberLauncherForActivityResult(
@@ -631,8 +636,14 @@ private fun PediatricianContactPicker(
         OutlinedTextField(
             value = state.pediatricianName ?: "",
             onValueChange = { },
-            label = { Text("Pediatrician") },
+            label = {
+                Text(
+                    stringResource(id = R.string.pediatrician_label),
+                    color = contentColor
+                )
+            },
             readOnly = true,
+            textStyle = LocalTextStyle.current.copy(color = contentColor),
             trailingIcon = {
                 IconButton(onClick = {
                     launchContactPicker(context, permissionLauncher, contactLauncher)
@@ -640,6 +651,7 @@ private fun PediatricianContactPicker(
                     Icon(Icons.Default.Person, contentDescription = null)
                 }
             },
+            shape = cornerShape,
             modifier = Modifier.fillMaxWidth()
         )
 

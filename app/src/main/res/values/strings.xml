@@ -144,7 +144,7 @@
     <string name="blood_type_label">Blood Type</string>
     <string name="allergies_label">Allergies</string>
     <string name="medical_conditions_label">Medical Conditions</string>
-    <string name="pediatrician_contact_label">Pediatrician Contact</string>
+    <string name="pediatrician_label">Pediatrician</string>
     <string name="pick_contact_description">Pick Contact</string>
 
     <!-- ========== BABY FORM - VALIDATION ========== -->
