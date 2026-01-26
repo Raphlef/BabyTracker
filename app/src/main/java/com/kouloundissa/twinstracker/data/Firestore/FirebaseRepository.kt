@@ -42,6 +42,7 @@ import com.kouloundissa.twinstracker.data.groupByDateSpanning
 import com.kouloundissa.twinstracker.data.toEvent
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -56,6 +57,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -636,7 +638,7 @@ class FirebaseRepository @Inject constructor(
         processCachedDays(babyId, plan, firebaseCache, allEvents, transform)
 
         // STEP 3: Query missing days
-        queryMissingDays(babyId, plan, firebaseCache, allEvents, transform)
+        queryMissingDays(babyId, plan, firebaseCache, allEvents, transform )
 
         // STEP 4: Setup real-time listener
         setupRealtimeListener(babyId, plan, firebaseCache, allEvents, transform)
@@ -695,15 +697,46 @@ class FirebaseRepository @Inject constructor(
 
         Log.d(TAG, "→ Querying ${plan.missingDays.size} missing days...")
 
-        for (missingDay in plan.missingDays) {
-            try {
-                queryAndProcessSingleDay(
-                    babyId, missingDay, plan, firebaseCache, allEvents
+        try {
+            // Build minimal set of time ranges that cover only missing days
+            val ranges = buildMissingDayRanges(plan.missingDays)
+
+            val allQueriedEvents = mutableListOf<Event>()
+
+            for ((start, end) in ranges) {
+                Log.d(TAG, "  → Querying range $start → $end")
+                val events = queryEventsForRangeOnce(
+                    babyId = babyId,
+                    startDate = start,
+                    endDate = end,
+                    db = db
                 )
-            } catch (e: Exception) {
-                Log.e(TAG, "✗ Error querying day: ${e.message}", e)
-                throw e
+                allQueriedEvents += events
             }
+
+            Log.d(
+                TAG,
+                "✓ Queried ${plan.missingDays.size} missing days in ${ranges.size} range(s), " +
+                        "total events: ${allQueriedEvents.size}"
+            )
+
+            // Distribute events per day + collect cache operations
+            val cacheOps = distributeMissingDaysEvents(
+                babyId = babyId,
+                missingDays = plan.missingDays,
+                events = allQueriedEvents,
+                allEvents = allEvents,
+                now = System.currentTimeMillis()
+            )
+
+            // Execute all cache operations in background (don't await)
+            if (cacheOps.isNotEmpty()) {
+                launchBackgroundCaching(babyId, cacheOps, firebaseCache)
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "✗ Error querying missing days: ${e.message}", e)
+            throw e
         }
 
         // Emit combined data
@@ -711,100 +744,181 @@ class FirebaseRepository @Inject constructor(
     }
 
     /**
-     * Extract: Query and process a single day
+     * Build minimal list of [start, end) ranges that cover only missing days.
+     * Consecutive missing days are merged into a single range.
+     * Non-consecutive days create separate ranges (so we don't query holes).
      */
-    private suspend fun queryAndProcessSingleDay(
-        babyId: String,
-        missingDay: Date,
-        plan: DataRetrievalPlan,
-        firebaseCache: FirebaseCache,
-        allEvents: MutableMap<String, Event>
-    ) {
-        val dayStart = getDayStart(missingDay)
-        val dayEnd = getDayEnd(missingDay)
-        val now = System.currentTimeMillis()
-        val listenerStart = plan.realtime6hBeforeTimestamp?.let { Date(it) } ?: dayStart
+    private fun buildMissingDayRanges(missingDays: List<Date>): List<Pair<Date, Date>> {
+        if (missingDays.isEmpty()) return emptyList()
 
-        val queryEnd = calculateQueryEndTime(dayStart, listenerStart, now)
+        // Sort by time
+        val sorted = missingDays.sortedBy { it.time }
 
-        Log.d(TAG, "  → Querying day $dayStart → $queryEnd")
+        val ranges = mutableListOf<Pair<Date, Date>>()
 
-        val queriedEvents = queryEventsForRangeOnce(babyId, dayStart, queryEnd, db)
+        var currentStart = getDayStart(sorted.first())
+        var currentEnd = getDayEnd(sorted.first())
 
-        if (queriedEvents.isNotEmpty()) {
-            cacheDayEventsIfApplicable(babyId, dayStart, dayEnd, queriedEvents, firebaseCache, now)
+        val maxGapMs = 10 * 60 * 1000L // 10 minutes in milliseconds
+
+        for (i in 1 until sorted.size) {
+            val previousDayEnd = getDayEnd(sorted[i - 1])
+            val currentDayStart = getDayStart(sorted[i])
+
+            // Calculate gap between end of previous day and start of current day
+            val gapMs = currentDayStart.time - previousDayEnd.time
+
+            if (gapMs <= maxGapMs) {
+                // Gap is small enough, extend the range
+                currentEnd = getDayEnd(sorted[i])
+            } else {
+                // Gap is too large, close current range and start a new one
+                ranges += currentStart to currentEnd
+                currentStart = currentDayStart
+                currentEnd = getDayEnd(sorted[i])
+            }
         }
 
-        queriedEvents.forEach { event ->
-            allEvents[event.id] = event
+        // Add last range
+        ranges += currentStart to currentEnd
+
+        Log.d(TAG, "  → Built ${ranges.size} range(s) from ${sorted.size} missing days")
+        ranges.forEachIndexed { idx, (start, end) ->
+            Log.d(TAG, "    Range ${idx + 1}: $start → $end")
         }
 
-        Log.d(TAG, "✓ Queried day ${dayStart.time}: ${queriedEvents.size} events")
+        return ranges
     }
 
     /**
-     * Extract: Calculate query end time based on day status
+     * Distribute events per missing day and collect cache operations.
+     * Returns cache operations WITHOUT executing them (async later).
      */
-    private fun calculateQueryEndTime(
-        dayStart: Date,
-        listenerStart: Date,
+    private fun distributeMissingDaysEvents(
+        babyId: String,
+        missingDays: List<Date>,
+        events: List<Event>,
+        allEvents: MutableMap<String, Event>,
         now: Long
-    ): Date {
-        val todayStart = getDayStart(Date(now))
+    ): List<CacheOperation> {
+        val missingDayStarts = missingDays.map { getDayStart(it).time }.toSet()
+        val cacheOps = mutableListOf<CacheOperation>()
 
-        return if (dayStart >= todayStart) {
-            // Today: query until listener start
-            listenerStart
-        } else {
-            // Yesterday: query entire day
-            getDayEnd(dayStart)
+        // Group events by day
+        val eventsByDay = mutableMapOf<Long, MutableList<Event>>()
+        for (event in events) {
+            val eventDayStart = getDayStart(Date(event.timestamp.time)).time
+            if (eventDayStart in missingDayStarts) {
+                eventsByDay.getOrPut(eventDayStart) { mutableListOf() }.add(event)
+            }
         }
+
+        Log.d(TAG, "  → Distributed ${events.size} events across ${eventsByDay.size} missing day(s)")
+
+        // Create cache operations for each day with events
+        eventsByDay.forEach { (dayStartMs, dayEvents) ->
+            val dayStart = Date(dayStartMs)
+            val dayEnd = getDayEnd(dayStart)
+
+            // Build cache operation
+            val cacheOp = buildCacheOperation(dayStart, dayEnd, dayEvents, now)
+            if (cacheOp != null) {
+                cacheOps += cacheOp
+            }
+
+            // Add events to allEvents immediately
+            dayEvents.forEach { event ->
+                allEvents[event.id] = event
+            }
+
+            Log.d(TAG, "  ✓ Day $dayStart: ${dayEvents.size} events")
+        }
+
+        // Log empty days
+        val queriedDayStarts = eventsByDay.keys
+        val emptyDays = missingDayStarts - queriedDayStarts
+        if (emptyDays.isNotEmpty()) {
+            Log.d(TAG, "  → ${emptyDays.size} missing day(s) with no events (not cached)")
+        }
+
+        return cacheOps
     }
 
     /**
-     * Extract: Cache day events if they meet criteria
+     * Build a single cache operation for a day (don't execute yet)
      */
-    private suspend fun cacheDayEventsIfApplicable(
-        babyId: String,
+    private fun buildCacheOperation(
         dayStart: Date,
         dayEnd: Date,
         queriedEvents: List<Event>,
-        firebaseCache: FirebaseCache,
         now: Long
-    ) {
+    ): CacheOperation? {
+        // Skip empty days entirely
+        if (queriedEvents.isEmpty()) return null
+
         val isCompletedDay = dayEnd.time < now
 
-        if (isCompletedDay) {
-            // ✓ COMPLETED DAY: Cache all events as isComplete=true
-            if (queriedEvents.isNotEmpty()) {
-                firebaseCache.cacheDayEvents(
-                    babyId = babyId,
-                    dayStart = dayStart,
-                    events = queriedEvents,
-                    isComplete = true
-                )
-                Log.d(TAG, "  ✓ Cached COMPLETE day: ${queriedEvents.size} events")
-            }
+        val eventsToCache = if (isCompletedDay) {
+            // ✓ COMPLETED DAY: Cache all events
+            queriedEvents
         } else {
-            // CURRENT DAY: Only cache events older than 6h as isComplete=false
-            val stableEvents = queriedEvents.filter { event ->
+            // CURRENT DAY: Only cache events older than 6h
+            queriedEvents.filter { event ->
                 now - event.timestamp.time >= CacheTTL.FRESH.ageThresholdMs
             }
+        }
 
-            if (stableEvents.isNotEmpty()) {
-                firebaseCache.cacheDayEvents(
-                    babyId = babyId,
-                    dayStart = dayStart,
-                    events = stableEvents,
-                    isComplete = false
-                )
-                Log.d(
-                    TAG,
-                    "  ✓ Cached PARTIAL day: ${stableEvents.size} stable events (of ${queriedEvents.size} total)"
-                )
+        // Only return operation if there are events to cache
+        return if (eventsToCache.isNotEmpty()) {
+            CacheOperation(
+                dayStart = dayStart,
+                events = eventsToCache,
+                isComplete = isCompletedDay
+            )
+        } else {
+            null
+        }
+    }
+
+    /**
+     * Execute all cache operations in background without blocking
+     */
+    private fun launchBackgroundCaching(
+        babyId: String,
+        cacheOps: List<CacheOperation>,
+        firebaseCache: FirebaseCache
+    ) {
+        // Launch in IO context to avoid blocking UI
+        GlobalScope.launch(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "  ↳ Caching ${cacheOps.size} days in background...")
+
+                // Execute all cache operations (Room will batch if possible)
+                cacheOps.forEach { op ->
+                    firebaseCache.cacheDayEvents(
+                        babyId = babyId,
+                        dayStart = op.dayStart,
+                        events = op.events,
+                        isComplete = op.isComplete
+                    )
+                }
+
+                Log.d(TAG, "  ✓ Background caching completed for ${cacheOps.size} days")
+            } catch (e: Exception) {
+                Log.e(TAG, "✗ Background caching failed: ${e.message}", e)
             }
         }
     }
+
+    /**
+     * Simple data class to represent a cache operation
+     */
+    private data class CacheOperation(
+        val dayStart: Date,
+        val events: List<Event>,
+        val isComplete: Boolean
+    )
+
 
     /**
      * STEP 4: Setup real-time listener from the plan
