@@ -122,13 +122,14 @@ fun FamilyManagementCard(
             familyViewModel.selectFamily(families.first())
         }
     }
-
+    val successJoin = stringResource(R.string.family_management_joined_success)
+    val failedJoin = stringResource(R.string.family_management_join_failed)
     // Handle successful join
     LaunchedEffect(inviteResult) {
         inviteResult?.onSuccess {
-            snackbarHostState.showSnackbar(context.getString(R.string.family_management_joined_success))
+            snackbarHostState.showSnackbar(successJoin)
         }?.onFailure { ex ->
-            snackbarHostState.showSnackbar(context.getString(R.string.family_management_join_failed) + " " + ex.localizedMessage)
+            snackbarHostState.showSnackbar(failedJoin + " " + ex.localizedMessage)
         }
     }
     val baseColor = BackgroundColor
