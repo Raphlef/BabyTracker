@@ -55,7 +55,6 @@ fun WeekTimeline(
             selectedDate.minusDays(offset.toLong())
         }.reversed()  // selectedDate en dernier!
     }
-    val weekStart = remember(weekDays) { weekDays.first() }
 
     val weekEventsByDay = remember(analysisSnapshot, weekDays, filterTypes) {
         analysisSnapshot.eventsByDay

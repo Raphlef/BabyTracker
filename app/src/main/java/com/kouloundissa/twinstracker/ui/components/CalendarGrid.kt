@@ -113,7 +113,7 @@ fun DayCell(
 
     val backgroundColor = when {
         isSelected -> tint.copy(alpha = 0.6f)
-        eventCount > 0 -> BackgroundColor.copy(alpha = 0.4f + (activityLevel.ordinal * 0.2f))
+        eventCount > 0 -> BackgroundColor.copy(alpha = 0.5f + (activityLevel.ordinal * 0.2f))
         else -> BackgroundColor.copy(alpha = 0.3f)
     }
 
