@@ -114,7 +114,7 @@ fun WeekTimeline(
                                             if (day == selectedDate) {
                                                 DarkBlue.copy(alpha = 0.1f)
                                             } else {
-                                                BackgroundColor.copy(alpha = 0.1f)
+                                                BackgroundColor
                                             }
                                         )
                                 )
@@ -169,12 +169,11 @@ private fun DayHeader(
     Box(
         modifier = modifier
             .clickable { onClick() }
-            //.clip(if (isToday) MaterialTheme.shapes.medium else null)
             .background(
                 color = if (isSelected) {
                     DarkBlue.copy(alpha = 0.1f)
                 } else {
-                    BackgroundColor.copy(alpha = 0.1f)
+                    BackgroundColor
                 },
                 shape = if (isToday) {
                     MaterialTheme.shapes.medium

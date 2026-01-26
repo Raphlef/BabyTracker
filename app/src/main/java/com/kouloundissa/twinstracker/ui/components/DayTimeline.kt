@@ -24,7 +24,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -69,12 +68,7 @@ fun DayTimeline(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        backgroundColor.copy(alpha = 0.9f),
-                        backgroundColor.copy(alpha = 0.6f)
-                    )
-                ),
+               color =BackgroundColor,
                 shape = cornerShape
             )
             .padding(8.dp)

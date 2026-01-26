@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
@@ -209,8 +208,8 @@ fun CalendarScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
-                                backgroundColor.copy(alpha = 0.95f),
-                                shape = RoundedCornerShape(12.dp)
+                                BackgroundColor,
+                                shape = MaterialTheme.shapes.large
                             )
                             .padding(12.dp)
                     )
@@ -221,7 +220,7 @@ fun CalendarScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
-                                backgroundColor.copy(alpha = 0.95f),
+                                BackgroundColor,
                                 shape = cornerShape
                             )
                             .padding(horizontal = 16.dp, vertical = 8.dp),
