@@ -594,7 +594,8 @@ private fun DurationBadge(event: SleepEvent) {
 
 // Build event-specific titles using your existing data classes
 private fun buildEventTitle(
-    event: Event, eventType: EventType,
+    event: Event,
+    eventType: EventType,
     context: Context
 ): String {
     return when (event) {
