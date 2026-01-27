@@ -105,7 +105,7 @@ fun Calendar(
                     }
                 }
             ) { month ->
-                CalendarGrid(
+                DayCalendarContent(
                     year = month.year,
                     month = month.monthValue,
                     eventsByDay = eventsByDay,
@@ -118,7 +118,7 @@ fun Calendar(
 }
 
 @Composable
-fun CalendarGrid(
+fun DayCalendarContent(
     year: Int,
     month: Int,
     eventsByDay: Map<LocalDate, List<Event>>,
@@ -147,7 +147,7 @@ fun CalendarGrid(
                 Text(
                     dow, Modifier.weight(1f), textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelMedium,
-                    color = BackgroundColor
+                    color = contentColor
                 )
             }
         }
@@ -185,18 +185,20 @@ fun DayCell(
     onClick: (LocalDate) -> Unit
 ) {
     val tint = DarkBlue
+
     val eventCount = events.size
 
     val activityLevel = ActivityLevel.fromEventCount(eventCount)
 
     val backgroundColor = when {
         isSelected -> tint.copy(alpha = 0.6f)
-        eventCount > 0 -> BackgroundColor.copy(alpha = 0.5f + (activityLevel.ordinal * 0.2f))
-        else -> BackgroundColor.copy(alpha = 0.3f)
+        eventCount > 0 -> DarkGrey.copy(alpha = 0.1f + (activityLevel.ordinal * 0.1f))
+        else -> BackgroundColor
     }
 
     val contentColor = when {
         isSelected -> BackgroundColor
+        eventCount > 0 -> BackgroundColor
         else -> DarkGrey
     }
 
@@ -211,7 +213,6 @@ fun DayCell(
             .sortedByDescending { it.second }
             .map { it.first }
 
-
     Box(
         Modifier
             .size(48.dp)
@@ -219,8 +220,8 @@ fun DayCell(
             .clip(MaterialTheme.shapes.medium)
             .background(backgroundColor)
             .border(
-                width = if (isToday) 1.dp else 0.dp,
-                color = if (isToday) Color(0xFFFF9800) else Color.Transparent,
+                width = if (isToday) 1.dp else 0.5.dp,
+                color = if (isToday) Color(0xFFFF9800) else tint.copy(alpha = 0.1f),
                 shape = MaterialTheme.shapes.medium
             )
             .clickable { onClick(date) },
@@ -293,6 +294,8 @@ fun DayCell(
                                 color = BackgroundColor,
                                 fontSize = 7.sp,
                                 fontWeight = FontWeight.Bold,
+                                lineHeight = 7.sp,
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
