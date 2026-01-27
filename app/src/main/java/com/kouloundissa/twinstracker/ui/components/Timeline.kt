@@ -1,4 +1,4 @@
-package com.kouloundissa.twinstracker.ui.components.Calendar
+package com.kouloundissa.twinstracker.ui.components
 
 
 import android.content.Context
