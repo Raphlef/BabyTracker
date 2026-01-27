@@ -194,7 +194,7 @@ fun WeekCalendarContent(
                         hour = hour,
                         hourRowHeight = WEEK_HOUR_ROW_HEIGHT,
                         hourLabelWidth = WEEK_HOUR_LABEL_WIDTH,
-                        contentColumns = {  // RowScope disponible!
+                        contentColumns = {
                             weekDays.forEach { day ->
                                 Box(
                                     modifier = Modifier
@@ -205,7 +205,7 @@ fun WeekCalendarContent(
                                                 DarkBlue.copy(alpha = 0.1f)
                                             } else {
                                                 BackgroundColor
-                                            }
+                                            },
                                         )
                                 )
                             }

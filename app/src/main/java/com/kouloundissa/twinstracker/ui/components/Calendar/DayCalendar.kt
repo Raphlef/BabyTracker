@@ -320,8 +320,7 @@ fun HourRowLabel(
         Box(
             modifier = Modifier
                 .width(hourLabelWidth)
-                .fillMaxHeight()
-                .padding(vertical = VERTICAL_SPACING_BETWEEN_STACKED),
+                .fillMaxHeight(),
             contentAlignment = Alignment.TopCenter
         ) {
             Text(
@@ -329,10 +328,11 @@ fun HourRowLabel(
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
                 color = contentColor,
-                modifier = Modifier.padding(top = VERTICAL_SPACING_BETWEEN_STACKED)
+                modifier = Modifier
+                    .offset(y = -4 * VERTICAL_SPACING_BETWEEN_STACKED)
             )
         }
-        // ✅ COLUMNS (optionnel)
+
         contentColumns?.invoke(this)
     }
 }
@@ -375,7 +375,7 @@ fun EventBar(
                 )
                 .width(eventWidth)
                 .height(eventHeight)
-                .clip(RoundedCornerShape(3.dp))
+                .clip(MaterialTheme.shapes.medium)
                 .background(type.color.copy(alpha = 0.8f))
                 .clickable(enabled = onEdit != null) {
                     onEdit?.invoke(span.evt)
