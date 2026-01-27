@@ -73,7 +73,7 @@ fun DayHeader(
             Text(
                 text = currentDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = DarkGrey,
                 fontWeight = FontWeight.Bold
             )
         }
