@@ -6,12 +6,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,14 +44,18 @@ fun MonthHeader(
     ) {
         IconButton(
             onClick = { onMonthChange(-1L) },
-            colors = IconButtonDefaults.iconButtonColors(containerColor = contentColor)
+            modifier = Modifier.size(40.dp)
         ) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous Month")
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "Previous Month",
+                tint = DarkGrey
+            )
         }
         Text(
             text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
             style = MaterialTheme.typography.titleMedium,
-            color = BackgroundColor,
+            color = DarkGrey,
             modifier = Modifier
                 .border(
                     width = if (isCurrentMonth) 1.dp else 0.dp,
@@ -62,9 +66,13 @@ fun MonthHeader(
         )
         IconButton(
             onClick = { onMonthChange(1L) },
-            colors = IconButtonDefaults.iconButtonColors(containerColor = contentColor)
+            modifier = Modifier.size(40.dp)
         ) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next Month")
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "Next Month",
+                tint = DarkGrey
+            )
         }
     }
 }

@@ -72,15 +72,13 @@ private val DAY_HOUR_LABEL_WIDTH = 50.dp
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun DayCalendar(
-    initialDate: LocalDate,
+    currentDate: LocalDate,
     events: List<Event>,
     onEdit: (Event) -> Unit,
     onDayChange: (delta: Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var currentDate by remember(initialDate) { mutableStateOf(initialDate) }
     var dragOffset by remember { mutableStateOf(0f) }
-
 
     val swipeThreshold = with(LocalDensity.current) { 100.dp.toPx() }
 
@@ -104,10 +102,7 @@ fun DayCalendar(
         Column(modifier = Modifier.fillMaxWidth()) {
             DayHeader(
                 currentDate = currentDate,
-                onDateChanged = { deltaDays ->
-                    currentDate = currentDate.plusDays(deltaDays)
-                    onDayChange(deltaDays)
-                }
+                onDayChange = onDayChange
             )
 
             Spacer(Modifier.height(8.dp))

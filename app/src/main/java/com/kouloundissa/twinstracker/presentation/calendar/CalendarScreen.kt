@@ -230,13 +230,12 @@ fun CalendarScreen(
                         },
                         onEdit = { editingEvent = it },
 
-                    )
+                        )
                 }
-
 
                 item {
                     DayCalendar(
-                        initialDate = selectedDate,
+                        currentDate = selectedDate,
                         events = dailyEvents,
                         onEdit = { editingEvent = it },
                         onDayChange = { delta ->

@@ -58,7 +58,7 @@ import java.util.Locale
 fun Calendar(
     currentMonth: LocalDate,
     onMonthChange: (delta: Long) -> Unit,
-    eventsByDay : Map<LocalDate, List<Event>>,
+    eventsByDay: Map<LocalDate, List<Event>>,
     selectedDate: LocalDate,
     onDayClick: (LocalDate) -> Unit,
     modifier: Modifier = Modifier
@@ -69,6 +69,7 @@ fun Calendar(
 
     Box(
         modifier
+            .background(BackgroundColor, MaterialTheme.shapes.large)
             .pointerInput(currentMonth) {
                 // Only intercept horizontal drags
                 detectHorizontalDragGestures(
@@ -84,24 +85,26 @@ fun Calendar(
                 )
             }
     ) {
-        AnimatedContent(
-            targetState = currentMonth,
-            transitionSpec = {
-                if (targetState > initialState) {
-                    slideInHorizontally { width -> width } + fadeIn() with
-                            slideOutHorizontally { width -> -width } + fadeOut()
-                } else {
-                    slideInHorizontally { width -> -width } + fadeIn() with
-                            slideOutHorizontally { width -> width } + fadeOut()
+        Column(modifier = Modifier.fillMaxWidth()) {
+            MonthHeader(
+                currentMonth = currentMonth,
+                onMonthChange = onMonthChange
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            AnimatedContent(
+                targetState = currentMonth,
+                transitionSpec = {
+                    if (targetState > initialState) {
+                        slideInHorizontally { width -> width } + fadeIn() with
+                                slideOutHorizontally { width -> -width } + fadeOut()
+                    } else {
+                        slideInHorizontally { width -> -width } + fadeIn() with
+                                slideOutHorizontally { width -> width } + fadeOut()
+                    }
                 }
-            }
-        ) { month ->
-            Column {
-                MonthHeader(
-                    currentMonth = month,
-                    onMonthChange = onMonthChange
-                )
-                Spacer(Modifier.height(8.dp))
+            ) { month ->
                 CalendarGrid(
                     year = month.year,
                     month = month.monthValue,

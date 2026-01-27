@@ -31,7 +31,7 @@ import java.util.Locale
 @Composable
 fun DayHeader(
     currentDate: LocalDate,
-    onDateChanged: (deltaDays: Long) -> Unit
+    onDayChange: (deltaDays: Long) -> Unit
 ) {
     val isToday = currentDate == LocalDate.now()
 
@@ -42,7 +42,7 @@ fun DayHeader(
     ) {
         // Previous day button
         IconButton(
-            onClick = { onDateChanged(-1L) },
+            onClick = { onDayChange(-1L) },
             modifier = Modifier.size(40.dp)
         ) {
             Icon(
@@ -59,7 +59,7 @@ fun DayHeader(
                     TextStyle.SHORT,
                     Locale.getDefault()
                 ),
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.titleMedium,
                 color = DarkGrey,
                 modifier = Modifier
                     .border(
@@ -80,7 +80,7 @@ fun DayHeader(
 
         // Next day button
         IconButton(
-            onClick = { onDateChanged(1L) },
+            onClick = { onDayChange(1L) },
             modifier = Modifier.size(40.dp)
         ) {
             Icon(
