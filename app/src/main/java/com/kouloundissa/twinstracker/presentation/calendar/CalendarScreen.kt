@@ -1,25 +1,18 @@
 package com.kouloundissa.twinstracker.presentation.calendar
 
 import DayCalendar
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -28,14 +21,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.AnalysisRange
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
@@ -53,7 +42,6 @@ import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
 @Composable
@@ -241,86 +229,29 @@ fun CalendarScreen(
                             }
                         },
                         onEdit = { editingEvent = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                BackgroundColor,
-                                shape = MaterialTheme.shapes.large
-                            )
-                            .padding(12.dp)
+
                     )
                 }
 
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                BackgroundColor,
-                                shape = cornerShape
-                            )
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            stringResource(
-                                id = R.string.events_on_date_format,
-                                selectedDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy")),
-                                dailyEvents.size
-                            ),
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.headlineSmall,
-                            modifier = Modifier
-                                .padding(vertical = 8.dp),
-                            color = tint,
-                        )
 
-                        Divider(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(start = 12.dp),
-                            color = tint.copy(alpha = 0.5f),
-                            thickness = 2.dp
-                        )
-                    }
-                }
-                if (isLoading) {
-                    item {
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(32.dp),
-                                strokeWidth = 3.dp
-                            )
-                        }
-                    }
-                }
                 item {
-                    if (dailyEvents.isEmpty()) {
-                        Text(
-                            stringResource(id = R.string.no_events),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    } else {
-                        DayCalendar(
-                            initialDate = selectedDate,
-                            events = dailyEvents,
-                            onEdit = { editingEvent = it },
-                            onDayChange  = { newDate ->
-                                selectedDate = newDate
+                    DayCalendar(
+                        initialDate = selectedDate,
+                        events = dailyEvents,
+                        onEdit = { editingEvent = it },
+                        onDayChange = { delta ->
+                            // ✅ Calculer la nouvelle date en ajoutant/soustrayant des semaines
+                            val newDate = selectedDate.plusDays(delta)
+                            selectedDate = newDate
 
-                                val newMonth = LocalDate.of(newDate.year, newDate.month, 1)
-                                if (newMonth != currentMonth) {
-                                    currentMonth = newMonth
-                                }
+                            // Sync mois automatiquement si changement de mois détecté
+                            val newMonth = LocalDate.of(newDate.year, newDate.month, 1)
+                            if (newMonth != currentMonth) {
+                                currentMonth = newMonth
                             }
-                        )
-                    }
+                        }
+                    )
+
                 }
             }
 

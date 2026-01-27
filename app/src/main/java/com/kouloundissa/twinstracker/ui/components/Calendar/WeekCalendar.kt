@@ -79,6 +79,7 @@ fun WeekCalendar(
 
     Box(
         modifier
+            .background(BackgroundColor, MaterialTheme.shapes.large)
             .pointerInput(currentWeekMonday) {
                 detectHorizontalDragGestures(
                     onDragStart = { dragOffset = 0f },
@@ -101,7 +102,9 @@ fun WeekCalendar(
                     onDayClick(newDate)
                 }
             )
+
             Spacer(Modifier.height(8.dp))
+
             AnimatedContent(
                 targetState = currentWeekMonday,
                 transitionSpec = {
@@ -115,7 +118,6 @@ fun WeekCalendar(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) { weekMonday ->
-
                 WeekCalendarContent(
                     analysisSnapshot = analysisSnapshot,
                     currentWeekMonday = weekMonday,
@@ -171,7 +173,7 @@ fun WeekCalendarContent(
             Box(Modifier.width(WEEK_HOUR_LABEL_WIDTH))
 
             weekDays.forEach { day ->
-                DayHeader(
+                DayWeekHeader(
                     day = day,
                     events = weekEventsByDay[day] ?: emptyList(),
                     isSelected = day == selectedDate,
@@ -238,7 +240,7 @@ fun WeekCalendarContent(
 }
 
 @Composable
-private fun DayHeader(
+private fun DayWeekHeader(
     day: LocalDate,
     events: List<Event>,
     isSelected: Boolean,

@@ -1,6 +1,14 @@
 import android.annotation.SuppressLint
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.with
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -30,7 +38,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -43,6 +53,7 @@ import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
+import com.kouloundissa.twinstracker.ui.components.Calendar.DayHeader
 import com.kouloundissa.twinstracker.ui.components.Calendar.VERTICAL_SPACING_BETWEEN_STACKED
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
@@ -58,11 +69,77 @@ import java.util.Date
 private val DAY_HOUR_ROW_HEIGHT = 60.dp
 private val DAY_HOUR_LABEL_WIDTH = 50.dp
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun DayTimeline(
+fun DayCalendar(
+    initialDate: LocalDate,
+    events: List<Event>,
+    onEdit: (Event) -> Unit,
+    onDayChange: (delta: Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var currentDate by remember(initialDate) { mutableStateOf(initialDate) }
+    var dragOffset by remember { mutableStateOf(0f) }
+
+
+    val swipeThreshold = with(LocalDensity.current) { 100.dp.toPx() }
+
+    Box(
+        modifier
+            .background(BackgroundColor, MaterialTheme.shapes.large)
+            .pointerInput(currentDate) {
+                detectHorizontalDragGestures(
+                    onDragStart = { dragOffset = 0f },
+                    onHorizontalDrag = { _, deltaX -> dragOffset += deltaX },
+                    onDragEnd = {
+                        when {
+                            dragOffset > swipeThreshold -> onDayChange(-1L)
+                            dragOffset < -swipeThreshold -> onDayChange(1L)
+                        }
+                        dragOffset = 0f
+                    }
+                )
+            }
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            DayHeader(
+                currentDate = currentDate,
+                onDateChanged = { deltaDays ->
+                    onDayChange(deltaDays)
+                }
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            AnimatedContent(
+                targetState = currentDate,
+                transitionSpec = {
+                    if (targetState > initialState) {
+                        slideInHorizontally { width -> width } + fadeIn() with
+                                slideOutHorizontally { width -> -width } + fadeOut()
+                    } else {
+                        slideInHorizontally { width -> -width } + fadeIn() with
+                                slideOutHorizontally { width -> width } + fadeOut()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { date ->
+                DayCalendarContent(
+                    date = date,
+                    events = events,
+                    onEdit = onEdit,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DayCalendarContent(
     date: LocalDate,
     events: List<Event>,
-    onEdit: (Event) -> Unit
+    onEdit: (Event) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val contentColor = DarkGrey.copy(alpha = 0.5f)
     val backgroundColor = BackgroundColor
@@ -73,15 +150,14 @@ fun DayTimeline(
         computeDaySpans(events)
     }
 
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                color = BackgroundColor,
-                shape = cornerShape
-            )
+            .background(backgroundColor, cornerShape)
             .padding(8.dp)
     ) {
+
         // LAYER 1: Hour labels and structure
         Column(modifier = Modifier.fillMaxWidth()) {
             repeat(24) { hour ->
@@ -94,7 +170,7 @@ fun DayTimeline(
             }
         }
 
-        // LAYER 2: Events overlay (drawn on top, with absolute positioning)
+        // LAYER 2: Events overlay
         DrawEventsForDay(
             day = date,
             daySpans = daySpans,
@@ -115,8 +191,6 @@ fun DrawEventsForDay(
     onEdit: (Event) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // if (daySpans.isEmpty()) return
-
     Box(modifier = modifier) {
         if (daySpans.isEmpty()) return@Box
         val dayEventsForThisDay = daySpans.mapNotNull { span ->
@@ -161,7 +235,6 @@ fun DrawEventsForDay(
                 onEdit = onEdit
             )
         }
-
 
         otherEventsByHour.forEach { (_, eventsInSameHour) ->
             // Pour chaque groupe d'événements à la même heure

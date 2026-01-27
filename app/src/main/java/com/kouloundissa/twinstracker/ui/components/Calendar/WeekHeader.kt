@@ -5,12 +5,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,12 +46,12 @@ fun WeekHeader(
     ) {
         IconButton(
             onClick = { onWeekChange(-1L) },
-            colors = IconButtonDefaults.iconButtonColors(containerColor = contentColor)
+            modifier = Modifier.size(40.dp)
         ) {
             Icon(
-                Icons.AutoMirrored.Filled.ArrowBack,
+                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                 contentDescription = "Previous Week",
-                tint = BackgroundColor
+                tint = DarkGrey
             )
         }
 
@@ -71,12 +71,12 @@ fun WeekHeader(
 
         IconButton(
             onClick = { onWeekChange(1L) },
-            colors = IconButtonDefaults.iconButtonColors(containerColor = contentColor)
+            modifier = Modifier.size(40.dp)
         ) {
             Icon(
-                Icons.AutoMirrored.Filled.ArrowForward,
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "Next Week",
-                tint = BackgroundColor
+                tint = DarkGrey
             )
         }
     }

@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -46,7 +46,7 @@ fun MonthHeader(
             onClick = { onMonthChange(-1L) },
             colors = IconButtonDefaults.iconButtonColors(containerColor = contentColor)
         ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous Month")
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous Month")
         }
         Text(
             text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
@@ -64,7 +64,7 @@ fun MonthHeader(
             onClick = { onMonthChange(1L) },
             colors = IconButtonDefaults.iconButtonColors(containerColor = contentColor)
         ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next Month")
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next Month")
         }
     }
 }
