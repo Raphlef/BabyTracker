@@ -147,7 +147,7 @@ fun DayCalendarContent(
                 Text(
                     dow, Modifier.weight(1f), textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelMedium,
-                    color = contentColor
+                    color = DarkBlue
                 )
             }
         }
@@ -232,7 +232,7 @@ fun DayCell(
             "${date.dayOfMonth}",
             style = MaterialTheme.typography.bodySmall,
             color = contentColor,
-            fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+            fontWeight = if (isSelected ||isToday) FontWeight.Bold else FontWeight.Normal,
             modifier = Modifier.padding(top = 2.dp)
         )
 

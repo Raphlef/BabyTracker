@@ -282,7 +282,7 @@ private fun DayWeekHeader(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = day.format(DateTimeFormatter.ofPattern("E", Locale.getDefault())),
-                fontSize = 10.sp,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                 color = DarkBlue
             )
