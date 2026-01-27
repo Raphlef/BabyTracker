@@ -42,7 +42,6 @@ import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 
 @Composable
 fun CalendarScreen(
@@ -86,14 +85,16 @@ fun CalendarScreen(
         if (isVisible) {
             selectedBaby?.let { baby ->
                 val startOfMonth = currentMonth.withDayOfMonth(1)
-                val startOfRange = startOfMonth.minus(1, ChronoUnit.WEEKS)
+                val startOfRange = startOfMonth.minusWeeks(1)
                 val endOfMonth = currentMonth.withDayOfMonth(currentMonth.lengthOfMonth())
                     .plusDays(1)
+
+                val endOfRange = endOfMonth.plusWeeks(1)
 
                 val dateRange = AnalysisFilter.DateRange(
                     AnalysisRange.CUSTOM,
                     startOfRange,
-                    endOfMonth
+                    endOfRange
                 )
                 val newBabyFilter = AnalysisFilter.BabyFilter(selectedBabies = setOf(baby))
                 val eventTypeFilter = AnalysisFilter.EventTypeFilter(selectedTypes = filterTypes)
@@ -196,7 +197,7 @@ fun CalendarScreen(
                             selectedDate = newDate
 
                             val newMonth = LocalDate.of(newDate.year, newDate.month, 1)
-                            if (newMonth != currentMonth) {
+                            if (newMonth.month != currentMonth.month) {
                                 currentMonth = newMonth
                             }
                         }
@@ -213,7 +214,7 @@ fun CalendarScreen(
                             selectedDate = newDate
 
                             val newMonth = LocalDate.of(newDate.year, newDate.month, 1)
-                            if (newMonth != currentMonth) {
+                            if (newMonth.month != currentMonth.month) {
                                 currentMonth = newMonth
                             }
                         },
@@ -224,13 +225,12 @@ fun CalendarScreen(
 
                             // Sync mois automatiquement si changement de mois détecté
                             val newMonth = LocalDate.of(newDate.year, newDate.month, 1)
-                            if (newMonth != currentMonth) {
+                            if (newMonth.month != currentMonth.month) {
                                 currentMonth = newMonth
                             }
                         },
                         onEdit = { editingEvent = it },
-
-                        )
+                    )
                 }
 
                 item {
@@ -245,12 +245,11 @@ fun CalendarScreen(
 
                             // Sync mois automatiquement si changement de mois détecté
                             val newMonth = LocalDate.of(newDate.year, newDate.month, 1)
-                            if (newMonth != currentMonth) {
+                            if (newMonth.month != currentMonth.month) {
                                 currentMonth = newMonth
                             }
                         }
                     )
-
                 }
             }
 
