@@ -55,7 +55,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
-fun Calendar(
+fun MonthCalendar(
     currentMonth: LocalDate,
     onMonthChange: (delta: Long) -> Unit,
     eventsByDay: Map<LocalDate, List<Event>>,
@@ -105,7 +105,7 @@ fun Calendar(
                     }
                 }
             ) { month ->
-                DayCalendarContent(
+                MonthCalendarContent(
                     year = month.year,
                     month = month.monthValue,
                     eventsByDay = eventsByDay,
@@ -118,7 +118,7 @@ fun Calendar(
 }
 
 @Composable
-fun DayCalendarContent(
+fun MonthCalendarContent(
     year: Int,
     month: Int,
     eventsByDay: Map<LocalDate, List<Event>>,

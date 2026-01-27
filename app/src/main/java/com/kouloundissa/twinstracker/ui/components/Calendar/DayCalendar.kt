@@ -149,7 +149,6 @@ private fun DayCalendarContent(
         computeDaySpans(events)
     }
 
-
     Box(
         modifier = Modifier
             .fillMaxWidth()

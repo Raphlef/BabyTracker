@@ -34,7 +34,7 @@ import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
-import com.kouloundissa.twinstracker.ui.components.Calendar.Calendar
+import com.kouloundissa.twinstracker.ui.components.Calendar.MonthCalendar
 import com.kouloundissa.twinstracker.ui.components.Calendar.WeekCalendar
 import com.kouloundissa.twinstracker.ui.components.FilterBar
 import com.kouloundissa.twinstracker.ui.components.FilterBarLayoutMode
@@ -186,7 +186,7 @@ fun CalendarScreen(
                                 }
                         }
 
-                    Calendar(
+                    MonthCalendar(
                         currentMonth = currentMonth,
                         onMonthChange = { delta ->
                             currentMonth = currentMonth.plusMonths(delta)
