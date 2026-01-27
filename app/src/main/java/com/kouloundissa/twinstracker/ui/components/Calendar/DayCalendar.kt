@@ -105,6 +105,7 @@ fun DayCalendar(
             DayHeader(
                 currentDate = currentDate,
                 onDateChanged = { deltaDays ->
+                    currentDate = currentDate.plusDays(deltaDays)
                     onDayChange(deltaDays)
                 }
             )
