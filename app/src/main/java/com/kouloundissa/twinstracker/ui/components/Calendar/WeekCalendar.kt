@@ -75,7 +75,7 @@ fun WeekCalendar(
     }
     // Gesture detection state
     var dragOffset by remember { mutableStateOf(0f) }
-    val swipeThreshold = with(LocalDensity.current) { 100.dp.toPx() }
+    val swipeThreshold = with(LocalDensity.current) { 70.dp.toPx() }
 
     Box(
         modifier
@@ -93,6 +93,7 @@ fun WeekCalendar(
                     }
                 )
             }
+            .padding(2.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             WeekHeader(

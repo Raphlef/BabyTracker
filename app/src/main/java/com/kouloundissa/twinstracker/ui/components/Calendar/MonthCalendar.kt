@@ -65,13 +65,12 @@ fun Calendar(
 ) {
     // Gesture detection state
     var dragOffset by remember { mutableStateOf(0f) }
-    val swipeThreshold = with(LocalDensity.current) { 100.dp.toPx() }
+    val swipeThreshold = with(LocalDensity.current) { 70.dp.toPx() }
 
     Box(
         modifier
             .background(BackgroundColor, MaterialTheme.shapes.large)
             .pointerInput(currentMonth) {
-                // Only intercept horizontal drags
                 detectHorizontalDragGestures(
                     onDragStart = { dragOffset = 0f },
                     onHorizontalDrag = { _, deltaX -> dragOffset += deltaX },
@@ -84,6 +83,7 @@ fun Calendar(
                     }
                 )
             }
+            .padding(2.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             MonthHeader(
