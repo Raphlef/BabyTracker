@@ -58,7 +58,7 @@ val VERTICAL_SPACING_BETWEEN_STACKED = 2.dp
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
-fun WeekTimeline(
+fun WeekCalendar(
     analysisSnapshot: AnalysisSnapshot,
     onWeekChange: (delta: Long) -> Unit,
     selectedDate: LocalDate,
@@ -116,7 +116,7 @@ fun WeekTimeline(
                 modifier = Modifier.fillMaxWidth()
             ) { weekMonday ->
 
-                WeekTimelineContent(
+                WeekCalendarContent(
                     analysisSnapshot = analysisSnapshot,
                     currentWeekMonday = weekMonday,
                     selectedDate = selectedDate,
@@ -130,7 +130,7 @@ fun WeekTimeline(
 }
 
 @Composable
-fun WeekTimelineContent(
+fun WeekCalendarContent(
     analysisSnapshot: AnalysisSnapshot,
     currentWeekMonday: LocalDate,
     selectedDate: LocalDate,

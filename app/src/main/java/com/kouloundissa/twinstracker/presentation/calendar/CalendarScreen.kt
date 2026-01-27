@@ -1,6 +1,6 @@
 package com.kouloundissa.twinstracker.presentation.calendar
 
-import DayTimeline
+import DayCalendar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,7 +46,7 @@ import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
 import com.kouloundissa.twinstracker.ui.components.Calendar.Calendar
-import com.kouloundissa.twinstracker.ui.components.Calendar.WeekTimeline
+import com.kouloundissa.twinstracker.ui.components.Calendar.WeekCalendar
 import com.kouloundissa.twinstracker.ui.components.FilterBar
 import com.kouloundissa.twinstracker.ui.components.FilterBarLayoutMode
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
@@ -204,13 +204,20 @@ fun CalendarScreen(
                         },
                         eventsByDay = eventsByDayForCalendar,
                         selectedDate = selectedDate,
-                        onDayClick = { selectedDate = it }
+                        onDayClick = { newDate ->
+                            selectedDate = newDate
+
+                            val newMonth = LocalDate.of(newDate.year, newDate.month, 1)
+                            if (newMonth != currentMonth) {
+                                currentMonth = newMonth
+                            }
+                        }
                     )
                 }
 
 
                 item {
-                    WeekTimeline(
+                    WeekCalendar(
                         analysisSnapshot = analysisSnapshot,
                         selectedDate = selectedDate,
                         filterTypes = filterTypes,
@@ -221,7 +228,8 @@ fun CalendarScreen(
                             if (newMonth != currentMonth) {
                                 currentMonth = newMonth
                             }
-                        },onWeekChange = { delta ->
+                        },
+                        onWeekChange = { delta ->
                             // ✅ Calculer la nouvelle date en ajoutant/soustrayant des semaines
                             val newDate = selectedDate.plusWeeks(delta)
                             selectedDate = newDate
@@ -299,10 +307,18 @@ fun CalendarScreen(
                             style = MaterialTheme.typography.bodyMedium
                         )
                     } else {
-                        DayTimeline(
-                            date = selectedDate,
+                        DayCalendar(
+                            initialDate = selectedDate,
                             events = dailyEvents,
-                            onEdit = { editingEvent = it }
+                            onEdit = { editingEvent = it },
+                            onDayChange  = { newDate ->
+                                selectedDate = newDate
+
+                                val newMonth = LocalDate.of(newDate.year, newDate.month, 1)
+                                if (newMonth != currentMonth) {
+                                    currentMonth = newMonth
+                                }
+                            }
                         )
                     }
                 }

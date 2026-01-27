@@ -34,8 +34,10 @@ fun WeekHeader(
     val isCurrentWeek = currentWeekMonday <= today && today <= weekEnd
 
 
-    val backgroundColor = BackgroundColor.copy(alpha = 0.2f)
+    val contentColor = DarkGrey.copy(alpha = 0.5f)
+    val backgroundColor = BackgroundColor
     val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.large
 
     Row(
         Modifier.fillMaxWidth(),
@@ -44,9 +46,13 @@ fun WeekHeader(
     ) {
         IconButton(
             onClick = { onWeekChange(-1L) },
-            colors = IconButtonDefaults.iconButtonColors(containerColor = DarkGrey.copy(alpha = 0.2f))
+            colors = IconButtonDefaults.iconButtonColors(containerColor = contentColor)
         ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous Week")
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Previous Week",
+                tint = BackgroundColor
+            )
         }
 
         Text(
@@ -65,9 +71,13 @@ fun WeekHeader(
 
         IconButton(
             onClick = { onWeekChange(1L) },
-            colors = IconButtonDefaults.iconButtonColors(containerColor = DarkGrey.copy(alpha = 0.2f))
+            colors = IconButtonDefaults.iconButtonColors(containerColor = contentColor)
         ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next Week")
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "Next Week",
+                tint = BackgroundColor
+            )
         }
     }
 }
