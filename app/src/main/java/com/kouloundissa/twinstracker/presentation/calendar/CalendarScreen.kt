@@ -125,13 +125,15 @@ fun CalendarScreen(
             }
 
             val dateRange = filters.value.dateRange
-            val hasCustomDates = dateRange.customStartDate != null && dateRange.customEndDate != null
+            val hasCustomDates =
+                dateRange.customStartDate != null && dateRange.customEndDate != null
 
             val (startDate, endDate) = if (hasCustomDates) {
                 dateRange.customStartDate?.minusDays(1) to dateRange.customEndDate?.plusDays(1)
             } else {
                 val params = calculateRange(dateRange)
-                params.startDate.toLocalDate().minusDays(1) to params.endDate.toLocalDate().plusDays(1)
+                params.startDate.toLocalDate().minusDays(1) to params.endDate.toLocalDate()
+                    .plusDays(1)
             }
 
             val updatedFilters = filters.value.copy(
@@ -151,7 +153,7 @@ fun CalendarScreen(
             }
         }
     }
-  
+
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
@@ -243,6 +245,7 @@ fun CalendarScreen(
                 if (filters.value.dateRange.selectedRange == AnalysisRange.ONE_MONTH)
                     item {
                         MonthCalendar(
+                            isloading = isLoading,
                             onMonthChange = { delta ->
                                 val newDate = selectedDate.plusMonths(delta)
                                 selectedDate = newDate
@@ -273,6 +276,7 @@ fun CalendarScreen(
                 if (filters.value.dateRange.selectedRange == AnalysisRange.ONE_WEEK)
                     item {
                         WeekCalendar(
+                            isloading = isLoading,
                             analysisSnapshot = analysisSnapshot,
                             selectedDate = selectedDate,
                             analysisFilter = filters.value,
@@ -308,6 +312,7 @@ fun CalendarScreen(
                 if (filters.value.dateRange.selectedRange == AnalysisRange.ONE_DAY)
                     item {
                         DayCalendar(
+                            isloading = isLoading,
                             currentDate = selectedDate,
                             analysisSnapshot = analysisSnapshot,
                             filterTypes = filters.value.eventTypeFilter.selectedTypes,

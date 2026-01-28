@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -56,6 +57,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun MonthCalendar(
+    isloading: Boolean,
     onMonthChange: (delta: Long) -> Unit,
     eventsByDay: Map<LocalDate, List<Event>>,
     selectedDate: LocalDate,
@@ -115,7 +117,8 @@ fun MonthCalendar(
                     month = month.monthValue,
                     eventsByDay = eventsByDay,
                     selectedDate = selectedDate,
-                    onDayClick = onDayClick
+                    onDayClick = onDayClick,
+                    modifier = modifier.blur(if (isloading) 3.dp else 0.dp),
                 )
             }
         }
@@ -128,7 +131,8 @@ fun MonthCalendarContent(
     month: Int,
     eventsByDay: Map<LocalDate, List<Event>>,
     selectedDate: LocalDate,
-    onDayClick: (LocalDate) -> Unit
+    onDayClick: (LocalDate) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val contentColor = DarkGrey.copy(alpha = 0.5f)
     val backgroundColor = BackgroundColor.copy(alpha = 0.2f)
@@ -158,7 +162,7 @@ fun MonthCalendarContent(
         }
         LazyVerticalGrid(
             columns = GridCells.Fixed(7),
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxWidth()
                 .height((weeks * 54).dp),
             userScrollEnabled = false
