@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
+import com.kouloundissa.twinstracker.data.AnalysisSnapshot
 import com.kouloundissa.twinstracker.data.DiaperEvent
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
@@ -75,7 +76,8 @@ private val DAY_HOUR_LABEL_WIDTH = 50.dp
 @Composable
 fun DayCalendar(
     currentDate: LocalDate,
-    events: List<Event>,
+    analysisSnapshot: AnalysisSnapshot,
+    filterTypes: Set<EventType>,
     onEdit: (Event) -> Unit,
     onDayChange: (delta: Long) -> Unit,
     modifier: Modifier = Modifier
@@ -125,7 +127,8 @@ fun DayCalendar(
             ) { date ->
                 DayCalendarContent(
                     date = date,
-                    events = events,
+                    analysisSnapshot = analysisSnapshot,
+                    filterTypes = filterTypes,
                     onEdit = onEdit,
                 )
             }
@@ -135,8 +138,9 @@ fun DayCalendar(
 
 @Composable
 private fun DayCalendarContent(
+    analysisSnapshot: AnalysisSnapshot,
     date: LocalDate,
-    events: List<Event>,
+    filterTypes: Set<EventType>,
     onEdit: (Event) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -145,8 +149,11 @@ private fun DayCalendarContent(
     val cornerShape = MaterialTheme.shapes.large
 
     // Process events into day spans
-    val daySpans = remember(date, events) {
-        computeDaySpans(events)
+    val daySpans = remember(date, analysisSnapshot, filterTypes) {
+        val filteredEvents = analysisSnapshot.events.filter { event ->
+            filterTypes.contains(EventType.forClass(event::class))
+        }
+        computeDaySpans(filteredEvents)
     }
 
     Box(
@@ -416,10 +423,12 @@ fun EventContent(span: DaySpan, type: EventType) {
                     Text(
                         text = if (span.evt is DiaperEvent) {
                             stringResource(span.evt.diaperType.displayNameRes) +
-                                    (span.evt.notes?.takeIf { it.isNotBlank() }?.let { " • $it" } ?: "")
+                                    (span.evt.notes?.takeIf { it.isNotBlank() }?.let { " • $it" }
+                                        ?: "")
                         } else {
                             type.getDisplayName(context) +
-                                    (span.evt.notes?.takeIf { it.isNotBlank() }?.let { " • $it" } ?: "")
+                                    (span.evt.notes?.takeIf { it.isNotBlank() }?.let { " • $it" }
+                                        ?: "")
                         },
 
                         style = MaterialTheme.typography.labelSmall,
