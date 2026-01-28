@@ -1,6 +1,7 @@
 package com.kouloundissa.twinstracker.ui.components
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,10 +47,14 @@ import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.getDisplayName
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
+import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel.DateRangeParams
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
+import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -117,7 +122,7 @@ fun AnalysisFilterPanel(
                             onExpandedChanged(isExpanded)
                         }
                     },
-                    allowedRanges=allowedRanges
+                    allowedRanges = allowedRanges
                 )
             },
             isExpanded = isExpanded,
@@ -292,8 +297,8 @@ private fun getFilterSummary(filters: AnalysisFilters, context: Context): String
 sealed class AnalysisFilter {
     data class DateRange(
         val selectedRange: AnalysisRange,
-        val customStartDate: LocalDate? = null,
-        val customEndDate: LocalDate? = null
+        var customStartDate: LocalDate? = null,
+        var customEndDate: LocalDate? = null
     ) : AnalysisFilter()
 
     data class BabyFilter(val selectedBabies: Set<Baby> = emptySet()) : AnalysisFilter()
@@ -307,6 +312,55 @@ data class AnalysisFilters(
         selectedTypes = emptySet()
     )
 )
+
+fun calculateRange(
+    dateRange: AnalysisFilter.DateRange,
+    zone: ZoneId = ZoneId.systemDefault()
+): DateRangeParams {
+    val today = LocalDate.now()
+    val range = dateRange.selectedRange
+    val customStartDate = dateRange.customStartDate
+    val customEndDate = dateRange.customEndDate
+
+    return when (range) {
+        AnalysisRange.ONE_DAY,
+        AnalysisRange.THREE_DAYS,
+        AnalysisRange.ONE_WEEK,
+        AnalysisRange.TWO_WEEKS,
+        AnalysisRange.ONE_MONTH,
+        AnalysisRange.THREE_MONTHS -> {
+            val startDate = today.minusDays(range.days.toLong() - 1)
+                .atStartOfDay(zone).toInstant()
+            val endDate = today.atTime(23, 59, 59).atZone(zone).toInstant()
+            DateRangeParams(
+                Date.from(startDate),
+                Date.from(endDate)
+            ).also {
+                Log.d(
+                    "DateRange",
+                    "LastDays result: ${it.startDate} → ${it.endDate} (${range.days} days)"
+                )
+            }
+        }
+
+        AnalysisRange.CUSTOM -> {
+            val start = customStartDate?.toDate() ?: Date()
+            val end = customEndDate?.toDate() ?: Date()
+            val daysBetween = ChronoUnit.DAYS.between(
+                start.toInstant(),
+                end.toInstant()
+            ) + 1
+            DateRangeParams(start, end).also {
+                Log.d(
+                    "DateRange",
+                    "Custom range: ${it.startDate} → ${it.endDate} ($daysBetween days)"
+                )
+            }
+        }
+    }
+}
+fun LocalDate.toDate(): Date =
+    this.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli().let { Date(it) }
 
 
 
