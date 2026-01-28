@@ -149,8 +149,7 @@ fun AnalysisScreen(
             .takeIf { it.selectedTypes.isNotEmpty() }
             ?: AnalysisFilter.EventTypeFilter(selectedTypes = selectedTypes)
 
-        filters.value = AnalysisFilters(
-            dateRange = filters.value.dateRange,
+        filters.value = filters.value.copy(
             babyFilter = newBabyFilter,
             eventTypeFilter = eventTypeFilter
         )
