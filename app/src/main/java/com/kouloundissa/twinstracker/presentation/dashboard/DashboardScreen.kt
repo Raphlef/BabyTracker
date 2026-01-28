@@ -129,8 +129,9 @@ fun DashboardScreen(
     )
     val currentTab = tabs[pagerState.currentPage]
     val showBabyInfoBar = when (currentTab) {
+        DashboardTab.Calendar -> false
         DashboardTab.Analysis -> false
-        else -> true  // Show for Home and Calendar
+        else -> true
     }
     LaunchedEffect(pagerState.currentPage) {
         Log.d("Dashboard", "Page changed to: $currentTab (index: ${pagerState.currentPage})")
@@ -234,6 +235,7 @@ fun DashboardScreen(
                                 )
 
                                 DashboardTab.Calendar -> CalendarScreen(
+                                    navController = navController,
                                     contentPadding = contentPadding,
                                     isVisible = isCurrentPage
                                 )
