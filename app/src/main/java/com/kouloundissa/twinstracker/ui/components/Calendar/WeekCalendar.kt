@@ -84,12 +84,19 @@ fun WeekCalendar(
             .pointerInput(currentWeekMonday) {
                 detectHorizontalDragGestures(
                     onDragStart = { dragOffset = 0f },
-                    onHorizontalDrag = { _, deltaX -> dragOffset += deltaX },
+                    onHorizontalDrag = { change, deltaX ->
+                        dragOffset += deltaX
+                        val absDragOffset = kotlin.math.abs(dragOffset)
+                        if (absDragOffset > swipeThreshold) {
+                            change.consume()
+                        }
+                    },
                     onDragEnd = {
                         when {
                             dragOffset > swipeThreshold -> onWeekChange(-1L)
                             dragOffset < -swipeThreshold -> onWeekChange(1L)
                         }
+
                         dragOffset = 0f
                     }
                 )

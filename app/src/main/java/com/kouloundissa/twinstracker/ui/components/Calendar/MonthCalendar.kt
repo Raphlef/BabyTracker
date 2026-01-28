@@ -56,7 +56,6 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun MonthCalendar(
-    currentMonth: LocalDate,
     onMonthChange: (delta: Long) -> Unit,
     eventsByDay: Map<LocalDate, List<Event>>,
     selectedDate: LocalDate,
@@ -70,10 +69,16 @@ fun MonthCalendar(
     Box(
         modifier
             .background(BackgroundColor, MaterialTheme.shapes.large)
-            .pointerInput(currentMonth) {
+            .pointerInput(selectedDate) {
                 detectHorizontalDragGestures(
                     onDragStart = { dragOffset = 0f },
-                    onHorizontalDrag = { _, deltaX -> dragOffset += deltaX },
+                    onHorizontalDrag = { change, deltaX ->
+                        dragOffset += deltaX
+                        val absDragOffset = kotlin.math.abs(dragOffset)
+                        if (absDragOffset > swipeThreshold) {
+                            change.consume()
+                        }
+                    },
                     onDragEnd = {
                         when {
                             dragOffset > swipeThreshold -> onMonthChange(-1L)
@@ -87,14 +92,14 @@ fun MonthCalendar(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             MonthHeader(
-                currentMonth = currentMonth,
+                currentMonth = selectedDate,
                 onMonthChange = onMonthChange
             )
 
             Spacer(Modifier.height(8.dp))
 
             AnimatedContent(
-                targetState = currentMonth,
+                targetState = selectedDate,
                 transitionSpec = {
                     if (targetState > initialState) {
                         slideInHorizontally { width -> width } + fadeIn() with
