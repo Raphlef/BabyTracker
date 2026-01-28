@@ -55,7 +55,8 @@ import java.time.format.DateTimeFormatter
 fun DateRangeFilterSection(
     filter: AnalysisFilter.DateRange,
     onFilterChanged: (AnalysisFilter.DateRange) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    allowedRanges: Set<AnalysisRange> = AnalysisRange.entries.toSet()
 ) {
     val context = LocalContext.current
     val backgroundColor = BackgroundColor
@@ -130,7 +131,7 @@ fun DateRangeFilterSection(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             contentPadding = PaddingValues(horizontal = 2.dp)
         ) {
-            items(AnalysisRange.entries.toTypedArray()) { range ->
+            items(allowedRanges.toList()) { range ->
                 val isSelected = filter.selectedRange == range
                 FilterChip(
                     onClick = {

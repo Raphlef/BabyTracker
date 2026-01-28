@@ -58,7 +58,8 @@ fun AnalysisFilterPanel(
     onFiltersChanged: (AnalysisFilters) -> Unit,
     onExpandedChanged: (Boolean) -> Unit,
     eventViewModel: EventViewModel = hiltViewModel(),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    allowedRanges: Set<AnalysisRange> = AnalysisRange.entries.toSet()
 ) {
     val isLoading by eventViewModel.isLoading.collectAsState()
     var isExpanded by remember { mutableStateOf(false) }
@@ -116,6 +117,7 @@ fun AnalysisFilterPanel(
                             onExpandedChanged(isExpanded)
                         }
                     },
+                    allowedRanges=allowedRanges
                 )
             },
             isExpanded = isExpanded,
@@ -186,7 +188,8 @@ private fun FilterPanelHeader(
 private fun FilterPanelContent(
     filters: AnalysisFilters,
     onFiltersChanged: (AnalysisFilters) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    allowedRanges: Set<AnalysisRange> = AnalysisRange.entries.toSet()
 ) {
     val backgroundColor = BackgroundColor
     val contentColor = DarkGrey
@@ -214,7 +217,8 @@ private fun FilterPanelContent(
             filter = filters.dateRange,
             onFilterChanged = { newDateRange ->
                 onFiltersChanged(filters.copy(dateRange = newDateRange))
-            }
+            },
+            allowedRanges = allowedRanges
         )
 
         Divider(color = contentColor.copy(alpha = 0.1f), thickness = 1.dp)
