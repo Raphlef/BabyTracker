@@ -53,6 +53,7 @@ import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
 import com.kouloundissa.twinstracker.ui.components.Calendar.MonthCalendar
 import com.kouloundissa.twinstracker.ui.components.Calendar.WeekCalendar
 import com.kouloundissa.twinstracker.ui.components.calculateRange
+import com.kouloundissa.twinstracker.ui.components.toDate
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
@@ -129,11 +130,11 @@ fun CalendarScreen(
                 dateRange.customStartDate != null && dateRange.customEndDate != null
 
             val (startDate, endDate) = if (hasCustomDates) {
-                dateRange.customStartDate?.minusDays(1) to dateRange.customEndDate?.plusDays(1)
+                dateRange.customStartDate?.toLocalDate()?.minusDays(1)?.atStartOfDay()?.toDate() to dateRange.customEndDate?.toLocalDate()?.atTime(23, 59, 59)?.toDate()
             } else {
                 val params = calculateRange(dateRange)
-                params.startDate.toLocalDate().minusDays(1) to params.endDate.toLocalDate()
-                    .plusDays(1)
+                params.startDate.toLocalDate().minusDays(1).atStartOfDay().toDate() to params.endDate
+
             }
 
             val updatedFilters = filters.value.copy(
@@ -253,10 +254,10 @@ fun CalendarScreen(
                                 val newDateRange = filters.value.dateRange.copy(
                                     customStartDate = newDate.with(
                                         TemporalAdjusters.firstDayOfMonth()
-                                    ),
+                                    ).atStartOfDay().toDate(),
                                     customEndDate = newDate.with(
                                         TemporalAdjusters.lastDayOfMonth()
-                                    )
+                                    ).atTime(23, 59, 59).toDate()
                                 )
 
                                 Log.d(
@@ -290,10 +291,10 @@ fun CalendarScreen(
                                 val newDateRange = filters.value.dateRange.copy(
                                     customStartDate = newDate.with(
                                         TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)
-                                    ),
+                                    ) .atStartOfDay().toDate(),
                                     customEndDate = newDate.with(
                                         TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY)
-                                    )
+                                    ).atTime(23, 59, 59).toDate()
                                 )
                                 Log.d(
                                     "CalendarScreen",
@@ -323,9 +324,9 @@ fun CalendarScreen(
 
                                 val newDateRange = filters.value.dateRange.copy(
                                     customStartDate = newDate.atStartOfDay()
-                                        .toLocalDate(),  // 00:00:00
+                                        .toDate(),  // 00:00:00
                                     customEndDate = newDate.atTime(23, 59, 59)
-                                        .toLocalDate()  // 23:59:59
+                                        .toDate()  // 23:59:59
                                 )
 
                                 Log.d(

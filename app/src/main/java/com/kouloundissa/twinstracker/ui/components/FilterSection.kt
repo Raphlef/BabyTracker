@@ -40,6 +40,7 @@ import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.AnalysisRange
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
+import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.toLocalDate
 import com.kouloundissa.twinstracker.data.getDisplayName
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
@@ -71,7 +72,7 @@ fun DateRangeFilterSection(
     val displayStartDate = remember(filter) {
         when {
             filter.selectedRange == AnalysisRange.CUSTOM && filter.customStartDate != null ->
-                filter.customStartDate
+                filter.customStartDate?.toLocalDate()
 
             filter.selectedRange != AnalysisRange.CUSTOM ->
                 LocalDate.now().minusDays((filter.selectedRange.days - 1).toLong())
@@ -83,7 +84,7 @@ fun DateRangeFilterSection(
     val displayEndDate = remember(filter) {
         when {
             filter.selectedRange == AnalysisRange.CUSTOM && filter.customEndDate != null ->
-                filter.customEndDate
+                filter.customEndDate?.toLocalDate()
 
             filter.selectedRange != AnalysisRange.CUSTOM -> LocalDate.now()
             else -> null
@@ -187,9 +188,17 @@ fun DateRangeFilterSection(
                         dateRangePickerState.selectedStartDateMillis?.let { startMillis ->
                             dateRangePickerState.selectedEndDateMillis?.let { endMillis ->
                                 val startDate = Instant.ofEpochMilli(startMillis)
-                                    .atZone(ZoneId.systemDefault()).toLocalDate()
+                                    .atZone(ZoneId.systemDefault())
+                                    .toLocalDate()
+                                    .atStartOfDay()
+                                    .toDate()
+
                                 val endDate = Instant.ofEpochMilli(endMillis)
-                                    .atZone(ZoneId.systemDefault()).toLocalDate()
+                                    .atZone(ZoneId.systemDefault())
+                                    .toLocalDate()
+                                    .atTime(23, 59, 59)
+                                    .toDate()
+
                                 onFilterChanged(
                                     filter.copy(
                                         selectedRange = AnalysisRange.CUSTOM,

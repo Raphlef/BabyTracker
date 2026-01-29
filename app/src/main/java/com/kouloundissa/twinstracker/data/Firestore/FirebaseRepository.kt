@@ -1330,8 +1330,8 @@ class FirebaseRepository @Inject constructor(
             dailyAnalysis = dailyAnalysis,
             dateRange = AnalysisFilter.DateRange(
                 AnalysisRange.CUSTOM,
-                startDate.toLocalDate(),
-                endDate.toLocalDate()
+                startDate,
+                endDate
             ),
             babyId = babyId
         )

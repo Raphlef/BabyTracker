@@ -52,6 +52,7 @@ import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.Date
@@ -297,8 +298,8 @@ private fun getFilterSummary(filters: AnalysisFilters, context: Context): String
 sealed class AnalysisFilter {
     data class DateRange(
         val selectedRange: AnalysisRange,
-        var customStartDate: LocalDate? = null,
-        var customEndDate: LocalDate? = null
+        var customStartDate: Date? = null,
+        var customEndDate: Date? = null
     ) : AnalysisFilter()
 
     data class BabyFilter(val selectedBabies: Set<Baby> = emptySet()) : AnalysisFilter()
@@ -344,8 +345,8 @@ fun calculateRange(
         }
 
         AnalysisRange.CUSTOM -> {
-            val start = customStartDate?.toDate() ?: Date()
-            val end = customEndDate?.toDate() ?: Date()
+            val start = customStartDate ?: Date()
+            val end = customEndDate ?: Date()
             val daysBetween = ChronoUnit.DAYS.between(
                 start.toInstant(),
                 end.toInstant()
@@ -361,6 +362,9 @@ fun calculateRange(
 }
 fun LocalDate.toDate(): Date =
     this.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli().let { Date(it) }
+fun LocalDateTime.toDate(): Date {
+    return Date.from(this.atZone(ZoneId.systemDefault()).toInstant())
+}
 
 
 

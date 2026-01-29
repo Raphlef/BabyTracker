@@ -227,8 +227,6 @@ class EventViewModel @Inject constructor(
         val selectedTypes = filters.eventTypeFilter.selectedTypes
 
         babyId?.let { baby ->
-
-            // Start analysis streaming
             startAnalysisStreaming(baby.id, dateRange, eventTypes = selectedTypes)
         }
     }
@@ -237,9 +235,9 @@ class EventViewModel @Inject constructor(
      * Convenience method for custom range
      */
     @Deprecated("Use refreshWithFilters() instead")
-    fun refreshWithCustomRange(babyId: String, startDate: Date, endDate: Date) {
+    fun refreshWithCustomRange(babyId: String,dateRangeParams:DateRangeParams) {
         resetDateRangeAndHistory()
-        startStreaming(babyId, startDate, endDate)
+        startStreaming(babyId, dateRangeParams)
     }
 
     private val _streamRequest = MutableStateFlow<EventStreamRequest?>(null)
@@ -457,20 +455,13 @@ class EventViewModel @Inject constructor(
     @Deprecated("Use startAnalysisStreaming() instead")
     fun startStreaming(
         babyId: String,
-        startDate: Date?,
-        endDate: Date?
+        dateRange:DateRangeParams
     ) {
         if (babyId.isEmpty()) return
 
         _isLoading.value = true
         setupStreamListener();
 
-        Log.d("CalculateRange", "from startStreaming")
-        val dateRange = if (startDate != null && endDate != null) {
-            DateRangeParams(startDate, endDate)
-        } else {
-            calculateRange(AnalysisFilter.DateRange(AnalysisRange.ONE_WEEK))  // default
-        }
         val request = EventStreamRequest(babyId, dateRange)
         Log.d("EventViewModel", "Range: ${dateRange.startDate} → ${dateRange.endDate}")
         // Only update if request actually changed

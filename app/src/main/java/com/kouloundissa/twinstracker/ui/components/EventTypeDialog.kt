@@ -61,6 +61,7 @@ import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
+import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel.DateRangeParams
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
@@ -195,8 +196,10 @@ private fun EventTypeDialogContent(
 
                 eventViewModel.refreshWithCustomRange(
                     baby.id,
-                    Date.from(startDate),
-                    Date.from(endDate)
+                    DateRangeParams(
+                        Date.from(startDate),
+                        Date.from(endDate)
+                    )
                 )
             }
         }
