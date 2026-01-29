@@ -130,10 +130,14 @@ fun CalendarScreen(
                 dateRange.customStartDate != null && dateRange.customEndDate != null
 
             val (startDate, endDate) = if (hasCustomDates) {
-                dateRange.customStartDate?.toLocalDate()?.minusDays(1)?.atStartOfDay()?.toDate() to dateRange.customEndDate?.toLocalDate()?.atTime(23, 59, 59)?.toDate()
+                dateRange.customStartDate?.toLocalDate()?.minusDays(1)?.atStartOfDay()
+                    ?.toDate() to dateRange.customEndDate?.toLocalDate()?.atTime(23, 59, 59)
+                    ?.toDate()
             } else {
+                selectedDate = LocalDate.now()
                 val params = calculateRange(dateRange)
-                params.startDate.toLocalDate().minusDays(1).atStartOfDay().toDate() to params.endDate
+                params.startDate.toLocalDate().minusDays(1).atStartOfDay()
+                    .toDate() to params.endDate
 
             }
 
@@ -290,7 +294,7 @@ fun CalendarScreen(
                                 val newDateRange = filters.value.dateRange.copy(
                                     customStartDate = newDate.with(
                                         TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)
-                                    ) .atStartOfDay().toDate(),
+                                    ).atStartOfDay().toDate(),
                                     customEndDate = newDate.with(
                                         TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY)
                                     ).atTime(23, 59, 59).toDate()
