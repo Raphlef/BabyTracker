@@ -30,7 +30,6 @@ import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.Family
 import com.kouloundissa.twinstracker.data.FeedingEvent
-import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.formatDateForGrouping
 import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.toLocalDate
 import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.GrowthMeasurement
@@ -60,7 +59,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
@@ -1218,26 +1216,6 @@ class FirebaseRepository @Inject constructor(
         logPrefix = { "streamEventsForBaby" }
     )
 
-    fun streamEventCountsByDayTyped(
-        babyId: String,
-        startDate: Date,
-        endDate: Date,
-        firebaseCache: FirebaseCache = FirebaseCache(context, db),
-    ): Flow<Map<String, EventDayCount>> = buildEventStream(
-        babyId = babyId,
-        startDate = startDate,
-        endDate = endDate,
-        firebaseCache = firebaseCache,
-        transform = { events ->
-            val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            events.values
-                .groupingBy { event -> dateFormatter.formatDateForGrouping(event.timestamp) }
-                .eachCount()
-                .mapValues { (_, count) -> EventDayCount(count = count) }
-        },
-        logPrefix = { "streamEventCountsByDayTyped" }
-    )
-
 
     fun streamAnalysisMetrics(
         babyId: String,
@@ -1352,8 +1330,8 @@ class FirebaseRepository @Inject constructor(
             dailyAnalysis = dailyAnalysis,
             dateRange = AnalysisFilter.DateRange(
                 AnalysisRange.CUSTOM,
-                startDate.toLocalDate(),
-                endDate.toLocalDate()
+                startDate,
+                endDate
             ),
             babyId = babyId
         )

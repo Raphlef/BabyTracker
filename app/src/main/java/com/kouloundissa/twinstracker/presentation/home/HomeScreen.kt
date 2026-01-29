@@ -69,6 +69,7 @@ import com.kouloundissa.twinstracker.presentation.baby.BabyCreateDialog
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
+import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel.DateRangeParams
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.components.EventOverlayInfo
 import com.kouloundissa.twinstracker.ui.components.EventTypeDialog
@@ -166,8 +167,10 @@ fun HomeScreen(
 
                 eventViewModel.refreshWithCustomRange(
                     it,
-                    Date.from(startDate),
-                    Date.from(endDate)
+                    DateRangeParams(
+                        Date.from(startDate),
+                        Date.from(endDate)
+                    )
                 )
                 eventViewModel.loadLastGrowth(it)
             }

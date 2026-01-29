@@ -30,6 +30,7 @@ import com.kouloundissa.twinstracker.data.User
 import com.kouloundissa.twinstracker.data.setPhotoUrl
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
+import com.kouloundissa.twinstracker.ui.components.calculateRange
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -212,68 +213,6 @@ class EventViewModel @Inject constructor(
         val endDate: Date
     )
 
-    sealed class DateRangeStrategy {
-        data class LastDays(val days: Long) : DateRangeStrategy()
-        data class Custom(val params: DateRangeParams) : DateRangeStrategy()
-    }
-
-    fun calculateRange(
-        strategy: DateRangeStrategy,
-        zone: ZoneId = ZoneId.systemDefault()
-    ): DateRangeParams {
-        val today = LocalDate.now()
-        return when (strategy) {
-            is DateRangeStrategy.LastDays -> {
-                val startDate = today.minusDays(strategy.days - 1)
-                    .atStartOfDay(zone).toInstant()
-                val endDate = today.atTime(23, 59, 59).atZone(zone).toInstant()
-                val result = DateRangeParams(
-                    Date.from(startDate),
-                    Date.from(endDate)
-                )
-                Log.d(
-                    "DateRange",
-                    "LastDays result: ${result.startDate} → ${result.endDate} (${strategy.days} days)"
-                )
-                result
-            }
-
-            is DateRangeStrategy.Custom -> {
-                val daysBetween = ChronoUnit.DAYS.between(
-                    strategy.params.startDate.toInstant(),
-                    strategy.params.endDate.toInstant()
-                ) + 1 // +1 to include both start and end dates
-                Log.d(
-                    "DateRange",
-                    "Custom range: ${strategy.params.startDate} → ${strategy.params.endDate} ($daysBetween days)"
-                )
-                strategy.params
-            }
-        }
-    }
-
-    fun AnalysisRange.toDateRangeStrategy(
-        customStartDate: LocalDate? = null,
-        customEndDate: LocalDate? = null
-    ): DateRangeStrategy = when (this) {
-        AnalysisRange.ONE_DAY,
-        AnalysisRange.THREE_DAYS,
-        AnalysisRange.ONE_WEEK,
-        AnalysisRange.TWO_WEEKS,
-        AnalysisRange.ONE_MONTH,
-        AnalysisRange.THREE_MONTHS -> DateRangeStrategy.LastDays(this.days.toLong())
-
-        AnalysisRange.CUSTOM -> DateRangeStrategy.Custom(
-            DateRangeParams(
-                startDate = customStartDate?.toDate() ?: Date(),
-                endDate = customEndDate?.toDate() ?: Date()
-            )
-        )
-    }
-
-    fun LocalDate.toDate(): Date =
-        this.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli().let { Date(it) }
-
     data class EventStreamRequest(
         val babyId: String,
         val dateRange: DateRangeParams,
@@ -284,18 +223,11 @@ class EventViewModel @Inject constructor(
         filters: AnalysisFilters
     ) {
         val dateRange = filters.dateRange
-        val selectedRange = dateRange.selectedRange
         val babyId = filters.babyFilter.selectedBabies.firstOrNull()
         val selectedTypes = filters.eventTypeFilter.selectedTypes
 
         babyId?.let { baby ->
-            val strategy = selectedRange.toDateRangeStrategy(
-                customStartDate = dateRange.customStartDate,
-                customEndDate = dateRange.customEndDate
-            )
-
-            // Start analysis streaming
-            startAnalysisStreaming(baby.id, strategy, eventTypes = selectedTypes)
+            startAnalysisStreaming(baby.id, dateRange, eventTypes = selectedTypes)
         }
     }
 
@@ -303,17 +235,16 @@ class EventViewModel @Inject constructor(
      * Convenience method for custom range
      */
     @Deprecated("Use refreshWithFilters() instead")
-    fun refreshWithCustomRange(babyId: String, startDate: Date, endDate: Date) {
-        val strategy = DateRangeStrategy.Custom(DateRangeParams(startDate, endDate))
+    fun refreshWithCustomRange(babyId: String,dateRangeParams:DateRangeParams) {
         resetDateRangeAndHistory()
-        startStreaming(babyId, strategy)
+        startStreaming(babyId, dateRangeParams)
     }
 
     private val _streamRequest = MutableStateFlow<EventStreamRequest?>(null)
-   // private val _countStreamRequest = MutableStateFlow<EventStreamRequest?>(null)
+
     private val _analysisStreamRequest = MutableStateFlow<EventStreamRequest?>(null)
     private var streamJob: Job? = null
-   // private var countsStreamJob: Job? = null
+
     private var analysisStreamJob: Job? = null
 
     private val maxDaysWindow = 365L // Maximum 1 year of history
@@ -494,7 +425,7 @@ class EventViewModel @Inject constructor(
 
     fun startAnalysisStreaming(
         babyId: String,
-        strategy: DateRangeStrategy,
+        dateRange: AnalysisFilter.DateRange,
         eventTypes: Set<EventType> = EventType.entries.toSet()
     ) {
         if (babyId.isEmpty()) return
@@ -502,7 +433,7 @@ class EventViewModel @Inject constructor(
         _isLoading.value = true
         setupAnalysisStreamListener()
 
-        val dateRange = calculateRange(strategy)
+        val dateRange = calculateRange(dateRange)
         val request = EventStreamRequest(
             babyId, dateRange,
             eventTypes = eventTypes
@@ -524,15 +455,13 @@ class EventViewModel @Inject constructor(
     @Deprecated("Use startAnalysisStreaming() instead")
     fun startStreaming(
         babyId: String,
-        strategy: DateRangeStrategy
+        dateRange:DateRangeParams
     ) {
         if (babyId.isEmpty()) return
 
         _isLoading.value = true
         setupStreamListener();
 
-        Log.d("CalculateRange", "from startStreaming")
-        val dateRange = calculateRange(strategy)
         val request = EventStreamRequest(babyId, dateRange)
         Log.d("EventViewModel", "Range: ${dateRange.startDate} → ${dateRange.endDate}")
         // Only update if request actually changed

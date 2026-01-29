@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import com.kouloundissa.twinstracker.data.AnalysisSnapshot
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
+import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import computeDaySpans
@@ -62,7 +63,7 @@ fun WeekCalendar(
     analysisSnapshot: AnalysisSnapshot,
     onWeekChange: (delta: Long) -> Unit,
     selectedDate: LocalDate,
-    filterTypes: Set<EventType>,
+    analysisFilter: AnalysisFilters,
     onDayClick: (LocalDate) -> Unit,
     onEdit: (Event) -> Unit,
     modifier: Modifier = Modifier
@@ -83,12 +84,19 @@ fun WeekCalendar(
             .pointerInput(currentWeekMonday) {
                 detectHorizontalDragGestures(
                     onDragStart = { dragOffset = 0f },
-                    onHorizontalDrag = { _, deltaX -> dragOffset += deltaX },
+                    onHorizontalDrag = { change, deltaX ->
+                        dragOffset += deltaX
+                        val absDragOffset = kotlin.math.abs(dragOffset)
+                        if (absDragOffset > swipeThreshold) {
+                            change.consume()
+                        }
+                    },
                     onDragEnd = {
                         when {
                             dragOffset > swipeThreshold -> onWeekChange(-1L)
                             dragOffset < -swipeThreshold -> onWeekChange(1L)
                         }
+
                         dragOffset = 0f
                     }
                 )
@@ -98,10 +106,7 @@ fun WeekCalendar(
         Column(modifier = Modifier.fillMaxWidth()) {
             WeekHeader(
                 currentWeekMonday = currentWeekMonday,
-                onWeekChange = { delta ->
-                    val newDate = currentWeekMonday.plusWeeks(delta)
-                    onDayClick(newDate)
-                }
+                onWeekChange = onWeekChange
             )
 
             Spacer(Modifier.height(8.dp))
@@ -123,9 +128,9 @@ fun WeekCalendar(
                     analysisSnapshot = analysisSnapshot,
                     currentWeekMonday = weekMonday,
                     selectedDate = selectedDate,
-                    filterTypes = filterTypes,
+                    analysisFilter,
                     onDayClick = onDayClick,
-                    onEdit = onEdit
+                    onEdit = onEdit,
                 )
             }
         }
@@ -137,7 +142,7 @@ fun WeekCalendarContent(
     analysisSnapshot: AnalysisSnapshot,
     currentWeekMonday: LocalDate,
     selectedDate: LocalDate,
-    filterTypes: Set<EventType>,
+    analysisFilter: AnalysisFilters,
     onDayClick: (LocalDate) -> Unit,
     onEdit: (Event) -> Unit,
     modifier: Modifier = Modifier
@@ -148,14 +153,14 @@ fun WeekCalendarContent(
         }
     }
 
-    val weekEventsByDay = remember(analysisSnapshot, weekDays, filterTypes) {
+    val weekEventsByDay = remember(analysisSnapshot, weekDays, analysisFilter) {
         analysisSnapshot.eventsByDay
             .filterKeys { date ->
                 weekDays.contains(date)  // Utilise exactement ces 7 jours
             }
             .mapValues { (_, dayEvents) ->
                 dayEvents.filter { event ->
-                    filterTypes.contains(EventType.forClass(event::class))
+                    analysisFilter.eventTypeFilter.selectedTypes.contains(EventType.forClass(event::class))
                 }
             }
     }
@@ -201,6 +206,7 @@ fun WeekCalendarContent(
                                     modifier = Modifier
                                         .weight(1f)
                                         .fillMaxHeight()
+                                        .height(WEEK_HOUR_ROW_HEIGHT)
                                         .background(
                                             if (day == selectedDate) {
                                                 DarkBlue.copy(alpha = 0.1f)
@@ -216,7 +222,6 @@ fun WeekCalendarContent(
                 }
             }
 
-            // ✅ LAYER 2: Overlay continu des événements
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -232,7 +237,6 @@ fun WeekCalendarContent(
                         onEdit = onEdit,
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxHeight()
                     )
                 }
             }

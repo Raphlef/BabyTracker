@@ -254,7 +254,7 @@ class FirebaseCache(
                 }
                 preferences[stringPreferencesKey(cacheKey)] = json
             }
-            Log.d(TAG, "✓ Cached ${events.size} events for baby=$babyId on day=${dayStart.time}")
+            Log.d(TAG, "✓ Cached ${events.size} events for baby=$babyId on day=${dayStart}")
         } catch (e: Exception) {
             Log.e(TAG, "✗ Error caching day events: ${e.message}", e)
         }
@@ -280,7 +280,7 @@ class FirebaseCache(
             }
 
             val json = preferences[stringPreferencesKey(cacheKey)] ?: return null.also {
-                Log.d(TAG, "ℹ No cached data for baby=$babyId on day=${dayStart.time}")
+                Log.d(TAG, "ℹ No cached data for baby=$babyId on day=${dayStart}")
             }
 
             if (json.isBlank()) {
@@ -416,11 +416,11 @@ class FirebaseCache(
                 cachedDays[currentDayStart] = cachedDay
                 Log.d(
                     TAG,
-                    "  ✓ Using cache for day ${currentDay.time}: ${cachedDay.events.size} events"
+                    "  ✓ Using cache for day ${currentDay}: ${cachedDay.events.size} events"
                 )
             } else {
                 missingDays.add(currentDay)
-                Log.d(TAG, "  ✗ Missing cache for day ${currentDay.time}: will query DB")
+                Log.d(TAG, "  ✗ Missing cache for day ${currentDay}: will query DB")
             }
 
             calendar.add(Calendar.DAY_OF_MONTH, 1)
@@ -493,7 +493,7 @@ class FirebaseCache(
             context.cacheDataStore.edit { preferences ->
                 preferences.remove(stringPreferencesKey(cacheKey))
             }
-            Log.d(TAG, "✓ Invalidated cache for baby=$babyId on day=${dayStart.time}")
+            Log.d(TAG, "✓ Invalidated cache for baby=$babyId on day=${dayStart}")
         } catch (e: Exception) {
             Log.e(TAG, "✗ Error invalidating cache: ${e.message}", e)
         }

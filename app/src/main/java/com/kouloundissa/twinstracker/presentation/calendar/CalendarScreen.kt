@@ -1,14 +1,24 @@
 package com.kouloundissa.twinstracker.presentation.calendar
 
 import DayCalendar
+import android.app.Activity
+import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -21,100 +31,134 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.kouloundissa.twinstracker.data.AnalysisRange
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.toLocalDate
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
+import com.kouloundissa.twinstracker.presentation.settings.SettingsScreen
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
+import com.kouloundissa.twinstracker.ui.components.Ad.AdManager
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
+import com.kouloundissa.twinstracker.ui.components.AnalysisFilterPanel
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
 import com.kouloundissa.twinstracker.ui.components.Calendar.MonthCalendar
 import com.kouloundissa.twinstracker.ui.components.Calendar.WeekCalendar
-import com.kouloundissa.twinstracker.ui.components.FilterBar
-import com.kouloundissa.twinstracker.ui.components.FilterBarLayoutMode
+import com.kouloundissa.twinstracker.ui.components.calculateRange
+import com.kouloundissa.twinstracker.ui.components.toDate
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
 
 @Composable
 fun CalendarScreen(
+    navController: NavController,
     contentPadding: PaddingValues = PaddingValues(),
     isVisible: Boolean,
     eventViewModel: EventViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
+    val activity = context as Activity
+
     /** State **/
     val isLoading by eventViewModel.isLoading.collectAsState()
     val errorMessage by eventViewModel.errorMessage.collectAsState()
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
+    val favoriteEventTypes by eventViewModel.favoriteEventTypes.collectAsState()
 
     val analysisSnapshot by eventViewModel.analysisSnapshot.collectAsState()
 
-    var currentMonth by rememberSaveable { mutableStateOf(LocalDate.now()) }
     var selectedDate by rememberSaveable { mutableStateOf(LocalDate.now()) }
-    var filterTypes by rememberSaveable { mutableStateOf<Set<EventType>>(emptySet()) }
+    //var filterTypes by rememberSaveable { mutableStateOf<Set<EventType>>(emptySet()) }
     var editingEvent by rememberSaveable { mutableStateOf<Event?>(null) }
     var showDialog by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    /** Compute available types & init filter **/
-    val availableTypes = remember(analysisSnapshot, currentMonth) {
-        analysisSnapshot.events
-            .filter { event ->
-                val eventDate = event.timestamp.toLocalDate()
-                eventDate.monthValue == currentMonth.monthValue && eventDate.year == currentMonth.year
-            }
-            .groupingBy { EventType.forClass(it::class) }
-            .eachCount()
-            .toList()
-            .sortedByDescending { it.second }
-            .map { it.first }
-            .distinct()
-            .toSet()
+
+    val filters = remember {
+        mutableStateOf(
+            AnalysisFilters(
+                dateRange = AnalysisFilter.DateRange(AnalysisRange.ONE_WEEK)
+            )
+        )
     }
-    LaunchedEffect(availableTypes) { filterTypes = availableTypes }
 
-    LaunchedEffect(isVisible, currentMonth, selectedBaby?.id) {
+    var isFilterExpanded by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(selectedBaby, favoriteEventTypes) {
+        val newBabyFilter = selectedBaby?.let { baby ->
+            AnalysisFilter.BabyFilter(selectedBabies = setOf(baby))
+        } ?: AnalysisFilter.BabyFilter()
+
+        val selectedTypes = favoriteEventTypes.ifEmpty {
+            EventType.entries.toSet()
+        }
+
+        val eventTypeFilter = filters.value.eventTypeFilter
+            .takeIf { it.selectedTypes.isNotEmpty() }
+            ?: AnalysisFilter.EventTypeFilter(selectedTypes = selectedTypes)
+
+        filters.value = filters.value.copy(
+            babyFilter = newBabyFilter,
+            eventTypeFilter = eventTypeFilter
+        )
+    }
+
+    LaunchedEffect(isVisible, filters.value) {
         if (isVisible) {
-            selectedBaby?.let { baby ->
-                val startOfMonth = currentMonth.withDayOfMonth(1)
-                val startOfRange = startOfMonth.minusWeeks(1)
-                val endOfMonth = currentMonth.withDayOfMonth(currentMonth.lengthOfMonth())
-                    .plusDays(1)
+            filters.value.babyFilter.selectedBabies.firstOrNull()?.let { baby ->
 
-                val endOfRange = endOfMonth.plusWeeks(1)
+                babyViewModel.selectBaby(baby)
+                Log.d("CalendarScreen", "selectedRange Starting stream for babyId: ${baby}")
+            }
 
-                val dateRange = AnalysisFilter.DateRange(
-                    AnalysisRange.CUSTOM,
-                    startOfRange,
-                    endOfRange
+            val dateRange = filters.value.dateRange
+            val hasCustomDates =
+                dateRange.customStartDate != null && dateRange.customEndDate != null
+
+            val (startDate, endDate) = if (hasCustomDates) {
+                dateRange.customStartDate?.toLocalDate()?.minusDays(1)?.atStartOfDay()
+                    ?.toDate() to dateRange.customEndDate?.toLocalDate()?.atTime(23, 59, 59)
+                    ?.toDate()
+            } else {
+                selectedDate = LocalDate.now()
+                val params = calculateRange(dateRange)
+                params.startDate.toLocalDate().minusDays(1).atStartOfDay()
+                    .toDate() to params.endDate
+
+            }
+
+            val updatedFilters = filters.value.copy(
+                dateRange = AnalysisFilter.DateRange(
+                    selectedRange = AnalysisRange.CUSTOM,
+                    customStartDate = startDate,
+                    customEndDate = endDate
                 )
-                val newBabyFilter = AnalysisFilter.BabyFilter(selectedBabies = setOf(baby))
-                val eventTypeFilter = AnalysisFilter.EventTypeFilter(selectedTypes = filterTypes)
+            )
+            Log.d("FilterUpdate", "Adjusted dates - Start: $startDate, End: $endDate")
+            eventViewModel.refreshWithFilters(updatedFilters)
 
-                val filterValue = AnalysisFilters(
-                    dateRange = dateRange,
-                    babyFilter = newBabyFilter,
-                    eventTypeFilter = eventTypeFilter
-                )
-                eventViewModel.refreshWithFilters(filterValue)
-                val today = LocalDate.now()
-                selectedDate =
-                    if (today.year == currentMonth.year && today.monthValue == currentMonth.monthValue) {
-                        today  // ✅ Aujourd'hui si c'est dans le mois courant
-                    } else {
-                        currentMonth.withDayOfMonth(1)  // ✅ Premier jour sinon
-                    }
+            if (filters.value.dateRange != AnalysisFilter.DateRange(AnalysisRange.ONE_DAY) &&
+                filters.value.dateRange != AnalysisFilter.DateRange(AnalysisRange.ONE_WEEK)
+            ) {
+                AdManager.showInterstitial(activity)
             }
         }
     }
+
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
@@ -126,14 +170,6 @@ fun CalendarScreen(
             eventViewModel.loadEventIntoForm(it)
             showDialog = true
         }
-    }
-    val dailyEvents = remember(analysisSnapshot, selectedDate, filterTypes) {
-        analysisSnapshot.eventsByDay[selectedDate]
-            ?.filter { event ->
-                filterTypes.contains(EventType.forClass(event::class))
-            }
-            ?.takeIf { filterTypes.isNotEmpty() }
-            ?: emptyList()
     }
     val backgroundColor = BackgroundColor
     val contentColor = DarkGrey.copy(alpha = 0.5f)
@@ -151,18 +187,57 @@ fun CalendarScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            FilterBar(
-                types = availableTypes,
-                selected = filterTypes,
-                onToggle = { type ->
-                    filterTypes =
-                        if (type in filterTypes) filterTypes - type else filterTypes + type
-                },
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                layoutMode = FilterBarLayoutMode.HORIZONTAL_SCROLL
-            )
+                    .padding(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AnalysisFilterPanel(
+                    filters = filters.value,
+                    onFiltersChanged = { newFilters ->
+                        filters.value = newFilters
+                    },
+                    onExpandedChanged = { isExpanded ->
+                        isFilterExpanded = isExpanded
+                    },
+                    modifier = Modifier.weight(1f),
+                    allowedRanges = setOf(
+                        AnalysisRange.ONE_DAY,
+                        AnalysisRange.ONE_WEEK,
+                        AnalysisRange.ONE_MONTH
+                    )
+                )
+
+                // Settings button
+                if (!isFilterExpanded) {
+                    IconButton(
+                        onClick = {
+                            showSettingsDialog = true
+                        },
+                        modifier = Modifier
+                            .background(
+                                BackgroundColor,
+                                CircleShape
+                            )
+                            .size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = tint
+                        )
+                    }
+                }
+            }
+
+            if (showSettingsDialog) {
+                SettingsScreen(
+                    navController = navController,
+                    onDismiss = { showSettingsDialog = false }
+                )
+            }
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -172,85 +247,98 @@ fun CalendarScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
 
-                item {
-                    val eventsByDayForCalendar: Map<LocalDate, List<Event>> =
-                        remember(analysisSnapshot, currentMonth, filterTypes) {
-                            analysisSnapshot.eventsByDay
-                                .filterKeys { date ->
-                                    date.monthValue == currentMonth.monthValue && date.year == currentMonth.year
-                                }
-                                .mapValues { (_, dayEvents) ->
-                                    dayEvents.filter { event ->
-                                        filterTypes.contains(EventType.forClass(event::class))
-                                    }
-                                }
-                        }
+                if (filters.value.dateRange.selectedRange == AnalysisRange.ONE_MONTH)
+                    item {
+                        MonthCalendar(
+                            isloading = isLoading,
+                            onMonthChange = { delta ->
+                                val newDate = selectedDate.plusMonths(delta)
+                                selectedDate = newDate
 
-                    MonthCalendar(
-                        currentMonth = currentMonth,
-                        onMonthChange = { delta ->
-                            currentMonth = currentMonth.plusMonths(delta)
-                        },
-                        eventsByDay = eventsByDayForCalendar,
-                        selectedDate = selectedDate,
-                        onDayClick = { newDate ->
-                            selectedDate = newDate
+                                val newDateRange = filters.value.dateRange.copy(
+                                    customStartDate = newDate.with(
+                                        TemporalAdjusters.firstDayOfMonth()
+                                    ).atStartOfDay().toDate(),
+                                    customEndDate = newDate.with(
+                                        TemporalAdjusters.lastDayOfMonth()
+                                    ).atTime(23, 59, 59).toDate()
+                                )
 
-                            val newMonth = LocalDate.of(newDate.year, newDate.month, 1)
-                            if (newMonth.month != currentMonth.month) {
-                                currentMonth = newMonth
+                                Log.d(
+                                    "CalendarScreen",
+                                    "Month range: ${newDateRange.customStartDate} to ${newDateRange.customEndDate}"
+                                )
+                                filters.value = filters.value.copy(dateRange = newDateRange)
+                            },
+                            eventsByDay = analysisSnapshot.eventsByDay,
+                            selectedDate = selectedDate,
+                            onDayClick = { newDate ->
+                                selectedDate = newDate
                             }
-                        }
-                    )
-                }
+                        )
+                    }
+
+                if (filters.value.dateRange.selectedRange == AnalysisRange.ONE_WEEK)
+                    item {
+                        WeekCalendar(
+                            analysisSnapshot = analysisSnapshot,
+                            selectedDate = selectedDate,
+                            analysisFilter = filters.value,
+                            onDayClick = { newDate ->
+                                selectedDate = newDate
+                            },
+                            onWeekChange = { delta ->
+                                val newDate = selectedDate.plusWeeks(delta)
+                                selectedDate = newDate
+
+                                val newDateRange = filters.value.dateRange.copy(
+                                    customStartDate = newDate.with(
+                                        TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)
+                                    ).atStartOfDay().toDate(),
+                                    customEndDate = newDate.with(
+                                        TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY)
+                                    ).atTime(23, 59, 59).toDate()
+                                )
+                                Log.d(
+                                    "CalendarScreen",
+                                    "Week range: ${newDateRange.customStartDate} to ${newDateRange.customEndDate}"
+                                )
+                                filters.value.dateRange.customStartDate =
+                                    newDateRange.customStartDate
+
+                                filters.value = filters.value.copy(dateRange = newDateRange)
+                            },
+                            onEdit = { editingEvent = it },
+                        )
+                    }
 
 
-                item {
-                    WeekCalendar(
-                        analysisSnapshot = analysisSnapshot,
-                        selectedDate = selectedDate,
-                        filterTypes = filterTypes,
-                        onDayClick = { newDate ->
-                            selectedDate = newDate
+                if (filters.value.dateRange.selectedRange == AnalysisRange.ONE_DAY)
+                    item {
+                        DayCalendar(
+                            currentDate = selectedDate,
+                            analysisSnapshot = analysisSnapshot,
+                            filterTypes = filters.value.eventTypeFilter.selectedTypes,
+                            onEdit = { editingEvent = it },
+                            onDayChange = { delta ->
+                                val newDate = selectedDate.plusDays(delta)
+                                selectedDate = newDate
 
-                            val newMonth = LocalDate.of(newDate.year, newDate.month, 1)
-                            if (newMonth.month != currentMonth.month) {
-                                currentMonth = newMonth
+                                val newDateRange = filters.value.dateRange.copy(
+                                    customStartDate = newDate.atStartOfDay()
+                                        .toDate(),  // 00:00:00
+                                    customEndDate = newDate.atTime(23, 59, 59)
+                                        .toDate()  // 23:59:59
+                                )
+
+                                Log.d(
+                                    "CalendarScreen",
+                                    "Day range: ${newDateRange.customStartDate} to ${newDateRange.customEndDate}"
+                                )
+                                filters.value = filters.value.copy(dateRange = newDateRange)
                             }
-                        },
-                        onWeekChange = { delta ->
-                            // ✅ Calculer la nouvelle date en ajoutant/soustrayant des semaines
-                            val newDate = selectedDate.plusWeeks(delta)
-                            selectedDate = newDate
-
-                            // Sync mois automatiquement si changement de mois détecté
-                            val newMonth = LocalDate.of(newDate.year, newDate.month, 1)
-                            if (newMonth.month != currentMonth.month) {
-                                currentMonth = newMonth
-                            }
-                        },
-                        onEdit = { editingEvent = it },
-                    )
-                }
-
-                item {
-                    DayCalendar(
-                        currentDate = selectedDate,
-                        events = dailyEvents,
-                        onEdit = { editingEvent = it },
-                        onDayChange = { delta ->
-                            // ✅ Calculer la nouvelle date en ajoutant/soustrayant des semaines
-                            val newDate = selectedDate.plusDays(delta)
-                            selectedDate = newDate
-
-                            // Sync mois automatiquement si changement de mois détecté
-                            val newMonth = LocalDate.of(newDate.year, newDate.month, 1)
-                            if (newMonth.month != currentMonth.month) {
-                                currentMonth = newMonth
-                            }
-                        }
-                    )
-                }
+                        )
+                    }
             }
 
             // Edit Dialog

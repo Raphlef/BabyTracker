@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -56,7 +57,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun MonthCalendar(
-    currentMonth: LocalDate,
+    isloading: Boolean,
     onMonthChange: (delta: Long) -> Unit,
     eventsByDay: Map<LocalDate, List<Event>>,
     selectedDate: LocalDate,
@@ -66,14 +67,20 @@ fun MonthCalendar(
     // Gesture detection state
     var dragOffset by remember { mutableStateOf(0f) }
     val swipeThreshold = with(LocalDensity.current) { 70.dp.toPx() }
-
+    val firstOfMonth = LocalDate.of(selectedDate.year, selectedDate.month, 1)
     Box(
         modifier
             .background(BackgroundColor, MaterialTheme.shapes.large)
-            .pointerInput(currentMonth) {
+            .pointerInput(firstOfMonth) {
                 detectHorizontalDragGestures(
                     onDragStart = { dragOffset = 0f },
-                    onHorizontalDrag = { _, deltaX -> dragOffset += deltaX },
+                    onHorizontalDrag = { change, deltaX ->
+                        dragOffset += deltaX
+                        val absDragOffset = kotlin.math.abs(dragOffset)
+                        if (absDragOffset > swipeThreshold) {
+                            change.consume()
+                        }
+                    },
                     onDragEnd = {
                         when {
                             dragOffset > swipeThreshold -> onMonthChange(-1L)
@@ -87,14 +94,14 @@ fun MonthCalendar(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             MonthHeader(
-                currentMonth = currentMonth,
+                currentMonth = firstOfMonth,
                 onMonthChange = onMonthChange
             )
 
             Spacer(Modifier.height(8.dp))
 
             AnimatedContent(
-                targetState = currentMonth,
+                targetState = firstOfMonth,
                 transitionSpec = {
                     if (targetState > initialState) {
                         slideInHorizontally { width -> width } + fadeIn() with
@@ -110,7 +117,8 @@ fun MonthCalendar(
                     month = month.monthValue,
                     eventsByDay = eventsByDay,
                     selectedDate = selectedDate,
-                    onDayClick = onDayClick
+                    onDayClick = onDayClick,
+                    modifier = modifier.blur(if (isloading) 3.dp else 0.dp),
                 )
             }
         }
@@ -123,7 +131,8 @@ fun MonthCalendarContent(
     month: Int,
     eventsByDay: Map<LocalDate, List<Event>>,
     selectedDate: LocalDate,
-    onDayClick: (LocalDate) -> Unit
+    onDayClick: (LocalDate) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val contentColor = DarkGrey.copy(alpha = 0.5f)
     val backgroundColor = BackgroundColor.copy(alpha = 0.2f)
@@ -153,15 +162,15 @@ fun MonthCalendarContent(
         }
         LazyVerticalGrid(
             columns = GridCells.Fixed(7),
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxWidth()
-                .height((weeks * 48).dp),
+                .height((weeks * 54).dp),
             userScrollEnabled = false
         ) {
             items(totalCells) { idx ->
                 val dayNum = idx - startDow + 1
                 if (idx < startDow || dayNum > daysInMonth) {
-                    Spacer(Modifier.size(48.dp))
+                    Spacer(Modifier.size(54.dp))
                 } else {
                     val date = LocalDate.of(year, month, dayNum)
                     DayCell(
@@ -215,7 +224,7 @@ fun DayCell(
 
     Box(
         Modifier
-            .size(48.dp)
+            .size(54.dp)
             .padding(2.dp)
             .clip(MaterialTheme.shapes.medium)
             .background(backgroundColor)
@@ -232,7 +241,7 @@ fun DayCell(
             "${date.dayOfMonth}",
             style = MaterialTheme.typography.bodySmall,
             color = contentColor,
-            fontWeight = if (isSelected ||isToday) FontWeight.Bold else FontWeight.Normal,
+            fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal,
             modifier = Modifier.padding(top = 2.dp)
         )
 
