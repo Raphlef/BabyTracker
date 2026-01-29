@@ -1,6 +1,7 @@
 package com.kouloundissa.twinstracker.ui.components.Calendar
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+
 object HeaderDefaults {
     val IconSize = 40.dp
     val ContentColor = DarkGrey.copy(alpha = 0.5f)
@@ -48,6 +50,7 @@ fun PeriodHeader(
     previousContentDescription: String,
     nextContentDescription: String,
     content: @Composable () -> Unit,
+    onContentClick: () -> Unit = {},
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -75,6 +78,7 @@ fun PeriodHeader(
                     shape = MaterialTheme.shapes.medium
                 )
                 .padding(if (isCurrent) HeaderDefaults.CurrentIndicatorPadding else 0.dp)
+                .clickable(onClick = onContentClick)
         ) {
             content()
         }
@@ -102,7 +106,8 @@ fun <T : Any> GenericPeriodHeader(
     previousLabel: String,
     nextLabel: String,
     formatter: (T) -> String = { it.toString() },
-    customContent: (@Composable (isCurrent: Boolean) -> Unit)? = null
+    customContent: (@Composable (isCurrent: Boolean) -> Unit)? = null,
+    onContentClick: () -> Unit = {},
 ) {
     PeriodHeader(
         onPreviousPeriod = { onPeriodChange(-1L) },
@@ -110,6 +115,7 @@ fun <T : Any> GenericPeriodHeader(
         isCurrent = isCurrent,
         previousContentDescription = previousLabel,
         nextContentDescription = nextLabel,
+        onContentClick = onContentClick,
         content = {
             if (customContent != null) {
                 customContent(isCurrent)
@@ -138,7 +144,7 @@ fun WeekHeader(
     GenericPeriodHeader(
         currentPeriod = currentWeekMonday,
         onPeriodChange = onWeekChange,
-        isCurrent = isCurrentWeek,
+        isCurrent = false,//isCurrentWeek,
         previousLabel = "Previous Week",
         nextLabel = "Next Week",
         formatter = { monday ->
