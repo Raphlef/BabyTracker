@@ -127,13 +127,13 @@ fun WeekCalendar(
                 modifier = Modifier.fillMaxWidth()
             ) { weekMonday ->
                 WeekCalendarContent(
+                    isloading = isloading,
                     analysisSnapshot = analysisSnapshot,
                     currentWeekMonday = weekMonday,
                     selectedDate = selectedDate,
                     analysisFilter,
                     onDayClick = onDayClick,
                     onEdit = onEdit,
-                    modifier = modifier.blur(if (isloading) 3.dp else 0.dp),
                 )
             }
         }
@@ -142,6 +142,7 @@ fun WeekCalendar(
 
 @Composable
 fun WeekCalendarContent(
+    isloading: Boolean,
     analysisSnapshot: AnalysisSnapshot,
     currentWeekMonday: LocalDate,
     selectedDate: LocalDate,
@@ -229,6 +230,7 @@ fun WeekCalendarContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = WEEK_HOUR_LABEL_WIDTH)  // Offset du label d'heure
+                    .blur(if (isloading) 3.dp else 0.dp),
             ) {
                 weekDays.forEach { day ->
                     val daySpans = weekDaySpans[day] ?: emptyList()
