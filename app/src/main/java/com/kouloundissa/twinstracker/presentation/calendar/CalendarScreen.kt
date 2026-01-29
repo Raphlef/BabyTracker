@@ -277,7 +277,6 @@ fun CalendarScreen(
                 if (filters.value.dateRange.selectedRange == AnalysisRange.ONE_WEEK)
                     item {
                         WeekCalendar(
-                            isloading = isLoading,
                             analysisSnapshot = analysisSnapshot,
                             selectedDate = selectedDate,
                             analysisFilter = filters.value,
@@ -313,7 +312,6 @@ fun CalendarScreen(
                 if (filters.value.dateRange.selectedRange == AnalysisRange.ONE_DAY)
                     item {
                         DayCalendar(
-                            isloading = isLoading,
                             currentDate = selectedDate,
                             analysisSnapshot = analysisSnapshot,
                             filterTypes = filters.value.eventTypeFilter.selectedTypes,

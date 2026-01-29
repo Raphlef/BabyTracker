@@ -36,7 +36,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -76,7 +75,6 @@ private val DAY_HOUR_LABEL_WIDTH = 50.dp
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun DayCalendar(
-    isloading: Boolean,
     currentDate: LocalDate,
     analysisSnapshot: AnalysisSnapshot,
     filterTypes: Set<EventType>,
@@ -138,7 +136,6 @@ fun DayCalendar(
                     analysisSnapshot = analysisSnapshot,
                     filterTypes = filterTypes,
                     onEdit = onEdit,
-                    modifier = modifier.blur(if (isloading) 3.dp else 0.dp),
                 )
             }
         }

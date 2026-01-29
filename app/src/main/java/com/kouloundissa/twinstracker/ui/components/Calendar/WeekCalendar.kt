@@ -34,7 +34,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -61,7 +60,6 @@ val VERTICAL_SPACING_BETWEEN_STACKED = 2.dp
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun WeekCalendar(
-    isloading: Boolean,
     analysisSnapshot: AnalysisSnapshot,
     onWeekChange: (delta: Long) -> Unit,
     selectedDate: LocalDate,
@@ -127,7 +125,6 @@ fun WeekCalendar(
                 modifier = Modifier.fillMaxWidth()
             ) { weekMonday ->
                 WeekCalendarContent(
-                    isloading = isloading,
                     analysisSnapshot = analysisSnapshot,
                     currentWeekMonday = weekMonday,
                     selectedDate = selectedDate,
@@ -142,7 +139,6 @@ fun WeekCalendar(
 
 @Composable
 fun WeekCalendarContent(
-    isloading: Boolean,
     analysisSnapshot: AnalysisSnapshot,
     currentWeekMonday: LocalDate,
     selectedDate: LocalDate,
@@ -210,6 +206,7 @@ fun WeekCalendarContent(
                                     modifier = Modifier
                                         .weight(1f)
                                         .fillMaxHeight()
+                                        .height(WEEK_HOUR_ROW_HEIGHT)
                                         .background(
                                             if (day == selectedDate) {
                                                 DarkBlue.copy(alpha = 0.1f)
@@ -225,12 +222,10 @@ fun WeekCalendarContent(
                 }
             }
 
-            // ✅ LAYER 2: Overlay continu des événements
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = WEEK_HOUR_LABEL_WIDTH)  // Offset du label d'heure
-                    .blur(if (isloading) 3.dp else 0.dp),
             ) {
                 weekDays.forEach { day ->
                     val daySpans = weekDaySpans[day] ?: emptyList()
@@ -242,7 +237,6 @@ fun WeekCalendarContent(
                         onEdit = onEdit,
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxHeight()
                     )
                 }
             }
