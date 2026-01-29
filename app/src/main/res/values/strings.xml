@@ -341,7 +341,6 @@
     <string name="join_family_dialog_invite_code_label">Invite code</string>
     <string name="join_family_dialog_unknown_error">Unknown error</string>
     <string name="join_family_dialog_join_button">Join</string>
-    <string name="join_family_dialog_cancel_button">Cancel</string>
     <string name="error_join_family">Failed to join family</string>
     <string name="family_management_joined_success">You have successfully joined the family!</string>
     <string name="family_management_join_failed">Failed to join</string>
@@ -359,7 +358,6 @@
     <string name="family_remove_dialog_confirm_button">Remove</string>
     <string name="family_leave_dialog_confirm_button">Leave</string>
     <string name="family_leave_dialog_dismiss_only_admin">Understood</string>
-    <string name="family_leave_dialog_dismiss_cancel">Cancel</string>
 
     <!-- ========== PHOTO PICKER ========== -->
     <string name="select_photo_title">Select Photo</string>

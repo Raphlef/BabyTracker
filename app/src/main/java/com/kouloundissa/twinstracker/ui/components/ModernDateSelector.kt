@@ -174,7 +174,7 @@ fun ModernDateSelector(
                 }) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.cancel_button)) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -243,7 +243,7 @@ private fun ShowTimePickerDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel_button))
             }
         }
     )
