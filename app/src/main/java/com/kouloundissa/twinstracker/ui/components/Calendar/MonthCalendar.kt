@@ -42,6 +42,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kouloundissa.twinstracker.data.Event
@@ -185,7 +186,8 @@ fun MonthCalendarContent(
                         date = date,
                         events = eventsByDay[date] ?: emptyList(),
                         isSelected = date == selectedDate,
-                        onClick = onDayClick
+                        onClick = onDayClick,
+                        size = cellHeight
                     )
                 }
             }
@@ -200,6 +202,7 @@ fun DayCell(
     events: List<Event>,
     isSelected: Boolean,
     onClick: (LocalDate) -> Unit,
+    size: Dp = 54.dp
 ) {
     val tint = DarkBlue
 
@@ -232,7 +235,7 @@ fun DayCell(
 
     Box(
         Modifier
-            .size(54.dp)
+            .size(size)
             .padding(2.dp)
             .clip(MaterialTheme.shapes.medium)
             .background(backgroundColor)
