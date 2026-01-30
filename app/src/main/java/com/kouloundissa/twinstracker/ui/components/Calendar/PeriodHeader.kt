@@ -179,6 +179,7 @@ private fun PeriodPicker(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = BackgroundColor,
         title = {
             Text(
                 text = when (currentPeriodType) {
