@@ -140,14 +140,22 @@ fun MonthCalendarContent(
 
     val firstOfMonth = LocalDate.of(year, month, 1)
     val daysInMonth = firstOfMonth.lengthOfMonth()
-    val startDow = firstOfMonth.dayOfWeek.value % 7 - 1
-    val totalCells = ((startDow + daysInMonth + 6) / 7) * 7
-    val weeks = totalCells / 7
+
+    val firstDayOfWeek = firstOfMonth.dayOfWeek.value
+    val startDow = firstDayOfWeek - 1
+
+    val daysInWeek = 7
+    val totalCells = ((startDow + daysInMonth + daysInWeek - 1) / daysInWeek) * daysInWeek
+    val weeks = totalCells / daysInWeek
+    val cellHeight = 54.dp
 
     val locale = Locale.getDefault()
+
     val shortDayNames = remember(locale) {
-        (1..7).map { dayOfWeek ->
-            DayOfWeek.of(dayOfWeek).getDisplayName(TextStyle.SHORT_STANDALONE, locale)
+        // Generate day names starting from Monday
+        (DayOfWeek.MONDAY.value..DayOfWeek.SUNDAY.value).map { dayValue ->
+            val dayOfWeek = if (dayValue <= 7) DayOfWeek.of(dayValue) else DayOfWeek.of(dayValue % 7)
+            dayOfWeek.getDisplayName(TextStyle.SHORT_STANDALONE, locale)
         }
     }
     Column {
@@ -164,13 +172,13 @@ fun MonthCalendarContent(
             columns = GridCells.Fixed(7),
             modifier = modifier
                 .fillMaxWidth()
-                .height((weeks * 54).dp),
+                .height((weeks * cellHeight.value).dp),
             userScrollEnabled = false
         ) {
             items(totalCells) { idx ->
                 val dayNum = idx - startDow + 1
                 if (idx < startDow || dayNum > daysInMonth) {
-                    Spacer(Modifier.size(54.dp))
+                    Spacer(Modifier.size(cellHeight.value.dp))
                 } else {
                     val date = LocalDate.of(year, month, dayNum)
                     DayCell(
@@ -191,7 +199,7 @@ fun DayCell(
     date: LocalDate,
     events: List<Event>,
     isSelected: Boolean,
-    onClick: (LocalDate) -> Unit
+    onClick: (LocalDate) -> Unit,
 ) {
     val tint = DarkBlue
 
