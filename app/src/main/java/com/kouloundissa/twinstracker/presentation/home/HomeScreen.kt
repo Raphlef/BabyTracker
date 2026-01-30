@@ -1,7 +1,6 @@
 package com.kouloundissa.twinstracker.presentation.home
 
 import android.annotation.SuppressLint
-import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -60,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.kouloundissa.twinstracker.data.AnalysisRange
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
@@ -69,8 +69,9 @@ import com.kouloundissa.twinstracker.presentation.baby.BabyCreateDialog
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
-import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel.DateRangeParams
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
+import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
+import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
 import com.kouloundissa.twinstracker.ui.components.EventOverlayInfo
 import com.kouloundissa.twinstracker.ui.components.EventTypeDialog
 import com.kouloundissa.twinstracker.ui.components.InfiniteScrollEffect
@@ -79,8 +80,6 @@ import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.FlowPreview
 import java.time.LocalDate
-import java.time.ZoneId
-import java.util.Date
 import kotlin.math.ceil
 
 @OptIn(FlowPreview::class)
@@ -110,9 +109,8 @@ fun HomeScreen(
     var showEventDialog by remember { mutableStateOf(false) }
     var showBabyDialog by remember { mutableStateOf(false) }
 
-    val allEvents by eventViewModel.events.collectAsState()
-    val eventsByDay by eventViewModel.eventsByDay.collectAsState()
-    val eventsByType by eventViewModel.eventsByType.collectAsState()
+    val analysisSnapshot by eventViewModel.analysisSnapshot.collectAsState()
+
     val isLoadingMore by eventViewModel.isLoadingMore.collectAsState()
     val hasMoreHistory by eventViewModel.hasMoreHistory.collectAsState()
     val errorMessage by eventViewModel.errorMessage.collectAsState()
@@ -128,7 +126,6 @@ fun HomeScreen(
     var showTypeDialog by remember { mutableStateOf(false) }
     val deleteSuccess by eventViewModel.deleteSuccess.collectAsState()
     val deleteError by eventViewModel.deleteError.collectAsState()
-    val isDeleting by eventViewModel.isDeleting.collectAsState()
 
     val lazyListState = rememberLazyListState()
 
@@ -148,23 +145,17 @@ fun HomeScreen(
     LaunchedEffect(isVisible, selectedBaby?.id) {
         if (isVisible) {
             selectedBaby?.id?.let {
-                Log.d("HomeScreen", "Starting stream - babyId: $it, isVisible: $isVisible")
-                val today = LocalDate.now()
-                val startDate = today.minusDays(3)
-                    .atStartOfDay(ZoneId.systemDefault())
-                    .toInstant()
-                val endDate = today
-                    .atTime(23, 59, 59)
-                    .atZone(ZoneId.systemDefault())
-                    .toInstant()
 
-                eventViewModel.refreshWithCustomRange(
-                    it,
-                    DateRangeParams(
-                        Date.from(startDate),
-                        Date.from(endDate)
-                    )
+                val babyFilter = selectedBaby?.let { baby ->
+                    AnalysisFilter.BabyFilter(selectedBabies = setOf(baby))
+                } ?: AnalysisFilter.BabyFilter()
+
+                val analysisFilters = AnalysisFilters(
+                    babyFilter = babyFilter,
+                    dateRange = AnalysisFilter.DateRange(AnalysisRange.THREE_DAYS)
                 )
+
+                eventViewModel.refreshWithFilters(analysisFilters)
                 eventViewModel.loadLastGrowth(it)
             }
         }
@@ -191,21 +182,21 @@ fun HomeScreen(
     }
 
     val today = LocalDate.now()
-    val babyEvents = remember(eventsByType, selectedBaby) {
-        eventsByType.values.flatten()
-            .filter { it.babyId == selectedBaby?.id }
-    }
-    val todayEvents = eventsByDay[today].orEmpty()
-    val todaysByType = remember(todayEvents) {
-        todayEvents.groupBy { EventType.forClass(it::class) }
+    val yesterday = today.minusDays(1)
+
+    val activeSleepEvent: SleepEvent? = remember(analysisSnapshot) {
+        (listOfNotNull(
+            analysisSnapshot.eventsByDay[today],
+            analysisSnapshot.eventsByDay[yesterday]
+        ).flatten())
+            .filterIsInstance<SleepEvent>()
+            .sortedByDescending { it.timestamp }
+            .firstOrNull { it.endTime == null && it.beginTime != null }
     }
 
-    val activeSleepEvent: SleepEvent? = allEvents
-        .filterIsInstance<SleepEvent>()
-        .sortedByDescending { it.timestamp }
-        .firstOrNull { it.endTime == null && it.beginTime != null }
+    val filteredEvents = analysisSnapshot.events
+        .filter { EventType.forClass(it::class) == selectedType }
 
-    val filteredEvents = babyEvents.filter { EventType.forClass(it::class) == selectedType }
     val currentOverlay by remember(selectedType, filteredEvents) {
         derivedStateOf {
             selectedType?.let { type ->
@@ -262,12 +253,6 @@ fun HomeScreen(
                     }
                 }
             } else {
-                // Build filtered lists for the selected baby
-                val babyEvents = remember(eventsByType, selectedBaby) {
-                    eventsByType.values.flatten()
-                        .filter { it.babyId == selectedBaby!!.id }
-                        .sortedByDescending { it.timestamp }
-                }
 
                 val cardDimensions by remember(maxWidth, maxHeight, sortedEventTypes.size) {
                     derivedStateOf {
@@ -296,8 +281,8 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(spacing)
                 ) {
                     items(sortedEventTypes) { type ->
-                        val filterEvents =
-                            babyEvents.filter { EventType.forClass(it::class) == type }
+                        val filterEvents = analysisSnapshot.events
+                            .filter { EventType.forClass(it::class) == type }
                         EventTypeCard(
                             type = type,
                             isFavorite = type in favoriteEventTypes,
