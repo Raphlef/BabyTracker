@@ -55,13 +55,13 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.kouloundissa.twinstracker.R
+import com.kouloundissa.twinstracker.data.AnalysisRange
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
-import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel.DateRangeParams
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
@@ -71,8 +71,6 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.ZoneId
-import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
@@ -165,13 +163,14 @@ private fun EventTypeDialogContent(
 
     val isLoadingMore by eventViewModel.isLoadingMore.collectAsState()
     val hasMoreHistory by eventViewModel.hasMoreHistory.collectAsState()
-    val eventsByDay by eventViewModel.eventsByDay.collectAsState()
     val lastGrowthEvent by eventViewModel.lastGrowthEvent.collectAsState()
 
     val today = LocalDate.now()
-    val todayEvents = eventsByDay[today].orEmpty().filter { event ->
-        EventType.forClass(event::class) == type
-    }
+
+    val analysisSnapshot by eventViewModel.analysisSnapshot.collectAsState()
+    val todayEvents = analysisSnapshot.eventsByDay[today].orEmpty()
+        .filter { EventType.forClass(it::class) == type }
+
     val lazyListState = rememberLazyListState()
     val context = LocalContext.current
 
@@ -186,21 +185,14 @@ private fun EventTypeDialogContent(
     if (type == EventType.GROWTH) {
         LaunchedEffect(selectedBaby) {
             selectedBaby?.let { baby ->
-                val startDate = today.minusDays(30)
-                    .atStartOfDay(ZoneId.systemDefault())
-                    .toInstant()
-                val endDate = today
-                    .atTime(23, 59, 59)
-                    .atZone(ZoneId.systemDefault())
-                    .toInstant()
+                val babyFilter = AnalysisFilter.BabyFilter(selectedBabies = setOf(baby))
 
-                eventViewModel.refreshWithCustomRange(
-                    baby.id,
-                    DateRangeParams(
-                        Date.from(startDate),
-                        Date.from(endDate)
-                    )
+                val analysisFilters = AnalysisFilters(
+                    babyFilter = babyFilter,
+                    dateRange = AnalysisFilter.DateRange(AnalysisRange.ONE_MONTH)
                 )
+
+                eventViewModel.refreshWithFilters(analysisFilters)
             }
         }
     }

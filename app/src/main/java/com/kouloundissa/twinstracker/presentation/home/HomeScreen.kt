@@ -144,11 +144,9 @@ fun HomeScreen(
     }
     LaunchedEffect(isVisible, selectedBaby?.id) {
         if (isVisible) {
-            selectedBaby?.id?.let {
-
-                val babyFilter = selectedBaby?.let { baby ->
+            selectedBaby?.let { baby ->
+                val babyFilter =
                     AnalysisFilter.BabyFilter(selectedBabies = setOf(baby))
-                } ?: AnalysisFilter.BabyFilter()
 
                 val analysisFilters = AnalysisFilters(
                     babyFilter = babyFilter,
@@ -156,7 +154,7 @@ fun HomeScreen(
                 )
 
                 eventViewModel.refreshWithFilters(analysisFilters)
-                eventViewModel.loadLastGrowth(it)
+                eventViewModel.loadLastGrowth(baby.id)
             }
         }
     }
