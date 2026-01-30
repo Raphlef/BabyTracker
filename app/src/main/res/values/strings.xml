@@ -389,4 +389,7 @@
     <string name="settings">Settings</string>
     <string name="parents">Parents</string>
     <string name="today">Today</string>
+    <string name="period_picker_select_day">Select day</string>
+    <string name="period_picker_select_week">Select week</string>
+    <string name="period_picker_select_month">Select month</string>
 </resources>

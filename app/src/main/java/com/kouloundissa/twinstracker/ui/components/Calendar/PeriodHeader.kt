@@ -178,11 +178,15 @@ private fun PeriodPicker(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = if (currentPeriodType == PeriodType.Month) {
-            {
-                Text(stringResource(R.string.period_picker_select_month))
-            }
-        } else null,
+        title = {
+            Text(
+                text = when (currentPeriodType) {
+                    PeriodType.Month -> stringResource(R.string.period_picker_select_month)
+                    PeriodType.Day -> stringResource(R.string.period_picker_select_day)
+                    PeriodType.Week -> stringResource(R.string.period_picker_select_week)
+                }
+            )
+        },
         text = {
             if (currentPeriodType == PeriodType.Month) {
                 MonthPicker(
@@ -195,16 +199,7 @@ private fun PeriodPicker(
                 DatePicker(
                     state = datePickerState,
                     modifier = Modifier.fillMaxWidth(),
-                    title = {
-                        Text(
-                            text = when (currentPeriodType) {
-                                PeriodType.Day -> stringResource(R.string.period_picker_select_day)
-                                PeriodType.Week -> stringResource(R.string.period_picker_select_week)
-                                else -> ""
-                            },
-                            modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp)
-                        )
-                    }
+                    title = null
                 )
             }
         },
