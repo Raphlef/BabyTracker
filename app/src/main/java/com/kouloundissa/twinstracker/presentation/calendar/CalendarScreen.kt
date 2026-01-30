@@ -313,7 +313,7 @@ fun CalendarScreen(
                     }
 
 
-                if (filters.value.dateRange.selectedRange == AnalysisRange.ONE_DAY)
+                if (filters.value.dateRange.selectedRange == AnalysisRange.ONE_DAY || filters.value.dateRange.selectedRange == AnalysisRange.ONE_MONTH)
                     item {
                         DayCalendar(
                             currentDate = selectedDate,
@@ -322,20 +322,45 @@ fun CalendarScreen(
                             onEdit = { editingEvent = it },
                             onDayChange = { delta ->
                                 val newDate = selectedDate.plusDays(delta)
+                                val oldMonth = selectedDate.month
+                                val newMonth = newDate.month
+
                                 selectedDate = newDate
 
-                                val newDateRange = filters.value.dateRange.copy(
-                                    customStartDate = newDate.atStartOfDay()
-                                        .toDate(),  // 00:00:00
-                                    customEndDate = newDate.atTime(23, 59, 59)
-                                        .toDate()  // 23:59:59
-                                )
+                                // Si on est en mode ONE_MONTH et qu'on change de mois
+                                if (filters.value.dateRange.selectedRange == AnalysisRange.ONE_MONTH &&
+                                    oldMonth != newMonth) {
 
-                                Log.d(
-                                    "CalendarScreen",
-                                    "Day range: ${newDateRange.customStartDate} to ${newDateRange.customEndDate}"
-                                )
-                                filters.value = filters.value.copy(dateRange = newDateRange)
+                                    // Même logique que onMonthChange
+                                    val newDateRange = filters.value.dateRange.copy(
+                                        customStartDate = newDate.with(
+                                            TemporalAdjusters.firstDayOfMonth()
+                                        ).atStartOfDay().toDate(),
+                                        customEndDate = newDate.with(
+                                            TemporalAdjusters.lastDayOfMonth()
+                                        ).atTime(23, 59, 59).toDate()
+                                    )
+
+                                    Log.d(
+                                        "CalendarScreen",
+                                        "Month range (from day change): ${newDateRange.customStartDate} to ${newDateRange.customEndDate}"
+                                    )
+                                    filters.value = filters.value.copy(dateRange = newDateRange)
+
+                                } else if (filters.value.dateRange.selectedRange == AnalysisRange.ONE_DAY) {
+                                    // Logique pour ONE_DAY uniquement
+                                    val newDateRange = filters.value.dateRange.copy(
+                                        customStartDate = newDate.atStartOfDay().toDate(),
+                                        customEndDate = newDate.atTime(23, 59, 59).toDate()
+                                    )
+
+                                    Log.d(
+                                        "CalendarScreen",
+                                        "Day range: ${newDateRange.customStartDate} to ${newDateRange.customEndDate}"
+                                    )
+                                    filters.value = filters.value.copy(dateRange = newDateRange)
+                                }
+                                // Sinon (mode ONE_MONTH sans changement de mois) : ne rien faire
                             }
                         )
                     }
