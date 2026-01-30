@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kouloundissa.twinstracker.R
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.time.DayOfWeek
@@ -295,7 +296,7 @@ private fun MonthPicker(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(itemHeight * visibleItemsCount)
+            .height(itemHeight * visibleItemsCount).background(BackgroundColor)
     ) {
         // Indicateur visuel de la sélection (rectangle central)
         Box(
