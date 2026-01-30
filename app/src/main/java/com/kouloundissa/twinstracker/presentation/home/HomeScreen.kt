@@ -8,16 +8,17 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -52,7 +53,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Dp
@@ -84,7 +84,10 @@ import java.util.Date
 import kotlin.math.ceil
 
 @OptIn(FlowPreview::class)
-@SuppressLint("DefaultLocale", "UnusedMaterial3ScaffoldPaddingParameter")
+@SuppressLint(
+    "DefaultLocale", "UnusedMaterial3ScaffoldPaddingParameter",
+    "UnusedBoxWithConstraintsScope"
+)
 @Composable
 fun HomeScreen(
     contentPadding: PaddingValues = PaddingValues(),
@@ -98,15 +101,7 @@ fun HomeScreen(
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
 
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.dp
     val spacing = 8.dp
-    val columns = 2
-    val cardWidth = (screenWidth - spacing * (columns + 1)) / columns
-    val cardHeight = cardWidth * 1f
-    // Number of rows needed for the grid
-    val rows = ceil(EventType.entries.size / columns.toFloat()).toInt()
-    val gridHeight = cardHeight * rows + spacing * (rows - 1)
 
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
     val babies by babyViewModel.babies.collectAsState()
@@ -238,9 +233,11 @@ fun HomeScreen(
         containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = Modifier.fillMaxSize()
-    ) {
-        Box(
-            Modifier.fillMaxSize()
+    ) { scaffoldPadding ->
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(scaffoldPadding)
         ) {
             if (selectedBaby == null) {
                 // Empty state when no baby selected
@@ -272,63 +269,66 @@ fun HomeScreen(
                         .sortedByDescending { it.timestamp }
                 }
 
-                LazyColumn(
-                    state = lazyListState,
-                    contentPadding = contentPadding,
+                val cardDimensions by remember(maxWidth, maxHeight, sortedEventTypes.size) {
+                    derivedStateOf {
+                        calculateCardDimensions(
+                            availableWidth = maxWidth,
+                            availableHeight = maxHeight,
+                            contentPadding = contentPadding,
+                            itemCount = sortedEventTypes.size,
+                            spacing
+                        )
+                    }
+                }
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(cardDimensions.columns),
+                    contentPadding = PaddingValues(
+                        start = spacing * 2,
+                        end = spacing * 2,
+                        top = spacing,
+                        bottom = spacing
+                    ),
+                    userScrollEnabled = false,
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .fillMaxWidth()
+                        .heightIn(max = cardDimensions.gridHeight),
+                    horizontalArrangement = Arrangement.spacedBy(spacing),
+                    verticalArrangement = Arrangement.spacedBy(spacing)
                 ) {
-
-                    // 2 x N Cards for each EventType
-                    item {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(columns),
-                            userScrollEnabled = false,
-                            modifier = Modifier
-                                .height(gridHeight)
-                                .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(spacing),
-                            verticalArrangement = Arrangement.spacedBy(spacing)
-                        ) {
-                            items(sortedEventTypes) { type ->
-                                val filterEvents =
-                                    babyEvents.filter { EventType.forClass(it::class) == type }
-                                EventTypeCard(
-                                    type = type,
-                                    // summary = summaries[type]!!,
-                                    isFavorite = type in favoriteEventTypes,
-                                    onFavoriteToggle = { eventViewModel.toggleFavorite(type) },
+                    items(sortedEventTypes) { type ->
+                        val filterEvents =
+                            babyEvents.filter { EventType.forClass(it::class) == type }
+                        EventTypeCard(
+                            type = type,
+                            isFavorite = type in favoriteEventTypes,
+                            onFavoriteToggle = { eventViewModel.toggleFavorite(type) },
+                            onClick = {
+                                selectedType = type
+                                showTypeDialog = true
+                            },
+                            onLongClick = {
+                                selectedType = type
+                                showEventDialog = true
+                            },
+                            width = cardDimensions.cardWidth,
+                            height = cardDimensions.cardHeight,
+                            overlayContent = type.overlayBuilder(
+                                EventTypeOverlayContext(
                                     onClick = {
                                         selectedType = type
-                                        showTypeDialog = true
-                                    },
-                                    onLongClick = {
-                                        selectedType = type
+                                        editingEvent =
+                                            if (type == EventType.SLEEP) activeSleepEvent else null
+                                        editingEvent?.let { event ->
+                                            eventViewModel.loadEventIntoForm(
+                                                event
+                                            )
+                                        }
                                         showEventDialog = true
                                     },
-                                    width = cardWidth,
-                                    height = cardHeight,
-                                    overlayContent = type.overlayBuilder(
-                                        EventTypeOverlayContext(
-                                            onClick = {
-                                                selectedType = type
-                                                editingEvent =
-                                                    if (type == EventType.SLEEP) activeSleepEvent else null
-                                                editingEvent?.let { event ->
-                                                    eventViewModel.loadEventIntoForm(
-                                                        event
-                                                    )
-                                                }
-                                                showEventDialog = true
-                                            },
-                                            lastEvents = filterEvents
-                                        )
-                                    )
+                                    lastEvents = filterEvents
                                 )
-                            }
-                        }
+                            )
+                        )
                     }
                 }
             }
@@ -336,7 +336,7 @@ fun HomeScreen(
             // dialog handling:
             if (showEventDialog && editingEvent != null) {
                 EventFormDialog(
-                    initialBabyId = selectedBaby?.id ?: return@Box,
+                    initialBabyId = selectedBaby?.id ?: return@BoxWithConstraints,
                     onDismiss = {
                         showEventDialog = false
                         editingEvent = null
@@ -347,7 +347,7 @@ fun HomeScreen(
             }
             if (showEventDialog && selectedType != null && editingEvent == null) {
                 EventFormDialog(
-                    initialBabyId = selectedBaby?.id ?: return@Box,
+                    initialBabyId = selectedBaby?.id ?: return@BoxWithConstraints,
                     initialEventType = selectedType,
                     onDismiss = {
                         showEventDialog = false
@@ -390,6 +390,63 @@ fun HomeScreen(
         }
     }
 }
+
+
+fun calculateCardDimensions(
+    availableWidth: Dp,
+    availableHeight: Dp,
+    contentPadding: PaddingValues,
+    itemCount: Int,
+    spacing: Dp
+): CardGridDimensions {
+
+    val horizontalPadding = 16.dp
+    val minCardSize = 100.dp
+
+    val grossWidth = availableWidth - horizontalPadding * 2
+    val grossHeight = availableHeight -
+            contentPadding.calculateTopPadding() -
+            contentPadding.calculateBottomPadding()
+
+    val optimalColumns = when {
+        itemCount <= 2 -> 1
+        itemCount <= 4 -> 2
+        itemCount <= 6 -> 2
+        itemCount <= 9 -> 3
+        else -> minOf(4, itemCount)
+    }
+
+    val rows = ceil(itemCount.toFloat() / optimalColumns).toInt()
+
+    val usableWidth = grossWidth - spacing * (optimalColumns - 1)
+    val usableHeight = grossHeight - spacing * (rows + 1)
+
+    val cardWidth = usableWidth / optimalColumns
+    val cardHeight = usableHeight / rows
+
+    // Limiter par les bornes
+    val finalWidth = cardWidth.coerceIn(minCardSize, cardWidth)
+    val finalHeight = cardHeight.coerceIn(minCardSize, cardHeight)
+
+    return CardGridDimensions(
+        columns = optimalColumns,
+        rows = rows,
+        cardWidth = finalWidth,
+        cardHeight = finalHeight,
+        gridHeight = grossHeight
+    )
+}
+
+/**
+ * Data class étendue avec TOUTES les infos nécessaires
+ */
+data class CardGridDimensions(
+    val columns: Int,
+    val rows: Int,
+    val cardWidth: Dp,
+    val cardHeight: Dp,
+    val gridHeight: Dp
+)
 
 @Composable
 fun EventTypeCard(
