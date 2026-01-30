@@ -214,6 +214,7 @@ fun WeekCalendarContent(
                                                 BackgroundColor
                                             },
                                         )
+                                        .clickable { onDayClick(day) }
                                 )
                             }
                         },
