@@ -391,13 +391,6 @@ fun HomeScreen(
     }
 }
 
-data class CardGridDimensions(
-    val columns: Int,
-    val rows: Int,
-    val cardWidth: Dp,
-    val cardHeight: Dp,
-    val aspectRatio: Float
-)
 @Composable
 fun EventTypeCard(
     type: EventType,
