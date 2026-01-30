@@ -118,11 +118,9 @@ fun HomeScreen(
     val allEvents by eventViewModel.events.collectAsState()
     val eventsByDay by eventViewModel.eventsByDay.collectAsState()
     val eventsByType by eventViewModel.eventsByType.collectAsState()
-    val isLoading by eventViewModel.isLoading.collectAsState()
     val isLoadingMore by eventViewModel.isLoadingMore.collectAsState()
     val hasMoreHistory by eventViewModel.hasMoreHistory.collectAsState()
     val errorMessage by eventViewModel.errorMessage.collectAsState()
-    val lastGrowthEvent by eventViewModel.lastGrowthEvent.collectAsState()
     val favoriteEventTypes by eventViewModel.favoriteEventTypes.collectAsState()
 
     val sortedEventTypes = remember(favoriteEventTypes) {
@@ -273,12 +271,6 @@ fun HomeScreen(
                         .filter { it.babyId == selectedBaby!!.id }
                         .sortedByDescending { it.timestamp }
                 }
-                val lastByType = remember(babyEvents) {
-                    EventType.entries.associateWith { type ->
-                        babyEvents.filter { EventType.forClass(it::class) == type }
-                            .maxByOrNull { it.timestamp }
-                    }
-                }
 
                 LazyColumn(
                     state = lazyListState,
@@ -338,48 +330,6 @@ fun HomeScreen(
                             }
                         }
                     }
-
-//                    item {
-//                        Row(
-//                            modifier = Modifier
-//                                .fillMaxWidth()
-//                                .background(
-//                                    backgroundColor.copy(alpha = 0.95f),
-//                                    shape = cornerShape
-//                                )
-//                                .padding(horizontal = 16.dp, vertical = 8.dp),
-//                            verticalAlignment = Alignment.CenterVertically,
-//                            horizontalArrangement = Arrangement.SpaceBetween
-//                        ) {
-//                            Text(
-//                                stringResource(id = R.string.recent_events),
-//                                fontWeight = FontWeight.Bold,
-//                                style = MaterialTheme.typography.headlineSmall,
-//                                modifier = Modifier
-//                                    .padding(vertical = 8.dp),
-//                                color = tint,
-//                            )
-//
-//                            Divider(
-//                                modifier = Modifier
-//                                    .weight(1f)
-//                                    .padding(start = 12.dp),
-//                                color = tint.copy(alpha = 0.5f),
-//                                thickness = 2.dp
-//                            )
-//                        }
-//                    }
-//                    timelineItemsContent(
-//                        eventsByDate = babyEvents.groupBy { it.timestamp.toLocalDate() },
-//                        onEdit = { event ->
-//                            editingEvent = event
-//                            eventViewModel.loadEventIntoForm(event)
-//                            showEventDialog = true
-//                        },
-//                        onDelete = { eventViewModel.deleteEvent(it, familyViewModel) },
-//                        isLoadingMore = isLoadingMore,
-//                        hasMoreHistory = hasMoreHistory,
-//                    )
                 }
             }
 
@@ -441,7 +391,13 @@ fun HomeScreen(
     }
 }
 
-
+data class CardGridDimensions(
+    val columns: Int,
+    val rows: Int,
+    val cardWidth: Dp,
+    val cardHeight: Dp,
+    val aspectRatio: Float
+)
 @Composable
 fun EventTypeCard(
     type: EventType,
@@ -549,21 +505,8 @@ fun EventTypeCard(
                     ) {
                         // Overlay at top
                         this@Box.overlayContent()
-
-//                        // Summary directly below overlay
-//                        Text(
-//                            text = summary,
-//                            style = MaterialTheme.typography.bodySmall,
-//                            color = backgroundColor.copy(alpha = 0.7f)
-//                        )
                     }
                 } else {
-//                    // Default summary text centered
-//                    Text(
-//                        text = summary,
-//                        style = MaterialTheme.typography.bodyLarge,
-//                        color = backgroundColor.copy(alpha = 0.85f)
-//                    )
                 }
             }
 
