@@ -34,7 +34,6 @@ import com.kouloundissa.twinstracker.ui.components.calculateRange
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -55,6 +54,7 @@ import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.Calendar
 import java.util.Date
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import kotlin.reflect.KClass
 
@@ -225,7 +225,7 @@ class EventViewModel @Inject constructor(
         val dateRange = filters.dateRange
         val babyId = filters.babyFilter.selectedBabies.firstOrNull()
         val selectedTypes = filters.eventTypeFilter.selectedTypes
-
+        resetLoadMore()
         babyId?.let { baby ->
             startAnalysisStreaming(baby.id, dateRange, eventTypes = selectedTypes)
         }
@@ -236,18 +236,19 @@ class EventViewModel @Inject constructor(
      */
     @Deprecated("Use refreshWithFilters() instead")
     fun refreshWithCustomRange(babyId: String,dateRangeParams:DateRangeParams) {
-        resetDateRangeAndHistory()
+        resetLoadMore()
         startStreaming(babyId, dateRangeParams)
     }
-
+    @Deprecated("Use _analysisStreamRequest() instead")
     private val _streamRequest = MutableStateFlow<EventStreamRequest?>(null)
 
     private val _analysisStreamRequest = MutableStateFlow<EventStreamRequest?>(null)
+    @Deprecated("Use analysisStreamJob instead")
     private var streamJob: Job? = null
 
     private var analysisStreamJob: Job? = null
 
-    private val maxDaysWindow = 365L // Maximum 1 year of history
+    //private val maxDaysWindow = 365L // Maximum 1 year of history
 
     fun updateEventTimestamp(date: Date) {
         _formState.update { state ->
@@ -276,41 +277,44 @@ class EventViewModel @Inject constructor(
     fun clearEditingEvent() {
         _notificationEvent.value = null
     }
-
     /**
      * Safe date range expansion for loading more history
      * Calculates new range without race conditions
      */
-    fun loadMoreHistoricalEvents() {
+    fun loadMoreEvents() {
         if (_isLoadingMore.value || !_hasMoreHistory.value) return
 
         _isLoadingMore.value = true
 
-        val currentRequest = _streamRequest.value ?: run {
-            Log.d("LoadMore", "No current request, aborting")
+        val currentRequest = _analysisStreamRequest.value ?: run {
+            Log.d("LoadMore", "No current analysis request, aborting")
             _isLoadingMore.value = false
             return
         }
 
-        val additionalDays = 1L
+        val additionalDays = AnalysisRange.THREE_DAYS.days
 
-        // Simply extend startDate backwards by 1 day
         val newStartDate = Calendar.getInstance().apply {
             time = currentRequest.dateRange.startDate
-            add(Calendar.DAY_OF_MONTH, (-1 * additionalDays).toInt())
+            add(Calendar.DAY_OF_MONTH, (-1 * additionalDays))
         }.time
 
         Log.d("LoadMore", "Extending from ${currentRequest.dateRange.startDate} to $newStartDate")
 
-        if (newStartDate.time <= currentRequest.dateRange.startDate.time - (maxDaysWindow * 86400000)) {
+        val maxDaysWindow = AnalysisRange.entries
+            .filter { it.days > 0 }
+            .maxOfOrNull { it.days } ?: 365
+
+        val maxWindowMillis = TimeUnit.DAYS.toMillis(maxDaysWindow.toLong())
+
+        if (newStartDate.time <= currentRequest.dateRange.startDate.time - maxWindowMillis) {
             Log.d("LoadMore", "Reached max limit, no more history")
             _hasMoreHistory.value = false
         }
 
         val newDateRange = DateRangeParams(newStartDate, currentRequest.dateRange.endDate)
-        _streamRequest.value = EventStreamRequest(currentRequest.babyId, newDateRange)
+        _analysisStreamRequest.value = EventStreamRequest(currentRequest.babyId, newDateRange)
     }
-
     /**
      * Centralized stream setup - only called once in init
      * Responds to changes in _streamRequest only
@@ -474,7 +478,7 @@ class EventViewModel @Inject constructor(
         }
     }
 
-    private fun resetDateRangeAndHistory() {
+    private fun resetLoadMore() {
         _hasMoreHistory.value = true
         _isLoadingMore.value = false
     }
@@ -877,27 +881,11 @@ class EventViewModel @Inject constructor(
         }
     }
 
-
     // Call this to clear any previous delete outcome
     fun resetDeleteState() {
         _deleteSuccess.value = false
         _deleteError.value = null
     }
-
-
-    /**
-     * Returns the list of events for the given Event subclass,
-     * e.g. FeedingEvent::class, DiaperEvent::class, etc.
-     */
-
-    fun <T : Event> getEventsOfTypeAsFlow(type: KClass<T>): Flow<List<T>> {
-        return eventsByType.map { map ->
-            val list = map[type] ?: emptyList()
-            @Suppress("UNCHECKED_CAST")
-            list as List<T>
-        }.distinctUntilChanged()
-    }
-
     /**
      * Returns a map of displayName → event count for all loaded types.
      * Useful to drive calendar badges or summary views.

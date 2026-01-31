@@ -201,7 +201,7 @@ private fun EventTypeDialogContent(
         lazyListState = lazyListState,
         isLoading = isLoadingMore,
         hasMore = hasMoreHistory,
-        onLoadMore = { eventViewModel.loadMoreHistoricalEvents() },
+        onLoadMore = { eventViewModel.loadMoreEvents() },
         itemsBeforeEndToLoad = 3,
         maxConsecutiveEmptyLoads = if (type == EventType.GROWTH) 20 else 6,
     )
