@@ -31,9 +31,20 @@ data class AnalysisSnapshot(
     val eventsByDay: Map<LocalDate, List<Event>> = emptyMap(),
     val dateRange: AnalysisFilter.DateRange,
     val babyId: String,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val loadingState: LoadingState = LoadingState()
 )
+data class LoadingState(
+    val cachedDaysLoaded: Boolean = false,
+    val missingDaysLoaded: Boolean = false,
+    val realtimeListenerActive: Boolean = false
+) {
+    val isInitialLoadComplete: Boolean
+        get() = cachedDaysLoaded && missingDaysLoaded
 
+    val isFullyReady: Boolean
+        get() = isInitialLoadComplete && realtimeListenerActive
+}
 /**
  * Groupe les événements par date en gérant les événements qui traversent minuit
  * (ex: SleepEvent de 22h à 3h du matin)
