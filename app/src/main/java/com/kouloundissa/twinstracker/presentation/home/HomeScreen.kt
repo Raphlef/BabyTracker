@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -74,7 +73,6 @@ import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
 import com.kouloundissa.twinstracker.ui.components.EventOverlayInfo
 import com.kouloundissa.twinstracker.ui.components.EventTypeDialog
-import com.kouloundissa.twinstracker.ui.components.InfiniteScrollEffect
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
@@ -111,8 +109,6 @@ fun HomeScreen(
 
     val analysisSnapshot by eventViewModel.analysisSnapshot.collectAsState()
 
-    val isLoadingMore by eventViewModel.isLoadingMore.collectAsState()
-    val hasMoreHistory by eventViewModel.hasMoreHistory.collectAsState()
     val errorMessage by eventViewModel.errorMessage.collectAsState()
     val favoriteEventTypes by eventViewModel.favoriteEventTypes.collectAsState()
 
@@ -127,16 +123,6 @@ fun HomeScreen(
     val deleteSuccess by eventViewModel.deleteSuccess.collectAsState()
     val deleteError by eventViewModel.deleteError.collectAsState()
 
-    val lazyListState = rememberLazyListState()
-
-    // Set up infinite scroll effect here:
-    InfiniteScrollEffect(
-        lazyListState = lazyListState,
-        isLoading = isLoadingMore,
-        hasMore = hasMoreHistory,
-        onLoadMore = { eventViewModel.loadMoreHistoricalEvents() },
-        itemsBeforeEndToLoad = 3
-    )
     LaunchedEffect(editingEvent) {
         editingEvent?.let {
             eventViewModel.loadEventIntoForm(it)
