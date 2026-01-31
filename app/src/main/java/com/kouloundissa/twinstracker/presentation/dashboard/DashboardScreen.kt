@@ -137,7 +137,7 @@ fun DashboardScreen(
         Log.d("Dashboard", "Page changed to: $currentTab (index: ${pagerState.currentPage})")
 
         // Arrêter tous les streams actifs quand on change de page
-        eventViewModel.stopStreaming()
+        //eventViewModel.stopStreaming()
     }
     val coroutineScope = rememberCoroutineScope()
 
