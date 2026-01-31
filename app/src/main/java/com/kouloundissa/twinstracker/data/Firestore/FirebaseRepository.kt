@@ -627,7 +627,7 @@ class FirebaseRepository @Inject constructor(
         val prefix = logPrefix()
         val allEvents = mutableMapOf<String, Event>()
 
-        Log.d(TAG, "→ $prefix: baby=$babyId, range=[${startDate.time}, ${endDate.time}]")
+        Log.d(TAG, "→ $prefix: baby=$babyId, range=[${startDate}, ${endDate}]")
 
         // STEP 1: Plan data retrieval
         val plan = firebaseCache.validateAndPlanDataRetrieval(babyId, startDate, endDate)

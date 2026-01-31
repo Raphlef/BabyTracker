@@ -365,7 +365,7 @@ class FirebaseCache(
 
         Log.d(
             TAG,
-            "→ Planning retrieval for baby=$babyId: range=[${requestedStart.time}, ${requestedEnd.time}], " +
+            "→ Planning retrieval for baby=$babyId: range=[${requestedStart}, ${requestedEnd}], " +
                     "today=${todayStart.time}, includestoday=$rangeIncludesToday"
         )
 
