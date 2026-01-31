@@ -1199,7 +1199,7 @@ class FirebaseRepository @Inject constructor(
             Log.d(TAG, "✓ $logMessage")
         }
     }
-
+    @Deprecated("Use streamAnalysisMetrics instead")
     fun streamEventsForBaby(
         babyId: String,
         startDate: Date,
