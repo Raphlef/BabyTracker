@@ -52,7 +52,6 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
-import java.util.Calendar
 import java.util.Date
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -294,10 +293,7 @@ class EventViewModel @Inject constructor(
 
         val additionalDays = AnalysisRange.THREE_DAYS.days
 
-        val newStartDate = Calendar.getInstance().apply {
-            time = currentRequest.dateRange.startDate
-            add(Calendar.DAY_OF_MONTH, (-1 * additionalDays))
-        }.time
+        val newStartDate = Date(currentRequest.dateRange.startDate.time - TimeUnit.DAYS.toMillis(additionalDays.toLong()))
 
         Log.d("LoadMore", "Extending from ${currentRequest.dateRange.startDate} to $newStartDate")
 
