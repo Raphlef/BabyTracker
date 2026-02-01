@@ -33,7 +33,6 @@ import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.toLocalDate
 import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.GrowthMeasurement
-import com.kouloundissa.twinstracker.data.LoadingState
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.data.Theme
@@ -615,7 +614,7 @@ class FirebaseRepository @Inject constructor(
         startDate: Date,
         endDate: Date,
         firebaseCache: FirebaseCache,
-        crossinline transform: (Map<String, Event>, LoadingState) -> T?,
+        crossinline transform: (Map<String, Event>) -> T?,
         crossinline logPrefix: () -> String = { "Stream" }
     ): Flow<T> = flow {
 
@@ -627,7 +626,6 @@ class FirebaseRepository @Inject constructor(
 
         val prefix = logPrefix()
         val allEvents = mutableMapOf<String, Event>()
-        var loadingState = LoadingState()
 
         Log.d(TAG, "→ $prefix: baby=$babyId, range=[${startDate}, ${endDate}]")
 
@@ -635,22 +633,13 @@ class FirebaseRepository @Inject constructor(
         val plan = firebaseCache.validateAndPlanDataRetrieval(babyId, startDate, endDate)
 
         // STEP 2: Process cached days
-        processCachedDays(babyId, plan, firebaseCache, allEvents){ events ->
-            loadingState = loadingState.copy(cachedDaysLoaded = true)
-            transform(events, loadingState)
-        }
+        processCachedDays(babyId, plan, firebaseCache, allEvents, transform)
 
         // STEP 3: Query missing days
-        queryMissingDays(babyId, plan, firebaseCache, allEvents) { events ->
-            loadingState = loadingState.copy(missingDaysLoaded = true)
-            transform(events, loadingState)
-        }
+        queryMissingDays(babyId, plan, firebaseCache, allEvents, transform )
 
         // STEP 4: Setup real-time listener
-        setupRealtimeListener(babyId, plan, firebaseCache, allEvents) { events ->
-            loadingState = loadingState.copy(realtimeListenerActive = true)
-            transform(events, loadingState)
-        }
+        setupRealtimeListener(babyId, plan, firebaseCache, allEvents, transform)
 
     }.catch { e ->
         Log.e(TAG, "✗ Stream error for baby=$babyId: ${e.message}", e)
@@ -1221,7 +1210,7 @@ class FirebaseRepository @Inject constructor(
         startDate = startDate,
         endDate = endDate,
         firebaseCache = firebaseCache,
-        transform = { events, loadingState ->
+        transform = { events ->
             events.values.sortedByDescending { it.timestamp }
         },
         logPrefix = { "streamEventsForBaby" }
@@ -1239,7 +1228,7 @@ class FirebaseRepository @Inject constructor(
         startDate = startDate,
         endDate = endDate,
         firebaseCache = firebaseCache,
-        transform = { events , loadingState ->
+        transform = { events ->
             val sortedEvents = events.values.sortedByDescending { it.timestamp }
 
             val eventsByDate = sortedEvents.groupByDateSpanning()
@@ -1253,8 +1242,7 @@ class FirebaseRepository @Inject constructor(
             )
             analysisSnapshot.copy(
                 events = sortedEvents,
-                eventsByDay = eventsByDate,
-                loadingState = loadingState
+                eventsByDay = eventsByDate
             )
         },
         logPrefix = { "streamAnalysisMetrics" }

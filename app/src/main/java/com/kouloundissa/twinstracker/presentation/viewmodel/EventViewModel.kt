@@ -411,17 +411,14 @@ class EventViewModel @Inject constructor(
                 _isLoading.value = false
             }
             .onEach { snapshot ->
-                val state = snapshot.loadingState
                 Log.d(
                     "AnalysisStream",
                     "Received complete snapshot: ${snapshot.dailyAnalysis.size} days, ${snapshot.events.size} events, ${snapshot.eventsByDay.size} day counts"
                 )
                 checkForNewEvents(snapshot.events)
                 _analysisSnapshot.value = snapshot
-                if (state.isFullyReady) {
-                    _isLoading.value = false
-                    _isLoadingMore.value = false
-                }
+                _isLoading.value = false
+                _isLoadingMore.value = false
             }
             .launchIn(viewModelScope)
     }
@@ -447,7 +444,7 @@ class EventViewModel @Inject constructor(
             _analysisStreamRequest.value = request
         } else {
             Log.i("EventViewModel", "✗ Analysis StreamRequest UNCHANGED - skipped")
-            //_isLoading.value = false
+            _isLoading.value = false
         }
     }
 
