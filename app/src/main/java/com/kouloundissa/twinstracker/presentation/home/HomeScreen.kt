@@ -369,8 +369,8 @@ fun calculateCardDimensions(
 ): CardGridDimensions {
 
     val horizontalPadding = 16.dp
-    val minCardSize = 100.dp
-    val maxCardSize = 500.dp
+    val minCardSize = 55.dp
+    val maxCardSize = 700.dp
 
     val availableWidth = constraints.maxWidth
     val availableHeight = constraints.maxHeight
