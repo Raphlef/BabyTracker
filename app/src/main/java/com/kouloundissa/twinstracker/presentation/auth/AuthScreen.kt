@@ -468,6 +468,7 @@ private fun AuthEntryPointPanel(
             style = MaterialTheme.typography.bodyLarge,
             color = DarkGrey,
             textAlign = TextAlign.Center,
+            fontWeight = FontWeight.Bold,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -536,7 +537,7 @@ private fun LoginForm(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    color = backgroundColor.copy(alpha = 0.15f),
+                    color = backgroundColor.copy(alpha = 0.4f),
                     shape = cornerShape
                 )
                 .padding(24.dp)
@@ -621,7 +622,7 @@ private fun LoginForm(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        color = backgroundColor.copy(alpha = 0.15f),
+                        color = backgroundColor.copy(alpha = 0.4f),
                         shape = cornerShape
                     )
                     .padding(horizontal = 8.dp),
@@ -645,7 +646,7 @@ private fun LoginForm(
                                 color = if (state.rememberMe)
                                     tint
                                 else
-                                    backgroundColor.copy(alpha = 0.08f),
+                                    backgroundColor.copy(alpha = 0.2f),
                                 shape = cornerShape
                             )
                             .border(
@@ -672,7 +673,7 @@ private fun LoginForm(
                         stringResource(id = R.string.remember_me),
                         style = MaterialTheme.typography.labelSmall,
                         color = tint,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.Bold,
                         fontSize = 13.sp
                     )
                 }
@@ -694,7 +695,7 @@ private fun LoginForm(
                         stringResource(id = R.string.forgot_password),
                         style = MaterialTheme.typography.labelSmall,
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Bold,
                     )
                 }
             }
@@ -738,7 +739,8 @@ private fun LoginForm(
             Text(
                 stringResource(id = R.string.back),  // "Back"
                 style = MaterialTheme.typography.labelSmall,
-                fontSize = 12.sp
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
             )
         }
     }
@@ -835,6 +837,8 @@ fun LabeledTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None
 ) {
     val backgroundColor = BackgroundColor
+    val contentColor = DarkGrey
+    val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
 
     val focusManager = LocalFocusManager.current
@@ -842,8 +846,8 @@ fun LabeledTextField(
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            textStyle = LocalTextStyle.current.copy(color = backgroundColor),
-            label = { Text(label, color = backgroundColor) },
+            textStyle = LocalTextStyle.current.copy(color = contentColor),
+            label = { Text(label, color = contentColor) },
             isError = isError,
             singleLine = singleLine,
             enabled = enabled,
