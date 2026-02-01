@@ -1,4 +1,5 @@
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.fadeIn
@@ -213,13 +214,13 @@ fun DrawEventsForDay(
                 spanStart == spanEnd && spanStart == day -> span
                 spanStart < spanEnd && spanStart == day -> {
                     val endOfDay = span.start.toLocalDate().atTime(23, 59, 59)
-                        .atZone(ZoneId.systemDefault())
+                        .atZone(span.start.zone)
                     span.copy(end = endOfDay)
                 }
 
                 spanStart < spanEnd && spanEnd == day -> {
                     val startOfDay = day.atTime(0, 0, 0)
-                        .atZone(ZoneId.systemDefault())
+                        .atZone(span.start.zone)
                     span.copy(start = startOfDay)
                 }
 
@@ -239,10 +240,9 @@ fun DrawEventsForDay(
         )
 
         // SLEEP: full width
-        sleepEvents.forEachIndexed { stackIndex, span ->
+        sleepEvents.forEach  {  span ->
             EventBar(
                 span = span,
-                stackIndex = stackIndex,
                 hourRowHeight = hourRowHeight,
                 onEdit = onEdit
             )
@@ -365,6 +365,17 @@ fun EventBar(
     minHeightFraction: Float = 0.1f
 ) {
     val type = EventType.forClass(span.evt::class)
+
+    // 🐛 DEBUG: Ajoutez ce log temporaire
+    if (span.evt is SleepEvent) {
+        Log.d("EventBar", """
+            Sleep Event Debug:
+            - start: ${span.start}
+            - startHour: ${span.startHour}
+            - startMinute: ${span.startMinute}
+            - topOffsetFraction: ${span.startHour + (span.startMinute / 60f)}
+        """.trimIndent())
+    }
 
     // Hauteur TOTALE de l'event (start à end, peut être plusieurs heures)
     val totalMinutes = (span.endHour - span.startHour) * 60 +
@@ -503,10 +514,10 @@ data class DaySpan(
     val start: ZonedDateTime,
     val end: ZonedDateTime
 ) {
-    val startHour = start.hour
-    val endHour = end.hour
-    val startMinute = start.minute
-    val endMinute = end.minute
+    val startHour: Int get() = start.hour
+    val endHour: Int get() = end.hour
+    val startMinute: Int get() = start.minute
+    val endMinute: Int get() = end.minute
 }
 
 fun computeDaySpans(events: List<Event>): List<DaySpan> {
