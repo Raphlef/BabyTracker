@@ -1,5 +1,4 @@
 import android.annotation.SuppressLint
-import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.fadeIn
@@ -294,7 +293,7 @@ fun CurrentHourIndicator(
     if (day != today) return
 
     BoxWithConstraints(modifier = modifier.fillMaxWidth().zIndex(Float.MAX_VALUE)) {
-        val topOffset = hourRowHeight * currentHourFraction
+        val topOffset = hourRowHeight * currentHourFraction+ 4.dp
 
         Box(
             modifier = Modifier
@@ -302,7 +301,7 @@ fun CurrentHourIndicator(
                 .fillMaxWidth()
                 .height(2.dp)
                 .background(Color(0xFFFF9800))
-                .padding(vertical = VERTICAL_SPACING_BETWEEN_STACKED),
+               // .padding(vertical = VERTICAL_SPACING_BETWEEN_STACKED),
         )
 
         Text(
@@ -311,12 +310,12 @@ fun CurrentHourIndicator(
             color = Color(0xFFFF9800),
             fontSize = 10.sp,
             modifier = Modifier
-                .offset(y = topOffset - 10.dp, x = 2.dp)
+                .offset(y = topOffset - 8.dp, x = 2.dp)
                 .background(
                     color = backgroundColor,
                     shape = RoundedCornerShape(2.dp)
-                )
-                .padding(vertical = VERTICAL_SPACING_BETWEEN_STACKED),
+                ) .padding(horizontal = 2.dp, vertical = 1.dp)
+              //  .padding(vertical = VERTICAL_SPACING_BETWEEN_STACKED),
         )
     }
 }
@@ -366,16 +365,6 @@ fun EventBar(
 ) {
     val type = EventType.forClass(span.evt::class)
 
-    // 🐛 DEBUG: Ajoutez ce log temporaire
-    if (span.evt is SleepEvent) {
-        Log.d("EventBar", """
-            Sleep Event Debug:
-            - start: ${span.start}
-            - startHour: ${span.startHour}
-            - startMinute: ${span.startMinute}
-            - topOffsetFraction: ${span.startHour + (span.startMinute / 60f)}
-        """.trimIndent())
-    }
 
     // Hauteur TOTALE de l'event (start à end, peut être plusieurs heures)
     val totalMinutes = (span.endHour - span.startHour) * 60 +
