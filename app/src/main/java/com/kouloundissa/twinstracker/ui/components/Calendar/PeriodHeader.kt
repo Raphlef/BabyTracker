@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -186,7 +187,8 @@ private fun PeriodPicker(
                     PeriodType.Month -> stringResource(R.string.period_picker_select_month)
                     PeriodType.Day -> stringResource(R.string.period_picker_select_day)
                     PeriodType.Week -> stringResource(R.string.period_picker_select_week)
-                }
+                },
+                color = DarkGrey,
             )
         },
         text = {
@@ -201,7 +203,20 @@ private fun PeriodPicker(
                 DatePicker(
                     state = datePickerState,
                     modifier = Modifier.fillMaxWidth(),
-                    title = null
+                    title = null,
+                    colors = DatePickerDefaults.colors(
+                        containerColor = Color.White,  // White background
+                        titleContentColor = Color.Black,
+                        headlineContentColor = Color.Black,
+                        weekdayContentColor = Color.Black,
+                        subheadContentColor = Color.Black,
+                        dayContentColor = Color.Black,
+                        selectedDayContainerColor = MaterialTheme.colorScheme.primary,  // Reuse app primary for selection
+                        selectedDayContentColor = Color.White,  // White text on selected
+                        todayContentColor = MaterialTheme.colorScheme.primary,
+                        navigationContentColor = Color.Black
+                        // Add more as needed from DatePickerColors params
+                    )
                 )
             }
         },
@@ -297,7 +312,8 @@ private fun MonthPicker(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(itemHeight * visibleItemsCount).background(BackgroundColor)
+            .height(itemHeight * visibleItemsCount)
+            .background(BackgroundColor)
     ) {
         // Indicateur visuel de la sélection (rectangle central)
         Box(
