@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,6 +53,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -394,7 +394,7 @@ fun calculateCardDimensions(
     val usableHeight = grossHeight - spacing * (rows + 1)
 
     val cardWidth = (usableWidth / optimalColumns).coerceIn(minCardSize, maxCardSize)
-    val cardHeight = maxOf(minCardSize, usableHeight / rows)
+    val cardHeight = (usableHeight / rows).coerceIn(minCardSize, maxCardSize)
 
     // Limiter par les bornes
     val totalContentHeight = (cardHeight * rows) + (spacing * (rows + 1))
@@ -472,7 +472,7 @@ fun EventTypeCard(
                 .blur(2.dp)
         )
 
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
@@ -487,19 +487,54 @@ fun EventTypeCard(
                     shape = cornerShape,
                 )
         ) {
-            // Event name at top-left
-            Text(
-                text = type.getDisplayName(context),
-                style = MaterialTheme.typography.titleMedium,
-                color = backgroundColor,
-                modifier = Modifier
-                    .zIndex(3f)
-                    .align(Alignment.TopStart)
-                    .padding(start = 24.dp, top = 20.dp)
-            )
+            val cardWidth = maxWidth
+            val cardHeight = maxHeight
+
+            // Priority for disappearing (highest to lowest priority):
+            // 1. overlayContent (disappears first)
+            // 2. favorite button
+            // 3. add button
+            // 4. title text (replaced by icon)
+            val showOverlay = overlayContent != null && cardWidth >= 120.dp && cardHeight >= 100.dp
+            val showFavorite = onFavoriteToggle != null && cardWidth >= 90.dp && cardHeight >= 80.dp
+            val showAddButton = onLongClick != null && cardWidth >= 70.dp && cardHeight >= 70.dp
+            val showTitleText = cardWidth >= 100.dp && cardHeight >= 60.dp
+
+            // Icon at top-left (always visible unless card is extremely small)
+            if (!showTitleText && cardWidth >= 40.dp && cardHeight >= 40.dp) {
+                Icon(
+                    imageVector = type.icon,
+                    contentDescription = type.getDisplayName(context),
+                    tint = backgroundColor,
+                    modifier = Modifier
+                        .zIndex(3f)
+                        .align(Alignment.TopStart)
+                        .padding(start = 12.dp, top = 12.dp)
+                        .size(24.dp)
+                )
+            }
+
+            // Title text at top-left (shown when enough space)
+            if (showTitleText) {
+                Text(
+                    text = type.getDisplayName(context),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = backgroundColor,
+                    maxLines = if (cardWidth >= 140.dp) 2 else 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .zIndex(3f)
+                        .align(Alignment.TopStart)
+                        .padding(
+                            start = 24.dp,
+                            top = 20.dp,
+                            end = if (showFavorite) 44.dp else 24.dp
+                        )
+                )
+            }
 
             // Favorite star icon at top-right
-            if (onFavoriteToggle != null) {
+            if (showFavorite) {
                 IconButton(
                     onClick = onFavoriteToggle,
                     modifier = Modifier
@@ -517,27 +552,20 @@ fun EventTypeCard(
                 }
             }
 
-            // Center content - show overlay and summary together
-            Box(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .zIndex(2f)
-                    .padding(start = 5.dp)
-            ) {
-                if (overlayContent != null) {
-                    Column(
-                        horizontalAlignment = Alignment.Start,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Overlay at top
-                        this@Box.overlayContent()
-                    }
-                } else {
+            // Center content - overlay
+            if (showOverlay) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .zIndex(2f)
+                        .padding(horizontal = 8.dp)
+                ) {
+                    this@Box.overlayContent()
                 }
             }
 
             // Small "+" button at bottom-right
-            if (onLongClick != null) {
+            if (showAddButton) {
                 IconButton(
                     onClick = onLongClick,
                     modifier = Modifier
@@ -554,7 +582,9 @@ fun EventTypeCard(
                         imageVector = Icons.Default.Add,
                         contentDescription = "Add ${type.getDisplayName(LocalContext.current)}",
                         tint = contentColor,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier
+                            .size(18.dp)
+                            .background(backgroundColor.copy(alpha = 0.45f), shape = cornerShape)
                     )
                 }
             }
