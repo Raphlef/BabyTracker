@@ -447,7 +447,7 @@ class EventViewModel @Inject constructor(
             _analysisStreamRequest.value = request
         } else {
             Log.i("EventViewModel", "✗ Analysis StreamRequest UNCHANGED - skipped")
-            //_isLoading.value = false
+            _isLoading.value = false
         }
     }
 
