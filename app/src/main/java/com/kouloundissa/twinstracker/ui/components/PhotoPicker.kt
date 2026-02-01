@@ -144,7 +144,6 @@ fun PhotoPicker(
                 contentDescription = "Selected Photo",
                 modifier = Modifier
                     .fillMaxSize()
-
                     .combinedClickable(
                         onClick = {
                             displayUri?.let { uri ->
