@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -241,8 +242,7 @@ fun HomeScreen(
                 val cardDimensions by remember(maxWidth, maxHeight, sortedEventTypes.size) {
                     derivedStateOf {
                         calculateCardDimensions(
-                            availableWidth = maxWidth,
-                            availableHeight = maxHeight,
+                            this@BoxWithConstraints,
                             contentPadding = contentPadding,
                             itemCount = sortedEventTypes.size,
                             spacing
@@ -257,7 +257,7 @@ fun HomeScreen(
                         top = spacing,
                         bottom = spacing
                     ),
-                    userScrollEnabled = false,
+                    userScrollEnabled = cardDimensions.needsScrolling,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = cardDimensions.gridHeight),
@@ -362,8 +362,7 @@ fun HomeScreen(
 
 
 fun calculateCardDimensions(
-    availableWidth: Dp,
-    availableHeight: Dp,
+    constraints: BoxWithConstraintsScope,
     contentPadding: PaddingValues,
     itemCount: Int,
     spacing: Dp
@@ -371,6 +370,10 @@ fun calculateCardDimensions(
 
     val horizontalPadding = 16.dp
     val minCardSize = 100.dp
+    val maxCardSize = 500.dp
+
+    val availableWidth = constraints.maxWidth
+    val availableHeight = constraints.maxHeight
 
     val grossWidth = availableWidth - horizontalPadding * 2
     val grossHeight = availableHeight -
@@ -390,19 +393,21 @@ fun calculateCardDimensions(
     val usableWidth = grossWidth - spacing * (optimalColumns - 1)
     val usableHeight = grossHeight - spacing * (rows + 1)
 
-    val cardWidth = usableWidth / optimalColumns
-    val cardHeight = usableHeight / rows
+    val cardWidth = (usableWidth / optimalColumns).coerceIn(minCardSize, maxCardSize)
+    val cardHeight = maxOf(minCardSize, usableHeight / rows)
 
     // Limiter par les bornes
-    val finalWidth = cardWidth.coerceIn(minCardSize, cardWidth)
-    val finalHeight = cardHeight.coerceIn(minCardSize, cardHeight)
+    val totalContentHeight = (cardHeight * rows) + (spacing * (rows + 1))
+    val needsScrolling = totalContentHeight > grossHeight
 
     return CardGridDimensions(
         columns = optimalColumns,
         rows = rows,
-        cardWidth = finalWidth,
-        cardHeight = finalHeight,
-        gridHeight = grossHeight
+        cardWidth = cardWidth,
+        cardHeight = cardHeight,
+        gridHeight = grossHeight,
+        needsScrolling = needsScrolling,
+        totalContentHeight = totalContentHeight
     )
 }
 
@@ -414,7 +419,9 @@ data class CardGridDimensions(
     val rows: Int,
     val cardWidth: Dp,
     val cardHeight: Dp,
-    val gridHeight: Dp
+    val gridHeight: Dp,
+    val needsScrolling: Boolean = false,
+    val totalContentHeight: Dp = 0.dp
 )
 
 @Composable
