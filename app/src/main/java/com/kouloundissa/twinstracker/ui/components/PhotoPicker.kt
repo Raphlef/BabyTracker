@@ -54,8 +54,6 @@ import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import java.io.File
 import java.io.FileOutputStream
 
@@ -77,39 +75,23 @@ fun PhotoPicker(
 
     // Whenever photoUrl changes, ensure it's cached locally
     LaunchedEffect(photoUrl) {
-        displayUri = photoUrl?.let { remoteUri ->
-            val localFile = context.getExternalFilesDir("images")?.let { dir ->
-                // Use URL hash as filename
-                val fileName = remoteUri.toString().hashCode().toString() + ".jpg"
-                File(dir, fileName)
-            }
-            if (localFile != null) {
-                if (localFile.exists()) {
-                    // Already cached: use local copy
-                    localFile.toUri()
-                } else {
-                    // Download & save
-                    isLoading = true
-                    try {
-                        val request = Request.Builder().url(remoteUri.toString()).build()
-                        OkHttpClient().newCall(request).execute().use { resp ->
-                            if (resp.isSuccessful) {
-                                localFile.parentFile?.mkdirs()
-                                localFile.outputStream().use { out ->
-                                    resp.body?.byteStream()?.copyTo(out)
-                                }
-                                localFile.toUri()
-                            } else remoteUri
-                        }
-                    } catch (e: Exception) {
-                        remoteUri
-                    } finally {
-                        isLoading = false
-                    }
+        displayUri = photoUrl?.let { uri ->
+            // Only cache remote URLs (Firebase Storage, HTTP, HTTPS)
+            if (uri.scheme in listOf("http", "https")) {
+                isLoading = true
+                try {
+                    ImageCacheManager.getCachedImageUri(context, uri.toString())
+                } finally {
+                    isLoading = false
                 }
-            } else remoteUri
+            } else {
+                // Already local (content://, file://) - use directly
+                Log.d("ImageCache", "✓ Local URI: $uri")
+                uri
+            }
         }
     }
+
 
     // Launchers for camera and gallery
     val cameraLauncher = rememberLauncherForActivityResult(
