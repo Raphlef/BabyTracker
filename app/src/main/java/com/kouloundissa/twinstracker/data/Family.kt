@@ -156,7 +156,7 @@ object PseudoGenerator {
             { "$prefix $firstName" },
             { "$family $firstName" },
             { "$firstName $family" },
-            { "$prefix $firstName suffix" },
+            { "$prefix $firstName $suffix" },
             { "$firstName $family $suffix" },
             { "$firstName $family" }
         )
