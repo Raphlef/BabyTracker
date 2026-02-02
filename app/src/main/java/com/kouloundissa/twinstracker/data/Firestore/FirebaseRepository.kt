@@ -1199,24 +1199,6 @@ class FirebaseRepository @Inject constructor(
             Log.d(TAG, "✓ $logMessage")
         }
     }
-    @Deprecated("Use streamAnalysisMetrics instead")
-    fun streamEventsForBaby(
-        babyId: String,
-        startDate: Date,
-        endDate: Date,
-        firebaseCache: FirebaseCache = FirebaseCache(context, db),
-    ): Flow<List<Event>> = buildEventStream(
-        babyId = babyId,
-        startDate = startDate,
-        endDate = endDate,
-        firebaseCache = firebaseCache,
-        transform = { events ->
-            events.values.sortedByDescending { it.timestamp }
-        },
-        logPrefix = { "streamEventsForBaby" }
-    )
-
-
     fun streamAnalysisMetrics(
         babyId: String,
         startDate: Date,
