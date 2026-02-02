@@ -289,7 +289,11 @@ private fun EventTypeDialogContent(
                 ) {
                     Text(
                         stringResource(id = R.string.event_type_add_event),
-                        color = backgroundColor
+                        color = contentColor,
+                        modifier = Modifier.background(
+                            backgroundColor.copy(alpha = 0.9f),
+                            cornerShape
+                        ).padding(12.dp)
                     )
                 }
             }
@@ -332,7 +336,7 @@ private fun EventTypeHeaderPanel(
                 onClick = onDismiss,
                 modifier = Modifier
                     .background(
-                        contentColor.copy(alpha = 0.1f),
+                        backgroundColor.copy(alpha = 0.3f),
                         CircleShape
                     )
                     .size(40.dp)
@@ -340,7 +344,7 @@ private fun EventTypeHeaderPanel(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = tint
+                    tint = contentColor
                 )
             }
 
