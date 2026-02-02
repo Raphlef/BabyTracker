@@ -81,6 +81,7 @@ fun WeekCalendar(
     Box(
         modifier
             .background(BackgroundColor, MaterialTheme.shapes.large)
+            .clip(MaterialTheme.shapes.large)
             .pointerInput(currentWeekMonday) {
                 detectHorizontalDragGestures(
                     onDragStart = { dragOffset = 0f },
