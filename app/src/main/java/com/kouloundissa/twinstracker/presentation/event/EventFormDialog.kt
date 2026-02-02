@@ -937,19 +937,19 @@ fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
     )
 
     val isEditMode = state.eventId != null
-    val allEvents by viewModel.events.collectAsState()
+    val analysisSnapshot by viewModel.analysisSnapshot.collectAsState()
 
     val amountPreset = if (isEditMode && state.event != null) {
         listOf(state.event as FeedingEvent).calculatePresets()
     } else {
-        allEvents
+        analysisSnapshot.events
             .filterIsInstance<FeedingEvent>()
             .filter { it.amountMl != null && it.amountMl > 0 }
             .take(10)
             .calculatePresets()
     }
 
-    val durationPreset = allEvents
+    val durationPreset = analysisSnapshot.events
         .filterIsInstance<FeedingEvent>()
         .filter { it.durationMinutes != null && it.durationMinutes > 0 }
         .mapNotNull { it.durationMinutes }
@@ -1118,20 +1118,21 @@ fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
     val contentColor = BackgroundColor
     val cornerShape = MaterialTheme.shapes.extraLarge
 
-    val allEvents by viewModel.events.collectAsState()
+
+    val analysisSnapshot by viewModel.analysisSnapshot.collectAsState()
     val isEditMode = state.eventId != null
 
     val amountPreset = if (isEditMode && state.event != null) {
         listOf(state.event as PumpingEvent).calculatePresets()
     } else {
-        allEvents
+        analysisSnapshot.events
             .filterIsInstance<PumpingEvent>()
             .filter { it.amountMl != null && it.amountMl > 0 }
             .take(10)
             .calculatePresets()
     }
 
-    val durationPreset = allEvents
+    val durationPreset = analysisSnapshot.events
         .filterIsInstance<PumpingEvent>()
         .filter { it.durationMinutes != null && it.durationMinutes > 0 }
         .mapNotNull { it.durationMinutes }
