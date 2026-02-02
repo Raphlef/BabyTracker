@@ -63,6 +63,7 @@ import com.kouloundissa.twinstracker.data.FamilyRole
 import com.kouloundissa.twinstracker.data.FamilySettings
 import com.kouloundissa.twinstracker.data.FamilyUser
 import com.kouloundissa.twinstracker.data.PrivacyLevel
+import com.kouloundissa.twinstracker.data.PseudoGenerator
 import com.kouloundissa.twinstracker.presentation.Family.CreateFamilyDialog
 import com.kouloundissa.twinstracker.presentation.settings.GlassCard
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
@@ -423,6 +424,7 @@ private fun FamilyMemberSection(
     onRemoveUser: (String) -> Unit,
     familyViewModel: FamilyViewModel,
 ) {
+    val context = LocalContext.current
     val tintColor = DarkGrey
     val isCurrentAdmin = familyViewModel.isCurrentUserAdmin()
 
@@ -482,7 +484,7 @@ private fun FamilyMemberSection(
                         )
                     }
                     IconSelector(
-                        title = user.displayNameOrEmail,
+                        title =  user.displayName.ifBlank { PseudoGenerator.generateCoolPseudo(context, user.email) },
                         options = displayOptions,
                         selected = displayOptions.first { !it.isLeave && it.role == user.role },
                         onSelect = { selectedOption ->
@@ -519,7 +521,7 @@ private fun FamilyMemberSection(
                             R.string.family_user_leave_dialog_confirm_message
                         },
 
-                        user.displayNameOrEmail,
+                        user.displayName.ifBlank { PseudoGenerator.generateCoolPseudo(context, user.email) },
                         family.name,
                     )
                 )

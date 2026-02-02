@@ -102,6 +102,7 @@ import com.kouloundissa.twinstracker.data.FeedType
 import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.PoopColor
 import com.kouloundissa.twinstracker.data.PoopConsistency
+import com.kouloundissa.twinstracker.data.PseudoGenerator
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.getDisplayName
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
@@ -659,14 +660,16 @@ fun CreatorInfoSection(
     isCurrentUserCreator: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
 
     val cornerShape = MaterialTheme.shapes.extraLarge
     val backgroundColor = BackgroundColor
     val tint = DarkBlue
-    val creatorName = familyMembers
-        .find { it.userId == creatorUserId }
-        ?.displayName
-        ?: creatorUserId
+
+    val creator = familyMembers.find { it.userId == creatorUserId }
+    val creatorName = creator?.displayName?.ifBlank {
+        creator.email.let { PseudoGenerator.generateCoolPseudo(context, it) }
+    } ?: creator?.email?.let { PseudoGenerator.generateCoolPseudo(context, it) } ?: creatorUserId
 
     val displayText = buildString {
         append(stringResource(id = R.string.created_by))

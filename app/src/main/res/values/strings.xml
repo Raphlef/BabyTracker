@@ -394,4 +394,82 @@
     <string name="period_picker_select_month">Select month</string>
     <string name="next_feeding_is">Next feeding is:</string>
     <string name="baby_sleep_since">Baby is sleeping since:</string>
+
+    <!-- Pseudo Generator - Prefixes -->
+    <string name="pseudo_prefix_1">Little</string>
+    <string name="pseudo_prefix_2">Tiny</string>
+    <string name="pseudo_prefix_3">Sweet</string>
+    <string name="pseudo_prefix_4">Happy</string>
+    <string name="pseudo_prefix_5">Joyful</string>
+    <string name="pseudo_prefix_6">Bright</string>
+    <string name="pseudo_prefix_7">Wonder</string>
+    <string name="pseudo_prefix_8">Magic</string>
+    <string name="pseudo_prefix_9">Gentle</string>
+    <string name="pseudo_prefix_10">Caring</string>
+    <string name="pseudo_prefix_11">Loving</string>
+    <string name="pseudo_prefix_12">Tender</string>
+    <string name="pseudo_prefix_13">Precious</string>
+    <string name="pseudo_prefix_14">Clever</string>
+    <string name="pseudo_prefix_15">Brave</string>
+    <string name="pseudo_prefix_16">Cheerful</string>
+    <string name="pseudo_prefix_17">Playful</string>
+    <string name="pseudo_prefix_18">Sunny</string>
+    <string name="pseudo_prefix_19">Cozy</string>
+    <string name="pseudo_prefix_20">Warm</string>
+    <string name="pseudo_prefix_21">Pure</string>
+    <string name="pseudo_prefix_22">Kind</string>
+    <string name="pseudo_prefix_23">Noble</string>
+    <string name="pseudo_prefix_24">Smart</string>
+
+    <!-- Pseudo Generator - Suffixes -->
+    <string name="pseudo_suffix_1">Star</string>
+    <string name="pseudo_suffix_2">Heart</string>
+    <string name="pseudo_suffix_3">Dream</string>
+    <string name="pseudo_suffix_4">Angel</string>
+    <string name="pseudo_suffix_5">Hero</string>
+    <string name="pseudo_suffix_6">Guardian</string>
+    <string name="pseudo_suffix_7">Explorer</string>
+    <string name="pseudo_suffix_8">Keeper</string>
+    <string name="pseudo_suffix_9">Light</string>
+    <string name="pseudo_suffix_10">Soul</string>
+    <string name="pseudo_suffix_11">Spirit</string>
+    <string name="pseudo_suffix_12">Joy</string>
+    <string name="pseudo_suffix_13">Hope</string>
+    <string name="pseudo_suffix_14">Love</string>
+    <string name="pseudo_suffix_15">Smile</string>
+    <string name="pseudo_suffix_16">Wish</string>
+    <string name="pseudo_suffix_17">Wings</string>
+    <string name="pseudo_suffix_18">Moon</string>
+    <string name="pseudo_suffix_19">Sun</string>
+    <string name="pseudo_suffix_20">Dawn</string>
+    <string name="pseudo_suffix_21">Sky</string>
+    <string name="pseudo_suffix_22">Glow</string>
+    <string name="pseudo_suffix_23">Spark</string>
+    <string name="pseudo_suffix_24">Beam</string>
+
+    <!-- Pseudo Generator - Family -->
+    <string name="pseudo_family_1">Papa</string>
+    <string name="pseudo_family_2">Mama</string>
+    <string name="pseudo_family_3">Dad</string>
+    <string name="pseudo_family_4">Mom</string>
+    <string name="pseudo_family_5">Parent</string>
+    <string name="pseudo_family_6">Protector</string>
+    <string name="pseudo_family_7">Guide</string>
+    <string name="pseudo_family_8">Caregiver</string>
+    <string name="pseudo_family_9">Mentor</string>
+    <string name="pseudo_family_10">Teacher</string>
+    <string name="pseudo_family_11">Helper</string>
+    <string name="pseudo_family_12">Friend</string>
+    <string name="pseudo_family_13">Buddy</string>
+    <string name="pseudo_family_14">Pal</string>
+    <string name="pseudo_family_15">Companion</string>
+    <string name="pseudo_family_16">Guardian</string>
+    <string name="pseudo_family_17">Watcher</string>
+    <string name="pseudo_family_18">Keeper</string>
+    <string name="pseudo_family_19">Nurturer</string>
+    <string name="pseudo_family_20">Supporter</string>
+    <string name="pseudo_family_21">Champion</string>
+    <string name="pseudo_family_22">Defender</string>
+    <string name="pseudo_family_23">Caretaker</string>
+    <string name="pseudo_family_24">Angel</string>
 </resources>
