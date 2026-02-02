@@ -23,6 +23,7 @@ import com.kouloundissa.twinstracker.data.EventFormState.Sleep
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.Firestore.FirebaseRepository
+import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.toLocalDate
 import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
@@ -35,7 +36,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
@@ -43,19 +43,14 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.Date
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
-import kotlin.reflect.KClass
 
 @HiltViewModel
 class EventViewModel @Inject constructor(
@@ -79,53 +74,8 @@ class EventViewModel @Inject constructor(
     )
     val analysisSnapshot: StateFlow<AnalysisSnapshot> = _analysisSnapshot.asStateFlow()
 
+    @Deprecated("Use analysisSnapshot instead")
     private val _events = MutableStateFlow<List<Event>>(emptyList())
-
-    @Deprecated("Use analysisSnapshot instead")
-    val events: StateFlow<List<Event>> = _events
-
-    @Deprecated("Use analysisSnapshot instead")
-    val eventsByType: StateFlow<Map<KClass<out Event>, List<Event>>> = _events
-        .map { eventList -> eventList.groupBy { it::class } }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyMap()
-        )
-
-    @Deprecated("Use analysisSnapshot instead")
-    val eventsByDay: StateFlow<Map<LocalDate, List<Event>>> = _events
-        .map { events ->
-            val result = mutableMapOf<LocalDate, MutableList<Event>>()
-            val systemZone = ZoneId.systemDefault()
-
-            events.forEach { event ->
-                val eventStartDate = event.timestamp.toInstant()
-                    .atZone(systemZone)
-                    .toLocalDate()
-
-                val eventEndDate = when (event) {
-                    is SleepEvent -> event.endTime?.toInstant()
-                        ?.atZone(systemZone)
-                        ?.toLocalDate() ?: eventStartDate
-
-                    else -> eventStartDate
-                }
-
-                // Add event to ALL dates it spans
-                var currentDate = eventStartDate
-                while (!currentDate.isAfter(eventEndDate)) {
-                    result.getOrPut(currentDate) { mutableListOf() }.add(event)
-                    currentDate = currentDate.plusDays(1)
-                }
-            }
-            result
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyMap()
-        )
 
     private val _lastGrowthEvent = MutableStateFlow<GrowthEvent?>(null)
     val lastGrowthEvent: StateFlow<GrowthEvent?> = _lastGrowthEvent.asStateFlow()
@@ -266,8 +216,8 @@ class EventViewModel @Inject constructor(
     fun onNotificationClicked(eventId: String) {
         viewModelScope.launch {
             // Try to find in current events cache
-            val found = _events.value.firstOrNull { it.id == eventId }
-                ?: repository.getEvent(eventId) // implement this if needed
+            val found = _analysisSnapshot.value.events.firstOrNull { it.id == eventId }
+                ?: repository.getEvent(eventId) // fallback to repository if not in current snapshot
 
             _notificationEvent.value = found as Event
         }
@@ -704,16 +654,23 @@ class EventViewModel @Inject constructor(
                     _saveSuccess.value = true
 
                     // Mise à jour immédiate : ajoute ou met à jour l'event
-                    val existingIndex = _events.value.indexOfFirst { it.id == eventWithPhoto.id }
-                    _events.value = if (existingIndex >= 0) {
+                    val currentSnapshot = _analysisSnapshot.value
+                    val existingIndex = currentSnapshot.events.indexOfFirst { it.id == eventWithPhoto.id }
+
+                    val updatedEvents = if (existingIndex >= 0) {
                         // Update si l'event existe déjà (cas rare mais possible)
-                        _events.value.toMutableList().apply {
+                        currentSnapshot.events.toMutableList().apply {
                             set(existingIndex, eventWithPhoto)
                         }
                     } else {
                         // Ajoute en tête si nouvel event (triée par timestamp DESC)
-                        listOf(eventWithPhoto) + _events.value
+                        listOf(eventWithPhoto) + currentSnapshot.events
                     }
+                    _analysisSnapshot.value = currentSnapshot.copy(
+                        events = updatedEvents,
+                        eventsByDay = updatedEvents.groupBy { it.timestamp.toLocalDate() },
+                        timestamp = System.currentTimeMillis()
+                    )
                 },
                 onFailure = { _errorMessage.value = it.message }
             )
@@ -745,9 +702,16 @@ class EventViewModel @Inject constructor(
             repository.updateEvent(event.id, eventWithPhoto).fold(
                 onSuccess = {
                     _saveSuccess.value = true
-                    _events.value = _events.value.map {
-                        if (it.id == event.id) event else it
+                    // Mise à jour du snapshot
+                    val currentSnapshot = _analysisSnapshot.value
+                    val updatedEvents = currentSnapshot.events.map {
+                        if (it.id == event.id) eventWithPhoto else it
                     }
+                    _analysisSnapshot.value = currentSnapshot.copy(
+                        events = updatedEvents,
+                        eventsByDay = updatedEvents.groupBy { it.timestamp.toLocalDate() },
+                        timestamp = System.currentTimeMillis()
+                    )
                 },
                 onFailure = { _errorMessage.value = it.message }
             )
@@ -863,7 +827,14 @@ class EventViewModel @Inject constructor(
                 repository.deleteEvent(event).fold(
                     onSuccess = {
                         _deleteSuccess.value = true
-                        _events.value = _events.value.filterNot { it.id == event.id }
+                        // Mise à jour du snapshot
+                        val currentSnapshot = _analysisSnapshot.value
+                        _analysisSnapshot.value = currentSnapshot.copy(
+                            events = currentSnapshot.events.filterNot { it.id == event.id },
+                            eventsByDay = currentSnapshot.events.filterNot { it.id == event.id }
+                                .groupBy { it.timestamp.toLocalDate() },
+                            timestamp = System.currentTimeMillis()
+                        )
                     },
                     onFailure = { throwable ->
                         throw throwable
@@ -887,12 +858,15 @@ class EventViewModel @Inject constructor(
      * Useful to drive calendar badges or summary views.
      */
     fun getEventCounts(): Map<String, Int> {
-        return eventsByType.value.mapKeys { (type, _) ->
-            // Simple human‐readable key; you could customize per type.
-            type.simpleName ?: "Unknown"
-        }.mapValues { (_, list) ->
-            list.size
-        }
+        return _analysisSnapshot.value.events
+            .groupBy { it::class }
+            .mapKeys { (type, _) ->
+                // Simple human‐readable key; you could customize per type.
+                type.simpleName ?: "Unknown"
+            }
+            .mapValues { (_, list) ->
+                list.size
+            }
     }
 
     fun clearErrorMessage() {
