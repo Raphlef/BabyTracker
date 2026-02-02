@@ -490,15 +490,10 @@ fun EventTypeCard(
             val cardWidth = maxWidth
             val cardHeight = maxHeight
 
-            // Priority for disappearing (highest to lowest priority):
-            // 1. overlayContent (disappears first)
-            // 2. favorite button
-            // 3. add button
-            // 4. title text (replaced by icon)
-            val showOverlay = overlayContent != null && cardWidth >= 120.dp && cardHeight >= 100.dp
-            val showFavorite = onFavoriteToggle != null && cardWidth >= 90.dp && cardHeight >= 80.dp
-            val showAddButton = onLongClick != null && cardWidth >= 70.dp && cardHeight >= 70.dp
-            val showTitleText = cardWidth >= 100.dp && cardHeight >= 60.dp
+            val showOverlay = overlayContent != null && cardWidth >= 120.dp && cardHeight >= 130.dp
+            val showFavorite = onFavoriteToggle != null && cardWidth >= 90.dp && cardHeight >= 90.dp
+            val showAddButton = onLongClick != null && cardWidth >= 70.dp && cardHeight >= 80.dp
+            val showTitleText = cardWidth >= 100.dp && cardHeight >= 70.dp
 
             // Icon at top-left (always visible unless card is extremely small)
             if (!showTitleText && cardWidth >= 40.dp && cardHeight >= 40.dp) {
