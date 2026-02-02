@@ -74,9 +74,6 @@ class EventViewModel @Inject constructor(
     )
     val analysisSnapshot: StateFlow<AnalysisSnapshot> = _analysisSnapshot.asStateFlow()
 
-    @Deprecated("Use analysisSnapshot instead")
-    private val _events = MutableStateFlow<List<Event>>(emptyList())
-
     private val _lastGrowthEvent = MutableStateFlow<GrowthEvent?>(null)
     val lastGrowthEvent: StateFlow<GrowthEvent?> = _lastGrowthEvent.asStateFlow()
 
@@ -180,20 +177,7 @@ class EventViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Convenience method for custom range
-     */
-    @Deprecated("Use refreshWithFilters() instead")
-    fun refreshWithCustomRange(babyId: String,dateRangeParams:DateRangeParams) {
-        resetLoadMore()
-        startStreaming(babyId, dateRangeParams)
-    }
-    @Deprecated("Use _analysisStreamRequest() instead")
-    private val _streamRequest = MutableStateFlow<EventStreamRequest?>(null)
-
     private val _analysisStreamRequest = MutableStateFlow<EventStreamRequest?>(null)
-    @Deprecated("Use analysisStreamJob instead")
-    private var streamJob: Job? = null
 
     private var analysisStreamJob: Job? = null
 
@@ -261,63 +245,6 @@ class EventViewModel @Inject constructor(
         val newDateRange = DateRangeParams(newStartDate, currentRequest.dateRange.endDate)
         _analysisStreamRequest.value = EventStreamRequest(currentRequest.babyId, newDateRange)
     }
-    /**
-     * Centralized stream setup - only called once in init
-     * Responds to changes in _streamRequest only
-     */
-    @Deprecated("Use setupAnalysisStreamListener() instead")
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private fun setupStreamListener() {
-        // Only set up the listener once
-        if (streamJob != null) return
-
-        streamJob?.cancel()
-        streamJob = _streamRequest
-            .onEach { request ->
-                request?.let {
-                    val daysBetween = ChronoUnit.DAYS.between(
-                        it.dateRange.startDate.toInstant(),
-                        it.dateRange.endDate.toInstant()
-                    ) + 1 // +1 to include both start and end dates
-                    Log.d(
-                        "EventStream",
-                        "BabyId: ${it.babyId}, DateRange: ${it.dateRange.startDate} to ${it.dateRange.endDate} ($daysBetween days)"
-                    )
-                } ?: Log.d("EventStream", "StreamRequest is null")
-            }
-            .filterNotNull() // Only process valid requests
-            .distinctUntilChanged() // Prevent duplicate requests
-            .onEach { request ->
-                Log.d("EventStream", "Processing valid request for babyId: ${request.babyId}")
-            }
-            .flatMapLatest { request ->
-                repository.streamEventsForBaby(
-                    request.babyId,
-                    request.dateRange.startDate,
-                    request.dateRange.endDate
-                )
-            }
-            .onStart {
-                Log.d("EventStream", "Stream started")
-                if (!_isLoadingMore.value) {
-                    _isLoading.value = true
-                }
-            }
-            .catch { e ->
-                Log.e("EventStream", "Stream error occurred", e)
-                _errorMessage.value = "Stream error: ${e.localizedMessage}"
-                _isLoading.value = false
-                _isLoadingMore.value = false
-            }
-            .onEach { filtered ->
-                Log.d("EventStream", "Received ${filtered.size} events")
-                checkForNewEvents(filtered)
-                _events.value = filtered
-                _isLoading.value = false
-                _isLoadingMore.value = false
-            }
-            .launchIn(viewModelScope)
-    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun setupAnalysisStreamListener() {
@@ -358,7 +285,9 @@ class EventViewModel @Inject constructor(
             }
             .catch { e ->
                 Log.e("AnalysisStream", "Analysis stream error occurred", e)
+                _errorMessage.value = "Stream error: ${e.localizedMessage}"
                 _isLoading.value = false
+                _isLoadingMore.value = false
             }
             .onEach { snapshot ->
                 Log.d(
@@ -398,32 +327,6 @@ class EventViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Single entry point for all event stream requests
-     * Ensures babyId and dateRange are always in sync
-     */
-    @Deprecated("Use startAnalysisStreaming() instead")
-    fun startStreaming(
-        babyId: String,
-        dateRange:DateRangeParams
-    ) {
-        if (babyId.isEmpty()) return
-
-        _isLoading.value = true
-        setupStreamListener();
-
-        val request = EventStreamRequest(babyId, dateRange)
-        Log.d("EventViewModel", "Range: ${dateRange.startDate} → ${dateRange.endDate}")
-        // Only update if request actually changed
-        if (_streamRequest.value != request) {
-            Log.i("EventViewModel", "✓ StreamRequest UPDATED")
-            _streamRequest.value = request
-        } else {
-            Log.i("EventViewModel", "✗ StreamRequest UNCHANGED - skipped")
-            _isLoading.value = false
-        }
-    }
-
     private fun resetLoadMore() {
         _hasMoreHistory.value = true
         _isLoadingMore.value = false
@@ -433,13 +336,9 @@ class EventViewModel @Inject constructor(
     fun stopStreaming() {
         Log.d("EventViewModel", "Stopping stream")
 
-        streamJob?.cancel()
-        streamJob = null
-
         analysisStreamJob?.cancel()
         analysisStreamJob = null
 
-        _streamRequest.value = null
         _analysisStreamRequest.value = null
 
         _isLoading.value = false
