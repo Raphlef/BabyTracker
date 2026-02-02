@@ -159,7 +159,8 @@ fun GlassIslandNavBar(
                                                     clickJob?.cancel() // Cancel pending single click
                                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                     onTabDoubleClick(tab)
-                                                    lastClickTime = 0L // Reset to avoid triple click
+                                                    lastClickTime =
+                                                        0L // Reset to avoid triple click
                                                 } else {
                                                     // Potential first click of double click
                                                     lastClickTime = currentTime
@@ -167,7 +168,10 @@ fun GlassIslandNavBar(
                                                     // Delay single click action to allow for double click
                                                     clickJob?.cancel()
                                                     clickJob = scope.launch {
-                                                        delay(ViewConfiguration.getDoubleTapTimeout().toLong()) // Wait for potential second click
+                                                        delay(
+                                                            ViewConfiguration.getDoubleTapTimeout()
+                                                                .toLong()
+                                                        ) // Wait for potential second click
                                                         // If we reach here, it was a single click
                                                         onTabSelected(tab)
                                                     }
@@ -292,7 +296,7 @@ fun IslandFAB(
             color = tintColor,
             shape = cornerShape,
             modifier = Modifier
-                .size(fabSizeDp)               ,
+                .size(fabSizeDp),
         ) {
             Box(
                 modifier = Modifier
@@ -308,53 +312,55 @@ fun IslandFAB(
         }
 
         // Always compose sub icons but toggle visibility by alpha
-        eventTypes.forEachIndexed { index, (label, icon) ->
-            val angleRad = Math.toRadians(arcAngles[index].toDouble())
-            val offsetX = arcRadiusPx * cos(angleRad).toFloat()
-            val offsetY = arcRadiusPx * sin(angleRad).toFloat()
+        if (iconsVisible || longPressActive) {
+            eventTypes.forEachIndexed { index, (label, icon) ->
+                val angleRad = Math.toRadians(arcAngles[index].toDouble())
+                val offsetX = arcRadiusPx * cos(angleRad).toFloat()
+                val offsetY = arcRadiusPx * sin(angleRad).toFloat()
 
-            val iconCenter = Offset(fabRadiusPx + offsetX, fabRadiusPx + offsetY)
+                val iconCenter = Offset(fabRadiusPx + offsetX, fabRadiusPx + offsetY)
 
-            val isSelected = pointerPosition?.let { pointer ->
-                val iconRect = Rect(
-                    offset = iconCenter - Offset(iconRadiusPx, iconRadiusPx),
-                    size = Size(iconRadiusPx * 2, iconRadiusPx * 2)
-                )
-                iconRect.contains(pointer)
-            } ?: false
+                val isSelected = pointerPosition?.let { pointer ->
+                    val iconRect = Rect(
+                        offset = iconCenter - Offset(iconRadiusPx, iconRadiusPx),
+                        size = Size(iconRadiusPx * 2, iconRadiusPx * 2)
+                    )
+                    iconRect.contains(pointer)
+                } ?: false
 
-            LaunchedEffect(isSelected) {
-                if (isSelected) {
-                    selectedIconIndex = index
-                } else if (selectedIconIndex == index) {
-                    // Only reset if this was the previously selected icon
-                    selectedIconIndex = null
+                LaunchedEffect(isSelected) {
+                    if (isSelected) {
+                        selectedIconIndex = index
+                    } else if (selectedIconIndex == index) {
+                        // Only reset if this was the previously selected icon
+                        selectedIconIndex = null
+                    }
                 }
-            }
 
-            val animatedScale by animateFloatAsState(
-                targetValue = if (isSelected) 1.15f else 1f,
-                animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
-                label = "icon_scale_$index"
-            )
-            Surface(
-                shape = CircleShape,
-                color = if (isSelected)
-                    tintColor.copy(alpha = 0.5f)
-                else
-                    baseColor.copy(alpha = 0.6f),
-                modifier = Modifier
-                    .size(iconSizeDp)
-                    .graphicsLayer {
-                        translationX = offsetX
-                        translationY = offsetY
-                        alpha = if (iconsVisible) 1f else 0f
-                        scaleX = animatedScale
-                        scaleY = animatedScale
-                    },
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    icon()
+                val animatedScale by animateFloatAsState(
+                    targetValue = if (isSelected) 1.15f else 1f,
+                    animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+                    label = "icon_scale_$index"
+                )
+                Surface(
+                    shape = CircleShape,
+                    color = if (isSelected)
+                        tintColor.copy(alpha = 0.5f)
+                    else
+                        baseColor.copy(alpha = 0.6f),
+                    modifier = Modifier
+                        .size(iconSizeDp)
+                        .graphicsLayer {
+                            translationX = offsetX
+                            translationY = offsetY
+                            alpha = if (iconsVisible) 1f else 0f
+                            scaleX = animatedScale
+                            scaleY = animatedScale
+                        },
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        icon()
+                    }
                 }
             }
         }
