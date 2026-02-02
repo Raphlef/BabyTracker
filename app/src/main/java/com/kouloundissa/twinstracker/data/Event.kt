@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.IgnoreExtraProperties
 import com.kouloundissa.twinstracker.R
@@ -41,7 +42,7 @@ enum class EventType(
     @DrawableRes val drawableRes: Int,
     val eventClass: KClass<out Event>,
     val overlayBuilder: (EventTypeOverlayContext) -> (@Composable BoxScope.() -> Unit)?,
-    val overlayDescription: String? = null
+    @StringRes val overlayDescriptionRes: Int? = null
 ) {
     DIAPER(
         "DIAPER",
@@ -51,7 +52,7 @@ enum class EventType(
         R.drawable.diaper,
         DiaperEvent::class,
         overlayBuilder = { null },
-        overlayDescription = null
+        overlayDescriptionRes = null
     ) {
         override fun generateSummary(
             todayList: List<Event>,
@@ -116,7 +117,7 @@ enum class EventType(
                 }
             }
         },
-        overlayDescription = "Next feeding is: "
+        overlayDescriptionRes = R.string.next_feeding_is,
     ) {
         override fun generateSummary(
             todayList: List<Event>,
@@ -166,7 +167,7 @@ enum class EventType(
                 }
             }
         },
-        overlayDescription = "Baby is sleeping since: "
+        overlayDescriptionRes = R.string.baby_sleep_since,
     ) {
         override fun generateSummary(
             todayList: List<Event>,
@@ -191,7 +192,7 @@ enum class EventType(
         R.drawable.growth,
         GrowthEvent::class,
         overlayBuilder = { null },
-        overlayDescription = null
+        overlayDescriptionRes =  null
     ) {
         override fun generateSummary(
             todayList: List<Event>,
@@ -226,7 +227,7 @@ enum class EventType(
         R.drawable.pumping,
         PumpingEvent::class,
         overlayBuilder = { null },
-        overlayDescription = null
+        overlayDescriptionRes = null
     ) {
 
         override fun generateSummary(
@@ -251,7 +252,7 @@ enum class EventType(
         R.drawable.drugs,
         DrugsEvent::class,
         overlayBuilder = { null },
-        overlayDescription = null
+        overlayDescriptionRes = null
     ) {
 
         override fun generateSummary(
@@ -283,9 +284,9 @@ enum class EventType(
         context: Context
     ): String
 
-    fun createOverlay(context: EventTypeOverlayContext): EventOverlayInfo {
-        return EventOverlayInfo(
-            description = overlayDescription,
+    fun createOverlayData(context: EventTypeOverlayContext): EventOverlayData {
+        return EventOverlayData(
+            descriptionRes = overlayDescriptionRes,
             content = overlayBuilder(context)
         )
     }
@@ -338,7 +339,18 @@ enum class EventType(
         }
     }
 }
-
+data class EventOverlayData(
+    @StringRes val descriptionRes: Int? = null,
+    val content: (@Composable BoxScope.() -> Unit)? = null
+)
+@Composable
+fun EventOverlayData.toEventOverlayInfo(): EventOverlayInfo {
+    val description = descriptionRes?.let { stringResource(it) }
+    return EventOverlayInfo(
+        description = description,
+        content = content
+    )
+}
 /**
  * Base sealed class for all persisted events in Firestore.
  * Each subclass must have a no‐arg constructor for deserialization.

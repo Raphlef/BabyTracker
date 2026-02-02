@@ -65,6 +65,7 @@ import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import com.kouloundissa.twinstracker.data.EventTypeOverlayContext
 import com.kouloundissa.twinstracker.data.SleepEvent
+import com.kouloundissa.twinstracker.data.toEventOverlayInfo
 import com.kouloundissa.twinstracker.presentation.baby.BabyCreateDialog
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
@@ -182,27 +183,26 @@ fun HomeScreen(
     val filteredEvents = analysisSnapshot.events
         .filter { EventType.forClass(it::class) == selectedType }
 
-    val currentOverlay by remember(selectedType, filteredEvents) {
+    val currentOverlayData by remember(selectedType, filteredEvents) {
         derivedStateOf {
-            selectedType?.let { type ->
-                type.createOverlay(
-                    EventTypeOverlayContext(
-                        onClick = {
-                            editingEvent =
-                                if (selectedType == EventType.SLEEP) activeSleepEvent else null
-                            editingEvent?.let { event ->
-                                eventViewModel.loadEventIntoForm(
-                                    event
-                                )
-                            }
-                            showEventDialog = true
-                        },
-                        lastEvents = filteredEvents
-                    )
+            selectedType?.createOverlayData(
+                EventTypeOverlayContext(
+                    onClick = {
+                        editingEvent =
+                            if (selectedType == EventType.SLEEP) activeSleepEvent else null
+                        editingEvent?.let { event ->
+                            eventViewModel.loadEventIntoForm(event)
+                        }
+                        showEventDialog = true
+                    },
+                    lastEvents = filteredEvents
                 )
-            } ?: EventOverlayInfo()
+            )
         }
     }
+
+    // Résoudre les ressources dans le contexte Composable
+    val currentOverlay = currentOverlayData?.toEventOverlayInfo() ?: EventOverlayInfo()
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
