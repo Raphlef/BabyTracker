@@ -230,7 +230,7 @@ fun IslandFAB(
     val iconRadiusPx = with(density) { iconSizeDp.toPx() / 2f }
     val arcRadiusPx = with(density) { arcRadiusDp.toPx() }
 
-         var isExpanded by remember { mutableStateOf(false) }
+    var isExpanded by remember { mutableStateOf(false) }
     var selectedIconIndex by remember { mutableIntStateOf(-1) }
     var pointerPosition by remember { mutableStateOf(Offset.Zero) }
 
@@ -261,6 +261,7 @@ fun IslandFAB(
             distance <= iconRadiusPx
         } ?: -1
     }
+
     val baseColor = BackgroundColor
     val contentColor = DarkGrey
     val tintColor = DarkBlue
