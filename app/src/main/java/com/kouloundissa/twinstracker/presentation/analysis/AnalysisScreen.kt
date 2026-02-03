@@ -430,6 +430,16 @@ fun AnalysisScreen(
                 if (filters.value.eventTypeFilter.selectedTypes.isEmpty() ||
                     filters.value.eventTypeFilter.selectedTypes.contains(EventType.GROWTH)
                 ) {
+                    val birthDate = selectedBaby?.birthDate
+                        ?.let {
+                            Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
+                                .toLocalDate()
+                        }
+                        ?: LocalDate.now()
+                    val currentAgeDays = ChronoUnit.DAYS.between(birthDate, LocalDate.now())
+                        .toInt().coerceAtLeast(0)
+                    val type = EventType.GROWTH
+
                     val weights = alignGrowthData(
                         dateList,
                         analysisSnapshot.dailyAnalysis
@@ -443,14 +453,6 @@ fun AnalysisScreen(
                         analysisSnapshot.dailyAnalysis
                     ) { it.growthMeasurements?.headCircumferenceCm }
                     item {
-                        val birthDate = selectedBaby?.birthDate
-                            ?.let {
-                                Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
-                                    .toLocalDate()
-                            }
-                            ?: LocalDate.now()
-                        val currentAgeDays = ChronoUnit.DAYS.between(birthDate, LocalDate.now())
-                            .toInt().coerceAtLeast(0)
 
                         //  Build aligned WHO percentile curves
                         val weightPercentileCurves = remember(
@@ -461,7 +463,7 @@ fun AnalysisScreen(
                                 val rawCurve = WhoLmsRepository.percentileCurveInRange(
                                     context, "weight", omsGender, pct,
                                     startAge, endAge.coerceAtMost(currentAgeDays)
-                                ) // List<Pair<ageDays, value>>
+                                )
 
                                 // Align with dateList by computing each date's age
                                 val aligned = dateList.map { date ->
@@ -475,7 +477,7 @@ fun AnalysisScreen(
                                 "${pct.toInt()}$percentileFormat" to aligned
                             }
                         }
-                        val type = EventType.GROWTH
+
                         var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
 
                         val summary = selectedDayIndex?.let { index ->
@@ -511,14 +513,6 @@ fun AnalysisScreen(
                     }
 
                     item {
-                        val birthDate = selectedBaby?.birthDate
-                            ?.let {
-                                Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
-                                    .toLocalDate()
-                            }
-                            ?: LocalDate.now()
-                        val currentAgeDays = ChronoUnit.DAYS.between(birthDate, LocalDate.now())
-                            .toInt().coerceAtLeast(0)
 
                         // 3. Align WHO length curves
                         val lengthPercentileCurves =
@@ -539,7 +533,6 @@ fun AnalysisScreen(
                                 }
                             }
 
-                        val type = EventType.GROWTH
                         var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
 
                         val summary = selectedDayIndex?.let { index ->
@@ -575,14 +568,6 @@ fun AnalysisScreen(
                     }
 
                     item {
-                        val birthDate = selectedBaby?.birthDate
-                            ?.let {
-                                Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
-                                    .toLocalDate()
-                            }
-                            ?: LocalDate.now()
-                        val currentAgeDays = ChronoUnit.DAYS.between(birthDate, LocalDate.now())
-                            .toInt().coerceAtLeast(0)
 
                         val headPercentileCurves = remember(omsGender, startAge, endAge, dateList) {
                             listOf(15.0, 50.0, 85.0).associate { pct ->
@@ -600,7 +585,7 @@ fun AnalysisScreen(
                                 "${pct.toInt()}$percentileFormat" to aligned
                             }
                         }
-                        val type = EventType.GROWTH
+
                         var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
 
                         val summary = selectedDayIndex?.let { index ->
