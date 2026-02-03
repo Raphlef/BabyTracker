@@ -92,80 +92,48 @@ object EventPrediction {
         val intervalVariance = intervals.map { (it - intervalMean) * (it - intervalMean) }.average()
         val intervalCV = sqrt(intervalVariance) / intervalMean
 
-        // METRIC 2: Cluster Consistency
-        val avgClusterVariance = clusters.map { it.variance }.average()
-        val clusterConsistency = 1.0 / (1.0 + (sqrt(avgClusterVariance) / 10.0))
-
-        // METRIC 3: Cluster Count
-        val clusterCount = clusters.size
-
-        // METRIC 4: Cluster Spacing (gaps between feeding times)
-        val clusterGaps = mutableListOf<Int>()
-        for (i in 0 until clusters.size - 1) {
-            val gap = clusters[i + 1].centerMinutes - clusters[i].centerMinutes
-            clusterGaps.add(gap)
-        }
-        if (clusters.isNotEmpty()) {
-            val dayWrapGap =
-                (24 * 60) - clusters.last().centerMinutes + clusters.first().centerMinutes
-            clusterGaps.add(dayWrapGap)
-        }
-
-        val gapMean = clusterGaps.average()
-        val gapVariance = clusterGaps.map { (it - gapMean) * (it - gapMean) }.average()
-        val gapCV = sqrt(gapVariance) / gapMean
-        val gapConsistency = 1.0 - minOf(gapCV, 1.0)
-
-        // METRIC 5: Sample Quality
-        val totalFeedings = intervals.size + 1
+        // METRIC 2: Cluster Quality (size + consistency)
+        val avgClusterStdDev = clusters.map { it.stdDev }.average()
         val avgClusterSize = clusters.map { it.count }.average()
-        val hasGoodSamples = (totalFeedings.toDouble() / clusterCount) >= 2.0
-        val allClustersConsistent = clusters.all { it.stdDev < 15 }
+
+        val clusterQuality = when {
+            clusters.size in 3..5 && avgClusterStdDev < 20 && avgClusterSize >= 2.5 -> 1.0
+            clusters.size >= 3 && avgClusterStdDev < 30 && avgClusterSize >= 2.0 -> 0.7
+            clusters.size >= 2 && avgClusterStdDev < 40 -> 0.4
+            else -> 0.2
+        }
+
+        // METRIC 3: Cluster Stability (% of stable clusters)
+        val stableClustersCount = clusters.count { it.stdDev < 30 }
+        val clusterStability = stableClustersCount.toDouble() / clusters.size
 
         // ==================== DECISION LOGIC ====================
 
         return when {
-            // Very regular intervals = young baby
-            intervalCV < 0.25 -> {
-                FeedingPattern.INTERVAL_BASED
-            }
+            // Très régulier → INTERVAL_BASED
+            intervalCV < 0.30 -> FeedingPattern.INTERVAL_BASED
 
-            // Multiple clusters (4+), all consistent, regular spacing
-            clusterCount >= 4 &&
-                    clusterConsistency > 0.80 &&
-                    gapConsistency > 0.70 &&
-                    hasGoodSamples &&
-                    allClustersConsistent -> {
-                FeedingPattern.TIME_BASED
-            }
+            // Pattern TIME_BASED fort: 3-5 clusters, haute stabilité
+            clusters.size in 3..5 &&
+                    clusterQuality >= 0.7 &&
+                    clusterStability >= 0.75 -> FeedingPattern.TIME_BASED
 
-            // Fewer clusters (3-5), very tight, very consistent
-            clusterCount in 3..5 &&
-                    clusterConsistency > 0.85 &&
-                    gapConsistency > 0.75 &&
-                    avgClusterSize >= 3.0 &&
-                    allClustersConsistent -> {
-                FeedingPattern.TIME_BASED
-            }
+            // Pattern TIME_BASED modéré: bonne stabilité globale
+            clusters.size >= 3 &&
+                    clusterQuality >= 0.7 &&
+                    clusterStability >= 0.65 -> FeedingPattern.TIME_BASED
 
-            // Mix: Moderate intervals + clustering
-            intervalCV in 0.25..0.50 &&
-                    clusterConsistency > 0.70 &&
-                    clusterCount >= 4 -> {
-                FeedingPattern.MIXED
-            }
+            // Pattern MIXED: début de structure
+            intervalCV < 0.55 &&
+                    clusterQuality >= 0.4 &&
+                    clusterStability >= 0.5 -> FeedingPattern.MIXED
 
-            // Mix: Weak patterns on both sides
-            intervalCV < 0.50 &&
-                    clusterConsistency > 0.60 &&
-                    clusterCount >= 3 -> {
-                FeedingPattern.MIXED
-            }
+            // Pattern MIXED: quelques clusters stables
+            clusterStability >= 0.65 &&
+                    clusters.size >= 2 -> FeedingPattern.MIXED
 
             // Default
-            else -> {
-                FeedingPattern.MIXED
-            }
+            else -> FeedingPattern.INTERVAL_BASED
         }
     }
 
@@ -264,9 +232,17 @@ object EventPrediction {
         lastFeedingMinutes: Int,
         clusters: List<FeedingCluster>
     ): FeedingCluster {
-        val nextInSequence = clusters.firstOrNull { it.centerMinutes > lastFeedingMinutes }
+        // Cherche le prochain cluster en dehors de la fenêtre du cluster actuel
+        val nextInSequence = clusters.firstOrNull { cluster ->
+            // Un cluster est "prochain" si son centre est au moins
+            // à 1.5× son stdDev après le dernier biberon
+            val clusterWindow = maxOf(cluster.stdDev * 1.5, 30.0) // minimum 30min
+            cluster.centerMinutes > lastFeedingMinutes + clusterWindow
+        }
+
         return nextInSequence ?: clusters.first()
     }
+
     /**
      * Calculate next feeding time based on cluster
      */
