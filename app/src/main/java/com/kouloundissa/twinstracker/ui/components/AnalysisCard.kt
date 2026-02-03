@@ -242,6 +242,7 @@ fun MultiLineChartView(
                 val entries = vals.mapIndexedNotNull { i, v ->
                     if (v.isNaN()) null else Entry(i.toFloat(), v)
                 }
+
                 LineDataSet(entries, label).apply {
                     color = listOf(
                         "#E91E63".toColorInt(),
@@ -249,14 +250,23 @@ fun MultiLineChartView(
                         "#2196F3".toColorInt(),
                         "#FFC107".toColorInt()
                     )[idx % 4]
-                    lineWidth = if (isHighDensity) 1f else 2f
-                    setDrawCircles(isHighDensity.not())
+
+                    // Si c'est la série des mesures réelles (première série)
+                    if (idx == 0) {
+                        lineWidth = if (isHighDensity) 1f else 2f
+                    } else {
+                        lineWidth = if (isHighDensity) 1f else 2f
+                        enableDashedLine(10f, 5f, 0f)
+                    }
+
+                    setDrawCircles(!isHighDensity)
                     if (!isHighDensity) {
                         circleRadius = if (isMediumDensity) 2f else 3f
                     }
-                    // Skip NaN values automatically, leave gaps
+
                     setDrawValues(showValues)
-                    mode = LineDataSet.Mode.LINEAR
+                    mode = LineDataSet.Mode.CUBIC_BEZIER // Courbe lissée
+                    cubicIntensity = 0.2f
                 }
             }
 
