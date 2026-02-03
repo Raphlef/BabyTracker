@@ -45,6 +45,7 @@ import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.Gender
 import com.kouloundissa.twinstracker.data.HoursMinutesFormatter
 import com.kouloundissa.twinstracker.data.WhoLms.WhoLmsRepository
+import com.kouloundissa.twinstracker.data.alignGrowthDataWithInterpolation
 import com.kouloundissa.twinstracker.presentation.settings.SettingsScreen
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
@@ -440,15 +441,15 @@ fun AnalysisScreen(
                         .toInt().coerceAtLeast(0)
                     val type = EventType.GROWTH
 
-                    val weights = alignGrowthData(
+                    val weights = alignGrowthDataWithInterpolation(
                         dateList,
                         analysisSnapshot.dailyAnalysis
                     ) { it.growthMeasurements?.weightKg }
-                    val heights = alignGrowthData(
+                    val heights = alignGrowthDataWithInterpolation(
                         dateList,
                         analysisSnapshot.dailyAnalysis
                     ) { it.growthMeasurements?.heightCm }
-                    val heads = alignGrowthData(
+                    val heads = alignGrowthDataWithInterpolation(
                         dateList,
                         analysisSnapshot.dailyAnalysis
                     ) { it.growthMeasurements?.headCircumferenceCm }
