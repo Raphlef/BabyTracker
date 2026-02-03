@@ -199,7 +199,7 @@ enum class EventType(
             growthMeasurement: GrowthMeasurement?,
             context: Context
         ): String {
-            val filterEvents = filterEventsByType(todayList)
+           // val filterEvents = filterEventsByType(todayList)
             return growthMeasurement?.let { measurement ->
                 val measurements = mutableListOf<String>()
 
