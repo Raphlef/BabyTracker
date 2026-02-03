@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.data
 
+import com.github.mikephil.charting.formatter.ValueFormatter
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import java.time.LocalDate
 import java.time.ZoneId
@@ -94,3 +95,15 @@ public fun List<Event>.filterByDate(
         }
 }
 
+class HoursMinutesFormatter : ValueFormatter() {
+    override fun getFormattedValue(value: Float): String {
+        val totalMinutes = value.toInt()
+        val hours = totalMinutes / 60
+        val minutes = totalMinutes % 60
+        return if (hours > 0) {
+            "${hours}h${minutes.toString().padStart(2, '0')}"
+        } else {
+            "${minutes}min"
+        }
+    }
+}

@@ -103,7 +103,8 @@ fun LineChartView(
     values: List<Float>,
     forceIncludeZero: Boolean = false,
     paddingPercentage: Float = 0.1f,
-    onDaySelected: ((Int?) -> Unit)? = null
+    onDaySelected: ((Int?) -> Unit)? = null,
+    valueFormatter: ValueFormatter? = null
 ) {
     val context = LocalContext.current
     val (axisMin, axisMax) = remember(values) {
@@ -148,6 +149,7 @@ fun LineChartView(
                 circleRadius = 1f
                 setDrawCircles(true)
                 setDrawValues(values.size <= 10)
+                this.valueFormatter = valueFormatter
             }
             chart.data = LineData(dataSet)
 
@@ -157,6 +159,7 @@ fun LineChartView(
                 axisMaximum = axisMax
                 spaceTop = 5f
                 spaceBottom = 5f
+                this.valueFormatter = valueFormatter
             }
             chart.xAxis.apply {
                 position = XAxis.XAxisPosition.BOTTOM
@@ -166,7 +169,7 @@ fun LineChartView(
                 val step = (labels.size / maxLabels).coerceAtLeast(1)
                 granularity = step.toFloat()
                 labelCount = (labels.size + step - 1) / step
-                valueFormatter = object : ValueFormatter() {
+                this.valueFormatter = object : ValueFormatter() {
                     override fun getFormattedValue(v: Float): String {
                         val idx = v.toInt().coerceIn(0, labels.lastIndex)
                         return if (idx % step == 0) labels[idx] else ""

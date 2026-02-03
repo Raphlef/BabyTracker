@@ -43,6 +43,7 @@ import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DailyAnalysis
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.Gender
+import com.kouloundissa.twinstracker.data.HoursMinutesFormatter
 import com.kouloundissa.twinstracker.data.WhoLms.WhoLmsRepository
 import com.kouloundissa.twinstracker.presentation.settings.SettingsScreen
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
@@ -417,6 +418,7 @@ fun AnalysisScreen(
                                 labels = chartLabels,
                                 values = sleepMinutes,
                                 forceIncludeZero = true,
+                                valueFormatter = HoursMinutesFormatter(),
                                 onDaySelected = { index ->
                                     selectedDayIndex = index
                                 }
