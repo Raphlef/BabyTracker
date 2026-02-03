@@ -1,9 +1,14 @@
 package com.kouloundissa.twinstracker.ui.components
 
 import android.view.ViewConfiguration
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -272,8 +277,15 @@ fun IslandFAB(
             .size(fabSizeDp)
             .pointerInput(Unit) {
                 detectTapGestures(
-                    onTap = { if (!isExpanded) onAddClicked() },
-                    onLongPress = { isExpanded = true }
+                    onTap = {
+                        if (!isExpanded) {
+                            onAddClicked()
+                        }
+                    },
+                    onLongPress = {
+                        isExpanded = true
+                        selectedIconIndex = -1
+                    }
                 )
             }
             .pointerInput(Unit) {
@@ -282,19 +294,28 @@ fun IslandFAB(
                         val event = awaitPointerEvent()
 
                         if (isExpanded) {
-                            event.changes.firstOrNull()?.position?.let { pos ->
-                                pointerPosition = pos
-                                selectedIconIndex = findSelectedIcon(pos)
-                            }
+                            event.changes.forEach { change ->
+                                if (change.pressed) {
+                                    // Mise à jour de la position pendant le drag
+                                    pointerPosition = change.position
+                                    selectedIconIndex = findSelectedIcon(change.position)
+                                } else if (change.changedToUp()) {
+                                    // Release du doigt
+                                    val finalSelectedIndex = findSelectedIcon(change.position)
 
-                            if (event.changes.all { it.changedToUp() }) {
-                                if (selectedIconIndex >= 0) {
-                                    onEventTypeSelected(
-                                        eventTypes[selectedIconIndex].first.uppercase()
-                                    )
+                                    if (finalSelectedIndex >= 0) {
+                                        // Une icône est sélectionnée
+                                        onEventTypeSelected(
+                                            eventTypes[finalSelectedIndex].first.uppercase()
+                                        )
+                                    }
+
+                                    // Toujours fermer le menu au release
+                                    isExpanded = false
+                                    selectedIconIndex = -1
+
+                                    change.consume()
                                 }
-                                isExpanded = false
-                                selectedIconIndex = -1
                             }
                         }
                     }
@@ -322,38 +343,48 @@ fun IslandFAB(
             }
         }
 
-        // Always compose sub icons but toggle visibility by alpha
-        if (isExpanded) {
-            eventTypes.forEachIndexed { index, (label, icon) ->
-                val angleRad = Math.toRadians(arcAngles[index].toDouble())
-                val offset = calculateIconPosition(angleRad)
-                val isSelected = selectedIconIndex == index
+        // Sub icons when expanded
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = scaleIn(
+                initialScale = 0.3f,
+                animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f)
+            ) + fadeIn(),
+            exit = scaleOut(targetScale = 0.3f) + fadeOut()
+        ) {
+            Box(modifier = Modifier.size(fabSizeDp)) {
+                eventTypes.forEachIndexed { index, (label, icon) ->
+                    val angleRad = Math.toRadians(arcAngles[index].toDouble())
+                    val offset = calculateIconPosition(angleRad)
+                    val isSelected = selectedIconIndex == index
 
-                val scale by animateFloatAsState(
-                    targetValue = if (isSelected) 1.15f else 1f,
-                    animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
-                    label = "scale_$index"
-                )
-                Surface(
-                    shape = CircleShape,
-                    color = if (isSelected)
-                        tintColor.copy(alpha = 0.5f)
-                    else
-                        baseColor.copy(alpha = 0.6f),
-                    modifier = Modifier
-                        .size(iconSizeDp)
-                        .graphicsLayer {
-                            translationX = offset.x
-                            translationY = offset.y
-                            scaleX = scale
-                            scaleY = scale
-                        },
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        icon()
+                    val scale by animateFloatAsState(
+                        targetValue = if (isSelected) 1.15f else 1f,
+                        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+                        label = "scale_$index"
+                    )
+                    Surface(
+                        shape = CircleShape,
+                        color = if (isSelected)
+                            tintColor.copy(alpha = 0.5f)
+                        else
+                            baseColor.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .size(iconSizeDp)
+                            .graphicsLayer {
+                                translationX = offset.x
+                                translationY = offset.y
+                                scaleX = scale
+                                scaleY = scale
+                            },
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            icon()
+                        }
                     }
                 }
             }
         }
     }
 }
+
