@@ -2,6 +2,7 @@ package com.kouloundissa.twinstracker.presentation.analysis
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -39,6 +40,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.AnalysisRange
+import com.kouloundissa.twinstracker.data.AnalysisSnapshot
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DailyAnalysis
 import com.kouloundissa.twinstracker.data.EventType
@@ -435,270 +437,95 @@ fun AnalysisScreen(
                 ) {
                     val birthDate = selectedBaby?.birthDate
                         ?.let {
-                            Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())
-                                .toLocalDate()
-                        }
-                        ?: LocalDate.now()
+                            Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                        } ?: LocalDate.now()
+
                     val currentAgeDays = ChronoUnit.DAYS.between(birthDate, LocalDate.now())
                         .toInt().coerceAtLeast(0)
                     val type = EventType.GROWTH
 
                     val weights = alignGrowthDataWithInterpolation(
-                        dateList,
-                        analysisSnapshot.dailyAnalysis
+                        dateList, analysisSnapshot.dailyAnalysis
                     ) { it.growthMeasurements?.weightKg }
+
                     val heights = alignGrowthDataWithInterpolation(
-                        dateList,
-                        analysisSnapshot.dailyAnalysis
+                        dateList, analysisSnapshot.dailyAnalysis
                     ) { it.growthMeasurements?.heightCm }
+
                     val heads = alignGrowthDataWithInterpolation(
-                        dateList,
-                        analysisSnapshot.dailyAnalysis
+                        dateList, analysisSnapshot.dailyAnalysis
                     ) { it.growthMeasurements?.headCircumferenceCm }
 
-
+                    // Graphique du poids
                     item {
-
-                        //  Build aligned WHO percentile curves
-                        val weightPercentileCurves = remember(
-                            omsGender, startAge, endAge, dateList
-                        ) {
-                            listOf(15.0, 50.0, 85.0).associate { pct ->
-                                // Raw WHO data only for valid ages
-                                val rawCurve = WhoLmsRepository.percentileCurveInRange(
-                                    context, "weight", omsGender, pct,
-                                    startAge, endAge.coerceAtMost(currentAgeDays)
-                                )
-
-                                // Align with dateList by computing each date's age
-                                val aligned = dateList.map { date ->
-                                    val ageForDate =
-                                        ChronoUnit.DAYS.between(birthDate, date).toInt()
-                                    // Only look up if age >= 0 and <= currentAgeDays
-                                    rawCurve.find { it.first.toInt() == ageForDate }
-                                        ?.second
-                                        ?: Float.NaN
-                                }
-                                "${pct.toInt()}$percentileFormat" to aligned
-                            }
-                        }
-
-                        var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
-                        val selectedGrowthMeasurement = selectedDayIndex?.let { index ->
-                            val selectedDate = dateList.getOrNull(index)
-                            selectedDate?.let { date ->
-                                // Récupérer la vraie mesure si elle existe
-                                val realMeasurement = analysisSnapshot.dailyAnalysis
-                                    .find { it.date == date }
-                                    ?.growthMeasurements
-
-                                if (realMeasurement != null) {
-                                    // Mesure réelle
-                                    realMeasurement
-                                } else {
-                                    // Mesure interpolée
-                                    GrowthMeasurement(
-                                        weightKg = weights.getOrNull(index) ?: Float.NaN,
-                                        heightCm = heights.getOrNull(index) ?: Float.NaN,
-                                        headCircumferenceCm = heads.getOrNull(index) ?: Float.NaN,
-                                        timestamp = date.atStartOfDay()
-                                            .toEpochSecond(ZoneOffset.UTC) * 1000
-                                    )
-                                }
-                            }
-                        }
-
-                        val summary = selectedDayIndex?.let { index ->
-                            analysisSnapshot.dailyAnalysis.getOrNull(index)
-                                ?.let { selectedDayData ->
-                                    val formattedDate = selectedDayData.date.format(
-                                        DateTimeFormatter.ofPattern("dd/MM")
-                                    )
-
-                                    // ✅ Utiliser selectedGrowthMeasurement au lieu de lastGrowthEvent
-                                    val daySummary = type.generateSummary(
-                                        selectedDayData.events.filter { event ->
-                                            EventType.forClass(event::class) == type
-                                        },
-                                        selectedGrowthMeasurement,
-                                        context
-                                    )
-                                    "$formattedDate: $daySummary"
-                                }
-                        }
-
-                        AnalysisCard(
-                            title = stringResource(id = R.string.chart_weight),
-                            summary = summary
-                        ) {
-                            MultiLineChartView(
-                                labels = chartLabels,
-                                series = listOf(stringResource(id = R.string.chart_baby_label) to weights) + weightPercentileCurves.map { (label, data) ->
-                                    label to data
-                                },
-                                onDaySelected = { index ->
-                                    selectedDayIndex = index
-                                }
-                            )
-                        }
+                        GrowthChartItem(
+                            chartTitle = stringResource(id = R.string.chart_weight),
+                            chartLabel = stringResource(id = R.string.chart_baby_label),
+                            measurementType = "weight",
+                            growthData = weights,
+                            weights = weights,
+                            heights = heights,
+                            heads = heads,
+                            dateList = dateList,
+                            chartLabels = chartLabels,
+                            analysisSnapshot = analysisSnapshot,
+                            omsGender = omsGender,
+                            startAge = startAge,
+                            endAge = endAge,
+                            currentAgeDays = currentAgeDays,
+                            birthDate = birthDate,
+                            context = context,
+                            type = type,
+                            percentileFormat = percentileFormat
+                        )
                     }
 
+                    // Graphique de la taille
                     item {
-
-                        // 3. Align WHO length curves
-                        val lengthPercentileCurves =
-                            remember(omsGender, startAge, endAge, dateList) {
-                                listOf(15.0, 50.0, 85.0).associate { pct ->
-                                    val rawCurve = WhoLmsRepository.percentileCurveInRange(
-                                        context, "length", omsGender, pct,
-                                        startAge, endAge.coerceAtMost(currentAgeDays)
-                                    )
-                                    val aligned = dateList.map { date ->
-                                        val ageForDate =
-                                            ChronoUnit.DAYS.between(birthDate, date).toInt()
-                                        rawCurve.find { it.first.toInt() == ageForDate }
-                                            ?.second
-                                            ?: Float.NaN
-                                    }
-                                    "${pct.toInt()}$percentileFormat" to aligned
-                                }
-                            }
-
-                        var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
-                        val selectedGrowthMeasurement = selectedDayIndex?.let { index ->
-                            val selectedDate = dateList.getOrNull(index)
-                            selectedDate?.let { date ->
-                                // Récupérer la vraie mesure si elle existe
-                                val realMeasurement = analysisSnapshot.dailyAnalysis
-                                    .find { it.date == date }
-                                    ?.growthMeasurements
-
-                                if (realMeasurement != null) {
-                                    // Mesure réelle
-                                    realMeasurement
-                                } else {
-                                    // Mesure interpolée
-                                    GrowthMeasurement(
-                                        weightKg = weights.getOrNull(index) ?: Float.NaN,
-                                        heightCm = heights.getOrNull(index) ?: Float.NaN,
-                                        headCircumferenceCm = heads.getOrNull(index) ?: Float.NaN,
-                                        timestamp = date.atStartOfDay()
-                                            .toEpochSecond(ZoneOffset.UTC) * 1000
-                                    )
-                                }
-                            }
-                        }
-
-                        val summary = selectedDayIndex?.let { index ->
-                            analysisSnapshot.dailyAnalysis.getOrNull(index)
-                                ?.let { selectedDayData ->
-                                    val formattedDate = selectedDayData.date.format(
-                                        DateTimeFormatter.ofPattern("dd/MM")
-                                    )
-
-                                    // ✅ Utiliser selectedGrowthMeasurement au lieu de lastGrowthEvent
-                                    val daySummary = type.generateSummary(
-                                        selectedDayData.events.filter { event ->
-                                            EventType.forClass(event::class) == type
-                                        },
-                                        selectedGrowthMeasurement,
-                                        context
-                                    )
-                                    "$formattedDate: $daySummary"
-                                }
-                        }
-                        AnalysisCard(
-                            title = stringResource(id = R.string.chart_height),
-                            summary = summary
-                        ) {
-                            MultiLineChartView(
-                                labels = chartLabels,
-                                series = listOf(stringResource(id = R.string.chart_baby_label) to heights) + lengthPercentileCurves.map { (label, data) ->
-                                    label to data
-                                },
-                                onDaySelected = { index ->
-                                    selectedDayIndex = index
-                                }
-                            )
-                        }
+                        GrowthChartItem(
+                            chartTitle = stringResource(id = R.string.chart_height),
+                            chartLabel = stringResource(id = R.string.chart_baby_label),
+                            measurementType = "length",
+                            growthData = heights,
+                            weights = weights,
+                            heights = heights,
+                            heads = heads,
+                            dateList = dateList,
+                            chartLabels = chartLabels,
+                            analysisSnapshot = analysisSnapshot,
+                            omsGender = omsGender,
+                            startAge = startAge,
+                            endAge = endAge,
+                            currentAgeDays = currentAgeDays,
+                            birthDate = birthDate,
+                            context = context,
+                            type = type,
+                            percentileFormat = percentileFormat
+                        )
                     }
 
+                    // Graphique du périmètre crânien
                     item {
-
-                        val headPercentileCurves = remember(omsGender, startAge, endAge, dateList) {
-                            listOf(15.0, 50.0, 85.0).associate { pct ->
-                                val rawCurve = WhoLmsRepository.percentileCurveInRange(
-                                    context, "head_circumference", omsGender, pct,
-                                    startAge, endAge.coerceAtMost(currentAgeDays)
-                                )
-                                val aligned = dateList.map { date ->
-                                    val ageForDate =
-                                        ChronoUnit.DAYS.between(birthDate, date).toInt()
-                                    rawCurve.find { it.first.toInt() == ageForDate }
-                                        ?.second
-                                        ?: Float.NaN
-                                }
-                                "${pct.toInt()}$percentileFormat" to aligned
-                            }
-                        }
-
-                        var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
-                        val selectedGrowthMeasurement = selectedDayIndex?.let { index ->
-                            val selectedDate = dateList.getOrNull(index)
-                            selectedDate?.let { date ->
-                                // Récupérer la vraie mesure si elle existe
-                                val realMeasurement = analysisSnapshot.dailyAnalysis
-                                    .find { it.date == date }
-                                    ?.growthMeasurements
-
-                                if (realMeasurement != null) {
-                                    // Mesure réelle
-                                    realMeasurement
-                                } else {
-                                    // Mesure interpolée
-                                    GrowthMeasurement(
-                                        weightKg = weights.getOrNull(index) ?: Float.NaN,
-                                        heightCm = heights.getOrNull(index) ?: Float.NaN,
-                                        headCircumferenceCm = heads.getOrNull(index) ?: Float.NaN,
-                                        timestamp = date.atStartOfDay()
-                                            .toEpochSecond(ZoneOffset.UTC) * 1000
-                                    )
-                                }
-                            }
-                        }
-
-                        val summary = selectedDayIndex?.let { index ->
-                            analysisSnapshot.dailyAnalysis.getOrNull(index)
-                                ?.let { selectedDayData ->
-                                    val formattedDate = selectedDayData.date.format(
-                                        DateTimeFormatter.ofPattern("dd/MM")
-                                    )
-
-                                    // ✅ Utiliser selectedGrowthMeasurement au lieu de lastGrowthEvent
-                                    val daySummary = type.generateSummary(
-                                        selectedDayData.events.filter { event ->
-                                            EventType.forClass(event::class) == type
-                                        },
-                                        selectedGrowthMeasurement,
-                                        context
-                                    )
-                                    "$formattedDate: $daySummary"
-                                }
-                        }
-                        AnalysisCard(
-                            title = stringResource(id = R.string.head_circumference),
-                            summary = summary
-                        ) {
-                            MultiLineChartView(
-                                labels = chartLabels,
-                                series = listOf(stringResource(id = R.string.chart_baby_label) to heads) + headPercentileCurves.map { (label, data) ->
-                                    label to data
-                                },
-                                onDaySelected = { index ->
-                                    selectedDayIndex = index
-                                }
-                            )
-                        }
+                        GrowthChartItem(
+                            chartTitle = stringResource(id = R.string.head_circumference),
+                            chartLabel = stringResource(id = R.string.chart_baby_label),
+                            measurementType = "head_circumference",
+                            growthData = heads,
+                            weights = weights,
+                            heights = heights,
+                            heads = heads,
+                            dateList = dateList,
+                            chartLabels = chartLabels,
+                            analysisSnapshot = analysisSnapshot,
+                            omsGender = omsGender,
+                            startAge = startAge,
+                            endAge = endAge,
+                            currentAgeDays = currentAgeDays,
+                            birthDate = birthDate,
+                            context = context,
+                            type = type,
+                            percentileFormat = percentileFormat
+                        )
                     }
                 }
             }
@@ -709,7 +536,89 @@ fun AnalysisScreen(
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
+@Composable
+private fun GrowthChartItem(
+    chartTitle: String,
+    chartLabel: String,
+    measurementType: String, // "weight", "length", "head_circumference"
+    growthData: List<Float>,
+    weights: List<Float>,
+    heights: List<Float>,
+    heads: List<Float>,
+    dateList: List<LocalDate>,
+    chartLabels: List<String>,
+    analysisSnapshot: AnalysisSnapshot,
+    omsGender: Gender,
+    startAge: Int,
+    endAge: Int,
+    currentAgeDays: Int,
+    birthDate: LocalDate,
+    context: Context,
+    type: EventType,
+    percentileFormat: String
+) {
+    val percentileCurves = remember(omsGender, startAge, endAge, dateList) {
+        listOf(15.0, 50.0, 85.0).associate { pct ->
+            val rawCurve = WhoLmsRepository.percentileCurveInRange(
+                context, measurementType, omsGender, pct,
+                startAge, endAge.coerceAtMost(currentAgeDays)
+            )
+            val aligned = dateList.map { date ->
+                val ageForDate = ChronoUnit.DAYS.between(birthDate, date).toInt()
+                rawCurve.find { it.first.toInt() == ageForDate }?.second ?: Float.NaN
+            }
+            "${pct.toInt()}$percentileFormat" to aligned
+        }
+    }
 
+    var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
+
+    val selectedGrowthMeasurement = selectedDayIndex?.let { index ->
+        val selectedDate = dateList.getOrNull(index)
+        selectedDate?.let { date ->
+            analysisSnapshot.dailyAnalysis
+                .find { it.date == date }
+                ?.growthMeasurements
+                ?: GrowthMeasurement(
+                    weightKg = weights.getOrNull(index) ?: Float.NaN,
+                    heightCm = heights.getOrNull(index) ?: Float.NaN,
+                    headCircumferenceCm = heads.getOrNull(index) ?: Float.NaN,
+                    timestamp = date.atStartOfDay().toEpochSecond(ZoneOffset.UTC) * 1000
+                )
+        }
+    }
+
+    val summary = selectedDayIndex?.let { index ->
+        analysisSnapshot.dailyAnalysis.getOrNull(index)?.let { selectedDayData ->
+            val formattedDate = selectedDayData.date.format(
+                DateTimeFormatter.ofPattern("dd/MM")
+            )
+            val daySummary = type.generateSummary(
+                selectedDayData.events.filter { event ->
+                    EventType.forClass(event::class) == type
+                },
+                selectedGrowthMeasurement,
+                context
+            )
+            "$formattedDate: $daySummary"
+        }
+    }
+
+    AnalysisCard(
+        title = chartTitle,
+        summary = summary
+    ) {
+        MultiLineChartView(
+            labels = chartLabels,
+            series = listOf(chartLabel to growthData) + percentileCurves.map { (label, data) ->
+                label to data
+            },
+            onDaySelected = { index ->
+                selectedDayIndex = index
+            }
+        )
+    }
+}
 // Create a helper function to get date range
 fun getDateRange(
     range: AnalysisRange,
