@@ -214,9 +214,9 @@ enum class EventType(
                 }
 
                 // Périmètre crânien
-                measurement.headCircumferenceCm.takeIf { !it.isNaN() && it > 0 }?.let { head ->
-                    val head = context.getString(R.string.head_circumference)
-                    measurements.add("$head: %.1f cm".format(head))
+                measurement.headCircumferenceCm.takeIf { !it.isNaN() && it > 0 }?.let { headValue  ->
+                    val headLabel = context.getString(R.string.head_circumference)
+                    measurements.add("${headLabel}: %.1f cm".format(headValue))
                 }
 
                 measurements.takeIf { it.isNotEmpty() }
