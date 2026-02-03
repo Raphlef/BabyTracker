@@ -472,4 +472,8 @@
     <string name="pseudo_family_22">Defender</string>
     <string name="pseudo_family_23">Caretaker</string>
     <string name="pseudo_family_24">Angel</string>
+    <string name="weight_format">%.2f kg</string>
+    <string name="height_format">%d cm</string>
+    <string name="head_circumference_format">Head Circumference %.1f cm</string>
+    <string name="no_growth_data">Pas de données de croissance</string>
 </resources>

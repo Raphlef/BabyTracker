@@ -60,6 +60,7 @@ import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
+import com.kouloundissa.twinstracker.data.GrowthMeasurement
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
@@ -173,9 +174,16 @@ private fun EventTypeDialogContent(
 
     val lazyListState = rememberLazyListState()
     val context = LocalContext.current
-
+    val growthMeasurement = lastGrowthEvent?.let { event ->
+        GrowthMeasurement(
+            weightKg = event.weightKg?.toFloat() ?: Float.NaN,
+            heightCm = event.heightCm?.toFloat() ?: Float.NaN,
+            headCircumferenceCm = event.headCircumferenceCm?.toFloat() ?: Float.NaN,
+            timestamp = event.timestamp.time
+        )
+    }
     val summary = remember(todayEvents, lastGrowthEvent) {
-        type.generateSummary(todayEvents, lastGrowthEvent, context)
+        type.generateSummary(todayEvents, growthMeasurement, context)
     }
     LaunchedEffect(selectedBaby)
     {

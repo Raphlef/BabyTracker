@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.data
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.util.Log
@@ -56,7 +57,7 @@ enum class EventType(
     ) {
         override fun generateSummary(
             todayList: List<Event>,
-            lastGrowthEvent: GrowthEvent?, context: Context
+            growthMeasurement: GrowthMeasurement?, context: Context
         ): String {
 
             val filterEvents = filterEventsByType(todayList)
@@ -121,7 +122,7 @@ enum class EventType(
     ) {
         override fun generateSummary(
             todayList: List<Event>,
-            lastGrowthEvent: GrowthEvent?,
+            growthMeasurement: GrowthMeasurement?,
             context: Context
         ): String {
             val filterEvents = filterEventsByType(todayList)
@@ -171,7 +172,7 @@ enum class EventType(
     ) {
         override fun generateSummary(
             todayList: List<Event>,
-            lastGrowthEvent: GrowthEvent?, context: Context
+            growthMeasurement: GrowthMeasurement?, context: Context
         ): String {
             val filterEvents = filterEventsByType(todayList)
 
@@ -192,31 +193,42 @@ enum class EventType(
         R.drawable.growth,
         GrowthEvent::class,
         overlayBuilder = { null },
-        overlayDescriptionRes =  null
+        overlayDescriptionRes = null
     ) {
+        @SuppressLint("StringFormatMatches")
         override fun generateSummary(
             todayList: List<Event>,
-            lastGrowthEvent: GrowthEvent?, context: Context
+            growthMeasurement: GrowthMeasurement?,
+            context: Context
         ): String {
             val filterEvents = filterEventsByType(todayList)
-            return lastGrowthEvent?.let { event ->
+            return growthMeasurement?.let { measurement ->
                 val measurements = mutableListOf<String>()
 
-                event.weightKg?.takeIf { it > 0 }?.let {
-                    measurements.add("${String.format("%.2f", it)}kg")
+                // Poids
+                measurement.weightKg.takeIf { !it.isNaN() && it > 0 }?.let { weight ->
+                    measurements.add(context.getString(R.string.weight_format, "%.2f".format(weight)))
                 }
 
-                event.heightCm?.takeIf { it > 0 }?.let {
-                    measurements.add("${event.heightCm.toInt()}cm")
+                // Taille
+                measurement.heightCm.takeIf { !it.isNaN() && it > 0 }?.let { height ->
+                    measurements.add(context.getString(R.string.height_format, height.toInt()))
                 }
 
-                event.headCircumferenceCm?.takeIf { it > 0 }?.let {
-                    measurements.add("HC ${String.format("%.1f", it)}cm")
+                // Périmètre crânien
+                measurement.headCircumferenceCm.takeIf { !it.isNaN() && it > 0 }?.let { head ->
+                    measurements.add(
+                        context.getString(
+                            R.string.head_circumference_format,
+                            "%.1f".format(head)
+                        )
+                    )
                 }
 
                 measurements.takeIf { it.isNotEmpty() }
-                    ?.joinToString(" • ") ?: "No growth data"
-            } ?: "No growth data"
+                    ?.joinToString(" • ")
+                    ?: context.getString(R.string.no_growth_data)
+            } ?: context.getString(R.string.no_growth_data)
         }
     },
     PUMPING(
@@ -232,7 +244,7 @@ enum class EventType(
 
         override fun generateSummary(
             todayList: List<Event>,
-            lastGrowthEvent: GrowthEvent?, context: Context
+            growthMeasurement: GrowthMeasurement?, context: Context
         ): String {
             val filterEvents = filterEventsByType(todayList)
             if (filterEvents.isEmpty()) return context.getString(R.string.no_pumping)
@@ -257,7 +269,8 @@ enum class EventType(
 
         override fun generateSummary(
             todayList: List<Event>,
-            lastGrowthEvent: GrowthEvent?, context: Context
+            growthMeasurement: GrowthMeasurement?,
+            context: Context
         ): String {
             val filterEvents = filterEventsByType(todayList)
             if (filterEvents.isEmpty()) return "No drugs"
@@ -280,7 +293,7 @@ enum class EventType(
 
     abstract fun generateSummary(
         todayList: List<Event>,
-        lastGrowthEvent: GrowthEvent?,
+        growthMeasurement: GrowthMeasurement?,
         context: Context
     ): String
 
@@ -339,10 +352,12 @@ enum class EventType(
         }
     }
 }
+
 data class EventOverlayData(
     @StringRes val descriptionRes: Int? = null,
     val content: (@Composable BoxScope.() -> Unit)? = null
 )
+
 @Composable
 fun EventOverlayData.toEventOverlayInfo(): EventOverlayInfo {
     val description = descriptionRes?.let { stringResource(it) }
@@ -351,6 +366,7 @@ fun EventOverlayData.toEventOverlayInfo(): EventOverlayInfo {
         content = content
     )
 }
+
 /**
  * Base sealed class for all persisted events in Firestore.
  * Each subclass must have a no‐arg constructor for deserialization.
