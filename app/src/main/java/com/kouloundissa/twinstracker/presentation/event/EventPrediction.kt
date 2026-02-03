@@ -65,7 +65,7 @@ object EventPrediction {
         // Prédire selon le pattern
         val prediction = when (pattern) {
             FeedingPattern.INTERVAL_BASED -> predictByInterval(lastFeeding, intervals)
-            FeedingPattern.TIME_BASED -> predictByHourOfDay(lastFeeding, clusters)
+            FeedingPattern.TIME_BASED -> predictByCluster(lastFeeding, clusters)
             FeedingPattern.MIXED -> predictHybrid(lastFeeding, intervals, clusters)
         }
 
@@ -224,7 +224,34 @@ object EventPrediction {
             )
         }.sortedBy { it.centerMinutes }
     }
+    private fun findClosestCluster(
+        timeMinutes: Int,
+        clusters: List<FeedingCluster>
+    ): FeedingCluster {
+        return clusters.minByOrNull { cluster ->
+            val distance = calculateCircularDistance(timeMinutes, cluster.centerMinutes)
+            distance
+        } ?: clusters.first()
+    }
+    private fun calculateClusterDistance(
+        fromMinutes: Int,
+        toMinutes: Int
+    ): Int {
+        val directDistance = toMinutes - fromMinutes
 
+        return when {
+            directDistance > 0 -> directDistance  // Même journée
+            else -> (24 * 60) + directDistance    // Jour suivant
+        }
+    }
+    private fun calculateCircularDistance(
+        time1: Int,
+        time2: Int
+    ): Int {
+        val diff = kotlin.math.abs(time1 - time2)
+        val dayMinutes = 24 * 60
+        return minOf(diff, dayMinutes - diff)
+    }
     /**
      * Find next cluster in sequence
      */
@@ -248,15 +275,15 @@ object EventPrediction {
      */
     private fun calculateNextTimeAtMinutes(
         lastTime: Date,
-        nextClusterCenterMinutes: Int,
+        predictedMinutes: Int,
         needsNextDay: Boolean = false
     ): Long {
         val instant = lastTime.toInstant()
         val zoneId = ZoneId.systemDefault()
         val lastLocalTime = instant.atZone(zoneId)
 
-        val nextHour = nextClusterCenterMinutes / 60
-        val nextMinute = nextClusterCenterMinutes % 60
+        val nextHour = predictedMinutes / 60
+        val nextMinute = predictedMinutes % 60
 
         var nextLocal = lastLocalTime
             .withHour(nextHour)
@@ -274,7 +301,7 @@ object EventPrediction {
     /**
      * Updated TIME_BASED prediction using clusters
      */
-    private fun <T : Event> predictByHourOfDay(
+    private fun <T : Event> predictByCluster(
         lastFeeding: T,
         clusters: List<FeedingCluster>
     ): FeedingPrediction? {
@@ -286,13 +313,21 @@ object EventPrediction {
         val lastFeedingMinutes = lastFeedingZoned.hour * 60 + lastFeedingZoned.minute
 
         // Find next cluster
+        val currentCluster = findClosestCluster(lastFeedingMinutes, clusters)
         val nextCluster = getNextFeedingCluster(lastFeedingMinutes, clusters)
-        val needsNextDay = nextCluster.centerMinutes <= lastFeedingMinutes
+
+        val clusterDistance = calculateClusterDistance(
+            currentCluster.centerMinutes,
+            nextCluster.centerMinutes
+        )
+
+        val predictedMinutes = (lastFeedingMinutes + clusterDistance) % (24 * 60)
+        val needsNextDay = predictedMinutes <= lastFeedingMinutes
 
         // Calculate next feeding time
         val nextTime = calculateNextTimeAtMinutes(
             lastFeeding.timestamp,
-            nextCluster.centerMinutes,
+            predictedMinutes,
             needsNextDay
         )
 
@@ -318,7 +353,7 @@ object EventPrediction {
         clusters: List<FeedingCluster>
     ): FeedingPrediction? {
         val byInterval = predictByInterval(lastFeeding, intervals) ?: return null
-        val byHour = predictByHourOfDay(lastFeeding, clusters) ?: return null
+        val byHour = predictByCluster(lastFeeding, clusters) ?: return null
 
         // Pondération intelligente
         val weight = 0.6  // 60% intervalle, 40% heure
