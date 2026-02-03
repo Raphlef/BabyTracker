@@ -1,6 +1,5 @@
 package com.kouloundissa.twinstracker.data
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.util.Log
@@ -195,7 +194,6 @@ enum class EventType(
         overlayBuilder = { null },
         overlayDescriptionRes = null
     ) {
-        @SuppressLint("StringFormatMatches")
         override fun generateSummary(
             todayList: List<Event>,
             growthMeasurement: GrowthMeasurement?,
@@ -207,22 +205,18 @@ enum class EventType(
 
                 // Poids
                 measurement.weightKg.takeIf { !it.isNaN() && it > 0 }?.let { weight ->
-                    measurements.add(context.getString(R.string.weight_format, "%.2f".format(weight)))
+                    measurements.add("%.2f kg".format(weight))
                 }
 
                 // Taille
                 measurement.heightCm.takeIf { !it.isNaN() && it > 0 }?.let { height ->
-                    measurements.add(context.getString(R.string.height_format, height.toInt()))
+                    measurements.add("%d cm".format(height.toInt()))
                 }
 
                 // Périmètre crânien
                 measurement.headCircumferenceCm.takeIf { !it.isNaN() && it > 0 }?.let { head ->
-                    measurements.add(
-                        context.getString(
-                            R.string.head_circumference_format,
-                            "%.1f".format(head)
-                        )
-                    )
+                    val head = context.getString(R.string.head_circumference)
+                    measurements.add("$head: %.1f cm".format(head))
                 }
 
                 measurements.takeIf { it.isNotEmpty() }

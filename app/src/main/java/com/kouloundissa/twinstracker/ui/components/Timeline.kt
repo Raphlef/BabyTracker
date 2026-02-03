@@ -634,7 +634,8 @@ private fun buildEventTitle(
                 val parts = mutableListOf<String>()
                 event.weightKg?.let { parts.add("${String.format("%.1f", it)}kg") }
                 event.heightCm?.let { parts.add("${it.toInt()}cm") }
-                event.headCircumferenceCm?.let { parts.add("Head: ${String.format("%.1f", it)}cm") }
+                val head = context.getString(R.string.head_circumference)
+                event.headCircumferenceCm?.let { parts.add("$head: ${String.format("%.1f", it)}cm") }
                 if (parts.isNotEmpty()) {
                     append(" - ${parts.joinToString(", ")}")
                 }

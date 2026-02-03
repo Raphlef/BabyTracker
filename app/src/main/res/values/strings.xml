@@ -141,6 +141,7 @@
     <string name="weight_form_label">Weight (kg)</string>
     <string name="length_form_label">Length (cm)</string>
     <string name="head_circumference">Head Circumference (cm)</string>
+    <string name="no_growth_data">Pas de données de croissance</string>
     <string name="blood_type_label">Blood Type</string>
     <string name="allergies_label">Allergies</string>
     <string name="medical_conditions_label">Medical Conditions</string>
@@ -472,8 +473,4 @@
     <string name="pseudo_family_22">Defender</string>
     <string name="pseudo_family_23">Caretaker</string>
     <string name="pseudo_family_24">Angel</string>
-    <string name="weight_format">%.2f kg</string>
-    <string name="height_format">%d cm</string>
-    <string name="head_circumference_format">Head Circumference %.1f cm</string>
-    <string name="no_growth_data">Pas de données de croissance</string>
 </resources>
