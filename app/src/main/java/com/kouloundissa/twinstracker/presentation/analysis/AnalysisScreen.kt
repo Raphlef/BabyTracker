@@ -43,6 +43,7 @@ import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.DailyAnalysis
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.Gender
+import com.kouloundissa.twinstracker.data.GrowthMeasurement
 import com.kouloundissa.twinstracker.data.HoursMinutesFormatter
 import com.kouloundissa.twinstracker.data.WhoLms.WhoLmsRepository
 import com.kouloundissa.twinstracker.data.alignGrowthDataWithInterpolation
@@ -63,6 +64,7 @@ import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
@@ -81,7 +83,7 @@ fun AnalysisScreen(
     val activity = context as Activity
     val errorMessage by eventViewModel.errorMessage.collectAsState()
     val favoriteEventTypes by eventViewModel.favoriteEventTypes.collectAsState()
-    val lastGrowthEvent by eventViewModel.lastGrowthEvent.collectAsState()
+   // val lastGrowthEvent by eventViewModel.lastGrowthEvent.collectAsState()
 
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
 
@@ -270,7 +272,7 @@ fun AnalysisScreen(
                                         selectedDayData.events.filter { event ->
                                             EventType.forClass(event::class) == type
                                         },
-                                        lastGrowthEvent,
+                                        null,
                                         context
                                     )
                                     "$formattedDate: $daySummary"
@@ -316,7 +318,7 @@ fun AnalysisScreen(
                                         selectedDayData.events.filter { event ->
                                             EventType.forClass(event::class) == type
                                         },
-                                        lastGrowthEvent,
+                                        null,
                                         context
                                     )
                                     "$formattedDate: $daySummary"
@@ -361,7 +363,7 @@ fun AnalysisScreen(
                                         selectedDayData.events.filter { event ->
                                             EventType.forClass(event::class) == type
                                         },
-                                        lastGrowthEvent,
+                                        null,
                                         context
                                     )
                                     "$formattedDate: $daySummary"
@@ -403,7 +405,7 @@ fun AnalysisScreen(
                                         selectedDayData.events.filter { event ->
                                             EventType.forClass(event::class) == type
                                         },
-                                        lastGrowthEvent,
+                                        null,
                                         context
                                     )
                                     "$formattedDate: $daySummary"
@@ -453,6 +455,8 @@ fun AnalysisScreen(
                         dateList,
                         analysisSnapshot.dailyAnalysis
                     ) { it.growthMeasurements?.headCircumferenceCm }
+
+
                     item {
 
                         //  Build aligned WHO percentile curves
@@ -480,6 +484,29 @@ fun AnalysisScreen(
                         }
 
                         var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
+                        val selectedGrowthMeasurement = selectedDayIndex?.let { index ->
+                            val selectedDate = dateList.getOrNull(index)
+                            selectedDate?.let { date ->
+                                // Récupérer la vraie mesure si elle existe
+                                val realMeasurement = analysisSnapshot.dailyAnalysis
+                                    .find { it.date == date }
+                                    ?.growthMeasurements
+
+                                if (realMeasurement != null) {
+                                    // Mesure réelle
+                                    realMeasurement
+                                } else {
+                                    // Mesure interpolée
+                                    GrowthMeasurement(
+                                        weightKg = weights.getOrNull(index) ?: Float.NaN,
+                                        heightCm = heights.getOrNull(index) ?: Float.NaN,
+                                        headCircumferenceCm = heads.getOrNull(index) ?: Float.NaN,
+                                        timestamp = date.atStartOfDay()
+                                            .toEpochSecond(ZoneOffset.UTC) * 1000
+                                    )
+                                }
+                            }
+                        }
 
                         val summary = selectedDayIndex?.let { index ->
                             analysisSnapshot.dailyAnalysis.getOrNull(index)
@@ -487,16 +514,19 @@ fun AnalysisScreen(
                                     val formattedDate = selectedDayData.date.format(
                                         DateTimeFormatter.ofPattern("dd/MM")
                                     )
+
+                                    // ✅ Utiliser selectedGrowthMeasurement au lieu de lastGrowthEvent
                                     val daySummary = type.generateSummary(
                                         selectedDayData.events.filter { event ->
                                             EventType.forClass(event::class) == type
                                         },
-                                        lastGrowthEvent,
+                                        selectedGrowthMeasurement,
                                         context
                                     )
                                     "$formattedDate: $daySummary"
                                 }
                         }
+
                         AnalysisCard(
                             title = stringResource(id = R.string.chart_weight),
                             summary = summary
@@ -535,6 +565,29 @@ fun AnalysisScreen(
                             }
 
                         var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
+                        val selectedGrowthMeasurement = selectedDayIndex?.let { index ->
+                            val selectedDate = dateList.getOrNull(index)
+                            selectedDate?.let { date ->
+                                // Récupérer la vraie mesure si elle existe
+                                val realMeasurement = analysisSnapshot.dailyAnalysis
+                                    .find { it.date == date }
+                                    ?.growthMeasurements
+
+                                if (realMeasurement != null) {
+                                    // Mesure réelle
+                                    realMeasurement
+                                } else {
+                                    // Mesure interpolée
+                                    GrowthMeasurement(
+                                        weightKg = weights.getOrNull(index) ?: Float.NaN,
+                                        heightCm = heights.getOrNull(index) ?: Float.NaN,
+                                        headCircumferenceCm = heads.getOrNull(index) ?: Float.NaN,
+                                        timestamp = date.atStartOfDay()
+                                            .toEpochSecond(ZoneOffset.UTC) * 1000
+                                    )
+                                }
+                            }
+                        }
 
                         val summary = selectedDayIndex?.let { index ->
                             analysisSnapshot.dailyAnalysis.getOrNull(index)
@@ -542,11 +595,13 @@ fun AnalysisScreen(
                                     val formattedDate = selectedDayData.date.format(
                                         DateTimeFormatter.ofPattern("dd/MM")
                                     )
+
+                                    // ✅ Utiliser selectedGrowthMeasurement au lieu de lastGrowthEvent
                                     val daySummary = type.generateSummary(
                                         selectedDayData.events.filter { event ->
                                             EventType.forClass(event::class) == type
                                         },
-                                        lastGrowthEvent,
+                                        selectedGrowthMeasurement,
                                         context
                                     )
                                     "$formattedDate: $daySummary"
@@ -588,6 +643,29 @@ fun AnalysisScreen(
                         }
 
                         var selectedDayIndex by remember { mutableStateOf<Int?>(null) }
+                        val selectedGrowthMeasurement = selectedDayIndex?.let { index ->
+                            val selectedDate = dateList.getOrNull(index)
+                            selectedDate?.let { date ->
+                                // Récupérer la vraie mesure si elle existe
+                                val realMeasurement = analysisSnapshot.dailyAnalysis
+                                    .find { it.date == date }
+                                    ?.growthMeasurements
+
+                                if (realMeasurement != null) {
+                                    // Mesure réelle
+                                    realMeasurement
+                                } else {
+                                    // Mesure interpolée
+                                    GrowthMeasurement(
+                                        weightKg = weights.getOrNull(index) ?: Float.NaN,
+                                        heightCm = heights.getOrNull(index) ?: Float.NaN,
+                                        headCircumferenceCm = heads.getOrNull(index) ?: Float.NaN,
+                                        timestamp = date.atStartOfDay()
+                                            .toEpochSecond(ZoneOffset.UTC) * 1000
+                                    )
+                                }
+                            }
+                        }
 
                         val summary = selectedDayIndex?.let { index ->
                             analysisSnapshot.dailyAnalysis.getOrNull(index)
@@ -595,11 +673,13 @@ fun AnalysisScreen(
                                     val formattedDate = selectedDayData.date.format(
                                         DateTimeFormatter.ofPattern("dd/MM")
                                     )
+
+                                    // ✅ Utiliser selectedGrowthMeasurement au lieu de lastGrowthEvent
                                     val daySummary = type.generateSummary(
                                         selectedDayData.events.filter { event ->
                                             EventType.forClass(event::class) == type
                                         },
-                                        lastGrowthEvent,
+                                        selectedGrowthMeasurement,
                                         context
                                     )
                                     "$formattedDate: $daySummary"
