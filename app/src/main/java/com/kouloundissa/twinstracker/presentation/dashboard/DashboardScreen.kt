@@ -299,24 +299,28 @@ fun DashboardScreen(
                                     isVisible = isCurrentPage
                                 )
 
-                                DashboardTab.Baby ->
-                                    if (createBabyRequest) {
+                                DashboardTab.Baby -> {
+                                    val selectedBaby =
+                                        babyViewModel.selectedBaby.collectAsState().value
+
+                                    if (createBabyRequest || selectedBaby == null) {
                                         BabyCreateDialog(
-                                            onBabyCreated = { savedOrDeletedBaby ->
+                                            onBabyCreated = { savedBaby ->
                                                 createBabyRequest = false
-                                                savedOrDeletedBaby.let { babyViewModel.selectBaby(it) }
+                                                babyViewModel.selectBaby(savedBaby)
                                             },
-                                            onCancel = { createBabyRequest = false },
+                                            onCancel = {
+                                                createBabyRequest = false
+                                            }
                                         )
                                     } else {
-                                        babyViewModel.selectedBaby.collectAsState().value?.let {
-                                            BabyEditDialog(
-                                                babyToEdit = it,
-                                                onBabyUpdated = { },
-                                                onCancel = { }
-                                            )
-                                        }
+                                        BabyEditDialog(
+                                            babyToEdit = selectedBaby,
+                                            onBabyUpdated = { },
+                                            onCancel = { }
+                                        )
                                     }
+                                }
                             }
                         }
                     }
