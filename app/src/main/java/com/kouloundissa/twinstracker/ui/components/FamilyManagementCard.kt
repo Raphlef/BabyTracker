@@ -484,7 +484,12 @@ private fun FamilyMemberSection(
                         )
                     }
                     IconSelector(
-                        title =  user.displayName.ifBlank { PseudoGenerator.generateCoolPseudo(context, user.email) },
+                        title = user.displayName.ifBlank {
+                            PseudoGenerator.generateCoolPseudo(
+                                context,
+                                user.email
+                            )
+                        },
                         options = displayOptions,
                         selected = displayOptions.first { !it.isLeave && it.role == user.role },
                         onSelect = { selectedOption ->
@@ -521,7 +526,12 @@ private fun FamilyMemberSection(
                             R.string.family_user_leave_dialog_confirm_message
                         },
 
-                        user.displayName.ifBlank { PseudoGenerator.generateCoolPseudo(context, user.email) },
+                        user.displayName.ifBlank {
+                            PseudoGenerator.generateCoolPseudo(
+                                context,
+                                user.email
+                            )
+                        },
                         family.name,
                     )
                 )
@@ -563,15 +573,17 @@ fun FamilyList(
     selectedFamily: Family?,
     onSelect: (Family) -> Unit
 ) {
+    val backgroundColor = BackgroundColor
     val tintColor = DarkBlue
+    val cornerShape = MaterialTheme.shapes.medium
     Column {
         families.forEach { family ->
             val isSelected = family.id == selectedFamily?.id
             Surface(
                 tonalElevation = if (isSelected) 4.dp else 0.dp,
-                shape = MaterialTheme.shapes.medium,
                 color = if (isSelected) tintColor.copy(alpha = 0.1f)
-                else MaterialTheme.colorScheme.surface,
+                else backgroundColor,
+                shape = cornerShape,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -587,7 +599,7 @@ fun FamilyList(
                         imageVector = Icons.Default.FamilyRestroom,
                         contentDescription = null,
                         tint = if (isSelected) tintColor
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        else tintColor.copy(alpha = 0.8f),
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(Modifier.width(12.dp))
@@ -595,7 +607,7 @@ fun FamilyList(
                         text = family.name,
                         style = MaterialTheme.typography.bodyLarge.copy(
                             color = if (isSelected) tintColor
-                            else MaterialTheme.colorScheme.onSurface
+                            else tintColor.copy(alpha = 0.8f)
                         ),
                         modifier = Modifier.weight(1f)
                     )
