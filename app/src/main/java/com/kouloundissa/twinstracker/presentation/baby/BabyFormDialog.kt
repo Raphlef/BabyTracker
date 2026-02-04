@@ -173,7 +173,12 @@ fun BabyFormDialogInternal(
             onCancel()
         })
     }
-
+    var eventCount: Int by remember { mutableStateOf(-1) }
+    LaunchedEffect(selectedBaby) {
+        selectedBaby?.let {
+            eventCount = eventViewModel.getEventCount(it.id)
+        }
+    }
     val currentBaby = remember(babies, babyToEdit) {
         babyToEdit?.let { b -> babies.find { it.id == b.id } ?: babyToEdit }
     }
@@ -270,10 +275,7 @@ fun BabyFormDialogInternal(
     if (isEditMode && openDeleteDialog.value && currentBaby != null) {
         DeleteConfirmationDialog(
             babyName = currentBaby.name,
-            totalEventsProvider = {
-                val counts = eventViewModel.getEventCounts()
-                counts.values.sum()
-            },
+            totalEvents = eventCount,
             onConfirm = {
                 deleteRequested = true
                 openDeleteDialog.value = false
@@ -919,11 +921,10 @@ private fun NumericFieldSection(
 @Composable
 private fun DeleteConfirmationDialog(
     babyName: String,
-    totalEventsProvider: () -> Int,
+    totalEvents: Int,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val totalEvents = remember { totalEventsProvider() }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(id = R.string.delete_baby_title, babyName)) },

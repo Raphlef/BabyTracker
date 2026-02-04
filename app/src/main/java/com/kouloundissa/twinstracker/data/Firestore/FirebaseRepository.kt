@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.AggregateSource
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -1320,6 +1321,7 @@ class FirebaseRepository @Inject constructor(
     }
 
     suspend fun getLastGrowthEvent(babyId: String): Result<GrowthEvent?> = runCatching {
+        authManager.requireRead()
         FirebaseValidators.validateBabyId(babyId)
         getCurrentUserIdOrThrow()
 
@@ -1333,10 +1335,18 @@ class FirebaseRepository @Inject constructor(
 
         snapshot.toObjects(GrowthEvent::class.java).firstOrNull()
     }
+    suspend fun getTotalEventCount(babyId: String): Result<Int> = runCatching {
+        authManager.requireRead()
+        FirebaseValidators.validateBabyId(babyId)
+        getCurrentUserIdOrThrow()
 
-    // ===== DATA CLASS =====
-    data class EventDayCount(
-        val count: Int,
-        val hasEvents: Boolean = count > 0
-    )
+        val countQuery = db.collection(FirestoreConstants.Collections.EVENTS)
+            .whereEqualTo(FirestoreConstants.Fields.BABY_ID, babyId)
+            .count()
+
+        val snapshot = countQuery.get(AggregateSource.SERVER).await()
+
+        snapshot.count.toInt()
+    }
+
 }

@@ -752,20 +752,12 @@ class EventViewModel @Inject constructor(
         _deleteSuccess.value = false
         _deleteError.value = null
     }
-    /**
-     * Returns a map of displayName → event count for all loaded types.
-     * Useful to drive calendar badges or summary views.
-     */
-    fun getEventCounts(): Map<String, Int> {
-        return _analysisSnapshot.value.events
-            .groupBy { it::class }
-            .mapKeys { (type, _) ->
-                // Simple human‐readable key; you could customize per type.
-                type.simpleName ?: "Unknown"
-            }
-            .mapValues { (_, list) ->
-                list.size
-            }
+
+    suspend fun getEventCount(babyId: String): Int {
+        return repository.getTotalEventCount(babyId).fold(
+            onSuccess = { count -> count },
+            onFailure = { -1 }
+        )
     }
 
     fun clearErrorMessage() {
