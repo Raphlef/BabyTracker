@@ -32,8 +32,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.AnalysisRange
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
@@ -97,8 +99,6 @@ fun HomeScreen(
 
     var selectedType by remember { mutableStateOf<EventType?>(null) }
     var showTypeDialog by remember { mutableStateOf(false) }
-    val deleteSuccess by eventViewModel.deleteSuccess.collectAsState()
-    val deleteError by eventViewModel.deleteError.collectAsState()
 
     LaunchedEffect(editingEvent) {
         editingEvent?.let {
@@ -126,19 +126,6 @@ fun HomeScreen(
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
             eventViewModel.clearErrorMessage()
-        }
-    }
-    LaunchedEffect(deleteSuccess, deleteError) {
-        when {
-            deleteSuccess -> {
-                snackbarHostState.showSnackbar("Event deleted")
-                eventViewModel.resetDeleteState()
-            }
-
-            deleteError != null -> {
-                snackbarHostState.showSnackbar("Delete failed: $deleteError")
-                eventViewModel.resetDeleteState()
-            }
         }
     }
 
@@ -202,11 +189,12 @@ fun HomeScreen(
                                 .height(56.dp)
                                 .width(180.dp)
                         ) {
-                            Text("Add a Baby")
+                            Text(
+                                stringResource(id = R.string.baby_form_title_add))
                         }
                     } else if (babies.isNotEmpty()) {
                         Text(
-                            "Select a baby to see data",
+                            stringResource(id = R.string.select_baby_to_see_data),
                             style = MaterialTheme.typography.bodyLarge,
                             color = backgroundColor
                         )
