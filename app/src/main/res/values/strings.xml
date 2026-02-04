@@ -131,6 +131,7 @@
     <!-- ========== BABY FORM - HEADER ========== -->
     <string name="baby_form_title_edit">Edit Baby</string>
     <string name="baby_form_title_create">Create Baby</string>
+    <string name="baby_form_title_add">Add New Baby</string>
 
     <!-- ========== BABY FORM - FIELDS ========== -->
     <string name="baby_name_label">Baby Name</string>

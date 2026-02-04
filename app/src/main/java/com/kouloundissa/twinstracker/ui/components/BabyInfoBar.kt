@@ -44,9 +44,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.Gender
 import com.kouloundissa.twinstracker.data.getDisplayName
@@ -359,7 +361,7 @@ private fun AddBabySelectorItem(
     val cornerShape = MaterialTheme.shapes.extraLarge
     var isHovered by remember { mutableStateOf(false) }
 
-
+    val context = LocalContext.current
 
     Surface(
         color = backgroundColor,
@@ -385,7 +387,7 @@ private fun AddBabySelectorItem(
             )
 
             Text(
-                text = "Add New Baby",
+                text = stringResource(R.string.baby_form_title_add),
                 style = MaterialTheme.typography.bodyMedium,
                 color = tint.copy(alpha = 0.85f),
                 modifier = Modifier.padding(start = 8.dp)
