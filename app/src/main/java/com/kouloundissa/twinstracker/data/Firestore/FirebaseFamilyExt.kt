@@ -25,7 +25,6 @@ suspend fun FirebaseRepository.addOrUpdateFamily(family: Family): Result<Family>
     val familyWithIds = family.copy(
         id = family.id.takeIf { it.isNotBlank() } ?: UUID.randomUUID().toString(),
         adminIds = if (isNew) listOf(currentUserId) else family.adminIds,
-        memberIds = (family.memberIds + currentUserId).distinct(),
         updatedAt = FirestoreTimestampUtils.getCurrentTimestamp()
     )
 

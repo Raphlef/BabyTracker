@@ -243,20 +243,25 @@ class FamilyViewModel @Inject constructor(
                     }
                     return@launch
                 }
-                val updatedFamily = family.copy(
-                    adminIds = when (newRole) {
-                        FamilyRole.ADMIN -> (family.adminIds + userId).distinct()
-                        else -> family.adminIds - userId
-                    },
-                    memberIds = when (newRole) {
-                        FamilyRole.MEMBER -> (family.memberIds + userId).distinct()
-                        else -> family.memberIds - userId
-                    },
-                    viewerIds = when (newRole) {
-                        FamilyRole.VIEWER -> (family.viewerIds + userId).distinct()
-                        else -> family.viewerIds - userId
-                    },
+                // Remove user from all role lists first
+                val baseFamily = family.copy(
+                    adminIds = family.adminIds - userId,
+                    memberIds = family.memberIds - userId,
+                    viewerIds = family.viewerIds - userId
                 )
+
+                // Then add to the appropriate role list
+                val updatedFamily = when (newRole) {
+                    FamilyRole.ADMIN -> baseFamily.copy(
+                        adminIds = (baseFamily.adminIds + userId).distinct()
+                    )
+                    FamilyRole.MEMBER -> baseFamily.copy(
+                        memberIds = (baseFamily.memberIds + userId).distinct()
+                    )
+                    FamilyRole.VIEWER -> baseFamily.copy(
+                        viewerIds = (baseFamily.viewerIds + userId).distinct()
+                    )
+                }
                 repository.addOrUpdateFamily(updatedFamily)
                     .onSuccess {
                         selectFamily(updatedFamily)
@@ -296,7 +301,6 @@ class FamilyViewModel @Inject constructor(
                 val familyToSave = if (isNewFamily) {
                     family.copy(
                         adminIds = listOf(currentUserId),
-                        memberIds = listOf(currentUserId) // Also add to members
                     )
                 } else {
                     family
