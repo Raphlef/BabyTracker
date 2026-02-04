@@ -1,7 +1,9 @@
 package com.kouloundissa.twinstracker.presentation.dashboard
 
+import android.app.Activity
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -72,6 +74,7 @@ import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import dev.chrisbanes.haze.HazeState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -146,6 +149,53 @@ fun DashboardScreen(
         derivedStateOf { tabs[pagerState.currentPage] }
     }
 
+    // ========== GESTION DU BOUTON RETOUR ==========
+    var backPressedOnce by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = true) {
+        when {
+            // Si un dialogue est ouvert, le fermer d'abord
+            showEventForm -> {
+                showEventForm = false
+                selectedEventFormState = null
+            }
+            showSettingsDialog -> {
+                showSettingsDialog = false
+            }
+            createBabyRequest -> {
+                createBabyRequest = false
+            }
+
+            // Si on n'est pas sur Home, retourner à Home
+            pagerState.currentPage != 0 -> {
+                coroutineScope.launch {
+                    pagerState.animateScrollToPage(0)
+                }
+                backPressedOnce = false // Reset le flag
+            }
+
+            // Si on est déjà sur Home et qu'on a pas encore appuyé
+            !backPressedOnce -> {
+                backPressedOnce = true
+                Toast.makeText(
+                    context,
+                    "Appuyez encore une fois pour quitter",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                // Reset le flag après 2 secondes
+                coroutineScope.launch {
+                    delay(3000)
+                    backPressedOnce = false
+                }
+            }
+
+            // Si on est sur Home et qu'on a déjà appuyé, fermer l'app
+            else -> {
+                (context as? Activity)?.finish()
+            }
+        }
+    }
     BackgroundContainer(backgroundRes = R.drawable.background) {
         Scaffold(
             containerColor = Color.Transparent,
