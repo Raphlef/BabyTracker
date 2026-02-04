@@ -226,7 +226,7 @@ fun FamilyManagementCard(
             Text(
                 stringResource(
                     if (isEditFamily) R.string.family_management_edit_title
-                    else R.string.family_management_create_title
+                    else R.string.family_management_create_new_family
                 ),
                 style = MaterialTheme.typography.titleMedium,
                 color = contentColor
