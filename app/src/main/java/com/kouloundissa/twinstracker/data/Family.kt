@@ -49,10 +49,21 @@ data class Family(
 
     companion object {
         /**
-         * Generates a random 6-character invite code for the family
+         * Generates a random 6-character invite code for the family.
+         * Uses a limited character set to avoid visual ambiguity:
+         * - Excludes: 0, O (zero vs letter O)
+         * - Excludes: 1, I, L (one vs letter I vs letter L)
+         * - Excludes: 5, S (five vs letter S)
+         * - Excludes: 2, Z (two vs letter Z)
+         * - Excludes: 8, B (eight vs letter B)
+         * This results in a clear, unambiguous code that's easy to read and share.
          */
         private fun generateInviteCode(): String {
-            val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+            // Character set optimized for readability (23 characters)
+            // Uppercase letters: A C D E F G H J K M N P Q R T U V W X Y
+            // Numbers: 3 4 6 7 9
+            val chars = "ACDEFGHJKMNPQRTUVWXY3479"
+
             return (1..6)
                 .map { chars.random() }
                 .joinToString("")
