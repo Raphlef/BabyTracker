@@ -43,7 +43,10 @@ class BabyViewModel @Inject constructor(
     val babies: StateFlow<List<Baby>> = repository.selectedFamily
         .flatMapLatest { selectedFamily ->
             selectedFamily?.let { family ->
-                repository.streamBabiesByFamily(family)
+                repository.streamFamilyBabyIds(family.id)
+                    .flatMapLatest { babyIds ->
+                        repository.streamBabiesByIds(babyIds)
+                    }
             } ?: flowOf(emptyList())
         }
         .onStart {

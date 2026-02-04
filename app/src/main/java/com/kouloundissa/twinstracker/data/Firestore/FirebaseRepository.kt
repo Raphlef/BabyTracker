@@ -12,6 +12,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.AggregateSource
+import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -405,18 +406,22 @@ class FirebaseRepository @Inject constructor(
     fun setSelectedFamily(family: Family?) {
         _selectedFamily.value = family
     }
-
-    fun streamBabiesByFamily(family: Family): Flow<List<Baby>> {
-        authManager.requireRead()
-        val babyIds = family.babyIds.distinct()
-        return if (babyIds.isEmpty()) {
-            flowOf(emptyList())
-        } else {
-            streamBabiesByIds(babyIds)
+    fun streamFamilyBabyIds(familyId: String): Flow<List<String>> {
+        return callbackFlow {
+            val listener = db.collection(FirestoreConstants.Collections.FAMILIES)
+                .document(familyId)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        close(error)
+                        return@addSnapshotListener
+                    }
+                    snapshot?.toObjectSafely<Family>()?.babyIds?.let { trySend(it) }
+                }
+            awaitClose { listener.remove() }
         }
     }
 
-    private fun streamBabiesByIds(babyIds: List<String>): Flow<List<Baby>> {
+    fun streamBabiesByIds(babyIds: List<String>): Flow<List<Baby>> {
         if (babyIds.isEmpty()) return flowOf(emptyList())
 
         return callbackFlow {
@@ -432,9 +437,17 @@ class FirebaseRepository @Inject constructor(
                             return@addSnapshotListener
                         }
 
-                        snapshot?.documents?.forEach { doc ->
-                            doc.toObjectSafely<Baby>()?.let { baby ->
-                                babiesMap[baby.id] = baby
+                        snapshot?.documentChanges?.forEach { change ->
+                            when (change.type) {
+                                DocumentChange.Type.ADDED,
+                                DocumentChange.Type.MODIFIED -> {
+                                    change.document.toObjectSafely<Baby>()?.let { baby ->
+                                        babiesMap[baby.id] = baby
+                                    }
+                                }
+                                DocumentChange.Type.REMOVED -> {
+                                    babiesMap.remove(change.document.id)
+                                }
                             }
                         }
 
