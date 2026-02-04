@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,7 +58,6 @@ import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 
 @Composable
 fun BabyInfoBar(
-    babies: List<Baby>,
     selectedBaby: Baby?,
     onSelectBaby: (Baby) -> Unit,
     onEditBaby: () -> Unit = {},
@@ -78,7 +78,11 @@ fun BabyInfoBar(
 
     var isExpanded by remember { mutableStateOf(false) }
 
-    val currentBaby = selectedBaby ?: babies.firstOrNull()
+    val babies by babyViewModel.babies.collectAsState()
+    var currentBaby: Baby? by remember { mutableStateOf(null) }
+    LaunchedEffect(babies, selectedBaby) {
+        currentBaby = selectedBaby ?: babies.firstOrNull()
+    }
 
     Box(
         modifier = modifier

@@ -223,7 +223,6 @@ fun DashboardScreen(
                         ) {
                             // BabyInfoBar takes most space
                             BabyInfoBar(
-                                babies = babies,
                                 selectedBaby = selectedBaby,
                                 onSelectBaby = {
                                     babyViewModel.selectBaby(it)
