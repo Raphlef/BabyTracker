@@ -51,6 +51,8 @@ import androidx.compose.ui.unit.times
 import androidx.compose.ui.zIndex
 import com.kouloundissa.twinstracker.data.AnalysisSnapshot
 import com.kouloundissa.twinstracker.data.DiaperEvent
+import com.kouloundissa.twinstracker.data.DrugType
+import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
@@ -428,16 +430,28 @@ fun EventContent(span: DaySpan, type: EventType) {
                     )
                     Spacer(modifier = Modifier.width(3.dp))
                     Text(
-                        text = if (span.evt is DiaperEvent) {
-                            stringResource(span.evt.diaperType.displayNameRes) +
-                                    (span.evt.notes?.takeIf { it.isNotBlank() }?.let { " • $it" }
-                                        ?: "")
-                        } else {
-                            type.getDisplayName(context) +
-                                    (span.evt.notes?.takeIf { it.isNotBlank() }?.let { " • $it" }
-                                        ?: "")
-                        },
+                        text = when (span.evt) {
+                            is DiaperEvent -> {
+                                stringResource(span.evt.diaperType.displayNameRes) +
+                                        (span.evt.notes?.takeIf { it.isNotBlank() }?.let { " • $it" } ?: "")
+                            }
+                            is DrugsEvent -> {
+                                val drugName = if (span.evt.drugType == DrugType.OTHER && !span.evt.otherDrugName.isNullOrBlank()) {
+                                    span.evt.otherDrugName
+                                } else {
+                                    stringResource(span.evt.drugType.displayNameRes)
+                                }
 
+                                val dosageInfo = span.evt.dosage?.let { " • ${it}${span.evt.unit}" } ?: ""
+
+                                drugName + dosageInfo +
+                                        (span.evt.notes?.takeIf { it.isNotBlank() }?.let { " • $it" } ?: "")
+                            }
+                            else -> {
+                                type.getDisplayName(context) +
+                                        (span.evt.notes?.takeIf { it.isNotBlank() }?.let { " • $it" } ?: "")
+                            }
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         color = BackgroundColor,
                         maxLines = 1,
