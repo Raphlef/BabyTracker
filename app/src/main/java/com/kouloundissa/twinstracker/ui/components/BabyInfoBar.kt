@@ -1,6 +1,5 @@
 package com.kouloundissa.twinstracker.ui.components
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.EaseOutElastic
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -18,10 +17,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FamilyRestroom
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,10 +51,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Baby
+import com.kouloundissa.twinstracker.data.Family
 import com.kouloundissa.twinstracker.data.Gender
 import com.kouloundissa.twinstracker.data.getDisplayName
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
+import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
@@ -66,6 +69,7 @@ fun BabyInfoBar(
     onAddBaby: (() -> Unit)? = null,
     onExpandedChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
+    familyViewModel: FamilyViewModel = hiltViewModel(),
     babyViewModel: BabyViewModel = hiltViewModel(),
     eventViewModel: EventViewModel = hiltViewModel(),
 ) {
@@ -86,6 +90,8 @@ fun BabyInfoBar(
         currentBaby = selectedBaby ?: babies.firstOrNull()
     }
 
+    val families by familyViewModel.families.collectAsState()
+    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -143,10 +149,14 @@ fun BabyInfoBar(
                 }
             },
             expandedContent = {
-                // Baby selector dropdown
                 DropdownBabySelectorPanel(
                     babies = babies,
                     selectedBaby = currentBaby,
+                    selectedFamily = selectedFamily,
+                    families = families,
+                    onSelectFamily = { family ->
+                        familyViewModel.selectFamily(family)
+                    },
                     onSelectBaby = { baby ->
                         onSelectBaby(baby)
                         isExpanded = false
@@ -223,6 +233,58 @@ private fun BabyInfoHeaderContent(
     }
 }
 
+@Composable
+private fun FamilyNameHeader(
+    familyName: String,
+    hasMultipleFamilies: Boolean,
+    onChangeFamilyClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val tint = DarkBlue
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(bottom = 4.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.FamilyRestroom, // ou Icons.Default.Home
+            contentDescription = "Family",
+            tint = tint.copy(alpha = 0.4f),
+            modifier = Modifier.size(16.dp)
+        )
+
+        Text(
+            text = familyName.ifEmpty { "No Family" },
+            style = MaterialTheme.typography.bodyMedium,
+            color = tint.copy(alpha = 0.6f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .padding(start = 6.dp)
+                .weight(1f)
+        )
+
+        // Bouton pour changer de famille (seulement si plusieurs familles)
+        if (hasMultipleFamilies) {
+            IconButton(
+                onClick = onChangeFamilyClick,
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SwapHoriz, // ou Icons.Default.ChangeCircle
+                    contentDescription = "Change Family",
+                    tint = tint.copy(alpha = 0.8f),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+    }
+}
+
 /**
  * Reusable dropdown selector panel with animation
  */
@@ -230,6 +292,9 @@ private fun BabyInfoHeaderContent(
 private fun DropdownBabySelectorPanel(
     babies: List<Baby>,
     selectedBaby: Baby?,
+    selectedFamily: Family?,
+    families: List<Family>,
+    onSelectFamily: (Family) -> Unit,
     onSelectBaby: (Baby) -> Unit,
     onAddBaby: (() -> Unit)?,
     onDismiss: () -> Unit,
@@ -240,12 +305,40 @@ private fun DropdownBabySelectorPanel(
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
 
+    var showFamilySelector by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        if (selectedFamily != null) {
+            FamilyNameHeader(
+                familyName = selectedFamily.name,
+                hasMultipleFamilies = families.size > 1,
+                onChangeFamilyClick = { showFamilySelector = true },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        // Sélecteur de famille (affiché si demandé)
+        if (showFamilySelector && families.size > 1) {
+            FamilyList(
+                families = families,
+                selectedFamily = selectedFamily,
+                onSelect = { family ->
+                    onSelectFamily(family)
+                    showFamilySelector = false
+                }
+            )
+
+            Divider(
+                color = contentColor.copy(alpha = 0.1f),
+                thickness = 1.dp,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
 
         for (baby in babies) {
             BabySelectorItem(
@@ -253,14 +346,15 @@ private fun DropdownBabySelectorPanel(
                 isSelected = baby == selectedBaby,
                 onSelect = { onSelectBaby(baby) }
             )
-
-            if (baby != babies.last() || onAddBaby != null) {
-                Divider(color = contentColor.copy(alpha = 0.1f), thickness = 1.dp)
-            }
         }
 
         // Add Baby Button
         if (onAddBaby != null) {
+            Divider(
+                color = contentColor.copy(alpha = 0.1f),
+                thickness = 1.dp,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
             AddBabySelectorItem(
                 onAddBaby = onAddBaby
             )
@@ -278,31 +372,21 @@ private fun BabySelectorItem(
     onSelect: () -> Unit
 ) {
     val context = LocalContext.current
+    val backgroundColor = BackgroundColor
     val contentColor = DarkGrey
     val tint = DarkBlue
-    val cornerShape = MaterialTheme.shapes.extraLarge
-    var isHovered by remember { mutableStateOf(false) }
-
-    val backgroundColor by animateColorAsState(
-        targetValue = when {
-            isSelected -> contentColor.copy(alpha = 0.2f)
-            isHovered -> BackgroundColor
-            else -> Color.Transparent
-        },
-        animationSpec = tween(durationMillis = 200),
-        label = "selectorItemBg"
-    )
+    val cornerShape = MaterialTheme.shapes.medium
 
     Surface(
-        color = backgroundColor,
+        tonalElevation = if (isSelected) 4.dp else 0.dp,
+        color = if (isSelected) tint.copy(alpha = 0.1f)
+        else backgroundColor,
         shape = cornerShape,
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
             .clip(cornerShape)
             .clickable(onClick = onSelect)
-            .onPointerEvent(PointerEventType.Enter) { isHovered = true }
-            .onPointerEvent(PointerEventType.Exit) { isHovered = false }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -319,8 +403,10 @@ private fun BabySelectorItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = baby.name.ifEmpty { "Unnamed Baby" },
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = tint,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        color = if (isSelected) tint
+                        else tint.copy(alpha = 0.8f)
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -335,13 +421,9 @@ private fun BabySelectorItem(
 
             if (isSelected) {
                 Icon(
-                    imageVector = Icons.Default.Check,
+                    imageVector = Icons.Default.CheckCircle,
                     contentDescription = "Selected",
-                    tint = tint,
-                    modifier = Modifier
-                        .size(20.dp)
-                        .padding(start = 8.dp)
-                        .scaleAnimation(targetScale = 1f, animationDuration = 200)
+                    tint = tint
                 )
             }
         }
@@ -359,20 +441,18 @@ private fun AddBabySelectorItem(
     val contentColor = DarkGrey
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
-    var isHovered by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
 
     Surface(
-        color = backgroundColor,
         shape = MaterialTheme.shapes.large,
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth(0.8f)
             .height(48.dp)
             .clip(MaterialTheme.shapes.large)
             .clickable(onClick = onAddBaby)
-            .onPointerEvent(PointerEventType.Enter) { isHovered = true }
-            .onPointerEvent(PointerEventType.Exit) { isHovered = false }
+            .padding(vertical = 4.dp),
+                color = backgroundColor,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -431,6 +511,3 @@ fun Modifier.onPointerEvent(
         }
     }
 }
-
-
-
