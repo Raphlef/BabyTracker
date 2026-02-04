@@ -118,24 +118,21 @@ fun BabyInfoBar(
                         )
                     }
 
-                    // Expand/Collapse indicator (visible when multiple babies)
-                    if (babies.size > 1) {
-                        IconButton(
-                            onClick = {
-                                isExpanded = !isExpanded
-                                onExpandedChanged(isExpanded)
-                            },
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(Color.Transparent)
-                        ) {
-                            Icon(
-                                imageVector = if (isExpanded) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
-                                contentDescription = "Toggle baby selector",
-                                tint = tint,
-                            )
-                        }
+                    IconButton(
+                        onClick = {
+                            isExpanded = !isExpanded
+                            onExpandedChanged(isExpanded)
+                        },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.Transparent)
+                    ) {
+                        Icon(
+                            imageVector = if (isExpanded) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
+                            contentDescription = "Toggle baby selector",
+                            tint = tint,
+                        )
                     }
                 }
             },
