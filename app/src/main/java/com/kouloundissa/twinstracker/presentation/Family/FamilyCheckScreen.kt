@@ -35,9 +35,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Family
 import com.kouloundissa.twinstracker.data.FamilySettings
 import com.kouloundissa.twinstracker.presentation.settings.GlassCard
@@ -99,15 +101,16 @@ fun FamilyOnboardingContent(
             onFamilyCreatedOrJoined(families.first())
         }
     }
-
+    val successJoin = stringResource(R.string.family_management_joined_success)
+    val failedJoin = stringResource(R.string.family_management_join_failed)
     // Monitor join success
     LaunchedEffect(inviteResult) {
         inviteResult?.onSuccess {
             showJoinDialog = false
-            snackbarHostState.showSnackbar("Vous avez rejoint la famille!")
+            snackbarHostState.showSnackbar(successJoin)
         }?.onFailure { ex ->
             showJoinDialog = false
-            snackbarHostState.showSnackbar(ex.localizedMessage ?: "Impossible de rejoindre")
+            snackbarHostState.showSnackbar(ex.localizedMessage ?: failedJoin)
         }
     }
 
@@ -129,13 +132,13 @@ fun FamilyOnboardingContent(
             )
 
             Text(
-                text = "Bienvenue dans Baby Tracker",
+                text = stringResource(R.string.welcome_message),
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center
             )
 
             Text(
-                text = "Pour commencer, vous devez créer une nouvelle famille ou rejoindre une famille existante.",
+                text = stringResource(R.string.bagin_message_join_or_create_family),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -156,7 +159,7 @@ fun FamilyOnboardingContent(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null)
-                    Text("Créer une nouvelle famille")
+                    Text(stringResource(R.string.family_management_create_new_family))
                 }
             }
 
@@ -173,7 +176,7 @@ fun FamilyOnboardingContent(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(Icons.Default.QrCode, contentDescription = null)
-                    Text("Rejoindre avec un code")
+                    Text(stringResource(R.string.join_family_dialog_title))
                 }
             }
 
@@ -238,13 +241,13 @@ fun CreateFamilyDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Créer une famille") },
+        title = { Text(stringResource(id = R.string.family_management_create_new_family)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nom de la famille") },
+                    label = { Text(stringResource(id = R.string.family_management_family_name_label)) },
                     singleLine = true,
                     enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth()
@@ -252,7 +255,7 @@ fun CreateFamilyDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description (optionnel)") },
+                    label = { Text(stringResource(id = R.string.family_management_description_label)) },
                     maxLines = 3,
                     enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth()
@@ -270,7 +273,7 @@ fun CreateFamilyDialog(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Créer")
+                    Text(stringResource(id = R.string.family_management_create_button))
                 }
             }
         },
@@ -279,7 +282,7 @@ fun CreateFamilyDialog(
                 onClick = onDismiss,
                 enabled = !isLoading
             ) {
-                Text("Annuler")
+                Text(stringResource(id = R.string.cancel_button))
             }
         }
     )

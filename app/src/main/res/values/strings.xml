@@ -317,7 +317,6 @@
     <string name="family_management_create_new_family">Create a new family</string>
     <string name="family_management_babies_section">Babies</string>
     <string name="family_management_edit_title">Edit family</string>
-    <string name="family_management_create_title">Create a new family</string>
     <string name="family_management_family_name_label">Family name</string>
     <string name="family_management_description_label">Description (optional)</string>
     <string name="family_management_invite_code_label">Invite code</string>
@@ -346,6 +345,7 @@
     <string name="family_management_joined_success">You have successfully joined the family!</string>
     <string name="family_management_join_failed">Failed to join</string>
     <string name="error_regenerate_invite_code">Failed to regenerate invite code</string>
+    <string name="bagin_message_join_or_create_family">To begin you must create a family or join an existing family</string>
 
 
     <!-- ========== FAMILY LEAVE BUTTON ========== -->
