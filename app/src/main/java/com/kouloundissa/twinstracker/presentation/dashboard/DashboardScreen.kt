@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.presentation.dashboard
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.util.Log
 import android.widget.Toast
@@ -78,6 +79,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
 
+@SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 fun DashboardScreen(
     navController: NavController,
@@ -153,15 +155,18 @@ fun DashboardScreen(
     var backPressedOnce by remember { mutableStateOf(false) }
 
     BackHandler(enabled = true) {
+       // var leaveValidation = context.getString(R.string.back_again_to_exit)
         when {
             // Si un dialogue est ouvert, le fermer d'abord
             showEventForm -> {
                 showEventForm = false
                 selectedEventFormState = null
             }
+
             showSettingsDialog -> {
                 showSettingsDialog = false
             }
+
             createBabyRequest -> {
                 createBabyRequest = false
             }
@@ -179,11 +184,11 @@ fun DashboardScreen(
                 backPressedOnce = true
                 Toast.makeText(
                     context,
-                    "Appuyez encore une fois pour quitter",
+                    context.getString(R.string.back_again_to_exit),//stringResource(R.string.back_again_to_exit),
                     Toast.LENGTH_SHORT
                 ).show()
 
-                // Reset le flag après 2 secondes
+                // Reset le flag 
                 coroutineScope.launch {
                     delay(3000)
                     backPressedOnce = false
