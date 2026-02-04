@@ -155,7 +155,6 @@ fun DashboardScreen(
     var backPressedOnce by remember { mutableStateOf(false) }
 
     BackHandler(enabled = true) {
-       // var leaveValidation = context.getString(R.string.back_again_to_exit)
         when {
             // Si un dialogue est ouvert, le fermer d'abord
             showEventForm -> {
@@ -184,11 +183,11 @@ fun DashboardScreen(
                 backPressedOnce = true
                 Toast.makeText(
                     context,
-                    context.getString(R.string.back_again_to_exit),//stringResource(R.string.back_again_to_exit),
+                    context.getString(R.string.back_again_to_exit),
                     Toast.LENGTH_SHORT
                 ).show()
 
-                // Reset le flag 
+                // Reset le flag
                 coroutineScope.launch {
                     delay(3000)
                     backPressedOnce = false
