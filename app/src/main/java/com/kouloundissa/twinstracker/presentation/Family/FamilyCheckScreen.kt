@@ -214,7 +214,9 @@ fun FamilyOnboardingContent(
         JoinFamilyDialog(
             show = showJoinDialog,
             onDismiss = { showJoinDialog = false },
-            onJoin = { code -> familyViewModel.joinByCode(code, context) },
+            onJoin = { code ->
+                familyViewModel.joinByCode(code, context)
+            },
             inviteResult = inviteResult,
             isLoading = familyState.isLoading
         )

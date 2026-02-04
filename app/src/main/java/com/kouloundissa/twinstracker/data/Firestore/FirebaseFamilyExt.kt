@@ -203,6 +203,7 @@ suspend fun FirebaseRepository.joinFamilyByCode(
 
     val query = db.collection(FirestoreConstants.Collections.FAMILIES)
         .whereEqualTo(FirestoreConstants.Fields.INVITE_CODE, code)
+        .limit(1)
         .get()
         .await()
 
