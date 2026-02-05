@@ -1359,7 +1359,7 @@ fun FormTextInput(
     errorMessage: String? = null,
 ) {
     val cornerShape = MaterialTheme.shapes.extraLarge
-    val contentColor = BackgroundColor
+    val contentColor = DarkGrey
 
     Column(modifier = modifier) {
         OutlinedTextField(
@@ -1367,6 +1367,7 @@ fun FormTextInput(
             onValueChange = onValueChange,
             label = { Text(label, color = contentColor) },
             textStyle = LocalTextStyle.current.copy(color = contentColor),
+
             shape = cornerShape,
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = keyboardOptions,
