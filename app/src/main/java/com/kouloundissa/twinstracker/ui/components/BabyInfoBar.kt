@@ -311,7 +311,7 @@ private fun DropdownBabySelectorPanel(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         if (selectedFamily != null) {
             FamilyNameHeader(
@@ -336,7 +336,7 @@ private fun DropdownBabySelectorPanel(
             Divider(
                 color = contentColor.copy(alpha = 0.1f),
                 thickness = 1.dp,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = 4.dp)
             )
         }
 
@@ -353,7 +353,7 @@ private fun DropdownBabySelectorPanel(
             Divider(
                 color = contentColor.copy(alpha = 0.1f),
                 thickness = 1.dp,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = 4.dp)
             )
             AddBabySelectorItem(
                 onAddBaby = onAddBaby
@@ -387,6 +387,7 @@ private fun BabySelectorItem(
             .height(48.dp)
             .clip(cornerShape)
             .clickable(onClick = onSelect)
+            .padding(vertical = 2.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -447,12 +448,11 @@ private fun AddBabySelectorItem(
     Surface(
         shape = MaterialTheme.shapes.large,
         modifier = Modifier
-            .fillMaxWidth(0.8f)
+            .fillMaxWidth()
             .height(48.dp)
             .clip(MaterialTheme.shapes.large)
-            .clickable(onClick = onAddBaby)
-            .padding(vertical = 4.dp),
-                color = backgroundColor,
+            .clickable(onClick = onAddBaby),
+        color = backgroundColor,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
