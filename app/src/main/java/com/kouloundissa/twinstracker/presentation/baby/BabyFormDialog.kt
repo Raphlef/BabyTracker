@@ -524,29 +524,38 @@ private fun BabyFormBirthDetailsSection(
 private fun BabyFormMeasurementsSection(
     state: BabyFormState,
 ) {
-    NumericFieldSection(
-        label = stringResource(id = R.string.weight_form_label),
-        value = state.weight,
-        onChange = { state.weight = it },
-        error = state.weightError,
-        onErrorChange = { state.weightError = it }
-    )
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            NumericFieldSection(
+                label = stringResource(id = R.string.weight_form_label),
+                value = state.weight,
+                onChange = { state.weight = it },
+                error = state.weightError,
+                onErrorChange = { state.weightError = it }
+            )
 
-    NumericFieldSection(
-        label = stringResource(id = R.string.length_form_label),
-        value = state.lengthCm,
-        onChange = { state.lengthCm = it },
-        error = state.lengthError,
-        onErrorChange = { state.lengthError = it }
-    )
+            NumericFieldSection(
+                label = stringResource(id = R.string.length_form_label),
+                value = state.lengthCm,
+                onChange = { state.lengthCm = it },
+                error = state.lengthError,
+                onErrorChange = { state.lengthError = it }
+            )
+        }
 
-    NumericFieldSection(
-        label = stringResource(id = R.string.head_circumference),
-        value = state.headCirc,
-        onChange = { state.headCirc = it },
-        error = state.headCircError,
-        onErrorChange = { state.headCircError = it }
-    )
+        NumericFieldSection(
+            label = stringResource(id = R.string.head_circumference),
+            value = state.headCirc,
+            onChange = { state.headCirc = it },
+            error = state.headCircError,
+            onErrorChange = { state.headCircError = it }
+        )
+    }
 
     IconSelector(
         title = stringResource(id = R.string.blood_type_label),
