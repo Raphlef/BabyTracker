@@ -292,7 +292,6 @@ fun EventFormDialogContent(
                             weightKg = event.weightKg?.toString().orEmpty(),
                             heightCm = event.heightCm?.toString().orEmpty(),
                             headCircumferenceCm = event.headCircumferenceCm?.toString().orEmpty()
-                            // notes and other fields remain untouched
                         )
                     }
                 }
@@ -782,17 +781,28 @@ fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
         }
 
         // Notes field
-        FormTextInput(
-            value = state.notes,
-            onValueChange = { newNotes ->
-                viewModel.updateForm { (this as EventFormState.Diaper).copy(notes = newNotes) }
-            },
-            label = stringResource(id = R.string.notes_hint),
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 80.dp),
-            minLines = 4
-        )
+        FormSection(title = stringResource(id = R.string.notes_label)) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                FormTextInput(
+                    value = state.notes,
+                    onValueChange = {
+                        viewModel.updateForm {
+                            (this as EventFormState.Diaper).copy(
+                                notes = it
+                            )
+                        }
+                    },
+                    label = stringResource(id = R.string.notes_hint),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 80.dp),
+                    minLines = 4
+                )
+            }
+        }
     }
 }
 
@@ -903,15 +913,28 @@ fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
             }
         }
 
-        FormTextInput(
-            value = state.notes,
-            onValueChange = { viewModel.updateForm { (this as EventFormState.Sleep).copy(notes = it) } },
-            label = stringResource(id = R.string.notes_hint),
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 80.dp),
-            minLines = 4
-        )
+        FormSection(title = stringResource(id = R.string.notes_label)) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                FormTextInput(
+                    value = state.notes,
+                    onValueChange = {
+                        viewModel.updateForm {
+                            (this as EventFormState.Sleep).copy(
+                                notes = it
+                            )
+                        }
+                    },
+                    label = stringResource(id = R.string.notes_hint),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 80.dp),
+                    minLines = 4
+                )
+            }
+        }
     }
 }
 
@@ -1033,16 +1056,28 @@ fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
             )
         }
     }
-
-    FormTextInput(
-        value = state.notes,
-        onValueChange = { viewModel.updateForm { (this as EventFormState.Feeding).copy(notes = it) } },
-        label = stringResource(id = R.string.notes_hint),
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 80.dp),
-        minLines = 4
-    )
+    FormSection(title = stringResource(id = R.string.notes_label)) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            FormTextInput(
+                value = state.notes,
+                onValueChange = {
+                    viewModel.updateForm {
+                        (this as EventFormState.Feeding).copy(
+                            notes = it
+                        )
+                    }
+                },
+                label = stringResource(id = R.string.notes_hint),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 80.dp),
+                minLines = 4
+            )
+        }
+    }
 }
 
 @Composable
@@ -1104,15 +1139,28 @@ fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) {
             }
         }
 
-        FormTextInput(
-            value = state.notes,
-            onValueChange = { viewModel.updateForm { (this as EventFormState.Growth).copy(notes = it) } },
-            label = stringResource(id = R.string.notes_hint),
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 80.dp),
-            minLines = 4
-        )
+        FormSection(title = stringResource(id = R.string.notes_label)) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                FormTextInput(
+                    value = state.notes,
+                    onValueChange = {
+                        viewModel.updateForm {
+                            (this as EventFormState.Growth).copy(
+                                notes = it
+                            )
+                        }
+                    },
+                    label = stringResource(id = R.string.notes_hint),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 80.dp),
+                    minLines = 4
+                )
+            }
+        }
     }
 }
 
@@ -1199,19 +1247,28 @@ fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
     )
 
     // Notes
-    FormTextInput(
-        value = state.notes,
-        onValueChange = { newNotes ->
-            viewModel.updateForm {
-                (this as EventFormState.Pumping).copy(notes = newNotes)
-            }
-        },
-        label = stringResource(id = R.string.notes_hint),
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 80.dp),
-        minLines = 4
-    )
+    FormSection(title = stringResource(id = R.string.notes_label)) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            FormTextInput(
+                value = state.notes,
+                onValueChange = {
+                    viewModel.updateForm {
+                        (this as EventFormState.Pumping).copy(
+                            notes = it
+                        )
+                    }
+                },
+                label = stringResource(id = R.string.notes_hint),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 80.dp),
+                minLines = 4
+            )
+        }
+    }
 }
 
 @Composable
@@ -1287,19 +1344,28 @@ fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
         }
 
         // Notes
-        FormTextInput(
-            value = state.notes,
-            onValueChange = { newNotes ->
-                viewModel.updateForm {
-                    (this as EventFormState.Drugs).copy(notes = newNotes)
-                }
-            },
-            label = stringResource(id = R.string.notes_hint),
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 80.dp),
-            minLines = 4
-        )
+        FormSection(title = stringResource(id = R.string.notes_label)) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                FormTextInput(
+                    value = state.notes,
+                    onValueChange = {
+                        viewModel.updateForm {
+                            (this as EventFormState.Drugs).copy(
+                                notes = it
+                            )
+                        }
+                    },
+                    label = stringResource(id = R.string.notes_hint),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 80.dp),
+                    minLines = 4
+                )
+            }
+        }
     }
 }
 
