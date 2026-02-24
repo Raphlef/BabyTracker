@@ -1,3 +1,5 @@
+package com.kouloundissa.twinstracker.ui.components.Calendar
+
 import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -59,17 +61,17 @@ import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
-import com.kouloundissa.twinstracker.ui.components.Calendar.DayHeader
-import com.kouloundissa.twinstracker.ui.components.Calendar.VERTICAL_SPACING_BETWEEN_STACKED
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.delay
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Date
+import kotlin.math.abs
 
 
 private val DAY_HOUR_ROW_HEIGHT = 60.dp
@@ -97,7 +99,7 @@ fun DayCalendar(
                     onDragStart = { dragOffset = 0f },
                     onHorizontalDrag = { change, deltaX ->
                         dragOffset += deltaX
-                        val absDragOffset = kotlin.math.abs(dragOffset)
+                        val absDragOffset = abs(dragOffset)
                         if (absDragOffset > swipeThreshold) {
                             change.consume()
                         }
@@ -616,7 +618,7 @@ fun calculateTotalHeightFraction(span: DaySpan): Float {
 private val systemZone: ZoneId
     get() = ZoneId.systemDefault()
 
-private fun Date.toInstant() = java.time.Instant.ofEpochMilli(time)
+private fun Date.toInstant() = Instant.ofEpochMilli(time)
 
 private fun Date.toZoned() = toInstant().atZone(systemZone)
 

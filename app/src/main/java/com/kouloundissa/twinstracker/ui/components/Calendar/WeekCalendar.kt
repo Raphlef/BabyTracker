@@ -1,7 +1,5 @@
 package com.kouloundissa.twinstracker.ui.components.Calendar
 
-import DrawEventsForDay
-import HourRowLabel
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.fadeIn
@@ -48,7 +46,6 @@ import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
-import computeDaySpans
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
