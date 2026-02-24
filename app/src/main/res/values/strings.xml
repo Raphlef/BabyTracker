@@ -476,4 +476,6 @@
     <string name="pseudo_family_24">Angel</string>
     <string name="back_again_to_exit">Press back again to leave</string>
     <string name="select_baby_to_see_data">Select a baby to see data</string>
+    <string name="sleep_event_sleeping">Sleeping</string>
+    <string name="sleep_event_slept">Slept</string>
 </resources>

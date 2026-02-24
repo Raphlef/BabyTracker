@@ -1,6 +1,5 @@
 package com.kouloundissa.twinstracker.presentation.calendar
 
-import DayCalendar
 import android.app.Activity
 import android.util.Log
 import androidx.compose.foundation.background
@@ -50,6 +49,7 @@ import com.kouloundissa.twinstracker.ui.components.Ad.AdManager
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilter
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilterPanel
 import com.kouloundissa.twinstracker.ui.components.AnalysisFilters
+import com.kouloundissa.twinstracker.ui.components.Calendar.DayCalendar
 import com.kouloundissa.twinstracker.ui.components.Calendar.MonthCalendar
 import com.kouloundissa.twinstracker.ui.components.Calendar.WeekCalendar
 import com.kouloundissa.twinstracker.ui.components.calculateRange
