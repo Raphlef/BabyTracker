@@ -1,6 +1,5 @@
 package com.kouloundissa.twinstracker.presentation.event
 
-import com.kouloundissa.twinstracker.data.Event
 import java.time.Duration
 import java.time.ZoneId
 import java.util.Date
@@ -14,6 +13,7 @@ object EventPrediction {
         GROWTH_SPEED,    // growth rate-based prediction
         INTERVAL_BASED  // interval-based feeding time prediction
     }
+
     enum class FeedingPattern {
         INTERVAL_BASED,  // Jeune bébé : intervalles réguliers
         TIME_BASED,      // Bébé plus grand : heures fixes
@@ -38,20 +38,20 @@ object EventPrediction {
      * @return FeedingPrediction with predicted time, confidence, and pattern type,
      *         or null if insufficient data (fewer than 2 events in last 3 days)
      */
-    fun <T : Event> predictNextFeedingTimeMs(
+    fun <T : EventWithAmount> predictNextFeedingTimeMs(
         events: List<T>
     ): FeedingPrediction? {
 
         // Keep only events from last 3 days
         val now = System.currentTimeMillis()
         val threeDaysAgo = now - (3 * 24 * 60 * 60 * 1000)
-        val recentEvents = events.filter { it.timestamp.time >= threeDaysAgo }
+        val recentEvents = events.filter { it.getTimestampValue().time >= threeDaysAgo }
 
         // Need at least 2 events to calculate intervals
         if (recentEvents.size < 2) return null
 
-        val lastFeeding = recentEvents.maxBy { it.timestamp.time }
-        val sortedEvents = recentEvents.sortedByDescending { it.timestamp.time }
+        val lastFeeding = recentEvents.maxBy { it.getTimestampValue().time }
+        val sortedEvents = recentEvents.sortedByDescending { it.getTimestampValue().time }
 
         // Calculate intervals between consecutive feedings
         val intervals = calculateIntervals(sortedEvents)
@@ -143,7 +143,7 @@ object EventPrediction {
      * Prédire par intervalles (jeune bébé)
      * Utilise la médiane pondérée pour robustesse
      */
-    private fun <T : Event> predictByInterval(
+    private fun <T : EventWithAmount> predictByInterval(
         lastFeeding: T,
         intervals: List<Long>
     ): FeedingPrediction {
@@ -157,7 +157,7 @@ object EventPrediction {
         val intervalCV = sqrt(variance) / intervals.average()
         val confidence = (1.0 - minOf(intervalCV, 0.5)) / 0.5  // 0-1
 
-        val nextTime = lastFeeding.timestamp.time + finalIntervalMs
+        val nextTime = lastFeeding.getTimestampValue().time + finalIntervalMs
 
         return FeedingPrediction(
             nextFeedingTimeMs = nextTime,
@@ -170,60 +170,100 @@ object EventPrediction {
     // ==================== TIME-BASED PREDICTION ====================
     data class FeedingCluster(
         val centerMinutes: Int,
-        val feedings: List<Int>,
-        val variance: Double
+        val feedings: List<Int>,          //  minutes from midnight
+        val variance: Double,             //  time variance in minutes^2
+
+        // amount statistics for this time cluster
+        val amountCount: Int = 0,
+        val amountMean: Double? = null,
+        val amountVariance: Double? = null,
+        val amountMedian: Double? = null,
     ) {
         val hour: Int = centerMinutes / 60
         val minute: Int = centerMinutes % 60
         val count: Int = feedings.size
         val stdDev: Double = sqrt(variance)
+
+        val amountStdDev: Double? get() = amountVariance?.let { sqrt(it) }
     }
+
+    private data class FeedingSample(
+        val minutes: Int,
+        val amount: Double?
+    )
+
     /**
      * Extract and cluster feeding times (handles hour boundaries!)
      * Groups feedings within clusterWindowMinutes together
      */
-    private fun <T : Event> extractFeedingClusters(
+    fun <T : EventWithAmount> extractFeedingClusters(
         events: List<T>,
         clusterWindowMinutes: Int
     ): List<FeedingCluster> {
         val zoneId = ZoneId.systemDefault()
 
-        // Convert each feeding to minutes from midnight
-        val feedingMinutes = events.map { event ->
-            val zoned = event.timestamp.toInstant().atZone(zoneId)
-            zoned.hour * 60 + zoned.minute
-        }.sorted()
+        // Map events -> (minutes from midnight, optional amount)
+        val samples = events.map { event ->
+            val zoned = event.getTimestampValue().toInstant().atZone(zoneId)
+            val minutes = zoned.hour * 60 + zoned.minute
+            val amount = event.getAmountValue()
+            FeedingSample(minutes, amount)
+        }.sortedBy { it.minutes }
 
-        if (feedingMinutes.isEmpty()) return emptyList()
+        if (samples.isEmpty()) return emptyList()
 
-        // Cluster nearby times
-        val clusters = mutableListOf<MutableList<Int>>()
-        var currentCluster = mutableListOf(feedingMinutes[0])
+        // Cluster by time, same logic as before but on FeedingSample
+        val clusters = mutableListOf<MutableList<FeedingSample>>()
+        var currentCluster = mutableListOf(samples[0])
 
-        for (i in 1 until feedingMinutes.size) {
-            val timeDiff = feedingMinutes[i] - feedingMinutes[i - 1]
+        for (i in 1 until samples.size) {
+            val prev = samples[i - 1]
+            val current = samples[i]
+            val timeDiff = current.minutes - prev.minutes
 
             if (timeDiff <= clusterWindowMinutes) {
-                currentCluster.add(feedingMinutes[i])
+                currentCluster.add(current)
             } else {
                 clusters.add(currentCluster)
-                currentCluster = mutableListOf(feedingMinutes[i])
+                currentCluster = mutableListOf(current)
             }
         }
         clusters.add(currentCluster)
 
-        // Convert to FeedingCluster objects
+        // Convert to FeedingCluster with time + amount statistics
         return clusters.map { cluster ->
-            val center = cluster.average().toInt()
-            val variance = cluster.map { (it - center).toDouble().pow(2) }.average()
+            val minutesList = cluster.map { it.minutes }
+            val center = minutesList.average().toInt()
+            val variance = minutesList
+                .map { (it - center).toDouble().pow(2) }
+                .average()
+
+            val amounts = cluster.mapNotNull { it.amount }
+            val amountCount = amounts.size
+            val amountMean = if (amounts.isNotEmpty()) amounts.average() else null
+            val amountVariance = if (amounts.size >= 2) {
+                val mean = amountMean!!
+                amounts.map { (it - mean) * (it - mean) }.average()
+            } else null
+            val amountMedian = if (amounts.isNotEmpty()) {
+                val sorted = amounts.sorted()
+                val n = sorted.size
+                if (n % 2 == 1) sorted[n / 2]
+                else (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0
+            } else null
 
             FeedingCluster(
                 centerMinutes = center,
-                feedings = cluster,
-                variance = variance
+                feedings = minutesList,
+                variance = variance,
+                amountCount = amountCount,
+                amountMean = amountMean,
+                amountVariance = amountVariance,
+                amountMedian = amountMedian
             )
         }.sortedBy { it.centerMinutes }
     }
+
     private fun findClosestCluster(
         timeMinutes: Int,
         clusters: List<FeedingCluster>
@@ -233,6 +273,7 @@ object EventPrediction {
             distance
         } ?: clusters.first()
     }
+
     private fun calculateClusterDistance(
         fromMinutes: Int,
         toMinutes: Int
@@ -244,6 +285,7 @@ object EventPrediction {
             else -> (24 * 60) + directDistance    // Jour suivant
         }
     }
+
     private fun calculateCircularDistance(
         time1: Int,
         time2: Int
@@ -252,6 +294,7 @@ object EventPrediction {
         val dayMinutes = 24 * 60
         return minOf(diff, dayMinutes - diff)
     }
+
     /**
      * Find next cluster in sequence
      */
@@ -301,14 +344,14 @@ object EventPrediction {
     /**
      * Updated TIME_BASED prediction using clusters
      */
-    private fun <T : Event> predictByCluster(
+    private fun <T : EventWithAmount> predictByCluster(
         lastFeeding: T,
         clusters: List<FeedingCluster>
     ): FeedingPrediction? {
         if (clusters.isEmpty()) return null
 
         // Get last feeding in minutes
-        val lastFeedingZoned = lastFeeding.timestamp.toInstant()
+        val lastFeedingZoned = lastFeeding.getTimestampValue().toInstant()
             .atZone(ZoneId.systemDefault())
         val lastFeedingMinutes = lastFeedingZoned.hour * 60 + lastFeedingZoned.minute
 
@@ -326,7 +369,7 @@ object EventPrediction {
 
         // Calculate next feeding time
         val nextTime = calculateNextTimeAtMinutes(
-            lastFeeding.timestamp,
+            lastFeeding.getTimestampValue(),
             predictedMinutes,
             needsNextDay
         )
@@ -347,7 +390,7 @@ object EventPrediction {
      * Prédire en utilisant les deux méthodes (transition)
      * Pondération : 60% intervalles (stabilité) + 40% heures (pattern)
      */
-    private fun <T : Event> predictHybrid(
+    private fun <T : EventWithAmount> predictHybrid(
         lastFeeding: T,
         intervals: List<Long>,
         clusters: List<FeedingCluster>
@@ -370,10 +413,10 @@ object EventPrediction {
 
     // ==================== UTILITIES ====================
 
-    private fun <T : Event> calculateIntervals(sortedEvents: List<T>): List<Long> {
+    private fun <T : EventWithAmount> calculateIntervals(sortedEvents: List<T>): List<Long> {
         return sortedEvents
             .zipWithNext { a, b ->
-                Duration.between(b.timestamp.toInstant(), a.timestamp.toInstant())
+                Duration.between(b.getTimestampValue().toInstant(), a.getTimestampValue().toInstant())
                     .toMillis()
             }
             .filter { it > 0 }
@@ -407,10 +450,6 @@ object EventPrediction {
     }
 
 
-
-
-
-
     /**
      * Calculate presets using growth speed prediction
      * @param events List of events with amounts and timestamps (must be sorted by timestamp ascending)
@@ -442,7 +481,8 @@ object EventPrediction {
         }
 
         // Constrain predicted amount within realistic bounds (50% - 150% of median)
-        val medianAmount = calculateSafeMedianAverage(events.mapNotNull { it.getAmountValue()?.toLong() })
+        val medianAmount =
+            calculateSafeMedianAverage(events.mapNotNull { it.getAmountValue()?.toLong() })
         val minAmount = medianAmount * 0.50
         val maxAmount = medianAmount * 1.50
         predictedAmount = predictedAmount.coerceIn(minAmount, maxAmount)
@@ -641,6 +681,11 @@ fun <T : EventWithAmount> List<T>.calculatePresets(
     }
 }
 
+private fun Date.toMinutesOfDay(zoneId: ZoneId = ZoneId.systemDefault()): Int {
+    val zoned = this.toInstant().atZone(zoneId)
+    return zoned.hour * 60 + zoned.minute
+}
+
 /**
  * Extension function for easy access with average method
  */
@@ -655,7 +700,7 @@ fun <T : Number> List<T>.calculatePresetsFromNumbers(
     )
 }
 
-fun <T : Event> List<T>.predictNextFeedingTime(
+fun <T : EventWithAmount> List<T>.predictNextFeedingTime(
     now: Date = Date()
 ): EventPrediction.FeedingPrediction? =
-    EventPrediction.predictNextFeedingTimeMs(this.sortedByDescending { it.timestamp.time })
+    EventPrediction.predictNextFeedingTimeMs(this.sortedByDescending { it.getTimestampValue().time })
