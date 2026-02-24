@@ -8,12 +8,6 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 object EventPrediction {
-    enum class PredictionMethod {
-        AVERAGE,        // simple averaging
-        GROWTH_SPEED,    // growth rate-based prediction
-        INTERVAL_BASED  // interval-based feeding time prediction
-    }
-
     enum class FeedingPattern {
         INTERVAL_BASED,  // Jeune bébé : intervalles réguliers
         TIME_BASED,      // Bébé plus grand : heures fixes
@@ -416,7 +410,10 @@ object EventPrediction {
     private fun <T : EventWithAmount> calculateIntervals(sortedEvents: List<T>): List<Long> {
         return sortedEvents
             .zipWithNext { a, b ->
-                Duration.between(b.getTimestampValue().toInstant(), a.getTimestampValue().toInstant())
+                Duration.between(
+                    b.getTimestampValue().toInstant(),
+                    a.getTimestampValue().toInstant()
+                )
                     .toMillis()
             }
             .filter { it > 0 }
@@ -451,14 +448,14 @@ object EventPrediction {
 
 
     /**
-     * Calculate presets using growth speed prediction
+     * Calculate presets using value speed prediction
      * @param events List of events with amounts and timestamps (must be sorted by timestamp ascending)
      * @param now Current timestamp (defaults to now)
      * @param defaultPresets Fallback presets if calculation fails
      * @param factors Multipliers applied to predicted amount (0.75 = smaller, 1.0 = normal, 1.25 = larger)
      * @return List of recommended preset amounts
      */
-    fun <T : EventWithAmount> calculatePresetsFromGrowthSpeed(
+    fun <T : EventWithAmount> calculatePresetsFromSpeed(
         events: List<T>,
         now: Date = Date(),
         defaultPresets: List<Int> = listOf(50, 100, 150, 200),
@@ -650,40 +647,12 @@ interface EventWithAmount {
  * Extension function for easy access to FeedingEvent
  */
 fun <T : EventWithAmount> List<T>.calculatePresets(
-    method: EventPrediction.PredictionMethod = EventPrediction.PredictionMethod.GROWTH_SPEED,
     now: Date = Date(),
     defaultPresets: List<Int> = listOf(50, 100, 150, 200),
     factors: List<Double> = listOf(0.75, 1.0, 1.25)
 ): List<Int> {
     val sorted = this.sortedByDescending { it.getTimestampValue() }
-
-    return when (method) {
-        EventPrediction.PredictionMethod.GROWTH_SPEED -> {
-            EventPrediction.calculatePresetsFromGrowthSpeed(sorted, now, defaultPresets, factors)
-        }
-
-        EventPrediction.PredictionMethod.AVERAGE -> {
-            EventPrediction.calculatePresetsFromAverage(
-                sorted.mapNotNull { it.getAmountValue() },
-                defaultPresets,
-                factors
-            )
-        }
-
-        EventPrediction.PredictionMethod.INTERVAL_BASED -> {
-            // For interval-based, return average presets as fallback
-            EventPrediction.calculatePresetsFromAverage(
-                sorted.mapNotNull { it.getAmountValue() },
-                defaultPresets,
-                factors
-            )
-        }
-    }
-}
-
-private fun Date.toMinutesOfDay(zoneId: ZoneId = ZoneId.systemDefault()): Int {
-    val zoned = this.toInstant().atZone(zoneId)
-    return zoned.hour * 60 + zoned.minute
+    return EventPrediction.calculatePresetsFromSpeed(sorted, now, defaultPresets, factors)
 }
 
 /**
