@@ -149,7 +149,8 @@ object EventPrediction {
         val variance = intervals.map { it - intervals.average() }
             .map { it * it }.average()
         val intervalCV = sqrt(variance) / intervals.average()
-        val confidence = (1.0 - minOf(intervalCV, 0.5)) / 0.5  // 0-1
+        val capped = minOf(intervalCV, 0.5)
+        val confidence = 1.0 - capped / 0.5  // 0.5 -> 0, 0 -> 1/ 0-1
 
         val nextTime = lastFeeding.getTimestampValue().time + finalIntervalMs
 
@@ -422,12 +423,12 @@ object EventPrediction {
 
     private fun calculateSafeMedianAverage(values: List<Long>): Long {
         if (values.isEmpty()) return 0L
-
-        val outlierThreshold = maxOf(1, values.size / 5)
-        val filteredValues = values
+        val sorted = values.sorted()
+        val outlierThreshold = maxOf(1, sorted.size / 5)
+        val filteredValues = sorted
             .drop(outlierThreshold)
             .dropLast(outlierThreshold)
-            .ifEmpty { values }
+            .ifEmpty { sorted }
 
         val medianInterval = getMedian(filteredValues)
         val averageInterval = filteredValues.average().toLong()
