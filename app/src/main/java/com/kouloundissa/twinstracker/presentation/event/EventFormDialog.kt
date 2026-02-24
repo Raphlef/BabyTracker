@@ -981,7 +981,6 @@ fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
         analysisSnapshot.events
             .filterIsInstance<FeedingEvent>()
             .filter { it.amountMl != null && it.amountMl > 0 }
-            .take(10)
             .calculatePresets()
     }
 
@@ -989,7 +988,6 @@ fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
         .filterIsInstance<FeedingEvent>()
         .filter { it.durationMinutes != null && it.durationMinutes > 0 }
         .mapNotNull { it.durationMinutes }
-        .take(10)
         .calculatePresetsFromNumbers(listOf(5, 10, 15, 20))
 
     LaunchedEffect(state.feedType, amountPreset, durationPreset) {
@@ -1189,7 +1187,6 @@ fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
         analysisSnapshot.events
             .filterIsInstance<PumpingEvent>()
             .filter { it.amountMl != null && it.amountMl > 0 }
-            .take(10)
             .calculatePresets()
     }
 
@@ -1197,7 +1194,6 @@ fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
         .filterIsInstance<PumpingEvent>()
         .filter { it.durationMinutes != null && it.durationMinutes > 0 }
         .mapNotNull { it.durationMinutes }
-        .take(10)
         .calculatePresetsFromNumbers(listOf(5, 10, 15, 20))
 
     LaunchedEffect(Unit) {

@@ -106,7 +106,8 @@ enum class EventType(
         FeedingEvent::class,
         overlayBuilder = { context ->
 
-            val nextFeedingMs = context.lastEvents.predictNextFeedingTime()
+            val nextFeedingMs =
+                context.lastEvents.filterIsInstance<EventWithAmount>().predictNextFeedingTime()
             nextFeedingMs?.let { nextTime ->
                 {
                     FeedingTimer(
@@ -199,7 +200,7 @@ enum class EventType(
             growthMeasurement: GrowthMeasurement?,
             context: Context
         ): String {
-           // val filterEvents = filterEventsByType(todayList)
+            // val filterEvents = filterEventsByType(todayList)
             return growthMeasurement?.let { measurement ->
                 val measurements = mutableListOf<String>()
 
@@ -214,7 +215,7 @@ enum class EventType(
                 }
 
                 // Périmètre crânien
-                measurement.headCircumferenceCm.takeIf { !it.isNaN() && it > 0 }?.let { headValue  ->
+                measurement.headCircumferenceCm.takeIf { !it.isNaN() && it > 0 }?.let { headValue ->
                     val headLabel = context.getString(R.string.head_circumference)
                     measurements.add("${headLabel}: %.1f cm".format(headValue))
                 }
@@ -867,8 +868,6 @@ sealed class EventFormState {
  * Context object passed to overlay builders containing runtime state
  */
 data class EventTypeOverlayContext(
-    //  val activeSleepEvent: SleepEvent?,
-    // val nextFeedingTimeMs: Long?,
     val lastEvents: List<Event>,
     val onClick: () -> Unit
 )
