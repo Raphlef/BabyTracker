@@ -216,6 +216,7 @@ fun EventFormDialogContent(
     val familyMembers by familyViewModel.familyUsers.collectAsState()
     val currentUserId by familyViewModel.currentUserId.collectAsState()
 
+    val favoriteEventTypes by eventViewModel.favoriteEventTypes.collectAsState()
     val formState by eventViewModel.formState.collectAsState()
     val lastGrowthEvent by eventViewModel.lastGrowthEvent.collectAsState()
     val isSaving by eventViewModel.isSaving.collectAsState()
@@ -432,6 +433,11 @@ fun EventFormDialogContent(
 
                 // Event Type Selector (only for new events)
                 val isEditMode = formState.eventId != null
+                val sortedOptions = remember(favoriteEventTypes) {
+                    EventType.entries.sortedBy {
+                        if (favoriteEventTypes.contains(it)) -1 else it.ordinal
+                    }
+                }
                 if (isEditMode) {
                     // Edit mode: show only the selected icon (no list)
                     Surface(
@@ -489,7 +495,7 @@ fun EventFormDialogContent(
                 } else {
                     IconSelector(
                         title = stringResource(id = R.string.event_type_label),
-                        options = EventType.entries,
+                        options = sortedOptions,
                         selected = currentType,
                         onSelect = { type ->
                             val newState = when (type) {
