@@ -300,6 +300,10 @@ fun EventFormDialogContent(
         }
     }
 
+    LaunchedEffect(Unit) {
+        eventViewModel.resetIsSaving()
+    }
+
     LaunchedEffect(saveSuccess, deleteSuccess) {
         if (saveSuccess || deleteSuccess) {
             onDismiss()

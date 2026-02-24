@@ -767,7 +767,9 @@ class EventViewModel @Inject constructor(
     fun resetFormState() {
         _formState.value = EventFormState.Diaper()
     }
-
+    fun resetIsSaving() {
+        _isSaving.value = false
+    }
     fun resetSaveSuccess() {
         _saveSuccess.value = false
     }
