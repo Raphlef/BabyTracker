@@ -51,7 +51,7 @@ object EventPrediction {
         val intervals = calculateIntervals(sortedEvents)
         if (intervals.size < 2) return null
 
-        val clusters = extractFeedingClusters(sortedEvents, clusterWindowMinutes = 60)
+        val clusters = extractFeedingClusters(sortedEvents)
 
         // Détecter le pattern
         val pattern = detectFeedingPattern(intervals, clusters)
@@ -105,7 +105,7 @@ object EventPrediction {
 
         return when {
             // Très régulier → INTERVAL_BASED
-            intervalCV < 0.30 -> FeedingPattern.INTERVAL_BASED
+            intervalCV < 0.25 -> FeedingPattern.INTERVAL_BASED
 
             // Pattern TIME_BASED fort: 3-5 clusters, haute stabilité
             clusters.size in 3..5 &&
@@ -141,7 +141,7 @@ object EventPrediction {
         lastFeeding: T,
         intervals: List<Long>
     ): FeedingPrediction {
-        val predictedIntervalMs = calculateSafeMedianAverage(intervals)
+        val predictedIntervalMs = robustMedian(intervals)
         val minIntervalMs = 10 * 60 * 1000L  // 10 minutes minimum
         val finalIntervalMs = maxOf(predictedIntervalMs, minIntervalMs)
 
@@ -193,7 +193,7 @@ object EventPrediction {
      */
     fun <T : EventWithAmount> extractFeedingClusters(
         events: List<T>,
-        clusterWindowMinutes: Int
+        clusterWindowMinutes: Int = 45
     ): List<FeedingCluster> {
         val zoneId = ZoneId.systemDefault()
 
@@ -240,12 +240,7 @@ object EventPrediction {
                 val mean = amountMean!!
                 amounts.map { (it - mean) * (it - mean) }.average()
             } else null
-            val amountMedian = if (amounts.isNotEmpty()) {
-                val sorted = amounts.sorted()
-                val n = sorted.size
-                if (n % 2 == 1) sorted[n / 2]
-                else (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0
-            } else null
+            val amountMedian = robustMedian(amounts.map { it.toLong() }).toDouble()
 
             FeedingCluster(
                 centerMinutes = center,
@@ -295,17 +290,19 @@ object EventPrediction {
      */
     private fun getNextFeedingCluster(
         lastFeedingMinutes: Int,
-        clusters: List<FeedingCluster>
+        clusters: List<FeedingCluster>,
+        minGapMinutes: Int = 60
     ): FeedingCluster {
-        // Cherche le prochain cluster en dehors de la fenêtre du cluster actuel
-        val nextInSequence = clusters.firstOrNull { cluster ->
-            // Un cluster est "prochain" si son centre est au moins
-            // à 1.5× son stdDev après le dernier biberon
-            val clusterWindow = maxOf(cluster.stdDev * 1.5, 30.0) // minimum 30min
-            cluster.centerMinutes > lastFeedingMinutes + clusterWindow
+        // Clusters sorted by centerMinutes
+        val sorted = clusters.sortedBy { it.centerMinutes }
+
+        // First cluster strictly after lastFeeding + minGap
+        val candidate = sorted.firstOrNull { cluster ->
+            cluster.centerMinutes > lastFeedingMinutes + minGapMinutes
         }
 
-        return nextInSequence ?: clusters.first()
+        // If none found, wrap to next day: return first cluster
+        return candidate ?: sorted.first()
     }
 
     /**
@@ -421,7 +418,7 @@ object EventPrediction {
             .sorted()
     }
 
-    private fun calculateSafeMedianAverage(values: List<Long>): Long {
+    private fun robustMedian(values: List<Long>): Long {
         if (values.isEmpty()) return 0L
         val sorted = values.sorted()
         val outlierThreshold = maxOf(1, sorted.size / 5)
@@ -485,7 +482,7 @@ object EventPrediction {
             )
         }
 
-        val medianAmount = calculateSafeMedianAverage(
+        val medianAmount = robustMedian(
             events.mapNotNull { it.getAmountValue()?.toLong() }
         )
 
@@ -531,7 +528,7 @@ object EventPrediction {
         }
 
         val intervals = calculateIntervals(sortedEvents)
-        val clusters = extractFeedingClusters(sortedEvents, clusterWindowMinutes = 60)
+        val clusters = extractFeedingClusters(sortedEvents)
 
         // If pattern detection can't work, keep old behavior
         if (intervals.size < 2 || clusters.isEmpty()) {
@@ -545,7 +542,7 @@ object EventPrediction {
                 predictNextAmountBySpeed(sortedEvents, now)
 
             FeedingPattern.TIME_BASED ->
-                predictNextAmountByCluster(sortedEvents,now, clusters)
+                predictNextAmountByCluster(sortedEvents, now, clusters)
 
             FeedingPattern.MIXED ->
                 predictNextAmountHybrid(sortedEvents, now, clusters)
@@ -641,7 +638,7 @@ object EventPrediction {
         ).coerceIn(0, clusterDistanceMinutes)
 
         // SPEED between clusters (amount / minute)
-        val speedPerMinute = nextAmount  / clusterDistanceMinutes.toDouble()
+        val speedPerMinute = nextAmount / clusterDistanceMinutes.toDouble()
 
         // Apply speed from current cluster toward next
         var predicted = speedPerMinute * elapsedFromCurrentCenterMinutes
@@ -666,17 +663,20 @@ object EventPrediction {
     ): Double {
         if (events.isEmpty()) return -1.0
 
-        val lastFeeding = events.first()
-
         val bySpeed = predictNextAmountBySpeed(events, now)
-        val byCluster = predictNextAmountByCluster(events,now, clusters)
+        val byCluster = predictNextAmountByCluster(events, now, clusters)
 
         if (bySpeed <= 0 && byCluster <= 0) return -1.0
         if (bySpeed <= 0) return byCluster
         if (byCluster <= 0) return bySpeed
 
-        val weight = 0.6 // same spirit as time prediction
-        return bySpeed * weight + byCluster * (1.0 - weight)
+        val stableClustersCount = clusters.count { it.stdDev < 30 }
+        val stability = stableClustersCount.toDouble() / clusters.size
+
+        val clusterWeight = if (stability >= 0.7) 0.7 else 0.5
+        val speedWeight = 1.0 - clusterWeight
+
+        return byCluster * clusterWeight + bySpeed * speedWeight
     }
 
     /**
@@ -755,7 +755,7 @@ object EventPrediction {
             return defaultPresets
         }
 
-        val avg = calculateSafeMedianAverage(amounts.map { it.toLong() })
+        val avg = robustMedian(amounts.map { it.toLong() })
         val nicAvg = roundToNiceNumber(avg.toInt())
 
         // Calculate presets
