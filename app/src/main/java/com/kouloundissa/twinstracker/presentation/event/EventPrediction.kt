@@ -447,14 +447,6 @@ object EventPrediction {
     }
 
 
-    /**
-     * Calculate presets using value speed prediction
-     * @param events List of events with amounts and timestamps (must be sorted by timestamp ascending)
-     * @param now Current timestamp (defaults to now)
-     * @param defaultPresets Fallback presets if calculation fails
-     * @param factors Multipliers applied to predicted amount (0.75 = smaller, 1.0 = normal, 1.25 = larger)
-     * @return List of recommended preset amounts
-     */
     fun <T : EventWithAmount> calculatePresetsFromSpeed(
         events: List<T>,
         now: Date = Date(),
@@ -465,11 +457,26 @@ object EventPrediction {
             return defaultPresets
         }
 
-        // Calculate the predicted amount at current time
-        var predictedAmount = predictNextAmount(events, now)
+        // 1) Prediction layer (growth speed / pattern logic)
+        val predictedAmount = predictNextAmount(events, now)
 
-        // If prediction failed or resulted in unrealistic value, fallback to average
-        if (predictedAmount <= 0) {
+        // 2) Preset management layer (simple, reusable)
+        return buildPresetsFromBaseAmount(
+            baseAmount = predictedAmount,
+            events = events,
+            defaultPresets = defaultPresets,
+            factors = factors
+        )
+    }
+
+    private fun <T : EventWithAmount> buildPresetsFromBaseAmount(
+        baseAmount: Double,
+        events: List<T>,
+        defaultPresets: List<Int>,
+        factors: List<Double>
+    ): List<Int> {
+        // If base is invalid, fallback to average-based presets
+        if (baseAmount <= 0.0 || events.isEmpty()) {
             return calculatePresetsFromAverage(
                 events.mapNotNull { it.getAmountValue() },
                 defaultPresets,
@@ -477,33 +484,74 @@ object EventPrediction {
             )
         }
 
-        // Constrain predicted amount within realistic bounds (50% - 150% of median)
-        val medianAmount =
-            calculateSafeMedianAverage(events.mapNotNull { it.getAmountValue()?.toLong() })
+        val medianAmount = calculateSafeMedianAverage(
+            events.mapNotNull { it.getAmountValue()?.toLong() }
+        )
+
+        if (medianAmount <= 0L) {
+            // Not enough data to constrain: use legacy average behavior
+            return calculatePresetsFromAverage(
+                events.mapNotNull { it.getAmountValue() },
+                defaultPresets,
+                factors
+            )
+        }
+
+        // Same safety window as before: 50%–150% of median
         val minAmount = medianAmount * 0.50
         val maxAmount = medianAmount * 1.50
-        predictedAmount = predictedAmount.coerceIn(minAmount, maxAmount)
+        val constrained = baseAmount.coerceIn(minAmount, maxAmount)
 
-        // Generate presets based on predicted amount
-        return factors.map { factor ->
-            val scaled = (predictedAmount * factor).toInt()
-            roundToNiceNumber(scaled)
-        }.filter { it > 0 }
+        return factors
+            .map { factor ->
+                val scaled = (constrained * factor).toInt()
+                roundToNiceNumber(scaled)
+            }
+            .filter { it > 0 }
     }
 
-    /**
-     * Predict the next amount based on growth rate
-     *
-     * Algorithm:
-     * 1. Take last events to calculate growth rate (speed)
-     * 2. Calculate time difference and amount difference
-     * 3. Determine speed = amount change / time change
-     * 4. Predict: speed * time_elapsed
-     * 5. Apply sanity checks (min/max boundaries)
-     *
-     * @return Predicted amount, or -1 if calculation failed
-     */
     private fun <T : EventWithAmount> predictNextAmount(
+        events: List<T>,
+        now: Date
+    ): Double {
+        if (events.isEmpty()) return -1.0
+
+        // Same recent window logic as for time (optional, but good for consistency)
+        val nowMs = now.time
+        val threeDaysAgo = nowMs - (3 * 24 * 60 * 60 * 1000L)
+        val recentEvents = events.filter { it.getTimestampValue().time >= threeDaysAgo }
+        if (recentEvents.isEmpty()) return -1.0
+
+        val sortedEvents = recentEvents.sortedByDescending { it.getTimestampValue().time }
+
+        // If not enough data to detect pattern, fall back to speed-based
+        if (sortedEvents.size < 2) {
+            return predictNextAmountBySpeed(sortedEvents, now)
+        }
+
+        val intervals = calculateIntervals(sortedEvents)
+        val clusters = extractFeedingClusters(sortedEvents, clusterWindowMinutes = 60)
+
+        // If pattern detection can't work, keep old behavior
+        if (intervals.size < 2 || clusters.isEmpty()) {
+            return predictNextAmountBySpeed(sortedEvents, now)
+        }
+
+        val pattern = detectFeedingPattern(intervals, clusters)
+
+        return when (pattern) {
+            FeedingPattern.INTERVAL_BASED ->
+                predictNextAmountBySpeed(sortedEvents, now)
+
+            FeedingPattern.TIME_BASED ->
+                predictNextAmountByCluster(sortedEvents,now, clusters)
+
+            FeedingPattern.MIXED ->
+                predictNextAmountHybrid(sortedEvents, now, clusters)
+        }
+    }
+
+    private fun <T : EventWithAmount> predictNextAmountBySpeed(
         events: List<T>,
         now: Date
     ): Double {
@@ -537,6 +585,97 @@ object EventPrediction {
         predictedAmount = applyGrowthSanityChecks(predictedAmount, lastAmount, timeElapsedHours)
 
         return predictedAmount
+    }
+
+    private fun <T : EventWithAmount> predictNextAmountByCluster(
+        events: List<T>,
+        now: Date,
+        clusters: List<FeedingCluster>
+    ): Double {
+        if (events.isEmpty() || clusters.isEmpty()) return -1.0
+
+        val lastEvent = events.first()
+        val lastAmount = lastEvent.getAmountValue() ?: return -1.0
+
+        val zone = ZoneId.systemDefault()
+
+        // Minutes for last event and for "now"
+        val lastMinutes = lastEvent.getTimestampValue()
+            .toInstant()
+            .atZone(zone)
+            .let { it.hour * 60 + it.minute }
+
+        val nowMinutes = now.toInstant()
+            .atZone(zone)
+            .let { it.hour * 60 + it.minute }
+
+        // Same logic as time prediction: current + next cluster in the sequence
+        val currentCluster = findClosestCluster(lastMinutes, clusters)
+        val nextCluster = getNextFeedingCluster(lastMinutes, clusters)
+
+        // Use cluster median first, then mean, then fall back to last amount
+        val currentAmount = currentCluster.amountMedian
+            ?: currentCluster.amountMean
+            ?: lastAmount
+
+        val nextAmount = nextCluster.amountMedian
+            ?: nextCluster.amountMean
+            ?: currentAmount
+
+        // Time between clusters, in minutes, using your existing helper
+        val clusterDistanceMinutes = calculateClusterDistance(
+            currentCluster.centerMinutes,
+            nextCluster.centerMinutes
+        )
+
+        if (clusterDistanceMinutes <= 0) {
+            // No meaningful distance → just return current cluster amount
+            return currentAmount
+        }
+
+        // Position of "now" between current cluster center and next cluster center
+        val elapsedFromCurrentCenterMinutes = calculateClusterDistance(
+            currentCluster.centerMinutes,
+            nowMinutes
+        ).coerceIn(0, clusterDistanceMinutes)
+
+        // SPEED between clusters (amount / minute)
+        val speedPerMinute = nextAmount  / clusterDistanceMinutes.toDouble()
+
+        // Apply speed from current cluster toward next
+        var predicted = speedPerMinute * elapsedFromCurrentCenterMinutes
+
+        // Reuse your growth sanity checks to avoid regressions in UX
+        val timeElapsedHours = (now.time - lastEvent.getTimestampValue().time) /
+                (1000.0 * 60 * 60)
+
+        predicted = applyGrowthSanityChecks(
+            predicted = predicted,
+            lastAmount = lastAmount,
+            timeElapsedHours = timeElapsedHours
+        )
+
+        return predicted
+    }
+
+    private fun <T : EventWithAmount> predictNextAmountHybrid(
+        events: List<T>,
+        now: Date,
+        clusters: List<FeedingCluster>
+    ): Double {
+        if (events.isEmpty()) return -1.0
+
+        val lastFeeding = events.first()
+
+        val bySpeed = predictNextAmountBySpeed(events, now)
+        val byCluster = predictNextAmountByCluster(events,now, clusters)
+
+        if (bySpeed <= 0 && byCluster <= 0) return -1.0
+        if (bySpeed <= 0) return byCluster
+        if (byCluster <= 0) return bySpeed
+
+        val weight = 0.6 // same spirit as time prediction
+        return bySpeed * weight + byCluster * (1.0 - weight)
     }
 
     /**
