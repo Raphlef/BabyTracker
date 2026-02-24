@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -51,7 +52,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
 import androidx.compose.ui.zIndex
+import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.AnalysisSnapshot
+import com.kouloundissa.twinstracker.data.BreastSide
 import com.kouloundissa.twinstracker.data.DiaperEvent
 import com.kouloundissa.twinstracker.data.DrugType
 import com.kouloundissa.twinstracker.data.DrugsEvent
@@ -59,6 +62,7 @@ import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import com.kouloundissa.twinstracker.data.FeedingEvent
+import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
@@ -243,7 +247,7 @@ fun DrawEventsForDay(
         )
 
         // SLEEP: full width
-        sleepEvents.forEach  {  span ->
+        sleepEvents.forEach { span ->
             EventBar(
                 span = span,
                 hourRowHeight = hourRowHeight,
@@ -296,8 +300,12 @@ fun CurrentHourIndicator(
 
     if (day != today) return
 
-    BoxWithConstraints(modifier = modifier.fillMaxWidth().zIndex(Float.MAX_VALUE)) {
-        val topOffset = hourRowHeight * currentHourFraction+ 4.dp
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .zIndex(Float.MAX_VALUE)
+    ) {
+        val topOffset = hourRowHeight * currentHourFraction + 4.dp
 
         Box(
             modifier = Modifier
@@ -305,7 +313,7 @@ fun CurrentHourIndicator(
                 .fillMaxWidth()
                 .height(2.dp)
                 .background(Color(0xFFFF9800))
-               // .padding(vertical = VERTICAL_SPACING_BETWEEN_STACKED),
+            // .padding(vertical = VERTICAL_SPACING_BETWEEN_STACKED),
         )
 
         Text(
@@ -318,8 +326,9 @@ fun CurrentHourIndicator(
                 .background(
                     color = backgroundColor,
                     shape = RoundedCornerShape(2.dp)
-                ) .padding(horizontal = 2.dp, vertical = 1.dp)
-              //  .padding(vertical = VERTICAL_SPACING_BETWEEN_STACKED),
+                )
+                .padding(horizontal = 2.dp, vertical = 1.dp)
+            //  .padding(vertical = VERTICAL_SPACING_BETWEEN_STACKED),
         )
     }
 }
@@ -415,45 +424,27 @@ fun EventContent(span: DaySpan, type: EventType) {
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         when {
-            // ✅ LARGE: Icon + Text complet
+            // ✅ LARGE: Icon + Rich text
             maxWidth > 80.dp -> {
                 Row(
                     modifier = Modifier.fillMaxSize(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Start,
-                    // Add horizontal padding to account for container padding
                 ) {
 
+                    val iconTint =
+                        if (span.evt is DrugsEvent) span.evt.drugType.color else BackgroundColor
                     Icon(
                         imageVector = type.icon,
                         contentDescription = null,
-                        tint = BackgroundColor,
+                        tint = iconTint,
                         modifier = Modifier.size(16.dp)
                     )
+
                     Spacer(modifier = Modifier.width(3.dp))
+
                     Text(
-                        text = when (span.evt) {
-                            is DiaperEvent -> {
-                                stringResource(span.evt.diaperType.displayNameRes) +
-                                        (span.evt.notes?.takeIf { it.isNotBlank() }?.let { " • $it" } ?: "")
-                            }
-                            is DrugsEvent -> {
-                                val drugName = if (span.evt.drugType == DrugType.OTHER && !span.evt.otherDrugName.isNullOrBlank()) {
-                                    span.evt.otherDrugName
-                                } else {
-                                    stringResource(span.evt.drugType.displayNameRes)
-                                }
-
-                                val dosageInfo = span.evt.dosage?.let { " • ${it}${span.evt.unit}" } ?: ""
-
-                                drugName + dosageInfo +
-                                        (span.evt.notes?.takeIf { it.isNotBlank() }?.let { " • $it" } ?: "")
-                            }
-                            else -> {
-                                type.getDisplayName(context) +
-                                        (span.evt.notes?.takeIf { it.isNotBlank() }?.let { " • $it" } ?: "")
-                            }
-                        },
+                        text = eventLabel(span = span, type = type),
                         style = MaterialTheme.typography.labelSmall,
                         color = BackgroundColor,
                         maxLines = 1,
@@ -463,7 +454,7 @@ fun EventContent(span: DaySpan, type: EventType) {
                 }
             }
 
-            // 🟡 MEDIUM: Icon + Text court (pas de spacer)
+            // 🟡 MEDIUM: unchanged
             maxWidth > 40.dp -> {
                 Row(
                     modifier = Modifier.fillMaxSize(),
@@ -487,7 +478,7 @@ fun EventContent(span: DaySpan, type: EventType) {
                 }
             }
 
-            // 🔴 SMALL: Icon seul
+            // 🔴 SMALL: unchanged
             maxWidth > 20.dp -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -502,7 +493,7 @@ fun EventContent(span: DaySpan, type: EventType) {
                 }
             }
 
-            // ⚫ TINY: Juste un point/background
+            // ⚫ TINY: unchanged
             else -> {
                 Box(
                     modifier = Modifier
@@ -511,6 +502,160 @@ fun EventContent(span: DaySpan, type: EventType) {
             }
         }
     }
+}
+
+@Composable
+private fun eventLabel(span: DaySpan, type: EventType): String {
+    val context = LocalContext.current
+    val evt = span.evt
+    val eventType = EventType.forClass(evt::class)
+
+    val notesPart = evt.notes
+        ?.takeIf { it.isNotBlank() }
+        ?.let { " • $it" }
+        ?: ""
+
+    return when (evt) {
+        is DiaperEvent -> {
+            // Existing behavior
+            stringResource(evt.diaperType.displayNameRes) + notesPart
+        }
+
+        is DrugsEvent -> {
+            val drugName =
+                if (evt.drugType == DrugType.OTHER && !evt.otherDrugName.isNullOrBlank()) {
+                    evt.otherDrugName
+                } else {
+                    stringResource(evt.drugType.displayNameRes)
+                }
+
+            val dosageInfo = evt.dosage?.let { " • ${it}${evt.unit}" } ?: ""
+
+            drugName + dosageInfo + notesPart
+        }
+
+        is FeedingEvent -> {
+            val base = stringResource(evt.feedType.displayNameRes)
+
+            val amount = evt.amountMl
+                ?.takeIf { it > 0 }
+                ?.let { " • ${it.toInt()} ml" } ?: ""
+
+            val duration = evt.durationMinutes
+                ?.takeIf { it > 0 }
+                ?.let { " • ${it} min" } ?: ""
+
+            val side = evt.breastSide
+                ?.let { side ->
+                    val sideLabel = when (side) {
+                        BreastSide.LEFT -> "L"
+                        BreastSide.RIGHT -> "R"
+                        BreastSide.BOTH -> "LR"
+                    }
+                    " • $sideLabel"
+                } ?: ""
+
+            base + amount + duration + side + notesPart
+        }
+
+        is PumpingEvent -> {
+            val base = eventType.getDisplayName(context)
+
+            val amount = evt.amountMl
+                ?.takeIf { it > 0 }
+                ?.let { " • ${it.toInt()} ml" } ?: ""
+
+            val duration = evt.durationMinutes
+                ?.takeIf { it > 0 }
+                ?.let { " • ${it} min" } ?: ""
+
+            val side = evt.breastSide
+                ?.let { side ->
+                    val sideLabel = when (side) {
+                        BreastSide.LEFT -> "L"
+                        BreastSide.RIGHT -> "R"
+                        BreastSide.BOTH -> "LR"
+                    }
+                    " • $sideLabel"
+                } ?: ""
+
+            base + amount + duration + side + notesPart
+        }
+
+        is SleepEvent -> {
+            val base = if (evt.isSleeping) {
+                stringResource(R.string.sleep_event_sleeping) // e.g. "Sommeil"
+            } else {
+                stringResource(R.string.sleep_event_slept)  // e.g. "Sommeil terminé"
+            }
+
+            val minutes = evt.durationMinutes
+                ?: run {
+                    val start = evt.beginTime?.time
+                    val end = evt.endTime?.time
+                    if (start != null && end != null && end > start) {
+                        ((end - start) / (60_000L))
+                    } else null
+                }
+
+            val duration = minutes
+                ?.takeIf { it > 0 }
+                ?.let { " • ${formatDuration(it)}" } ?: ""
+
+            base + duration + notesPart
+        }
+
+        is GrowthEvent -> {
+            val weight = evt.weightKg
+                ?.takeIf { it > 0 }
+                ?.let { "${it} kg" } ?: ""
+
+            val height = evt.heightCm
+                ?.takeIf { it > 0 }
+                ?.let { "${if (weight.isNotEmpty()) " • " else ""}${it.toInt()} cm" } ?: ""
+
+            val head = evt.headCircumferenceCm
+                ?.takeIf { it > 0 }
+                ?.let {
+                    val sep = if (weight.isNotEmpty() || height.isNotEmpty()) " • " else ""
+                    "${sep}${it.toInt()} cm HC"
+                } ?: ""
+
+            val base = if (weight.isNotEmpty() || height.isNotEmpty() || head.isNotEmpty()) {
+                weight + height + head
+            } else {
+                type.getDisplayName(context)
+            }
+
+            base + notesPart
+        }
+
+        else -> {
+            type.getDisplayName(context) + notesPart
+        }
+    }
+}
+
+/**
+ * 75 -> "1h15", 45 -> "45 min"
+ */
+private fun formatDuration(totalMinutes: Long): String {
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+    return when {
+        hours > 0 && minutes > 0 -> "${hours}h${minutes}"
+        hours > 0 -> "${hours}h"
+        else -> "${minutes} min"
+    }
+}
+
+@Composable
+private fun DrugColorDot(drugType: DrugType, size: Dp = 6.dp) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .background(drugType.color, CircleShape)
+    )
 }
 
 
