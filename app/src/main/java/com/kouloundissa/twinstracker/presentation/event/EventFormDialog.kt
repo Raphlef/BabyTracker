@@ -1,5 +1,9 @@
 package com.kouloundissa.twinstracker.presentation.event
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.ActivityInfo
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -58,6 +62,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -168,6 +173,7 @@ fun EventFormDialog(
             decorFitsSystemWindows = false
         )
     ) {
+        LockScreenOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
         // Animated content with slide and fade
         AnimatedVisibility(
             visible = isVisible,
@@ -1512,4 +1518,21 @@ fun FormNumericInput(
         isError = error != null,
         errorMessage = error,
     )
+}
+@Composable
+private fun LockScreenOrientation(orientation: Int) {
+    val context = LocalContext.current
+    DisposableEffect(orientation) {
+        val activity = context.findActivity() ?: return@DisposableEffect onDispose {}
+        val originalOrientation = activity.requestedOrientation
+        activity.requestedOrientation = orientation
+        onDispose {
+            activity.requestedOrientation = originalOrientation  // Restaure l'original
+        }
+    }
+}
+fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
