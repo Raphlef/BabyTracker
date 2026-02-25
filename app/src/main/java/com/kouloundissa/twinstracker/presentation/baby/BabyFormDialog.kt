@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
@@ -73,7 +72,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
@@ -83,6 +81,7 @@ import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.BloodType
 import com.kouloundissa.twinstracker.data.Gender
 import com.kouloundissa.twinstracker.data.getDisplayName
+import com.kouloundissa.twinstracker.presentation.event.FormNumericInput
 import com.kouloundissa.twinstracker.presentation.settings.SectionCard
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
@@ -531,29 +530,32 @@ private fun BabyFormMeasurementsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            NumericFieldSection(
+            FormNumericInput(
                 label = stringResource(id = R.string.weight_label),
                 value = state.weight,
-                onChange = { state.weight = it },
-                error = state.weightError,
-                onErrorChange = { state.weightError = it }
+                onValueChange = { state.weight = it },
+                onError = { state.weightError = it },
+                max = 50f,
+                modifier = Modifier.weight(1f),
             )
 
-            NumericFieldSection(
+            FormNumericInput(
                 label = stringResource(id = R.string.height_label),
                 value = state.lengthCm,
-                onChange = { state.lengthCm = it },
-                error = state.lengthError,
-                onErrorChange = { state.lengthError = it }
+                onValueChange = { state.lengthCm = it },
+                onError = { state.lengthError = it },
+                max = 150f,
+                modifier = Modifier.weight(1f),
             )
         }
 
-        NumericFieldSection(
+        FormNumericInput(
             label = stringResource(id = R.string.head_circumference),
             value = state.headCirc,
-            onChange = { state.headCirc = it },
-            error = state.headCircError,
-            onErrorChange = { state.headCircError = it }
+            onValueChange = { state.headCirc = it },
+            onError = { state.headCircError = it },
+            max = 60f,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
@@ -884,46 +886,7 @@ fun ViewerCannotModifyBaby(onDismiss: () -> Unit) {
         }
     )
 }
-/* -----------------------
-   Subcomponents
-   ----------------------- */
 
-
-@Composable
-private fun NumericFieldSection(
-    label: String,
-    value: String,
-    onChange: (String) -> Unit,
-    error: String?,
-    onErrorChange: (String?) -> Unit
-) {
-    val context = LocalContext.current
-    val contentColor = DarkGrey
-    val cornerShape = MaterialTheme.shapes.extraLarge
-    val invalidNumberError = stringResource(id = R.string.invalid_number)
-    OutlinedTextField(
-        value = value,
-        onValueChange = { new ->
-            // Allow only digits and at most one dot
-            val filtered = new.filter { it.isDigit() || it == '.' }
-            val cleaned = if (filtered.count { it == '.' } > 1) value else filtered
-            onChange(cleaned)
-            onErrorChange(
-                if (cleaned.isNotBlank() && cleaned.toDoubleOrNull() == null)
-                    invalidNumberError else null
-            )
-        },
-        textStyle = LocalTextStyle.current.copy(color = contentColor),
-        label = { Text(label, color = contentColor) },
-        isError = error != null,
-        singleLine = true,
-        shape = cornerShape,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        modifier = Modifier.fillMaxWidth(),
-
-        )
-    error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-}
 /* -----------------------
    Delete dialog
    ----------------------- */

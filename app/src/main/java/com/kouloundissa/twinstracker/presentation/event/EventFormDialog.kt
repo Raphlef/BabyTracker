@@ -1456,24 +1456,60 @@ fun FormTextInput(
 
 @Composable
 fun FormNumericInput(
+    label: String,
     value: String,
     onValueChange: (String) -> Unit,
-    label: String,
-    modifier: Modifier = Modifier,
+    onError: ((String?) -> Unit)? = null,
     min: Float = 0f,
     max: Float = Float.MAX_VALUE,
+    modifier: Modifier = Modifier,
 ) {
+
+    val invalidNumberError = stringResource(id = R.string.invalid_number)
+    val outOfRangeError = stringResource(id = R.string.out_of_range)
+
+    var error by remember { mutableStateOf<String?>(null) }
+
     FormTextInput(
         value = value,
-        onValueChange = { newValue ->
-            val floatValue = newValue.toFloatOrNull() ?: 0f
-            if (floatValue in min..max) {
-                onValueChange(newValue)
+        onValueChange = { new ->
+            val filtered = new.filter { it.isDigit() || it == '.' }
+            val cleaned = if (filtered.count { it == '.' } > 1) value else filtered
+
+            // Empty value: no error, propagate
+            if (cleaned.isBlank()) {
+                error = null
+                onError?.invoke(null)
+                onValueChange(cleaned)
+                return@FormTextInput
+            }
+
+            val floatValue = cleaned.toFloatOrNull()
+
+            when {
+                floatValue == null -> {
+                    error = invalidNumberError
+                    onError?.invoke(error)
+                    // do not propagate invalid numeric string to parent if you want strict state
+                }
+
+                floatValue !in min..max -> {
+                    error = outOfRangeError
+                    onError?.invoke(error)
+                }
+
+                else -> {
+                    error = null
+                    onError?.invoke(null)
+                    onValueChange(cleaned)
+                }
             }
         },
         label = label,
-        modifier = modifier,
+        modifier = modifier.fillMaxWidth(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        singleLine = true
+        singleLine = true,
+        isError = error != null,
+        errorMessage = error,
     )
 }
