@@ -532,7 +532,7 @@ private fun BabyFormMeasurementsSection(
             modifier = Modifier.fillMaxWidth()
         ) {
             NumericFieldSection(
-                label = stringResource(id = R.string.weight_form_label),
+                label = stringResource(id = R.string.weight_label),
                 value = state.weight,
                 onChange = { state.weight = it },
                 error = state.weightError,
@@ -540,7 +540,7 @@ private fun BabyFormMeasurementsSection(
             )
 
             NumericFieldSection(
-                label = stringResource(id = R.string.length_form_label),
+                label = stringResource(id = R.string.height_label),
                 value = state.lengthCm,
                 onChange = { state.lengthCm = it },
                 error = state.lengthError,
@@ -556,16 +556,6 @@ private fun BabyFormMeasurementsSection(
             onErrorChange = { state.headCircError = it }
         )
     }
-
-    IconSelector(
-        title = stringResource(id = R.string.blood_type_label),
-        options = BloodType.entries.toList(),
-        selected = state.bloodType,
-        onSelect = { state.bloodType = it },
-        getIcon = { it.icon },
-        getColor = { it.color },
-        getLabel = { it.name }
-    )
 }
 
 // ========== SECTION: MEDICAL ==========
@@ -578,6 +568,17 @@ private fun BabyFormMedicalSection(
     val contentColor = DarkGrey
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
+
+    IconSelector(
+        title = stringResource(id = R.string.blood_type_label),
+        options = BloodType.entries.toList(),
+        selected = state.bloodType,
+        onSelect = { state.bloodType = it },
+        getIcon = { it.icon },
+        getColor = { it.color },
+        getLabel = { it.name }
+    )
+
     // Allergies
     OutlinedTextField(
         value = state.allergies,
