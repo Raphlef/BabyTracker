@@ -42,7 +42,7 @@ import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventTypeOverlayContext
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.data.toEventOverlayInfo
-import com.kouloundissa.twinstracker.presentation.baby.BabyCreateDialog
+import com.kouloundissa.twinstracker.presentation.baby.CreateBabiesDialog
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
@@ -84,7 +84,7 @@ fun HomeScreen(
 
     var editingEvent by remember { mutableStateOf<Event?>(null) }
     var showEventDialog by remember { mutableStateOf(false) }
-    var showBabyDialog by remember { mutableStateOf(false) }
+    var createBabyRequest by remember { mutableStateOf(false) }
 
     val analysisSnapshot by eventViewModel.analysisSnapshot.collectAsState()
 
@@ -180,10 +180,10 @@ fun HomeScreen(
             if (selectedBaby == null) {
                 // Empty state when no baby selected
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    if (babies.isEmpty() && !showBabyDialog) {
+                    if (babies.isEmpty() && !createBabyRequest) {
                         Button(
                             onClick = {
-                                showBabyDialog = true
+                                createBabyRequest = true
                             },
                             modifier = Modifier
                                 .height(56.dp)
@@ -309,13 +309,12 @@ fun HomeScreen(
                     overlay = currentOverlay
                 )
             }
-            if (showBabyDialog) {
-                BabyCreateDialog(
-                    onBabyCreated = { savedOrDeletedBaby ->
-                        showBabyDialog = false
-                        savedOrDeletedBaby.let { babyViewModel.selectBaby(it) }
-                    },
-                    onCancel = { showBabyDialog = false },
+            if (createBabyRequest) {
+                CreateBabiesDialog(
+                    onDismiss = { createBabyRequest = false },
+                    onBabiesCreated = { babies ->
+                        createBabyRequest = false
+                    }
                 )
             }
 
