@@ -29,7 +29,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
@@ -72,26 +72,6 @@ fun PhotoPicker(
     var cameraUri by remember { mutableStateOf<Uri?>(null) }
     var showDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-
-    // Whenever photoUrl changes, ensure it's cached locally
-    LaunchedEffect(photoUrl) {
-        displayUri = photoUrl?.let { uri ->
-            // Only cache remote URLs (Firebase Storage, HTTP, HTTPS)
-            if (uri.scheme in listOf("http", "https")) {
-                isLoading = true
-                try {
-                    ImageCacheManager.getCachedImageUri(context, uri.toString())
-                } finally {
-                    isLoading = false
-                }
-            } else {
-                // Already local (content://, file://) - use directly
-                Log.d("ImageCache", "✓ Local URI: $uri")
-                uri
-            }
-        }
-    }
-
 
     // Launchers for camera and gallery
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -129,15 +109,25 @@ fun PhotoPicker(
     ) {
         if (displayUri != null) {
             // Build Coil request
-            val request = ImageRequest.Builder(context)
-                .data(displayUri)
-                .crossfade(true)
-                .listener(
-                    onStart = { isLoading = true },
-                    onSuccess = { _, _ -> isLoading = false },
-                    onError = { _, _ -> isLoading = false }
-                )
-                .build()
+            val request = remember(displayUri) {
+                ImageRequest.Builder(context)
+                    .data(displayUri)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .crossfade(true)
+                    .listener(
+                        onStart = {
+                            isLoading = true
+                            Log.d("CoilCache", "🔄 START - Key: ${it.data}")
+                        },
+                        onSuccess = { _request, result ->
+                            isLoading = false
+                            Log.d("CoilCache", "DataSource: ${result.dataSource}")
+                        },
+                        onError = { _, _ -> isLoading = false }
+                    )
+                    .build()
+            }
 
             AsyncImage(
                 model = request,
