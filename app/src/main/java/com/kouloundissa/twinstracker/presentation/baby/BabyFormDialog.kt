@@ -23,14 +23,19 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Cake
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocalHospital
@@ -41,6 +46,8 @@ import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -59,6 +66,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.listSaver
@@ -96,34 +104,174 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BabyCreateDialog(
-    onBabyCreated: (Baby) -> Unit,
-    onCancel: () -> Unit,
+fun CreateBabiesDialog(
+    onDismiss: () -> Unit,
+    onBabiesCreated: (babies: List<Baby>) -> Unit,
+    babyViewModel: BabyViewModel = hiltViewModel(),
     familyViewModel: FamilyViewModel = hiltViewModel(),
 ) {
+    val isLoading by babyViewModel.isLoading.collectAsState()
+    val babyError by babyViewModel.errorMessage.collectAsState()
+
+    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
+
+    val names = remember { mutableStateListOf("") }
+    var createdBabies = remember { mutableStateListOf<Baby>() }
+
+    LaunchedEffect(isLoading, babyError, createdBabies.size) {
+        if (!isLoading && babyError == null && createdBabies.isNotEmpty()) {
+            onBabiesCreated(createdBabies)
+            onDismiss()
+        }
+    }
+
+    fun canConfirm(): Boolean =
+        !isLoading && babyError == null && names.all { it.trim().isNotBlank() }
+
     val currentUserIsViewer = familyViewModel.isCurrentUserViewer()
     if (currentUserIsViewer) {
         AlertDialog(
-            onDismissRequest = onCancel,
+            onDismissRequest = onDismiss,
             title = { Text(stringResource(R.string.restricted_access)) },
             text = { Text(stringResource(R.string.viewer_cannot_create_baby)) },
             confirmButton = {
-                Button(onClick = onCancel) {
+                Button(onClick = onDismiss) {
                     Text("OK")
                 }
             }
         )
         return
     }
-    BabyFormDialogInternal(
-        babyToEdit = null,
-        // Creation only: no delete
-        onCompleted = { baby ->
-            baby?.let(onBabyCreated)
+    AlertDialog(
+        onDismissRequest = {
+            if (!isLoading) onDismiss()
         },
-        onCancel = onCancel,
+        title = { Text(stringResource(id = R.string.baby_form_title_create)) },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                babyError?.let { error ->
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        ),
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    ) {
+                        Text(
+                            text = error,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .heightIn(max = 240.dp)
+                ) {
+                    itemsIndexed(names) { index, value ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = value,
+                                onValueChange = { new -> names[index] = new },
+                                label = {
+                                    Text(
+                                        stringResource(
+                                            id = R.string.baby_name_label
+                                        ) + " ${index + 1}"
+                                    )
+                                },
+                                singleLine = true,
+                                enabled = !isLoading,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            IconButton(
+                                onClick = {
+                                    if (names.size > 1) {
+                                        names.removeAt(index)
+                                    } else {
+                                        names[0] = ""
+                                    }
+                                },
+                                enabled = !isLoading
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = stringResource(
+                                        id = R.string.delete_button
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+
+                TextButton(
+                    onClick = { names.add("") },
+                    enabled = canConfirm(),
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(stringResource(id = R.string.baby_form_title_add))
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (babyError != null) return@TextButton
+
+                    val cleanedNames = names
+                        .map { it.trim() }
+                        .filter { it.isNotEmpty() }
+
+                    selectedFamily?.let {
+                        babyViewModel.saveMultipleBabiesFromNames(
+                            family = it,
+                            babyNames = cleanedNames,
+                            familyViewModel = familyViewModel,
+                            onComplete = { babies ->
+                                createdBabies.clear()
+                                createdBabies.addAll(babies)
+                            }
+                        )
+                    }
+                },
+                enabled = canConfirm()
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(stringResource(id = R.string.family_management_create_button))
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = {
+                    if (!isLoading) onDismiss()
+                },
+                enabled = !isLoading
+            ) {
+                Text(stringResource(id = R.string.cancel_button))
+            }
+        }
     )
 }
 
@@ -242,27 +390,29 @@ fun BabyFormDialogInternal(
                     haptic.performHapticFeedback(HapticFeedbackType.Reject)
                     return@BabyFormSheetContent  // Stop execution
                 }
-                babyViewModel.saveBaby(
-                    selectedFamily,
-                    id = babyData.id,
-                    name = babyData.name,
-                    birthDate = babyData.birthDate,
-                    gender = babyData.gender,
-                    birthWeightKg = babyData.birthWeightKg,
-                    birthLengthCm = babyData.birthLengthCm,
-                    birthHeadCircumferenceCm = babyData.birthHeadCircumferenceCm,
-                    birthTime = babyData.birthTime,
-                    bloodType = babyData.bloodType,
-                    allergies = babyData.allergies,
-                    medicalConditions = babyData.medicalConditions,
-                    pediatricianName = babyData.pediatricianName,
-                    pediatricianPhone = babyData.pediatricianPhone,
-                    notes = babyData.notes,
-                    existingPhotoUrl = currentBaby?.photoUrl,
-                    newPhotoUri = newPhotoUri,
-                    photoRemoved = photoRemoved,
-                    familyViewModel
-                )
+                selectedFamily?.let {
+                    babyViewModel.saveBaby(
+                        it,
+                        id = babyData.id,
+                        name = babyData.name,
+                        familyViewModel = familyViewModel,
+                        birthDate = babyData.birthDate,
+                        gender = babyData.gender,
+                        birthWeightKg = babyData.birthWeightKg,
+                        birthLengthCm = babyData.birthLengthCm,
+                        birthHeadCircumferenceCm = babyData.birthHeadCircumferenceCm,
+                        birthTime = babyData.birthTime,
+                        bloodType = babyData.bloodType,
+                        allergies = babyData.allergies,
+                        medicalConditions = babyData.medicalConditions,
+                        pediatricianName = babyData.pediatricianName,
+                        pediatricianPhone = babyData.pediatricianPhone,
+                        notes = babyData.notes,
+                        existingPhotoUrl = currentBaby?.photoUrl,
+                        newPhotoUri = newPhotoUri,
+                        photoRemoved = photoRemoved
+                    )
+                }
             },
             modifier = Modifier
                 .padding(innerPadding)
@@ -278,7 +428,7 @@ fun BabyFormDialogInternal(
             onConfirm = {
                 deleteRequested = true
                 openDeleteDialog.value = false
-                babyViewModel.deleteBaby(currentBaby.id, familyViewModel)
+                selectedFamily?.let { babyViewModel.deleteBaby(currentBaby.id,it, familyViewModel) }
             },
             onDismiss = { openDeleteDialog.value = false }
         )
