@@ -52,10 +52,10 @@ class BabyViewModel @Inject constructor(
         .onStart {
             _isLoading.value = true
             _errorMessage.value = null
+            _selectedBaby.value = null
         }
         .onEach {
             _isLoading.value = false
-            _selectedBaby.value = null
         }
         .catch { e ->
             _isLoading.value = false
