@@ -48,6 +48,7 @@ gson = "2.13.2"
 haze = "1.7.1"
 jodaTime = "2.14.0"
 mpandroidchart = "3.1.0"
+ucrop = "2.2.8"
 kotlinxCoroutinesPlayServices = "1.10.2"
 kotlinxDatetime = "0.7.1"
 
@@ -138,6 +139,7 @@ gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 joda-time = { group = "joda-time", name = "joda-time", version.ref = "jodaTime" }
 mpandroidchart = { group = "com.github.PhilJay", name = "MPAndroidChart", version.ref = "mpandroidchart" }
+ucrop = { module = "com.github.yalantis:ucrop", version.ref = "ucrop" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutinesPlayServices" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }

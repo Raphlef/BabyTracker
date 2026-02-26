@@ -180,6 +180,7 @@ dependencies {
     implementation(libs.kotlin.reflect)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.kotlinx.datetime)
+    implementation(libs.ucrop)
 
     // === Testing ===
     testImplementation(libs.junit)
