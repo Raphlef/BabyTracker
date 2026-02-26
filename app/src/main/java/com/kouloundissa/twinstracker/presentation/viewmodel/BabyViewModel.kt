@@ -89,7 +89,6 @@ class BabyViewModel @Inject constructor(
         return nextBaby
     }
 
-
     private val _parents = MutableStateFlow<List<User>>(emptyList())
     val parents: StateFlow<List<User>> = _parents.asStateFlow()
 
@@ -121,11 +120,89 @@ class BabyViewModel @Inject constructor(
         _selectedBaby.value = baby
     }
 
+    /**
+     * Crée plusieurs bébés à partir d'une liste de noms uniquement.
+     * Tous les autres paramètres utilisent les valeurs par défaut (birthDate=0, gender=UNKNOWN, etc.)
+     * Réutilise la logique de saveBaby pour éviter la duplication de code.
+     */
+    fun saveMultipleBabiesFromNames(
+        family: Family,
+        babyNames: List<String>,
+        familyViewModel: FamilyViewModel,
+        onComplete: (List<Baby>) -> Unit = {}
+    ) {
+        _isLoading.value = true
+        _errorMessage.value = null
+
+        if (!familyViewModel.canUserSaveBaby()) {
+            _isLoading.value = false
+            _errorMessage.value =
+                "You don't have permission to save babies. Only members and admins can save."
+            return
+        }
+
+        if (babyNames.isEmpty()) {
+            _isLoading.value = false
+            _errorMessage.value = "Aucun nom de bébé fourni."
+            return
+        }
+
+        Log.d(TAG, "saveMultipleBabiesFromNames: Creating ${babyNames.size} babies")
+
+        viewModelScope.launch {
+            val savedBabies = mutableListOf<Baby>()
+            var hasError = false
+
+            try {
+                var _currentFamily = family
+                babyNames.forEachIndexed { index, name ->
+                    if (hasError) return@forEachIndexed
+                    try {
+                        val createdBaby = saveBabyInternal(
+                            family = _currentFamily,
+                            id = null,
+                            name = name,
+                            familyViewModel = familyViewModel,
+                        ) { updatedFamily ->
+                            _currentFamily = updatedFamily
+                        }
+
+                        if (createdBaby != null && createdBaby.name == name) {
+                            savedBabies.add(createdBaby)
+                            Log.d(TAG, "Baby created: $name (id=${createdBaby.id})")
+                        }
+
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error creating baby '$name': ${e.message}", e)
+                        hasError = true
+                        _errorMessage.value = "Erreur création bébé '$name': ${e.localizedMessage}"
+                    }
+                }
+
+                if (!hasError) {
+                    Log.i(
+                        TAG,
+                        "saveMultipleBabiesFromNames: Successfully created ${savedBabies.size} babies"
+                    )
+                    _selectedBaby.value = savedBabies.last()
+                    onComplete(savedBabies)
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "saveMultipleBabiesFromNames error: ${e.message}", e)
+                _errorMessage.value = "Échec création multiples: ${e.localizedMessage}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
     fun saveBaby(
-        family: Family?,
+        family: Family,
         id: String?,
         name: String,
-        birthDate: Long,
+        familyViewModel: FamilyViewModel,
+        birthDate: Long = 0L,
         gender: Gender = Gender.UNKNOWN,
         birthWeightKg: Double? = null,
         birthLengthCm: Double? = null,
@@ -137,28 +214,21 @@ class BabyViewModel @Inject constructor(
         pediatricianName: String? = null,
         pediatricianPhone: String? = null,
         notes: String? = null,
-        existingPhotoUrl: String?,
+        existingPhotoUrl: String? = null,
         newPhotoUri: Uri? = null,
         photoRemoved: Boolean = false,
-        familyViewModel: FamilyViewModel
+        onSuccess: ((Family) -> Unit)? = null
     ) {
-        if (!familyViewModel.canUserSaveBaby()) {
-            _errorMessage.value =
-                "You don't have permission to save baby. Only members and admins can save."
-            return
-        }
-        val isUpdate = !id.isNullOrBlank()
-        Log.d(TAG, "saveBaby: ${if (isUpdate) "UPDATE" else "CREATE"} - id=$id, name=$name")
-
         _isLoading.value = true
         _errorMessage.value = null
 
         viewModelScope.launch {
             try {
-                // Step 1: Prepare the baby data
-                val babyData = prepareBabyData(
+                val finalBaby = saveBabyInternal(
+                    family = family,
                     id = id,
                     name = name,
+                    familyViewModel = familyViewModel,
                     birthDate = birthDate,
                     gender = gender,
                     birthWeightKg = birthWeightKg,
@@ -172,33 +242,11 @@ class BabyViewModel @Inject constructor(
                     pediatricianPhone = pediatricianPhone,
                     notes = notes,
                     existingPhotoUrl = existingPhotoUrl,
-                    photoRemoved = photoRemoved
+                    newPhotoUri = newPhotoUri,
+                    photoRemoved = photoRemoved,
+                    onSuccess = onSuccess
                 )
 
-                // Step 2: Save baby to repository
-                val savedBaby = repository.addOrUpdateBaby(babyData, family).getOrThrow()
-                Log.i(TAG, "saveBaby: Baby saved to repository - id=${savedBaby.id}")
-
-                // Step 3: Handle photo upload if new photo provided
-                val finalBaby = if (newPhotoUri != null) {
-                    val photoUrl = uploadBabyPhoto(savedBaby.id, newPhotoUri)
-                    if (photoUrl != null) {
-                        val babyWithPhoto = savedBaby.copy(
-                            photoUrl = photoUrl,
-                            updatedAt = System.currentTimeMillis()
-                        )
-                        repository.addOrUpdateBaby(babyWithPhoto, family).getOrThrow()
-                    } else {
-                        savedBaby
-                    }
-                } else {
-                    savedBaby
-                }
-
-                Log.i(
-                    TAG,
-                    "saveBaby: Success - id=${finalBaby.id}, hasPhoto=${finalBaby.photoUrl != null}"
-                )
                 _selectedBaby.value = finalBaby
 
             } catch (e: Exception) {
@@ -208,6 +256,87 @@ class BabyViewModel @Inject constructor(
                 _isLoading.value = false
             }
         }
+    }
+
+    private suspend fun saveBabyInternal(
+        family: Family,
+        id: String?,
+        name: String,
+        familyViewModel: FamilyViewModel,
+        birthDate: Long = 0L,
+        gender: Gender = Gender.UNKNOWN,
+        birthWeightKg: Double? = null,
+        birthLengthCm: Double? = null,
+        birthHeadCircumferenceCm: Double? = null,
+        birthTime: String? = null,
+        bloodType: BloodType = BloodType.UNKNOWN,
+        allergies: List<String> = emptyList(),
+        medicalConditions: List<String> = emptyList(),
+        pediatricianName: String? = null,
+        pediatricianPhone: String? = null,
+        notes: String? = null,
+        existingPhotoUrl: String? = null,
+        newPhotoUri: Uri? = null,
+        photoRemoved: Boolean = false,
+        onSuccess: ((Family) -> Unit)? = null
+    ): Baby {
+        if (!familyViewModel.canUserSaveBaby()) {
+            throw IllegalStateException("You don't have permission to save baby. Only members and admins can save.")
+        }
+        val isUpdate = !id.isNullOrBlank()
+        Log.d(TAG, "saveBaby: ${if (isUpdate) "UPDATE" else "CREATE"} - id=$id, name=$name")
+
+        // Step 1: Prepare the baby data
+        val babyData = prepareBabyData(
+            id = id,
+            name = name,
+            birthDate = birthDate,
+            gender = gender,
+            birthWeightKg = birthWeightKg,
+            birthLengthCm = birthLengthCm,
+            birthHeadCircumferenceCm = birthHeadCircumferenceCm,
+            birthTime = birthTime,
+            bloodType = bloodType,
+            allergies = allergies,
+            medicalConditions = medicalConditions,
+            pediatricianName = pediatricianName,
+            pediatricianPhone = pediatricianPhone,
+            notes = notes,
+            existingPhotoUrl = existingPhotoUrl,
+            photoRemoved = photoRemoved
+        )
+
+        // Step 2: Save baby to repository
+        val result = repository.addOrUpdateBaby(babyData, family).getOrThrow()
+        val savedBaby = result.first
+        var updatedFamily = result.second
+        Log.i(TAG, "saveBaby: Baby saved to repository - id=${savedBaby.id}")
+
+        // Step 3: Handle photo upload if new photo provided
+        val finalBaby = if (newPhotoUri != null) {
+            val photoUrl = uploadBabyPhoto(savedBaby.id, newPhotoUri)
+            if (photoUrl != null) {
+                val babyWithPhoto = savedBaby.copy(
+                    photoUrl = photoUrl,
+                    updatedAt = System.currentTimeMillis()
+                )
+                val result = repository.addOrUpdateBaby(babyWithPhoto, family).getOrThrow()
+                updatedFamily = result.second
+                result.first
+
+            } else {
+                savedBaby
+            }
+        } else {
+            savedBaby
+        }
+
+        Log.i(
+            TAG,
+            "saveBaby: Success - id=${finalBaby.id}, hasPhoto=${finalBaby.photoUrl != null}"
+        )
+        onSuccess?.invoke(updatedFamily)
+        return finalBaby
     }
 
 
