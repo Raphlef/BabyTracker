@@ -59,8 +59,8 @@ import com.kouloundissa.twinstracker.data.EventFormState.Sleep
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
 import com.kouloundissa.twinstracker.presentation.analysis.AnalysisScreen
-import com.kouloundissa.twinstracker.presentation.baby.BabyCreateDialog
 import com.kouloundissa.twinstracker.presentation.baby.BabyEditDialog
+import com.kouloundissa.twinstracker.presentation.baby.CreateBabiesDialog
 import com.kouloundissa.twinstracker.presentation.calendar.CalendarScreen
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
 import com.kouloundissa.twinstracker.presentation.home.HomeScreen
@@ -228,7 +228,6 @@ fun DashboardScreen(
                                     babyViewModel.selectBaby(it)
                                 },
                                 onEditBaby = {
-                                    createBabyRequest = selectedBaby == null
                                     val babyTabIndex = tabs.indexOf(DashboardTab.Baby)
                                     coroutineScope.launch {
                                         pagerState.animateScrollToPage(babyTabIndex)
@@ -236,11 +235,6 @@ fun DashboardScreen(
                                 },
                                 onAddBaby = {
                                     createBabyRequest = true
-                                    val babyTabIndex = tabs.indexOf(DashboardTab.Baby)
-
-                                    coroutineScope.launch {
-                                        pagerState.animateScrollToPage(babyTabIndex)
-                                    }
                                 },
                                 onExpandedChanged = { isExpanded ->
                                     isBabyInfoExpanded = isExpanded
@@ -300,24 +294,25 @@ fun DashboardScreen(
                                 )
 
                                 DashboardTab.Baby -> {
-                                    val selectedBaby =
-                                        babyViewModel.selectedBaby.collectAsState().value
-
-                                    if (createBabyRequest || selectedBaby == null) {
-                                        BabyCreateDialog(
-                                            onBabyCreated = { savedBaby ->
+                                    if (selectedBaby == null) {
+                                        CreateBabiesDialog(
+                                            onDismiss = {
                                                 createBabyRequest = false
-                                                babyViewModel.selectBaby(savedBaby)
                                             },
-                                            onCancel = {
+                                            onBabiesCreated = { babies ->
                                                 createBabyRequest = false
+                                                val babyTabIndex = tabs.indexOf(DashboardTab.Baby)
+
+                                                coroutineScope.launch {
+                                                    pagerState.animateScrollToPage(babyTabIndex)
+                                                }
                                             }
                                         )
                                     } else {
                                         BabyEditDialog(
-                                            babyToEdit = selectedBaby,
-                                            onBabyUpdated = { },
-                                            onCancel = { }
+                                            babyToEdit = selectedBaby!!,
+                                            onBabyUpdated = { createBabyRequest = false},
+                                            onCancel = {createBabyRequest = false }
                                         )
                                     }
                                 }
@@ -354,7 +349,21 @@ fun DashboardScreen(
                         )
                     }
                 }
+                if (createBabyRequest ) {
+                    CreateBabiesDialog(
+                        onDismiss = {
+                            createBabyRequest = false
+                        },
+                        onBabiesCreated = { babies ->
+                            createBabyRequest = false
+                            val babyTabIndex = tabs.indexOf(DashboardTab.Baby)
 
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(babyTabIndex)
+                            }
+                        }
+                    )
+                }
                 // Floating nav sits on bot, aligned bottom center
                 Box(
                     modifier = Modifier
