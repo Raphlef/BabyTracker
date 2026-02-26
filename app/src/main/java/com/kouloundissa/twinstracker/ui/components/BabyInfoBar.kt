@@ -1,5 +1,7 @@
 package com.kouloundissa.twinstracker.ui.components
 
+
+import android.util.Log
 import androidx.compose.animation.core.EaseOutElastic
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -44,11 +46,16 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Baby
 import com.kouloundissa.twinstracker.data.Family
@@ -194,21 +201,50 @@ private fun BabyInfoHeaderContent(
     val context = LocalContext.current
     val backgroundColor = BackgroundColor
     val tint = DarkBlue
+
+    val babyPhotoUri = remember(baby?.photoUrl) { baby?.photoUrl?.toUri() }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
     ) {
         // Gender-based baby emoji
-        Text(
-            text = baby?.gender?.emoji ?: "👶",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier
-                .padding(end = 12.dp)
-                .scaleAnimation(
-                    targetScale = 1f,
-                    animationDuration = 300
-                )
-        )
+        if (babyPhotoUri != null) {
+            val request = remember(babyPhotoUri) {
+                ImageRequest.Builder(context)
+                    .data(babyPhotoUri)
+                    .crossfade(true)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .listener(
+                        onStart = { _request ->
+                            Log.d("CoilCache", "🔄 START - Key: ${_request.data}")
+                        },
+                        onSuccess = { _request, result ->
+                            Log.d("CoilCache", "DataSource: ${result.dataSource}")
+                        }
+                    )
+                    .build()
+            }
+            AsyncImage(
+                model = request,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(30.dp)
+                    .clip(CircleShape)
+            )
+        } else {
+            Text(
+                text = baby?.gender?.emoji ?: "👶",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier
+                    .padding(end = 12.dp)
+                    .scaleAnimation(
+                        targetScale = 1f,
+                        animationDuration = 300
+                    )
+            )
+        }
 
         Column(
             //  modifier = Modifier.weight(1f)
@@ -377,6 +413,8 @@ private fun BabySelectorItem(
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.medium
 
+    val babyPhotoUri = remember(baby.photoUrl) { baby.photoUrl?.toUri() }
+
     Surface(
         tonalElevation = if (isSelected) 4.dp else 0.dp,
         color = if (isSelected) tint.copy(alpha = 0.1f)
@@ -395,11 +433,41 @@ private fun BabySelectorItem(
                 .fillMaxSize()
                 .padding(horizontal = 12.dp)
         ) {
-            Text(
-                text = baby.gender.emoji,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(end = 8.dp)
-            )
+            val request = remember(babyPhotoUri) {
+                ImageRequest.Builder(context)
+                    .data(babyPhotoUri)
+                    .crossfade(true)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .listener(
+                        onStart = { _request ->
+                            Log.d("CoilCache", "🔄 START - Key: ${_request.data}")
+                        },
+                        onSuccess = { _request, result ->
+
+                            Log.d("CoilCache", "DataSource: ${result.dataSource}")
+                        }
+                    )
+                    .build()
+            }
+            if (babyPhotoUri != null) {
+                AsyncImage(
+                    model = request,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .size(30.dp)
+                        .clip(CircleShape)
+
+                )
+            } else {
+                Text(
+                    text = baby.gender.emoji,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+            }
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
