@@ -337,55 +337,57 @@ class FirebaseRepository @Inject constructor(
 
 
     // ===== BABY OPERATIONS =====
-    suspend fun addOrUpdateBaby(baby: Baby, family: Family?): Result<Baby> = runCatching {
+    suspend fun addOrUpdateBaby(baby: Baby, family: Family?): Result<Pair<Baby, Family>> =
+        runCatching {
 
-        authManager.requireWrite()
-        val userId = getCurrentUserIdOrThrow()
+            authManager.requireWrite()
+            val userId = getCurrentUserIdOrThrow()
 
-        if (family == null) {
-            throw IllegalStateException("L'utilisateur ne fait partie d'aucune famille")
-        }
-        val existingBabyIds = family.babyIds.toMutableList()
+            if (family == null) {
+                throw IllegalStateException("L'utilisateur ne fait partie d'aucune famille")
+            }
+            val existingBabyIds = family.babyIds.toMutableList()
 
-        // Validate name uniqueness (exclude current baby if updating)
-        if (existingBabyIds.isNotEmpty()) {
-            val duplicates = queryHelper.queryByIds<Baby>(
-                FirestoreConstants.Collections.BABIES,
-                existingBabyIds
-            ).filter {
-                it.name.trim().equals(baby.name.trim(), ignoreCase = true) &&
-                        it.id != baby.id
+            // Validate name uniqueness (exclude current baby if updating)
+            if (existingBabyIds.isNotEmpty()) {
+                val duplicates = queryHelper.queryByIds<Baby>(
+                    FirestoreConstants.Collections.BABIES,
+                    existingBabyIds
+                ).filter {
+                    it.name.trim().equals(baby.name.trim(), ignoreCase = true) &&
+                            it.id != baby.id
+                }
+
+                if (duplicates.isNotEmpty()) {
+                    throw IllegalStateException("Un bébé portant ce nom existe déjà dans votre famille.")
+                }
             }
 
-            if (duplicates.isNotEmpty()) {
-                throw IllegalStateException("Un bébé portant ce nom existe déjà dans votre famille.")
+            val isNew = baby.id.isBlank()
+            val docRef = if (isNew) {
+                db.collection(FirestoreConstants.Collections.BABIES).document()
+            } else {
+                db.collection(FirestoreConstants.Collections.BABIES).document(baby.id)
             }
-        }
 
-        val isNew = baby.id.isBlank()
-        val docRef = if (isNew) {
-            db.collection(FirestoreConstants.Collections.BABIES).document()
-        } else {
-            db.collection(FirestoreConstants.Collections.BABIES).document(baby.id)
-        }
+            val finalBaby = baby.copy(id = docRef.id)
 
-        val finalBaby = baby.copy(id = docRef.id)
+            docRef.set(finalBaby).await()
 
-        docRef.set(finalBaby).await()
-
-        // Add to family
-        if (isNew) {
+            // Add to family if baby is not already present (works for both new and updated babies)
+            var finalFamily = family
             if (finalBaby.id !in family.babyIds) {
                 val updated = family.copy(
                     babyIds = (family.babyIds + finalBaby.id).distinct(),
                     updatedAt = FirestoreTimestampUtils.getCurrentTimestamp()
                 )
                 addOrUpdateFamily(updated).getOrThrow()
+                setSelectedFamily(updated)
+                finalFamily = updated
             }
-        }
 
-        finalBaby
-    }
+            Pair(finalBaby, finalFamily)
+        }
 
     private val _selectedFamily = MutableStateFlow<Family?>(null)
     val selectedFamily: StateFlow<Family?> = _selectedFamily.asStateFlow()
@@ -406,6 +408,7 @@ class FirebaseRepository @Inject constructor(
     fun setSelectedFamily(family: Family?) {
         _selectedFamily.value = family
     }
+
     fun streamFamilyBabyIds(familyId: String): Flow<List<String>> {
         return callbackFlow {
             val listener = db.collection(FirestoreConstants.Collections.FAMILIES)
@@ -445,6 +448,7 @@ class FirebaseRepository @Inject constructor(
                                         babiesMap[baby.id] = baby
                                     }
                                 }
+
                                 DocumentChange.Type.REMOVED -> {
                                     babiesMap.remove(change.document.id)
                                 }
