@@ -26,6 +26,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import coil.ImageLoader
+import coil.ImageLoaderFactory
+import coil.disk.DiskCache
+import coil.memory.MemoryCache
 import com.google.android.gms.ads.MobileAds
 import com.google.firebase.BuildConfig
 import com.google.firebase.FirebaseApp
@@ -182,7 +186,7 @@ fun TwinsTrackerApp() {
 }
 
 @HiltAndroidApp
-class BabyTrackerApplication : Application() {
+class BabyTrackerApplication : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
 
@@ -200,8 +204,24 @@ class BabyTrackerApplication : Application() {
 
         // Optional: enable or disable Crashlytics collection
         configureCrashlytics(settingsManager)
-    }
 
+    }
+    override fun newImageLoader(): ImageLoader {
+        return ImageLoader.Builder(this)
+            .respectCacheHeaders(false)
+            .diskCache {
+                DiskCache.Builder()
+                    .directory(cacheDir.resolve("coil_disk_cache"))
+                    .maxSizePercent(0.02)
+                    .build()
+            }
+            .memoryCache {
+                MemoryCache.Builder(this)
+                    .maxSizePercent(0.25)
+                    .build()
+            }
+            .build()
+    }
     private fun initializeAppCheck() {
         val firebaseAppCheck = FirebaseAppCheck.getInstance()
 
