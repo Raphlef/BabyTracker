@@ -502,28 +502,25 @@ class FirebaseRepository @Inject constructor(
 
         batch.commit().await()
     }
-
-    suspend fun removeBabyFromAllFamilies(babyId: String) = withContext(Dispatchers.IO) {
-
+    suspend fun removeBabyFromFamily(familyId: String, babyId: String)=  withContext(Dispatchers.IO) {
         authManager.requireWrite()
+        FirebaseValidators.validateFamilyId(familyId)
         FirebaseValidators.validateBabyId(babyId)
-        val familiesSnapshot = db.collection(FirestoreConstants.Collections.FAMILIES)
-            .whereArrayContains(FirestoreConstants.Fields.BABY_IDS, babyId)
-            .get()
-            .await()
+
+        val familyRef = db.collection(FirestoreConstants.Collections.FAMILIES)
+            .document(familyId)
 
         val batch = db.batch()
-        familiesSnapshot.documents.forEach { doc ->
-            batch.update(
-                doc.reference,
-                FirestoreConstants.Fields.BABY_IDS,
-                FieldValue.arrayRemove(babyId),
-                FirestoreConstants.Fields.UPDATED_AT,
-                FirestoreTimestampUtils.getCurrentTimestamp()
-            )
-        }
+        batch.update(
+            familyRef,
+            FirestoreConstants.Fields.BABY_IDS,
+            FieldValue.arrayRemove(babyId),
+            FirestoreConstants.Fields.UPDATED_AT,
+            FirestoreTimestampUtils.getCurrentTimestamp()
+        )
         batch.commit().await()
     }
+
 
     // ===== EVENT OPERATIONS =====
     suspend fun addEvent(
@@ -596,6 +593,7 @@ class FirebaseRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
     suspend fun invalidateCacheDay(
         babyId: String,
         timestamp: Date,
@@ -604,6 +602,7 @@ class FirebaseRepository @Inject constructor(
         val dayKey = timestamp.toLocalDate().toString()
         firebaseCache.invalidateCacheDay(babyId, timestamp)
     }
+
     suspend fun clearBabyCache(
         babyId: String,
         firebaseCache: FirebaseCache = FirebaseCache(context, db),
@@ -650,7 +649,7 @@ class FirebaseRepository @Inject constructor(
         processCachedDays(babyId, plan, firebaseCache, allEvents, transform)
 
         // STEP 3: Query missing days
-        queryMissingDays(babyId, plan, firebaseCache, allEvents, transform )
+        queryMissingDays(babyId, plan, firebaseCache, allEvents, transform)
 
         // STEP 4: Setup real-time listener
         setupRealtimeListener(babyId, plan, firebaseCache, allEvents, transform)
@@ -825,7 +824,10 @@ class FirebaseRepository @Inject constructor(
             }
         }
 
-        Log.d(TAG, "  → Distributed ${events.size} events across ${eventsByDay.size} missing day(s)")
+        Log.d(
+            TAG,
+            "  → Distributed ${events.size} events across ${eventsByDay.size} missing day(s)"
+        )
 
         // Create cache operations for each day with events
         eventsByDay.forEach { (dayStartMs, dayEvents) ->
@@ -1213,6 +1215,7 @@ class FirebaseRepository @Inject constructor(
             Log.d(TAG, "✓ $logMessage")
         }
     }
+
     fun streamAnalysisMetrics(
         babyId: String,
         startDate: Date,
@@ -1348,6 +1351,7 @@ class FirebaseRepository @Inject constructor(
 
         snapshot.toObjects(GrowthEvent::class.java).firstOrNull()
     }
+
     suspend fun getTotalEventCount(babyId: String): Result<Int> = runCatching {
         authManager.requireRead()
         FirebaseValidators.validateBabyId(babyId)

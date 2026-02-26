@@ -302,7 +302,7 @@ class BabyViewModel @Inject constructor(
         }
     }
 
-    fun deleteBaby(babyId: String, familyViewModel: FamilyViewModel) {
+    fun deleteBaby(babyId: String, family: Family, familyViewModel: FamilyViewModel) {
         if (!familyViewModel.canUserDeleteBaby()) {
             _errorMessage.value =
                 "You don't have permission to delete baby. Only members and admins can save."
@@ -318,11 +318,11 @@ class BabyViewModel @Inject constructor(
                 repository.deleteBabyAndEvents(babyId).getOrThrow()
 
                 // 3. Remove babyId from all families
-                repository.removeBabyFromAllFamilies(babyId)
+               repository.removeBabyFromFamily(family.id, babyId)
 
                 // 4. Clear selected baby if it was deleted
-                if (_selectedBaby.value?.id == babyId) {
-                    _selectedBaby.value = null
+                if (_selectedBaby.value?.id == babyId ||_selectedBaby.value == null) {
+                    selectNextBaby()
                 }
 
             } catch (e: Exception) {
@@ -368,7 +368,7 @@ class BabyViewModel @Inject constructor(
                 var finalBaby = repository.addOrUpdateBaby(updated, family).getOrThrow()
 
                 // 5. Update selected baby
-                _selectedBaby.value = finalBaby
+                _selectedBaby.value = finalBaby.first
 
             } catch (e: Exception) {
                 _errorMessage.value = "Échec de la suppression de la photo : ${e.localizedMessage}"
