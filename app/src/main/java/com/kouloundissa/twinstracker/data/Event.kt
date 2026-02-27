@@ -6,7 +6,6 @@ import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Bedtime
@@ -14,22 +13,12 @@ import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.outlined.BabyChangingStation
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.IgnoreExtraProperties
 import com.kouloundissa.twinstracker.R
@@ -278,14 +267,10 @@ enum class EventType(
             context: Context
         ): String {
             val filterEvents = filterEventsByType(dailyAnalysisList)
-            if (filterEvents.isEmpty()) return "No drugs"
+            if (filterEvents.isEmpty()) return context.getString(R.string.no_drug)
 
             val doses = filterEvents.size
-            val last = filterEvents
-                .filterIsInstance<DrugsEvent>()
-                .maxByOrNull { it.timestamp }!!
-            val doseValue = last.dosage?.toInt() ?: "-"
-            return "${doses} • ${last.drugType.getDisplayName(context)} ${doseValue}${last.unit}"
+            return "${doses}"
         }
     };
 
@@ -443,13 +428,16 @@ fun DocumentSnapshot.toEvent(): Event? {
 
     // Use Firestore’s data‐class mapping
     val cls = et.eventClass.java
-    val event = toObject(cls) as? Event ?: return null
-
-    // Ensure timestamp (and any Date fields) are correctly rehydrated
-    // Firestore already maps Timestamp → Date for any Date-typed property,
-    // including beginTime/endTime because they were written via toMap() as Timestamp.
-
-    return event
+    return try {
+        toObject(cls) as? Event
+    } catch (e: Exception) {
+        Log.e(
+            "toEvent",
+            "❌ Deserialization failed for ${et.eventClass.simpleName} | Error: ${e.message} | Data keys: ${data?.keys}",
+            e
+        )
+        null  // Graceful : événement ignoré, liste continue sans crash
+    }
 }
 
 @IgnoreExtraProperties
@@ -774,7 +762,8 @@ sealed class EventFormState {
                         drugType = drugType,
                         dosage = dose,
                         unit = unit,
-                        otherDrugName = otherDrugName.takeIf(String::isNotBlank)
+                        otherDrugName = otherDrugName.takeIf(String::isNotBlank),
+                        customDrugTypeId = customDrugTypeId
                     )
                 )
             }

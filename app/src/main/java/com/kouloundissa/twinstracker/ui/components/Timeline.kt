@@ -81,6 +81,7 @@ import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.data.getDisplayName
+import com.kouloundissa.twinstracker.data.toUiModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.components.Ad.InlineBannerAd
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
@@ -438,7 +439,7 @@ fun EventCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                EventTypeIndicator(eventType)
+                EventTypeIndicator(eventType, event, selectedFamily)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         buildEventTitle(event, eventType, context, selectedFamily),
@@ -516,10 +517,16 @@ fun EventCard(
 
 
 @Composable
-private fun EventTypeIndicator(eventType: EventType) {
+private fun EventTypeIndicator(
+    eventType: EventType,
+    event: Event,
+    family: Family?
+) {
     val backgroundColor = BackgroundColor
     val grey = DarkGrey
     val tint = DarkBlue
+
+    val customOptions = family?.settings?.customDrugTypes.orEmpty()
     Box(
         modifier = Modifier
             .size(48.dp)
@@ -527,10 +534,27 @@ private fun EventTypeIndicator(eventType: EventType) {
             .background(grey.copy(alpha = 0.45f)),
         contentAlignment = Alignment.Center
     ) {
+        val customDrugOption = if (event is DrugsEvent) {
+            val drugsEvent = event as DrugsEvent
+            customOptions.find { it.id == drugsEvent.customDrugTypeId }
+        } else null
+
+        val icon = customDrugOption?.toUiModel()?.icon ?: eventType.icon
+        val iconTint: Color = when {
+            // 1. Custom trouvé
+            customDrugOption != null -> customDrugOption.color?.let { Color(it.toInt()) }
+                ?: (event as? DrugsEvent)?.drugType?.color
+
+            // 2. DrugsEvent sans custom → event.drugType.color
+            event is DrugsEvent -> event.drugType.color
+
+            // 3. Autres cas
+            else -> eventType.color
+        } ?: BackgroundColor
         Icon(
-            imageVector = eventType.icon,
+            imageVector = icon,
             contentDescription = null,
-            tint = eventType.color,
+            tint = iconTint,
             modifier = Modifier.size(24.dp)
         )
     }

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -47,6 +48,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -78,39 +81,20 @@ fun AdvancedColorPicker(
             modifier = Modifier.heightIn(min = 80.dp),
             contentPadding = PaddingValues(4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            state = rememberLazyGridState()
         ) {
-            items(palette) { colorInt ->
-                val color = Color(colorInt)
-                val isSelected = selectedColor == colorInt
+            items(
+                mutablePalette,
+                key = { it }
+            ) { colorLong ->
+                val isSelected = selectedColor == colorLong
 
-                Card(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .animateContentSize(),
-                    colors = CardDefaults.cardColors(containerColor = color),
-                    elevation = CardDefaults.elevatedCardElevation(
-                        defaultElevation = if (isSelected) 8.dp else 2.dp
-                    ),
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onColorSelected(colorInt)
-                    }
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (isSelected) {
-                            Icon(
-                                Icons.Default.Check,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-                }
+                ColorCardItem(
+                    colorLong = colorLong,
+                    isSelected = isSelected,
+                    onClick = { onColorSelected(colorLong) },
+                    haptic)
             }
 
             // CUSTOM BUTTON
@@ -137,22 +121,56 @@ fun AdvancedColorPicker(
             }
         }
 
-        AdvancedColorPickerDialog(
+        CustomColorPickerDialog(
             visible = showCustomPicker,
             initialColor = selectedColor,
             onDismiss = { showCustomPicker = false },
             onConfirm = { pickedColorLong ->
-                onColorSelected(pickedColorLong)
-                if (!mutablePalette.contains(pickedColorLong)) {
+                if (pickedColorLong !in mutablePalette) {
                     mutablePalette.add(pickedColorLong)
                 }
+                onColorSelected(pickedColorLong)
                 showCustomPicker = false
             }
         )
     }
 }
+
 @Composable
-private fun AdvancedColorPickerDialog(
+private fun ColorCardItem(
+    colorLong: Long,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    haptic: HapticFeedback
+) {
+    val color = Color(colorLong.toInt())
+    Card(
+        modifier = Modifier
+            .size(44.dp)
+            .animateContentSize(),
+        colors = CardDefaults.cardColors(containerColor = color),
+        elevation = CardDefaults.elevatedCardElevation(
+            defaultElevation = if (isSelected) 8.dp else 2.dp
+        ),
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            onClick()
+        }
+    ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            if (isSelected) {
+                Icon(
+                    Icons.Default.Check, null,
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CustomColorPickerDialog(
     visible: Boolean,
     initialColor: Long,
     onDismiss: () -> Unit,
@@ -160,18 +178,15 @@ private fun AdvancedColorPickerDialog(
 ) {
     if (!visible) return
 
-    // Isolated dialog state:
-    // Reset tempColor each time the dialog opens (so "Cancel" truly cancels). [web:5]
-    var tempColor by remember(initialColor, visible) { mutableStateOf(Color(initialColor)) }
+    var tempColor by remember(visible) { mutableStateOf(Color(initialColor.toInt())) }
 
-    // Controller lives inside the dialog since it's only used there (keeps parent simpler). [web:12]
     val controller = rememberColorPickerController()
 
-    Dialog(onDismissRequest = onDismiss) { // standard Compose dialog entry point [web:2]
+    Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp, // M3 tonal elevation supported on Surface [web:7]
+            tonalElevation = 8.dp,
             modifier = Modifier
                 .wrapContentSize()
                 .draggable(
@@ -187,7 +202,7 @@ private fun AdvancedColorPickerDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(280.dp),
-                ) // HsvColorPicker + controller usage [web:12]
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -216,9 +231,9 @@ private fun AdvancedColorPickerDialog(
                         Text(stringResource(R.string.cancel_button))
                     }
                     Button(
-                        onClick = { onConfirm(tempColor.value.toLong()) }
+                        onClick = { onConfirm(tempColor.toArgb().toLong()) }
                     ) {
-                        Text(stringResource(R.string.saving_button))
+                        Text(stringResource(R.string.save_button))
                     }
                 }
             }
