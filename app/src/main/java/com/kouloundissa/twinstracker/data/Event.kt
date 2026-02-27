@@ -435,7 +435,11 @@ fun DocumentSnapshot.toEvent(): Event? {
     return try {
         toObject(cls) as? Event
     } catch (e: Exception) {
-        Log.e("toEvent", "❌ Deserialization failed for ${et.eventClass.simpleName} | Error: ${e.message} | Data keys: ${data?.keys}", e)
+        Log.e(
+            "toEvent",
+            "❌ Deserialization failed for ${et.eventClass.simpleName} | Error: ${e.message} | Data keys: ${data?.keys}",
+            e
+        )
         null  // Graceful : événement ignoré, liste continue sans crash
     }
 }
@@ -762,7 +766,8 @@ sealed class EventFormState {
                         drugType = drugType,
                         dosage = dose,
                         unit = unit,
-                        otherDrugName = otherDrugName.takeIf(String::isNotBlank)
+                        otherDrugName = otherDrugName.takeIf(String::isNotBlank),
+                        customDrugTypeId = customDrugTypeId
                     )
                 )
             }

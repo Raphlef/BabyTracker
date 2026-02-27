@@ -410,7 +410,8 @@ class EventViewModel @Inject constructor(
                 dosage = event.dosage?.toString().orEmpty(),
                 unit = event.unit,
                 notes = event.notes.orEmpty(),
-                photoUrl = event.photoUrl
+                photoUrl = event.photoUrl,
+                customDrugTypeId = event.customDrugTypeId
             )
 
             is PumpingEvent -> Pumping(
