@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -659,16 +658,6 @@ private fun formatDuration(totalMinutes: Long): String {
         else -> "${minutes} min"
     }
 }
-
-@Composable
-private fun DrugColorDot(drugType: DrugType, size: Dp = 6.dp) {
-    Box(
-        modifier = Modifier
-            .size(size)
-            .background(drugType.color, CircleShape)
-    )
-}
-
 
 data class DaySpan(
     val evt: Event,

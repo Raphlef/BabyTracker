@@ -438,7 +438,7 @@ fun EventCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                EventTypeIndicator(eventType)
+                EventTypeIndicator(eventType,event)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         buildEventTitle(event, eventType, context, selectedFamily),
@@ -516,7 +516,8 @@ fun EventCard(
 
 
 @Composable
-private fun EventTypeIndicator(eventType: EventType) {
+private fun EventTypeIndicator(eventType: EventType,
+                               event: Event,) {
     val backgroundColor = BackgroundColor
     val grey = DarkGrey
     val tint = DarkBlue
@@ -527,10 +528,12 @@ private fun EventTypeIndicator(eventType: EventType) {
             .background(grey.copy(alpha = 0.45f)),
         contentAlignment = Alignment.Center
     ) {
+        val iconTint =
+        if (event is DrugsEvent) event.drugType.color else BackgroundColor
         Icon(
             imageVector = eventType.icon,
             contentDescription = null,
-            tint = eventType.color,
+            tint = iconTint,
             modifier = Modifier.size(24.dp)
         )
     }
