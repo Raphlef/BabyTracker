@@ -14,6 +14,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -86,8 +87,10 @@ import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Baby
+import com.kouloundissa.twinstracker.data.BabyTreatment
 import com.kouloundissa.twinstracker.data.BloodType
 import com.kouloundissa.twinstracker.data.Gender
+import com.kouloundissa.twinstracker.data.buildTreatmentSummary
 import com.kouloundissa.twinstracker.data.getDisplayName
 import com.kouloundissa.twinstracker.presentation.event.FormNumericInput
 import com.kouloundissa.twinstracker.presentation.settings.SectionCard
@@ -405,6 +408,7 @@ fun BabyFormDialogInternal(
                         bloodType = babyData.bloodType,
                         allergies = babyData.allergies,
                         medicalConditions = babyData.medicalConditions,
+                        treatments = babyData.treatments,
                         pediatricianName = babyData.pediatricianName,
                         pediatricianPhone = babyData.pediatricianPhone,
                         notes = babyData.notes,
@@ -428,7 +432,13 @@ fun BabyFormDialogInternal(
             onConfirm = {
                 deleteRequested = true
                 openDeleteDialog.value = false
-                selectedFamily?.let { babyViewModel.deleteBaby(currentBaby.id,it, familyViewModel) }
+                selectedFamily?.let {
+                    babyViewModel.deleteBaby(
+                        currentBaby.id,
+                        it,
+                        familyViewModel
+                    )
+                }
             },
             onDismiss = { openDeleteDialog.value = false }
         )
@@ -721,6 +731,8 @@ private fun BabyFormMedicalSection(
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
 
+    var showCustomDialog by remember { mutableStateOf(false) }
+
     IconSelector(
         title = stringResource(id = R.string.blood_type_label),
         options = BloodType.entries.toList(),
@@ -756,10 +768,66 @@ private fun BabyFormMedicalSection(
         shape = cornerShape,
     )
 
+    TreatmentSummaryCard(
+        treatments = state.treatments,
+        onClick = { showCustomDialog = true },
+    )
+    if (showCustomDialog) {
+        BabyTreatmentsDialog(
+            treatments = state.treatments,
+            onDismiss = { showCustomDialog = false },
+            onSave = {
+                state.treatments = it
+                showCustomDialog = false
+            }
+        )
+    }
     // Pediatrician Contact
     PediatricianContactPicker(
         state = state,
     )
+}
+
+@Composable
+fun TreatmentSummaryCard(
+    treatments: List<BabyTreatment>,
+    onClick: () -> Unit
+) {
+    Card(
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+
+            Text(
+                text = stringResource(R.string.treatments_label),
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (treatments.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.no_treatment_configured),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            } else {
+                treatments.take(3).forEach {
+                    Text(
+                        text = buildTreatmentSummary(it,LocalContext.current),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                if (treatments.size > 3) {
+                    Text("… +${treatments.size - 3}")
+                }
+            }
+        }
+    }
 }
 // ========== SECTION:  PEDIATRICIAN CONTACT PICKER ====================
 
@@ -1107,6 +1175,7 @@ class BabyFormState(
     // Free text fields
     var allergies by mutableStateOf(initial?.allergies?.joinToString(", ").orEmpty())
     var conditions by mutableStateOf(initial?.medicalConditions?.joinToString(", ").orEmpty())
+    var treatments by mutableStateOf(initial?.treatments.orEmpty())
     var pediatricianName by mutableStateOf(initial?.pediatricianName.orEmpty())
     var pediatricianPhone by mutableStateOf(initial?.pediatricianPhone.orEmpty())
     var notes by mutableStateOf(initial?.notes.orEmpty())
@@ -1144,6 +1213,7 @@ class BabyFormState(
             allergies = allergies.split(",").map { it.trim() }.filter { it.isNotEmpty() },
             medicalConditions = conditions.split(",").map { it.trim() }
                 .filter { it.isNotEmpty() },
+            treatments = treatments,
             pediatricianName = pediatricianName.ifBlank { null },
             pediatricianPhone = pediatricianPhone.ifBlank { null },
             notes = notes.ifBlank { null },

@@ -230,7 +230,8 @@ private fun BabyInfoHeaderContent(
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(30.dp)
+                    .padding(end = 12.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
             )
         } else {

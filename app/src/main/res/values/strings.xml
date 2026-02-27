@@ -289,7 +289,7 @@
     <string name="drug_icon_label">Drug Icon</string>
     <string name="error_drug_type_name_required">Drug type and name are required</string>
     <string name="specify_drug_name_title">Specify Drug Name</string>
-    <string name="dosage_information_title">Dosage Information</string>
+    <string name="dosage_information_title">Dosage</string>
     <string name="drug_add_label">Add drug</string>
     <string name="drug_edit_label">Edit drug</string>
     <string name="dosage_amount_label">Amount</string>
@@ -485,4 +485,16 @@
     <string name="out_of_range">out of range</string>
     <string name="add_label">Add</string>
     <string name="no_drug">No drug</string>
+    <string name="treatments_label">Treatments</string>
+    <string name="no_treatment_configured">No treatment configured</string>
+    <string name="manage_treatments">Manage treatements</string>
+    <string name="frequency_label">Frequency</string>
+    <string name="hourly">Hourly</string>
+    <string name="daily">Daily</string>
+    <string name="weekly">Weekly</string>
+    <string name="edit_treatment">Edit treatment</string>
+    <string name="delete_treatment">Delete treatment</string>
+    <string name="add_treatment">Add treatment</string>
+    <string name="interval">Interval</string>
+    <string name="Every">Every</string>
 </resources>

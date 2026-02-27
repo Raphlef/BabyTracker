@@ -5,6 +5,7 @@ import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.ShowChart
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.BabyChangingStation
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.filled.ChildCare
 import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Female
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -38,6 +40,7 @@ import androidx.compose.material.icons.filled.Mood
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Opacity
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.SentimentSatisfied
 import androidx.compose.material.icons.filled.SentimentVeryDissatisfied
@@ -256,7 +259,18 @@ enum class DrugType(
 fun DrugType.getDisplayName(context: Context): String {
     return context.getString(this.displayNameRes)
 }
-
+enum class TreatmentFrequencyType(
+    @StringRes val displayNameRes: Int,
+    val icon: ImageVector,
+    val color: Color
+) {
+    HOURLY(R.string.hourly, Icons.Default.AccessTime, Color.Blue),
+    DAILY(R.string.daily, Icons.Default.DateRange, Color.Green),
+    WEEKLY(R.string.weekly, Icons.Default.Schedule, Color(0xFFFF9800))
+}
+fun TreatmentFrequencyType.getDisplayName(context: Context): String {
+    return context.getString(this.displayNameRes)
+}
 enum class AnalysisRange(
     internal @StringRes val displayNameRes: Int,
     val days: Int
