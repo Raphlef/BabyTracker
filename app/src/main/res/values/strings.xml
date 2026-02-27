@@ -484,4 +484,5 @@
     <string name="sleep_event_slept">Slept</string>
     <string name="out_of_range">out of range</string>
     <string name="add_label">Add</string>
+    <string name="no_drug">No drug</string>
 </resources>

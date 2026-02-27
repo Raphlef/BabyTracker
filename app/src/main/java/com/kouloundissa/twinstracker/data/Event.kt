@@ -267,14 +267,10 @@ enum class EventType(
             context: Context
         ): String {
             val filterEvents = filterEventsByType(dailyAnalysisList)
-            if (filterEvents.isEmpty()) return "No drugs"
+            if (filterEvents.isEmpty()) return context.getString(R.string.no_drug)
 
             val doses = filterEvents.size
-            val last = filterEvents
-                .filterIsInstance<DrugsEvent>()
-                .maxByOrNull { it.timestamp }!!
-            val doseValue = last.dosage?.toInt() ?: "-"
-            return "${doses} • ${last.drugType.getDisplayName(context)} ${doseValue}${last.unit}"
+            return "${doses}"
         }
     };
 
