@@ -56,6 +56,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.AnalysisSnapshot
 import com.kouloundissa.twinstracker.data.BreastSide
+import com.kouloundissa.twinstracker.data.CustomDrugType
 import com.kouloundissa.twinstracker.data.DiaperEvent
 import com.kouloundissa.twinstracker.data.DrugType
 import com.kouloundissa.twinstracker.data.DrugsEvent
@@ -66,6 +67,7 @@ import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
+import com.kouloundissa.twinstracker.data.toUiModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
@@ -376,10 +378,12 @@ fun EventBar(
     stackIndex: Int = 0,
     hourRowHeight: Dp,
     onEdit: ((Event) -> Unit)? = null,
-    minHeightFraction: Float = 0.1f
+    minHeightFraction: Float = 0.1f,
+    familyViewModel: FamilyViewModel = hiltViewModel()
 ) {
     val type = EventType.forClass(span.evt::class)
-
+    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
+    val customOptions = selectedFamily?.settings?.customDrugTypes.orEmpty()
 
     // Hauteur TOTALE de l'event (start à end, peut être plusieurs heures)
     val totalMinutes = (span.endHour - span.startHour) * 60 +
@@ -414,14 +418,14 @@ fun EventBar(
                 .padding(4.dp),
             contentAlignment = Alignment.TopStart
         ) {
-            EventContent(span = span, type = type)
+            EventContent(span = span, type = type, customOptions)
         }
     }
 }
 
 
 @Composable
-fun EventContent(span: DaySpan, type: EventType) {
+fun EventContent(span: DaySpan, type: EventType, customOptions: List<CustomDrugType>) {
     val context = LocalContext.current
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -434,8 +438,25 @@ fun EventContent(span: DaySpan, type: EventType) {
                     horizontalArrangement = Arrangement.Start,
                 ) {
 
-                    val iconTint =
-                        if (span.evt is DrugsEvent) span.evt.drugType.color else BackgroundColor
+                    val customDrugOption = if (span.evt is DrugsEvent) {
+                        val drugsEvent = span.evt as DrugsEvent
+                        customOptions.find { it.id == drugsEvent.customDrugTypeId }
+                    } else null
+
+                    val icon = customDrugOption?.toUiModel()?.icon ?: type.icon
+                    val iconTint: Color = when {
+                        // 1. Custom trouvé
+                        customDrugOption != null -> customDrugOption.color?.let { Color(it.toInt()) }
+                            ?: (span.evt as? DrugsEvent)?.drugType?.color
+
+                        // 2. DrugsEvent sans custom → event.drugType.color
+                        span.evt is DrugsEvent -> span.evt.drugType.color
+
+                        // 3. Autres cas
+                        else -> type.color
+                    } ?: BackgroundColor
+//                    val iconTint =
+//                        if (span.evt is DrugsEvent) span.evt.drugType.color else BackgroundColor
                     Icon(
                         imageVector = type.icon,
                         contentDescription = null,
