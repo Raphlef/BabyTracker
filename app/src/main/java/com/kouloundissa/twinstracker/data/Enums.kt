@@ -119,14 +119,12 @@ fun BreastSide.getDisplayName(context: Context): String {
 enum class DrugType(
     internal @StringRes val displayNameRes: Int,
     val icon: ImageVector,
-    val category: Category,
     val color: Color
 ) {
     // Analgesics & Antipyretics
     PARACETAMOL(
         R.string.drug_type_paracetamol,
         Icons.Default.LocalHospital,
-        Category.MEDICINE,
         Color(0xFFE91E63)
     ),
 
@@ -134,31 +132,26 @@ enum class DrugType(
     VITAMIN_A(
         R.string.drug_type_vitamin_a,
         Icons.Default.BabyChangingStation,
-        Category.VITAMIN,
         Color(0xFFFF6F00)
     ),
     VITAMIN_B(
         R.string.drug_type_vitamin_b,
         Icons.Default.Coffee,
-        Category.VITAMIN,
         Color(0xFFFFA726)
     ),
     VITAMIN_C(
         R.string.drug_type_vitamin_c,
         Icons.Default.WbTwilight,
-        Category.VITAMIN,
         Color(0xFFFFCA28)
     ),
     VITAMIN_D(
         R.string.drug_type_vitamin_d,
         Icons.Default.WbSunny,
-        Category.VITAMIN,
         Color(0xFFFDD835)
     ),
     VITAMIN_K(
         R.string.drug_type_vitamin_k,
         Icons.Default.MoreHoriz,
-        Category.VITAMIN,
         Color(0xFF66BB6A)
     ),
 
@@ -166,13 +159,11 @@ enum class DrugType(
     IRON(
         R.string.drug_type_iron,
         Icons.Default.MoreHoriz,
-        Category.SUPPLEMENT,
         Color(0xFF8D6E63)
     ),
     CALCIUM(
         R.string.drug_type_calcium,
         Icons.Default.MoreHoriz,
-        Category.SUPPLEMENT,
         Color(0xFFBDBDBD)
     ),
 
@@ -180,22 +171,14 @@ enum class DrugType(
     CREAM(
         R.string.drug_type_cream,
         Icons.Default.Healing,
-        Category.SUPPLEMENT,
         Color(0xFFF48FB1)
     ),
     OTHER(
         R.string.drug_type_other,
         Icons.Default.MoreHoriz,
-        Category.OTHER,
         Color(0xFF9E9E9E)
     );
 
-    enum class Category {
-        MEDICINE,
-        VITAMIN,
-        SUPPLEMENT,
-        OTHER
-    }
 
     companion object {
         val entries = DrugType.entries
