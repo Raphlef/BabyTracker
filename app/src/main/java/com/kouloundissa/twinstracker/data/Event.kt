@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Bedtime
@@ -13,12 +14,22 @@ import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.outlined.BabyChangingStation
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.IgnoreExtraProperties
 import com.kouloundissa.twinstracker.R
@@ -537,7 +548,9 @@ data class DrugsEvent(
     val drugType: DrugType = DrugType.PARACETAMOL,
     val dosage: Double? = null,            // dosage in mg
     val unit: String = "mg",                 // generic unit string
-    val otherDrugName: String? = null        // only if drugType == OTHER
+    val otherDrugName: String? = null,        // only if drugType == OTHER
+
+    val customDrugTypeId: String? = null
 ) : Event() {
     // no-arg constructor for Firestore
     constructor() : this("", "", "", Date(), null, null, DrugType.PARACETAMOL, null, "mg", null)
@@ -750,25 +763,20 @@ sealed class EventFormState {
 
             is EventFormState.Drugs -> {
                 val dose = dosage.toDoubleOrNull()
-
-                if (drugType == DrugType.OTHER && otherDrugName.isBlank()) {
-                    Result.failure(IllegalArgumentException("Specify the drug name for “Other”."))
-                } else {
-                    Result.success(
-                        DrugsEvent(
-                            id = eventId ?: UUID.randomUUID().toString(),
-                            babyId = babyId,
-                            userId = userId,
-                            timestamp = eventTimestamp,
-                            notes = notes.takeIf(String::isNotBlank),
-                            photoUrl = photoUrl,
-                            drugType = drugType,
-                            dosage = dose,
-                            unit = unit,
-                            otherDrugName = otherDrugName.takeIf(String::isNotBlank)
-                        )
+                Result.success(
+                    DrugsEvent(
+                        id = eventId ?: UUID.randomUUID().toString(),
+                        babyId = babyId,
+                        userId = userId,
+                        timestamp = eventTimestamp,
+                        notes = notes.takeIf(String::isNotBlank),
+                        photoUrl = photoUrl,
+                        drugType = drugType,
+                        dosage = dose,
+                        unit = unit,
+                        otherDrugName = otherDrugName.takeIf(String::isNotBlank)
                     )
-                }
+                )
             }
         }
     }
@@ -855,6 +863,7 @@ sealed class EventFormState {
         override var photoRemoved: Boolean = false,
 
         val drugType: DrugType = DrugType.PARACETAMOL,
+        val customDrugTypeId: String? = null, // id in Family.settings.customDrugTypes
         val dosage: String = "",          // user input as string
         val unit: String = "mg",          // default unit
         val otherDrugName: String = "",   // when drugType == OTHER

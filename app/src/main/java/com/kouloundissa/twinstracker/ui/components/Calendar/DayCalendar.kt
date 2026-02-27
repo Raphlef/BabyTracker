@@ -33,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
 import androidx.compose.ui.zIndex
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.AnalysisSnapshot
 import com.kouloundissa.twinstracker.data.BreastSide
@@ -65,6 +67,7 @@ import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
+import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.delay
@@ -505,10 +508,18 @@ fun EventContent(span: DaySpan, type: EventType) {
 }
 
 @Composable
-private fun eventLabel(span: DaySpan, type: EventType): String {
+private fun eventLabel(
+    span: DaySpan, type: EventType,
+    familyViewModel: FamilyViewModel = hiltViewModel()
+): String {
     val context = LocalContext.current
     val evt = span.evt
     val eventType = EventType.forClass(evt::class)
+
+    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
+    val customOptions = remember(selectedFamily?.settings?.customDrugTypes) {
+        selectedFamily?.settings?.customDrugTypes.orEmpty()
+    }
 
     val notesPart = evt.notes
         ?.takeIf { it.isNotBlank() }
@@ -523,8 +534,8 @@ private fun eventLabel(span: DaySpan, type: EventType): String {
 
         is DrugsEvent -> {
             val drugName =
-                if (evt.drugType == DrugType.OTHER && !evt.otherDrugName.isNullOrBlank()) {
-                    evt.otherDrugName
+                if (evt.drugType == DrugType.CUSTOM) {
+                    customOptions.find { it.id == evt.customDrugTypeId }?.name
                 } else {
                     stringResource(evt.drugType.displayNameRes)
                 }

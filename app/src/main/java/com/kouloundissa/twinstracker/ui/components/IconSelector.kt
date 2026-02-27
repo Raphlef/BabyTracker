@@ -2,6 +2,7 @@ package com.kouloundissa.twinstracker.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,6 +14,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -22,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -38,6 +42,8 @@ fun <T> IconSelector(
     getIcon: (T) -> ImageVector,
     getLabel: @Composable (T) -> String,
     getColor: ((T) -> Color)? = null,
+    onAddCustom: (() -> Unit)? = null,
+    onLongPress: ((T) -> Unit)? = null,
     enabled: Boolean = true,
     modifier: Modifier = Modifier
 
@@ -68,50 +74,138 @@ fun <T> IconSelector(
                 contentPadding = PaddingValues(horizontal = 4.dp)
             ) {
                 items(options) { option ->
-                    val itemColor = getColor?.invoke(option) ?: tint.copy(alpha = 0.2f)
-                    val isSelected = selected == option
-                    Surface(
-                        onClick = { onSelect(option) },
-                        shape = RoundedCornerShape(16.dp),
-                        color = if (isSelected) itemColor.copy(alpha = 0.5f) else backgroundcolor,
-                        border = if (isSelected)
-                            BorderStroke(2.dp, itemColor)
-                        else
-                            BorderStroke(1.dp, contentcolor.copy(alpha = 0.3f)),
-                        modifier = Modifier
-                            .size(80.dp, 88.dp)
-                            .then(
-                                if (enabled)
-                                    Modifier.clickable { onSelect(option) }
-                                else
-                                    Modifier
-                            )
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                            modifier = Modifier.padding(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = getIcon(option),
-                                contentDescription = getLabel(option),
-                                tint = if (isSelected) titleColor else contentcolor.copy(alpha = 0.8f),
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                text = getLabel(option),
-                                style = MaterialTheme.typography.labelSmall,
-                                textAlign = TextAlign.Center,
-                                color = if (isSelected) titleColor else contentcolor.copy(alpha = 0.8f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
+                    IconSelectorItem(
+                        option = option,
+                        isSelected = selected == option,
+                        enabled = enabled,
+                        getIcon = getIcon,
+                        getLabel = getLabel,
+                        getColor = getColor,
+                        onSelect = onSelect,
+                        onLongPress = onLongPress,
+                        titleColor = titleColor,
+                        contentColor = contentcolor,
+                        backgroundColor = backgroundcolor,
+                        tint = tint
+                    )
+                }
+                item {
+                    if (onAddCustom != null) {
+                        AddCustomButton(
+                            enabled = enabled,
+                            onClick = onAddCustom,
+                            contentColor = contentcolor,
+                            backgroundColor = backgroundcolor,
+                            tint = tint
+                        )
                     }
                 }
             }
+        }
+    }
+}
+@Composable
+private fun <T> IconSelectorItem(
+    option: T,
+    isSelected: Boolean,
+    enabled: Boolean,
+    getIcon: (T) -> ImageVector,
+    getLabel: @Composable (T) -> String,
+    getColor: ((T) -> Color)?,
+    onSelect: (T) -> Unit,
+    onLongPress: ((T) -> Unit)?,
+    titleColor: Color,
+    contentColor: Color,
+    backgroundColor: Color,
+    tint: Color
+) {
+    val itemColor = getColor?.invoke(option) ?: tint.copy(alpha = 0.2f)
+
+    Surface(
+        onClick = { onSelect(option) },
+        shape = RoundedCornerShape(16.dp),
+        color = if (isSelected) itemColor.copy(alpha = 0.5f) else backgroundColor,
+        border = if (isSelected)
+            BorderStroke(2.dp, itemColor)
+        else
+            BorderStroke(1.dp, contentColor.copy(alpha = 0.3f)),
+        modifier = Modifier
+            .size(80.dp, 88.dp)
+            .then(
+                if (enabled) {
+                    Modifier
+                        .clickable { onSelect(option) }
+                        .combinedClickable(  // Combine click + long press (UX fluide)
+                            onClick = { onSelect(option) },
+                            onLongClick = { onLongPress?.invoke(option) }
+                        )
+                } else Modifier
+            )
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(8.dp)
+        ) {
+            Icon(
+                imageVector = getIcon(option),
+                contentDescription = getLabel(option),
+                tint = if (isSelected) titleColor else contentColor.copy(alpha = 0.8f),
+                modifier = Modifier.size(32.dp)
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = getLabel(option),
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = TextAlign.Center,
+                color = if (isSelected) titleColor else contentColor.copy(alpha = 0.8f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+@Composable
+private fun AddCustomButton(
+    enabled: Boolean,
+    onClick: () -> Unit,
+    contentColor: Color,
+    backgroundColor: Color,
+    tint: Color
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = backgroundColor,
+        border = BorderStroke(1.dp, contentColor.copy(alpha = 0.3f)),
+        modifier = Modifier
+            .size(80.dp, 88.dp)
+            .then(
+                if (enabled) Modifier.clickable { onClick() }
+                else Modifier
+            )
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Ajouter personnalisé",
+                tint = tint,
+                modifier = Modifier.size(32.dp)
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text =  stringResource(id = com.kouloundissa.twinstracker.R.string.add_label),
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = TextAlign.Center,
+                color = contentColor.copy(alpha = 0.8f),
+                maxLines = 1,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

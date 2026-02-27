@@ -6,6 +6,7 @@ import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
 import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -16,9 +17,12 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -36,6 +40,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,9 +54,25 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Biotech
+import androidx.compose.material.icons.filled.Bloodtype
+import androidx.compose.material.icons.filled.ChildCare
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Healing
+import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocalPharmacy
+import androidx.compose.material.icons.filled.MedicalServices
+import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Vaccines
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -54,6 +80,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -65,6 +92,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -73,8 +101,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -89,8 +119,11 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.github.skydoves.colorpicker.compose.HsvColorPicker
+import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.BreastSide
+import com.kouloundissa.twinstracker.data.CustomDrugType
 import com.kouloundissa.twinstracker.data.DiaperType
 import com.kouloundissa.twinstracker.data.DrugType
 import com.kouloundissa.twinstracker.data.EventFormState
@@ -102,17 +135,22 @@ import com.kouloundissa.twinstracker.data.EventFormState.Pumping
 import com.kouloundissa.twinstracker.data.EventFormState.Sleep
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
+import com.kouloundissa.twinstracker.data.Family
 import com.kouloundissa.twinstracker.data.FamilyUser
 import com.kouloundissa.twinstracker.data.FeedType
 import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.PoopColor
 import com.kouloundissa.twinstracker.data.PoopConsistency
+import com.kouloundissa.twinstracker.data.PrivacyLevel
 import com.kouloundissa.twinstracker.data.PseudoGenerator
 import com.kouloundissa.twinstracker.data.PumpingEvent
+import com.kouloundissa.twinstracker.data.drugIconOptions
 import com.kouloundissa.twinstracker.data.getDisplayName
+import com.kouloundissa.twinstracker.data.toUiModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
+import com.kouloundissa.twinstracker.ui.components.AdvancedColorPicker
 import com.kouloundissa.twinstracker.ui.components.AmountInput
 import com.kouloundissa.twinstracker.ui.components.BabySelectorRow
 import com.kouloundissa.twinstracker.ui.components.IconSelector
@@ -125,6 +163,7 @@ import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.launch
 import java.util.Date
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class, DelicateCoroutinesApi::class)
 @Composable
@@ -546,7 +585,7 @@ fun EventFormDialogContent(
                             is Feeding -> FeedingForm(s, eventViewModel)
                             is Growth -> GrowthForm(s, eventViewModel)
                             is Pumping -> PumpingForm(s, eventViewModel)
-                            is Drugs -> DrugsForm(s, eventViewModel)
+                            is Drugs -> DrugsForm(s, familyViewModel, eventViewModel)
                             else -> {}
                         }
                     }
@@ -1284,7 +1323,34 @@ fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
 }
 
 @Composable
-fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
+fun DrugsForm(
+    state: EventFormState.Drugs,
+    familyViewModel: FamilyViewModel,
+    viewModel: EventViewModel
+) {
+    val context = LocalContext.current
+    var showCustomDialog by remember { mutableStateOf(false) }
+
+    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
+    val builtInOptions = remember {
+        DrugType.entries.filter { it != DrugType.CUSTOM }.map { it.toUiModel(context) }
+    }
+    val customOptions = remember(selectedFamily?.settings?.customDrugTypes) {
+        selectedFamily?.settings?.customDrugTypes.orEmpty().map { it.toUiModel() }
+    }
+    val allOptions = remember(builtInOptions, customOptions, DrugType.CUSTOM) {
+        builtInOptions + customOptions
+    }
+
+    val selectedOption = remember(state.drugType, state.customDrugTypeId) {
+        when {
+            state.drugType == DrugType.CUSTOM && state.customDrugTypeId != null ->
+                allOptions.firstOrNull { it.isCustom && it.backingCustomId == state.customDrugTypeId }
+
+            else -> allOptions.firstOrNull { !it.isCustom && it.backingEnum == state.drugType }
+        }
+    }
+    var editingDrug by remember { mutableStateOf<CustomDrugType?>(null) }
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -1292,31 +1358,64 @@ fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
         // Drug Type Picker
         IconSelector(
             title = stringResource(id = R.string.drug_type_label),
-            options = DrugType.entries,
-            selected = state.drugType,
+            options = allOptions,
+            selected = selectedOption,
             onSelect = { selected ->
                 viewModel.updateForm {
-                    (this as EventFormState.Drugs).copy(drugType = selected)
+                    (this as EventFormState.Drugs).copy(
+                        drugType = selected.backingEnum ?: DrugType.CUSTOM,
+                        customDrugTypeId = selected.backingCustomId
+                    )
                 }
             },
             getColor = { it.color },
             getIcon = { it.icon },
-            getLabel = { it.getDisplayName(LocalContext.current) }
+            getLabel = { it.label },
+            onAddCustom = { showCustomDialog = true },
+            onLongPress = { selectedOption ->
+                if (selectedOption.backingCustomId != null) {
+                    editingDrug =
+                        selectedFamily?.settings?.customDrugTypes?.find { it.id == selectedOption.backingCustomId }
+                    showCustomDialog = true
+                }
+            }
         )
 
-        // Conditionally show drug name input
-        FormFieldVisibility(visible = state.drugType == DrugType.OTHER) {
-            FormTextInput(
-                value = state.otherDrugName,
-                onValueChange = { newName ->
-                    viewModel.updateForm {
-                        (this as EventFormState.Drugs).copy(otherDrugName = newName)
+        if (showCustomDialog) {
+            CustomDrugTypeDialog(
+                existingDrug = editingDrug,
+                onAdd = { newCustom ->
+                    selectedFamily?.let { family ->
+                        // Ajoute sans perte des existants (réutilisable)
+                        val currentCustomTypes = family.settings.customDrugTypes
+                        val updatedCustomTypes = currentCustomTypes + newCustom
+
+                        val updated = family.copy(
+                            settings = family.settings.copy(customDrugTypes = updatedCustomTypes)
+                        )
+                        familyViewModel.createOrUpdateFamily(updated)
                     }
+
+                    showCustomDialog = false
                 },
-                label = stringResource(id = R.string.specify_drug_name_label),
-                modifier = Modifier.fillMaxWidth()
+                onDismiss = { showCustomDialog = false }
             )
         }
+
+
+        // Conditionally show drug name input
+//        FormFieldVisibility(visible = state.drugType == DrugType.OTHER) {
+//            FormTextInput(
+//                value = state.otherDrugName,
+//                onValueChange = { newName ->
+//                    viewModel.updateForm {
+//                        (this as EventFormState.Drugs).copy(otherDrugName = newName)
+//                    }
+//                },
+//                label = stringResource(id = R.string.specify_drug_name_label),
+//                modifier = Modifier.fillMaxWidth()
+//            )
+//        }
 
         // Dosage information section
         FormFieldVisibility(visible = state.drugType != DrugType.CREAM) {
@@ -1376,6 +1475,172 @@ fun DrugsForm(state: EventFormState.Drugs, viewModel: EventViewModel) {
                         .heightIn(min = 80.dp),
                     minLines = 4
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun CustomDrugTypeDialog(
+    existingDrug: CustomDrugType? = null,
+    onAdd: (CustomDrugType) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+
+    var name by remember(existingDrug) {
+        mutableStateOf(existingDrug?.name ?: "")
+    }
+    var nameError by remember { mutableStateOf<String?>(null) }
+
+    var selectedColor by remember(existingDrug) {
+        mutableStateOf((existingDrug?.color ?: 0xFF9E9E9E))
+    }
+    var selectedIcon by remember(existingDrug) {
+        mutableStateOf(existingDrug?.iconName ?: drugIconOptions.first().key)
+    }
+    val isEditMode = existingDrug != null
+    val error = stringResource(R.string.error_drug_type_name_required)
+    val buttonText =
+        stringResource(if (isEditMode) R.string.drug_edit_label else R.string.drug_add_label)
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier
+                .widthIn(min = 280.dp, max = 400.dp)
+                .wrapContentHeight()
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+
+                Text(
+                    text = stringResource(
+                        if (isEditMode) R.string.drug_edit_label else R.string.create_specify_drug_label
+                    ),
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // Name field
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { newName ->
+                        name = newName.trim()
+                        nameError = null
+                    },
+                    label = { Text(stringResource(R.string.specify_drug_name_title)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (nameError != null) {
+                    Text(
+                        text = nameError!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                            .align(Alignment.Start)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Color picker row (small palette)
+                Text(
+                    text = stringResource(R.string.drug_color_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.align(Alignment.Start)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+
+                AdvancedColorPicker(
+                    selectedColor = selectedColor,
+                    onColorSelected = { selectedColor = it }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Icon picker row
+                Text(
+                    text = stringResource(R.string.drug_icon_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.align(Alignment.Start)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 72.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.height(240.dp),
+                ) {
+                    items(drugIconOptions) { option ->
+                        val isSelected = selectedIcon == option.key
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(
+                                    if (isSelected)
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                    else
+                                        Color.Transparent
+                                )
+                                .clickable { selectedIcon = option.key }
+                                .padding(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = option.icon,
+                                contentDescription = null,
+                                tint = if (isSelected)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    LocalContentColor.current.copy(alpha = 0.6f),
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+
+                //action
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text(stringResource(R.string.cancel_button))
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            if (name.isBlank()) {
+                                nameError = error
+                                return@Button
+                            }
+                            focusManager.clearFocus()
+                            onAdd(
+                                CustomDrugType(
+                                    id = UUID.randomUUID().toString(),
+                                    name = name,
+                                    color = selectedColor.toLong(),
+                                    iconName = selectedIcon
+                                )
+                            )
+                        }
+                    ) {
+                        Text(stringResource(R.string.save_button))
+                    }
+                }
             }
         }
     }
@@ -1519,6 +1784,7 @@ fun FormNumericInput(
         errorMessage = error,
     )
 }
+
 @Composable
 private fun LockScreenOrientation(orientation: Int) {
     val context = LocalContext.current
@@ -1531,6 +1797,7 @@ private fun LockScreenOrientation(orientation: Int) {
         }
     }
 }
+
 fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()

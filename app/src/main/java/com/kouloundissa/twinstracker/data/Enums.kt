@@ -5,30 +5,51 @@ import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.ShowChart
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.BabyChangingStation
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.Biotech
 import androidx.compose.material.icons.filled.Bloodtype
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ChildCare
 import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Female
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Grain
 import androidx.compose.material.icons.filled.Healing
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.InvertColorsOff
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.LocalDrink
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Male
+import androidx.compose.material.icons.filled.MedicalServices
+import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Merge
+import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.Mood
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Opacity
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.SentimentSatisfied
+import androidx.compose.material.icons.filled.SentimentVeryDissatisfied
+import androidx.compose.material.icons.filled.Shop
+import androidx.compose.material.icons.filled.Sick
+import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.Transgender
+import androidx.compose.material.icons.filled.Vaccines
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.WbTwilight
@@ -38,6 +59,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.google.firebase.firestore.IgnoreExtraProperties
 import com.kouloundissa.twinstracker.R
+import java.util.UUID
 
 
 enum class DiaperType(
@@ -46,10 +68,10 @@ enum class DiaperType(
     val color: Color,
     val emoji: String,
 ) {
-    WET(R.string.diaper_type_wet, Icons.Default.Opacity, Color(0xFF4FC3F7),"💧"),
-    DIRTY(R.string.diaper_type_dirty, Icons.Default.Circle, Color(0xFF8D6E63),"💩"),
-    MIXED(R.string.diaper_type_mixed, Icons.Default.Merge, Color(0xFFAB47BC),"🔄"),
-    DRY(R.string.diaper_type_dry, Icons.Default.InvertColorsOff, Color(0xFFFFCA28),"✓")
+    WET(R.string.diaper_type_wet, Icons.Default.Opacity, Color(0xFF4FC3F7), "💧"),
+    DIRTY(R.string.diaper_type_dirty, Icons.Default.Circle, Color(0xFF8D6E63), "💩"),
+    MIXED(R.string.diaper_type_mixed, Icons.Default.Merge, Color(0xFFAB47BC), "🔄"),
+    DRY(R.string.diaper_type_dry, Icons.Default.InvertColorsOff, Color(0xFFFFCA28), "✓")
 }
 
 fun DiaperType.getDisplayName(context: Context): String {
@@ -116,6 +138,82 @@ fun BreastSide.getDisplayName(context: Context): String {
     return context.getString(this.displayNameRes)
 }
 
+@IgnoreExtraProperties
+data class CustomDrugType(
+    val id: String = UUID.randomUUID().toString(),
+    val name: String = "",          // display name
+    val color: Long = 0xFF9E9E9E,    // ARGB hex stored as Long
+    val iconName: String = "pill"   // key for mapping to ImageVector in app
+)
+data class DrugTypeUiModel(
+    val id: String,          // for built-ins: enum.name, for custom: custom.id
+    val label: String,
+    val icon: ImageVector,
+    val color: Color,
+    val isCustom: Boolean,
+    val backingEnum: DrugType? = null,      // non-null when built-in
+    val backingCustomId: String? = null     // non-null when custom
+)
+fun DrugType.toUiModel(context: Context): DrugTypeUiModel = DrugTypeUiModel(
+    id = name,
+    label = context.getString(displayNameRes),
+    icon = icon,
+    color = color,
+    isCustom = false,
+    backingEnum = this
+)
+
+fun CustomDrugType.toUiModel(): DrugTypeUiModel = DrugTypeUiModel(
+    id = id,
+    label = name,
+    icon = iconName.toImageVector(),  // extension to map string -> ImageVector
+    color = Color(color.toInt()),
+    isCustom = true,
+    backingCustomId = id
+)
+fun String.toImageVector(): ImageVector {
+    return drugIconOptions
+        .firstOrNull { it.key == this }
+        ?.icon
+        ?: Icons.Default.Medication
+}
+data class DrugIconOption(
+    val key: String,
+    val icon: ImageVector
+)
+
+val drugIconOptions = listOf(
+    DrugIconOption("pill", Icons.Default.MedicalServices),
+    DrugIconOption("coffee", Icons.Default.Coffee),
+    DrugIconOption("changing", Icons.Default.BabyChangingStation),
+    DrugIconOption("Twilight", Icons.Default.WbTwilight),
+    DrugIconOption("healing", Icons.Default.Healing),
+    DrugIconOption("vaccines", Icons.Default.Vaccines),
+    DrugIconOption("monitor", Icons.Default.MonitorHeart),
+    DrugIconOption("blood", Icons.Default.Bloodtype),
+    DrugIconOption("science", Icons.Default.Science),
+    DrugIconOption("biotech", Icons.Default.Biotech),
+    DrugIconOption("spa", Icons.Default.Spa),
+    DrugIconOption("favorite", Icons.Default.Favorite),
+    DrugIconOption("child", Icons.Default.ChildCare),
+    DrugIconOption("water", Icons.Default.WaterDrop),
+    DrugIconOption("nutrition", Icons.Default.Restaurant),
+    DrugIconOption("syringe", Icons.Default.Sick),
+    DrugIconOption("sleep", Icons.Default.Bedtime),
+    DrugIconOption("temperature", Icons.Default.Thermostat),
+    DrugIconOption("alert", Icons.Default.Warning),
+    DrugIconOption("clock", Icons.Default.Alarm),
+    DrugIconOption("calendar", Icons.Default.CalendarToday),
+    DrugIconOption("check", Icons.Default.CheckCircle),
+    DrugIconOption("lightbulb", Icons.Default.Lightbulb),
+    DrugIconOption("weight", Icons.Default.FitnessCenter),
+    DrugIconOption("mood", Icons.Default.SentimentSatisfied),
+    DrugIconOption("crying", Icons.Default.SentimentVeryDissatisfied),
+    DrugIconOption("sun", Icons.Default.WbSunny),
+    DrugIconOption("moon", Icons.Default.DarkMode),
+    DrugIconOption("diaper", Icons.Default.Shop),
+    DrugIconOption("smile", Icons.Default.Mood),
+)
 enum class DrugType(
     internal @StringRes val displayNameRes: Int,
     val icon: ImageVector,
@@ -126,23 +224,6 @@ enum class DrugType(
         R.string.drug_type_paracetamol,
         Icons.Default.LocalHospital,
         Color(0xFFE91E63)
-    ),
-
-    // Vitamins
-    VITAMIN_A(
-        R.string.drug_type_vitamin_a,
-        Icons.Default.BabyChangingStation,
-        Color(0xFFFF6F00)
-    ),
-    VITAMIN_B(
-        R.string.drug_type_vitamin_b,
-        Icons.Default.Coffee,
-        Color(0xFFFFA726)
-    ),
-    VITAMIN_C(
-        R.string.drug_type_vitamin_c,
-        Icons.Default.WbTwilight,
-        Color(0xFFFFCA28)
     ),
     VITAMIN_D(
         R.string.drug_type_vitamin_d,
@@ -155,30 +236,17 @@ enum class DrugType(
         Color(0xFF66BB6A)
     ),
 
-    // Minerals & Others
-    IRON(
-        R.string.drug_type_iron,
-        Icons.Default.MoreHoriz,
-        Color(0xFF8D6E63)
-    ),
-    CALCIUM(
-        R.string.drug_type_calcium,
-        Icons.Default.MoreHoriz,
-        Color(0xFFBDBDBD)
-    ),
-
     // Creams & Ointments
     CREAM(
         R.string.drug_type_cream,
         Icons.Default.Healing,
         Color(0xFFF48FB1)
     ),
-    OTHER(
-        R.string.drug_type_other,
-        Icons.Default.MoreHoriz,
+    CUSTOM(
+        R.string.custom,
+        Icons.Default.Add,
         Color(0xFF9E9E9E)
     );
-
 
     companion object {
         val entries = DrugType.entries
@@ -199,11 +267,13 @@ enum class AnalysisRange(
     TWO_WEEKS(R.string.range_2_weeks, 14),
     ONE_MONTH(R.string.range_1_month, 30),
     THREE_MONTHS(R.string.range_3_months, 90),
-    CUSTOM(R.string.range_custom, -1)
+    CUSTOM(R.string.custom, -1)
 }
+
 fun AnalysisRange.getDisplayName(context: Context): String {
     return context.getString(this.displayNameRes)
 }
+
 enum class DashboardTab(val label: String, val icon: @Composable () -> Unit) {
     Home("Home", { Icon(Icons.Default.Home, contentDescription = "Home") }),
     Calendar("Calendar", { Icon(Icons.Default.CalendarToday, contentDescription = "Calendar") }),
@@ -254,9 +324,11 @@ enum class Gender(
     )         // Gray
 
 }
+
 fun Gender.getDisplayName(context: Context): String {
     return context.getString(this.displayNameRes)
 }
+
 enum class BloodType(val icon: ImageVector, val color: Color) {
     A(Icons.Filled.Bloodtype, Color(0xFFEF5350)),           // Red
     B(Icons.Filled.Bloodtype, Color(0xFFFFB74D)),           // Orange

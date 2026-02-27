@@ -936,7 +936,7 @@ private fun BabyFormActionButtons(
                 } else {
                     Text(
                         if (isEditMode)
-                            stringResource(id = R.string.baby_form_save_button)
+                            stringResource(id = R.string.save_button)
                         else
                             stringResource(id = R.string.baby_form_create_button)
                     )

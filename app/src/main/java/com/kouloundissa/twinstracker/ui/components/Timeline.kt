@@ -43,6 +43,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -65,6 +66,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.DiaperEvent
 import com.kouloundissa.twinstracker.data.DrugType
@@ -72,12 +74,14 @@ import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
+import com.kouloundissa.twinstracker.data.Family
 import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.toLocalDate
 import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.data.getDisplayName
+import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.components.Ad.InlineBannerAd
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
@@ -342,10 +346,11 @@ fun EventCard(
     event: Event,
     onEdit: () -> Unit,
     onDelete: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    familyViewModel: FamilyViewModel = hiltViewModel()
 ) {
     val eventType = EventType.forClass(event::class)
-
+    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
     val backgroundColor = BackgroundColor
     val grey = DarkGrey
     val tint = DarkBlue
@@ -436,7 +441,7 @@ fun EventCard(
                 EventTypeIndicator(eventType)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        buildEventTitle(event, eventType, context),
+                        buildEventTitle(event, eventType, context, selectedFamily),
                         style = MaterialTheme.typography.titleMedium,
                         color = tint
                     )
@@ -596,8 +601,11 @@ private fun DurationBadge(event: SleepEvent) {
 private fun buildEventTitle(
     event: Event,
     eventType: EventType,
-    context: Context
+    context: Context,
+    family: Family?
 ): String {
+    val customOptions = family?.settings?.customDrugTypes.orEmpty()
+
     return when (event) {
         is DiaperEvent -> {
             val typeInfo = event.diaperType.getDisplayName(context)
@@ -635,7 +643,16 @@ private fun buildEventTitle(
                 event.weightKg?.let { parts.add("${String.format("%.1f", it)}kg") }
                 event.heightCm?.let { parts.add("${it.toInt()}cm") }
                 val head = context.getString(R.string.head_circumference)
-                event.headCircumferenceCm?.let { parts.add("$head: ${String.format("%.1f", it)}cm") }
+                event.headCircumferenceCm?.let {
+                    parts.add(
+                        "$head: ${
+                            String.format(
+                                "%.1f",
+                                it
+                            )
+                        }cm"
+                    )
+                }
                 if (parts.isNotEmpty()) {
                     append(" - ${parts.joinToString(", ")}")
                 }
@@ -662,8 +679,8 @@ private fun buildEventTitle(
         is DrugsEvent -> {
             val details = buildString {
                 append(eventType.getDisplayName(context))
-                val drugName = if (event.drugType == DrugType.OTHER) {
-                    event.otherDrugName ?: "Unknown"
+                val drugName = if (event.drugType == DrugType.CUSTOM) {
+                    customOptions.find { it.id == event.customDrugTypeId }?.name
                 } else {
                     event.drugType.getDisplayName(context)
                 }

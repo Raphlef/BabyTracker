@@ -181,6 +181,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.kotlinx.datetime)
     implementation(libs.ucrop)
+    implementation(libs.colorpicker.compose)
+
 
     // === Testing ===
     testImplementation(libs.junit)
