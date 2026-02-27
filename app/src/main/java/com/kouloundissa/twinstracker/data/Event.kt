@@ -55,11 +55,11 @@ enum class EventType(
         overlayDescriptionRes = null
     ) {
         override fun generateSummary(
-            todayList: List<Event>,
-            growthMeasurement: GrowthMeasurement?, context: Context
+            dailyAnalysisList: List<DailyAnalysis>,
+            context: Context
         ): String {
 
-            val filterEvents = filterEventsByType(todayList)
+            val filterEvents = filterEventsByType(dailyAnalysisList)
 
             val count = filterEvents.size
             if (count == 0) return context.getString(R.string.no_diaper)
@@ -121,11 +121,10 @@ enum class EventType(
         overlayDescriptionRes = R.string.next_feeding_is,
     ) {
         override fun generateSummary(
-            todayList: List<Event>,
-            growthMeasurement: GrowthMeasurement?,
+            dailyAnalysisList: List<DailyAnalysis>,
             context: Context
         ): String {
-            val filterEvents = filterEventsByType(todayList)
+            val filterEvents = filterEventsByType(dailyAnalysisList)
             if (filterEvents.isEmpty()) return context.getString(R.string.no_feeding)
 
             val totalMl = filterEvents.sumOf { (it as FeedingEvent).amountMl ?: 0.0 }.toInt()
@@ -171,10 +170,10 @@ enum class EventType(
         overlayDescriptionRes = R.string.baby_sleep_since,
     ) {
         override fun generateSummary(
-            todayList: List<Event>,
-            growthMeasurement: GrowthMeasurement?, context: Context
+            dailyAnalysisList: List<DailyAnalysis>,
+            context: Context
         ): String {
-            val filterEvents = filterEventsByType(todayList)
+            val filterEvents = filterEventsByType(dailyAnalysisList)
 
             val totalMin = filterEvents.sumOf { (it as SleepEvent).durationMinutes ?: 0L }
             if (totalMin > 0) {
@@ -196,11 +195,13 @@ enum class EventType(
         overlayDescriptionRes = null
     ) {
         override fun generateSummary(
-            todayList: List<Event>,
-            growthMeasurement: GrowthMeasurement?,
+            dailyAnalysisList: List<DailyAnalysis>,
             context: Context
         ): String {
-            // val filterEvents = filterEventsByType(todayList)
+            val growthMeasurement: GrowthMeasurement? = dailyAnalysisList
+                .filter { it.growthMeasurements != null }  // Skip nulls first
+                .maxByOrNull { it.growthMeasurements!!.timestamp }  // Max by timestamp
+                ?.growthMeasurements
             return growthMeasurement?.let { measurement ->
                 val measurements = mutableListOf<String>()
 
@@ -236,12 +237,11 @@ enum class EventType(
         overlayBuilder = { null },
         overlayDescriptionRes = null
     ) {
-
         override fun generateSummary(
-            todayList: List<Event>,
-            growthMeasurement: GrowthMeasurement?, context: Context
+            dailyAnalysisList: List<DailyAnalysis>,
+            context: Context
         ): String {
-            val filterEvents = filterEventsByType(todayList)
+            val filterEvents = filterEventsByType(dailyAnalysisList)
             if (filterEvents.isEmpty()) return context.getString(R.string.no_pumping)
 
             val totalMl = filterEvents.sumOf { (it as PumpingEvent).amountMl ?: 0.0 }.toInt()
@@ -263,11 +263,10 @@ enum class EventType(
     ) {
 
         override fun generateSummary(
-            todayList: List<Event>,
-            growthMeasurement: GrowthMeasurement?,
+            dailyAnalysisList: List<DailyAnalysis>,
             context: Context
         ): String {
-            val filterEvents = filterEventsByType(todayList)
+            val filterEvents = filterEventsByType(dailyAnalysisList)
             if (filterEvents.isEmpty()) return "No drugs"
 
             val doses = filterEvents.size
@@ -281,14 +280,11 @@ enum class EventType(
 
     /**
      * Abstract method for generating summary text for each event type.
-     * @param todayList List of events that occurred today for this type
-     * @param lastGrowthEvent Optional last growth event (used for GROWTH type)
      * @return Formatted summary string
      */
 
     abstract fun generateSummary(
-        todayList: List<Event>,
-        growthMeasurement: GrowthMeasurement?,
+        dailyAnalysisList: List<DailyAnalysis>,
         context: Context
     ): String
 
@@ -301,8 +297,11 @@ enum class EventType(
 
     companion object {
 
-        fun EventType.filterEventsByType(events: List<Event>): List<Event> =
-            events.filter { EventType.forClass(it::class) == this }
+        fun EventType.filterEventsByType(dailyAnalysisList: List<DailyAnalysis>): List<Event> {
+            val allEvents: List<Event> = dailyAnalysisList
+                .flatMap { it.events }
+            return allEvents.filter { EventType.forClass(it::class) == this }
+        }
 
         fun EventType.getDisplayName(context: Context): String {
             return context.getString(this.displayNameRes)

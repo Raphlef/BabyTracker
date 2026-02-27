@@ -57,6 +57,7 @@ import coil.compose.AsyncImage
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.AnalysisRange
 import com.kouloundissa.twinstracker.data.Baby
+import com.kouloundissa.twinstracker.data.DailyAnalysis
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
@@ -169,8 +170,6 @@ private fun EventTypeDialogContent(
     val today = LocalDate.now()
 
     val analysisSnapshot by eventViewModel.analysisSnapshot.collectAsState()
-    val todayEvents = analysisSnapshot.eventsByDay[today].orEmpty()
-        .filter { EventType.forClass(it::class) == type }
 
     val lazyListState = rememberLazyListState()
     val context = LocalContext.current
@@ -182,8 +181,19 @@ private fun EventTypeDialogContent(
             timestamp = event.timestamp.time
         )
     }
-    val summary = remember(todayEvents, lastGrowthEvent) {
-        type.generateSummary(todayEvents, growthMeasurement, context)
+    val todayDailyAnalysis = analysisSnapshot.dailyAnalysis.find { it.date == today }
+        ?.copy(  // Immutable update, preserves all other fields
+            growthMeasurements = lastGrowthEvent?.let { event ->
+                GrowthMeasurement(
+                    weightKg = event.weightKg?.toFloat() ?: Float.NaN,
+                    heightCm = event.heightCm?.toFloat() ?: Float.NaN,
+                    headCircumferenceCm = event.headCircumferenceCm?.toFloat() ?: Float.NaN,
+                    timestamp = event.timestamp.time
+                )
+            }
+        )?: DailyAnalysis(date = today)
+    val summary = remember(todayDailyAnalysis, lastGrowthEvent) {
+        type.generateSummary( listOf(todayDailyAnalysis), context)
     }
     LaunchedEffect(selectedBaby)
     {
