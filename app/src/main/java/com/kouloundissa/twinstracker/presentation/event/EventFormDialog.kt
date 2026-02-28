@@ -851,11 +851,13 @@ fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
         if (state.beginTime == null) {
             val now = Date()
             viewModel.updateForm {
-                val s = this as EventFormState.Sleep
-                s.copy(
-                    beginTime = now,
-                    durationMinutes = computeDuration(now, s.endTime)
-                )
+                when (this) {
+                    is EventFormState.Sleep -> copy(
+                        beginTime = now,
+                        durationMinutes = computeDuration(now, endTime)
+                    )
+                    else -> this  // Pas de changement pour autres types, évite crash
+                }
             }
             viewModel.updateEventTimestamp(now)
         }
