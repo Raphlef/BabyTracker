@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.presentation.baby
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -25,6 +27,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -52,6 +55,8 @@ import com.kouloundissa.twinstracker.data.toUiModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.components.CustomDrugTypeDialog
 import com.kouloundissa.twinstracker.ui.components.IconSelector
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.util.UUID
 
@@ -228,6 +233,7 @@ fun TreatmentItem(
     val customOptions = selectedFamily?.settings?.customDrugTypes.orEmpty()
     Card(
         shape = MaterialTheme.shapes.extraLarge,
+        onClick = onEdit,
         colors = CardDefaults.cardColors(containerColor = DarkGrey.copy(alpha = 0.1f)),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -287,7 +293,7 @@ fun TreatmentFormDialog(
     familyViewModel: FamilyViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    var showCustomDialog by remember { mutableStateOf(false) }
+    var showCustomDrugTypeDialog by remember { mutableStateOf(false) }
     var editingDrug by remember { mutableStateOf<CustomDrugType?>(null) }
 
     val selectedFamily by familyViewModel.selectedFamily.collectAsState()
@@ -370,12 +376,12 @@ fun TreatmentFormDialog(
                     getColor = { it.color },
                     getIcon = { it.icon },
                     getLabel = { it.label },
-                    onAddCustom = { showCustomDialog = true },
+                    onAddCustom = { showCustomDrugTypeDialog = true },
                     onLongPress = { selectedOption ->
                         if (selectedOption.backingCustomId != null) {
                             editingDrug =
                                 selectedFamily?.settings?.customDrugTypes?.find { it.id == selectedOption.backingCustomId }
-                            showCustomDialog = true
+                            showCustomDrugTypeDialog = true
                         }
                     }
                 )
@@ -413,7 +419,7 @@ fun TreatmentFormDialog(
             }
         }
     )
-    if (showCustomDialog) {
+    if (showCustomDrugTypeDialog) {
         CustomDrugTypeDialog(
             existingDrug = editingDrug,
             onAdd = { newCustom ->
@@ -435,7 +441,7 @@ fun TreatmentFormDialog(
                     )
                     familyViewModel.createOrUpdateFamily(updated)
                 }
-                showCustomDialog = false
+                showCustomDrugTypeDialog = false
             },
             onDelete = {
                 editingDrug?.let { drugToDelete ->
@@ -450,9 +456,82 @@ fun TreatmentFormDialog(
                         familyViewModel.createOrUpdateFamily(updated)
                     }
                 }
-                showCustomDialog = false
+                showCustomDrugTypeDialog = false
             },
-            onDismiss = { showCustomDialog = false }
+            onDismiss = { showCustomDrugTypeDialog = false }
         )
+    }
+}
+@Composable
+fun TreatmentSummaryCard(
+    treatments: List<BabyTreatment>,
+    onTreatmentsClick: () -> Unit,
+    onAddNewTreatment: () -> Unit,
+    familyViewModel: FamilyViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+) {
+    val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+
+    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
+    val customOptions = selectedFamily?.settings?.customDrugTypes.orEmpty()
+
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = backgroundcolor,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onTreatmentsClick() }
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.treatments_label),
+                style = MaterialTheme.typography.titleSmall,
+                color = contentColor
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (treatments.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.no_treatment_configured),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor
+                )
+            } else {
+                treatments.take(3).forEach {
+                    Text(
+                        text = buildTreatmentSummary(it, LocalContext.current, customOptions),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = contentColor
+                    )
+                }
+
+                if (treatments.size > 3) {
+                    Text(
+                        "… +${treatments.size - 3}",
+                        color = contentColor
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            TextButton(
+                onClick = onAddNewTreatment,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = tint
+                ),
+                modifier = Modifier.align(Alignment.Start)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(stringResource(R.string.add_treatment))
+            }
+        }
     }
 }
