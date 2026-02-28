@@ -497,4 +497,6 @@
     <string name="add_treatment">Add treatment</string>
     <string name="interval">Interval</string>
     <string name="Every">Every</string>
+    <string name="confirm_delete_treatment">This action is irreversible. Are you sure you want to delete « %1$s »?</string>
+    <string name="delete_drug">Delete drug</string>
 </resources>
