@@ -39,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,7 +75,11 @@ fun AdvancedColorPicker(
     val haptic = LocalHapticFeedback.current
 
     val mutablePalette = remember { palette.toMutableStateList() }
-
+    LaunchedEffect(selectedColor, mutablePalette) {
+        if (selectedColor !in mutablePalette) {
+            mutablePalette.add(selectedColor)
+        }
+    }
     Column(modifier = modifier.fillMaxWidth()) {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(44.dp),
