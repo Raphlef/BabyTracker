@@ -270,7 +270,7 @@ fun TreatmentItem(
 
             treatment.dosage?.let {
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(  text = stringResource(R.string.dosage_label, it))
+                Text(text = stringResource(R.string.dosage_label, it))
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -543,7 +543,10 @@ fun TreatmentSummaryCard(
                 if (treatments.size > 3) {
                     Text(
                         "… +${treatments.size - 3}",
-                        color = contentColor
+                        color = contentColor,
+                        modifier = Modifier
+                            .clickable { onTreatmentsClick() }
+                            .padding(vertical = 4.dp)
                     )
                 }
             }
