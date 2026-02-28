@@ -2,6 +2,7 @@ package com.kouloundissa.twinstracker.data // Ensure this matches your package s
 
 import android.content.Context
 import com.google.firebase.firestore.IgnoreExtraProperties
+import com.kouloundissa.twinstracker.R
 import java.util.UUID
 
 
@@ -63,9 +64,9 @@ fun buildTreatmentSummary(
     customDrugTypes: List<CustomDrugType>
 ): String {
     val frequency = when (treatment.frequencyType) {
-        TreatmentFrequencyType.HOURLY -> "Every ${treatment.frequencyInterval}h"
-        TreatmentFrequencyType.DAILY -> "Every ${treatment.frequencyInterval} day(s)"
-        TreatmentFrequencyType.WEEKLY -> "Every ${treatment.frequencyInterval} week(s)"
+        TreatmentFrequencyType.HOURLY -> context.getString(R.string.frequency_hourly, treatment.frequencyInterval)
+        TreatmentFrequencyType.DAILY ->  context.getString(R.string.frequency_daily, treatment.frequencyInterval)
+        TreatmentFrequencyType.WEEKLY -> context.getString(R.string.frequency_weekly, treatment.frequencyInterval)
     }
     val drugName =
         if (treatment.drugType == DrugType.CUSTOM) {
