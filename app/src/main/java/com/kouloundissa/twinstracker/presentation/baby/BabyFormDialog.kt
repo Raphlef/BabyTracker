@@ -793,9 +793,12 @@ private fun BabyFormMedicalSection(
 @Composable
 fun TreatmentSummaryCard(
     treatments: List<BabyTreatment>,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    familyViewModel: FamilyViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
     val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
+    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
+    val customOptions = selectedFamily?.settings?.customDrugTypes.orEmpty()
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = backgroundcolor,
@@ -804,6 +807,12 @@ fun TreatmentSummaryCard(
             .clickable { onClick() }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.treatments_label),
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             if (treatments.isEmpty()) {
                 Text(
@@ -813,7 +822,7 @@ fun TreatmentSummaryCard(
             } else {
                 treatments.take(3).forEach {
                     Text(
-                        text = buildTreatmentSummary(it, LocalContext.current),
+                        text = buildTreatmentSummary(it, LocalContext.current,customOptions),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }

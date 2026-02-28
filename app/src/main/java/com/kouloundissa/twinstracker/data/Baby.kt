@@ -57,12 +57,22 @@ data class BabyTreatment(
     val updatedAt: Long = System.currentTimeMillis()
 )
 
-fun buildTreatmentSummary(t: BabyTreatment, context: Context): String {
-    val frequency = when (t.frequencyType) {
-        TreatmentFrequencyType.HOURLY ->  "Every ${t.frequencyInterval}h"
-        TreatmentFrequencyType.DAILY -> "Every ${t.frequencyInterval} day(s)"
-        TreatmentFrequencyType.WEEKLY -> "Every ${t.frequencyInterval} week(s)"
+fun buildTreatmentSummary(
+    treatment: BabyTreatment,
+    context: Context,
+    customDrugTypes: List<CustomDrugType>
+): String {
+    val frequency = when (treatment.frequencyType) {
+        TreatmentFrequencyType.HOURLY -> "Every ${treatment.frequencyInterval}h"
+        TreatmentFrequencyType.DAILY -> "Every ${treatment.frequencyInterval} day(s)"
+        TreatmentFrequencyType.WEEKLY -> "Every ${treatment.frequencyInterval} week(s)"
     }
-
-    return "${t.drugType.getDisplayName(context)} – $frequency"
+    val drugName =
+        if (treatment.drugType == DrugType.CUSTOM) {
+            customDrugTypes.find { it.id == treatment.customDrugTypeId }?.name
+                ?: treatment.drugType.getDisplayName(context)
+        } else {
+            treatment.drugType.getDisplayName(context)
+        }
+    return "${drugName} – $frequency"
 }

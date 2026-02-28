@@ -70,7 +70,8 @@ fun BabyTreatmentsDialog(
     treatments: List<BabyTreatment>,
     onDismiss: () -> Unit,
     onSave: (List<BabyTreatment>) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    familyViewModel: FamilyViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
     var treatments by remember { mutableStateOf(treatments) }
     var editingTreatment by remember { mutableStateOf<BabyTreatment?>(null) }
@@ -78,6 +79,10 @@ fun BabyTreatmentsDialog(
 
     var treatmentToDelete by remember { mutableStateOf<BabyTreatment?>(null) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+
+
+    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
+    val customOptions = selectedFamily?.settings?.customDrugTypes.orEmpty()
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -191,7 +196,7 @@ fun BabyTreatmentsDialog(
                 Text(
                     "Cette action est irréversible. Êtes-vous sûr de vouloir supprimer « ${
                         buildTreatmentSummary(
-                            treatmentToDelete!!, LocalContext.current
+                            treatmentToDelete!!, LocalContext.current, customOptions
                         )
                     } » ?"
                 )
@@ -250,7 +255,7 @@ fun TreatmentItem(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = buildTreatmentSummary(treatment, LocalContext.current),
+                text = buildTreatmentSummary(treatment, LocalContext.current,customOptions),
                 style = MaterialTheme.typography.bodyMedium
             )
 
