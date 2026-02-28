@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -60,6 +61,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -793,21 +795,15 @@ fun TreatmentSummaryCard(
     treatments: List<BabyTreatment>,
     onClick: () -> Unit
 ) {
-    Card(
-        shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+    val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = backgroundcolor,
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-
-            Text(
-                text = stringResource(R.string.treatments_label),
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             if (treatments.isEmpty()) {
                 Text(
@@ -817,7 +813,7 @@ fun TreatmentSummaryCard(
             } else {
                 treatments.take(3).forEach {
                     Text(
-                        text = buildTreatmentSummary(it,LocalContext.current),
+                        text = buildTreatmentSummary(it, LocalContext.current),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
