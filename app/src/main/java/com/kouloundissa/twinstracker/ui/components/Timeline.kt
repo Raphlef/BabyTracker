@@ -704,7 +704,7 @@ private fun buildEventTitle(
             val details = buildString {
                 append(eventType.getDisplayName(context))
                 val drugName = if (event.drugType == DrugType.CUSTOM) {
-                    customOptions.find { it.id == event.customDrugTypeId }?.name
+                    customOptions.find { it.id == event.customDrugTypeId }?.name ?:  event.drugType.getDisplayName(context)
                 } else {
                     event.drugType.getDisplayName(context)
                 }
