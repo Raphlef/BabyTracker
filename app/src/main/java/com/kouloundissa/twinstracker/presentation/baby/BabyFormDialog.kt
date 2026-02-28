@@ -733,7 +733,8 @@ private fun BabyFormMedicalSection(
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
 
-    var showCustomDialog by remember { mutableStateOf(false) }
+    var showTreatments by remember { mutableStateOf(false) }
+    var showAddTreatment by remember { mutableStateOf(false) }
 
     IconSelector(
         title = stringResource(id = R.string.blood_type_label),
@@ -772,15 +773,25 @@ private fun BabyFormMedicalSection(
 
     TreatmentSummaryCard(
         treatments = state.treatments,
-        onClick = { showCustomDialog = true },
+        onTreatmentsClick = { showTreatments = true },
+        onAddNewTreatment = { showAddTreatment = true },
     )
-    if (showCustomDialog) {
+    if (showTreatments) {
         BabyTreatmentsDialog(
             treatments = state.treatments,
-            onDismiss = { showCustomDialog = false },
+            onDismiss = { showTreatments = false },
             onSave = {
                 state.treatments = it
-                showCustomDialog = false
+                showTreatments = false
+            }
+        )
+    }
+    if (showAddTreatment) {
+        TreatmentFormDialog(
+            onDismiss = { showAddTreatment = false },
+            onSave = { newTreatment ->
+                state.treatments = state.treatments + newTreatment
+                showAddTreatment = false
             }
         )
     }
@@ -793,23 +804,29 @@ private fun BabyFormMedicalSection(
 @Composable
 fun TreatmentSummaryCard(
     treatments: List<BabyTreatment>,
-    onClick: () -> Unit,
-    familyViewModel: FamilyViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    onTreatmentsClick: () -> Unit,
+    onAddNewTreatment: () -> Unit,
+    familyViewModel: FamilyViewModel = hiltViewModel()
 ) {
     val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+
     val selectedFamily by familyViewModel.selectedFamily.collectAsState()
     val customOptions = selectedFamily?.settings?.customDrugTypes.orEmpty()
+
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = backgroundcolor,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .clickable { onTreatmentsClick() }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = stringResource(R.string.treatments_label),
-                style = MaterialTheme.typography.titleSmall
+                style = MaterialTheme.typography.titleSmall,
+                color = contentColor
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -817,19 +834,39 @@ fun TreatmentSummaryCard(
             if (treatments.isEmpty()) {
                 Text(
                     text = stringResource(R.string.no_treatment_configured),
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor
                 )
             } else {
                 treatments.take(3).forEach {
                     Text(
-                        text = buildTreatmentSummary(it, LocalContext.current,customOptions),
-                        style = MaterialTheme.typography.bodyMedium
+                        text = buildTreatmentSummary(it, LocalContext.current, customOptions),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = contentColor
                     )
                 }
 
                 if (treatments.size > 3) {
-                    Text("… +${treatments.size - 3}")
+                    Text(
+                        "… +${treatments.size - 3}",
+                        color = contentColor
+                    )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            TextButton(
+                onClick = onAddNewTreatment,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = tint
+                ),
+                modifier = Modifier.align(Alignment.Start)
+            ) {
+                Text(
+                    text = stringResource(R.string.add_treatment),
+                    style = MaterialTheme.typography.labelSmall
+                )
             }
         }
     }
