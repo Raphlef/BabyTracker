@@ -425,16 +425,37 @@ fun TreatmentFormDialog(
             existingDrug = editingDrug,
             onAdd = { newCustom ->
                 selectedFamily?.let { family ->
-                    // Ajoute sans perte des existants (réutilisable)
                     val currentCustomTypes = family.settings.customDrugTypes
-                    val updatedCustomTypes = currentCustomTypes + newCustom
+
+                    val updatedCustomTypes = if (editingDrug != null) {
+                        // Mode édition : REMPLACER l'existant par le modifié
+                        currentCustomTypes.map {
+                            if (it.id == editingDrug!!.id) newCustom else it
+                        }
+                    } else {
+                        // Mode création : AJOUTER le nouveau
+                        currentCustomTypes + newCustom
+                    }
 
                     val updated = family.copy(
                         settings = family.settings.copy(customDrugTypes = updatedCustomTypes)
                     )
                     familyViewModel.createOrUpdateFamily(updated)
                 }
+                showCustomDialog = false
+            },
+            onDelete = {
+                editingDrug?.let { drugToDelete ->
+                    selectedFamily?.let { family ->
+                        val currentCustomTypes = family.settings.customDrugTypes
+                        val updatedCustomTypes = currentCustomTypes.filter { it.id != drugToDelete.id }
 
+                        val updated = family.copy(
+                            settings = family.settings.copy(customDrugTypes = updatedCustomTypes)
+                        )
+                        familyViewModel.createOrUpdateFamily(updated)
+                    }
+                }
                 showCustomDialog = false
             },
             onDismiss = { showCustomDialog = false }
