@@ -851,11 +851,13 @@ fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
         if (state.beginTime == null) {
             val now = Date()
             viewModel.updateForm {
-                val s = this as EventFormState.Sleep
-                s.copy(
-                    beginTime = now,
-                    durationMinutes = computeDuration(now, s.endTime)
-                )
+                when (this) {
+                    is EventFormState.Sleep -> copy(
+                        beginTime = now,
+                        durationMinutes = computeDuration(now, endTime)
+                    )
+                    else -> this  // Pas de changement pour autres types, évite crash
+                }
             }
             viewModel.updateEventTimestamp(now)
         }
@@ -1360,16 +1362,37 @@ fun DrugsForm(
                 existingDrug = editingDrug,
                 onAdd = { newCustom ->
                     selectedFamily?.let { family ->
-                        // Ajoute sans perte des existants (réutilisable)
                         val currentCustomTypes = family.settings.customDrugTypes
-                        val updatedCustomTypes = currentCustomTypes + newCustom
+
+                        val updatedCustomTypes = if (editingDrug != null) {
+                            // Mode édition : REMPLACER l'existant par le modifié
+                            currentCustomTypes.map {
+                                if (it.id == editingDrug!!.id) newCustom else it
+                            }
+                        } else {
+                            // Mode création : AJOUTER le nouveau
+                            currentCustomTypes + newCustom
+                        }
 
                         val updated = family.copy(
                             settings = family.settings.copy(customDrugTypes = updatedCustomTypes)
                         )
                         familyViewModel.createOrUpdateFamily(updated)
                     }
+                    showCustomDialog = false
+                },
+                onDelete = {
+                    editingDrug?.let { drugToDelete ->
+                        selectedFamily?.let { family ->
+                            val currentCustomTypes = family.settings.customDrugTypes
+                            val updatedCustomTypes = currentCustomTypes.filter { it.id != drugToDelete.id }
 
+                            val updated = family.copy(
+                                settings = family.settings.copy(customDrugTypes = updatedCustomTypes)
+                            )
+                            familyViewModel.createOrUpdateFamily(updated)
+                        }
+                    }
                     showCustomDialog = false
                 },
                 onDismiss = { showCustomDialog = false }
@@ -1443,6 +1466,7 @@ fun DrugsForm(
 fun CustomDrugTypeDialog(
     existingDrug: CustomDrugType? = null,
     onAdd: (CustomDrugType) -> Unit,
+    onDelete: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -1574,12 +1598,29 @@ fun CustomDrugTypeDialog(
                 //action
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // Bouton Supprimer (seulement en mode édition)
+                    if (isEditMode && onDelete != null) {
+                        TextButton(
+                            onClick = {
+                                onDelete()
+                            },
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text(stringResource(R.string.delete_button))
+                        }
+                    }
+
+                    // Reste des boutons aligné à droite
+                    Spacer(modifier = Modifier.weight(1f))
+
                     TextButton(onClick = onDismiss) {
                         Text(stringResource(R.string.cancel_button))
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+
                     Button(
                         onClick = {
                             if (name.isBlank()) {
@@ -1589,7 +1630,7 @@ fun CustomDrugTypeDialog(
                             focusManager.clearFocus()
                             onAdd(
                                 CustomDrugType(
-                                    id = UUID.randomUUID().toString(),
+                                    id = existingDrug?.id ?: UUID.randomUUID().toString(),
                                     name = name,
                                     color = selectedColor.toLong(),
                                     iconName = selectedIcon
@@ -1597,7 +1638,12 @@ fun CustomDrugTypeDialog(
                             )
                         }
                     ) {
-                        Text(stringResource(R.string.save_button))
+                        Text(
+                            stringResource(
+                                if (isEditMode) R.string.save_button
+                                else R.string.add_label
+                            )
+                        )
                     }
                 }
             }

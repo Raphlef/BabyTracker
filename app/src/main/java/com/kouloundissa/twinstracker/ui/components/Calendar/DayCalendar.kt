@@ -455,8 +455,6 @@ fun EventContent(span: DaySpan, type: EventType, customOptions: List<CustomDrugT
                         // 3. Autres cas
                         else -> type.color
                     } ?: BackgroundColor
-//                    val iconTint =
-//                        if (span.evt is DrugsEvent) span.evt.drugType.color else BackgroundColor
                     Icon(
                         imageVector = type.icon,
                         contentDescription = null,
@@ -556,6 +554,7 @@ private fun eventLabel(
             val drugName =
                 if (evt.drugType == DrugType.CUSTOM) {
                     customOptions.find { it.id == evt.customDrugTypeId }?.name
+                        ?: stringResource(evt.drugType.displayNameRes)
                 } else {
                     stringResource(evt.drugType.displayNameRes)
                 }

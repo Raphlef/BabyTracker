@@ -116,7 +116,10 @@ fun HomeScreen(
 
                 val analysisFilters = AnalysisFilters(
                     babyFilter = babyFilter,
-                    dateRange = AnalysisFilter.DateRange(AnalysisRange.THREE_DAYS)
+                    dateRange = AnalysisFilter.DateRange(AnalysisRange.THREE_DAYS),
+                    eventTypeFilter = AnalysisFilter.EventTypeFilter(
+                        EventType.entries.toSet()
+                    )
                 )
 
                 eventViewModel.refreshWithFilters(analysisFilters)
@@ -193,7 +196,8 @@ fun HomeScreen(
                                 .width(180.dp)
                         ) {
                             Text(
-                                stringResource(id = R.string.baby_form_title_add))
+                                stringResource(id = R.string.baby_form_title_add)
+                            )
                         }
                     } else if (babies.isNotEmpty()) {
                         Text(

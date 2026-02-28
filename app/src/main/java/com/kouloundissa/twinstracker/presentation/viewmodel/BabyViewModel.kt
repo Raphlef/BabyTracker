@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.storage.StorageException
 import com.kouloundissa.twinstracker.data.Baby
+import com.kouloundissa.twinstracker.data.BabyTreatment
 import com.kouloundissa.twinstracker.data.BloodType
 import com.kouloundissa.twinstracker.data.Family
 import com.kouloundissa.twinstracker.data.Firestore.FirebaseRepository
@@ -211,6 +212,7 @@ class BabyViewModel @Inject constructor(
         bloodType: BloodType = BloodType.UNKNOWN,
         allergies: List<String> = emptyList(),
         medicalConditions: List<String> = emptyList(),
+        treatments: List<BabyTreatment> = emptyList(),
         pediatricianName: String? = null,
         pediatricianPhone: String? = null,
         notes: String? = null,
@@ -238,6 +240,7 @@ class BabyViewModel @Inject constructor(
                     bloodType = bloodType,
                     allergies = allergies,
                     medicalConditions = medicalConditions,
+                     treatments= treatments,
                     pediatricianName = pediatricianName,
                     pediatricianPhone = pediatricianPhone,
                     notes = notes,
@@ -272,6 +275,7 @@ class BabyViewModel @Inject constructor(
         bloodType: BloodType = BloodType.UNKNOWN,
         allergies: List<String> = emptyList(),
         medicalConditions: List<String> = emptyList(),
+        treatments: List<BabyTreatment> = emptyList(),
         pediatricianName: String? = null,
         pediatricianPhone: String? = null,
         notes: String? = null,
@@ -299,6 +303,7 @@ class BabyViewModel @Inject constructor(
             bloodType = bloodType,
             allergies = allergies,
             medicalConditions = medicalConditions,
+            treatments = treatments,
             pediatricianName = pediatricianName,
             pediatricianPhone = pediatricianPhone,
             notes = notes,
@@ -356,6 +361,7 @@ class BabyViewModel @Inject constructor(
         bloodType: BloodType,
         allergies: List<String>,
         medicalConditions: List<String>,
+        treatments: List<BabyTreatment>,
         pediatricianName: String?,
         pediatricianPhone: String?,
         notes: String?,
@@ -388,6 +394,7 @@ class BabyViewModel @Inject constructor(
                 bloodType = bloodType,
                 allergies = allergies,
                 medicalConditions = medicalConditions,
+                treatments = treatments,
                 pediatricianName = pediatricianName,
                 pediatricianPhone = pediatricianPhone,
                 notes = notes,
@@ -408,6 +415,7 @@ class BabyViewModel @Inject constructor(
                 bloodType = bloodType,
                 allergies = allergies,
                 medicalConditions = medicalConditions,
+                treatments = treatments,
                 pediatricianName = pediatricianName,
                 pediatricianPhone = pediatricianPhone,
                 notes = notes,

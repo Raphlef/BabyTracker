@@ -1280,8 +1280,12 @@ class FirebaseRepository @Inject constructor(
         eventTypes: Set<EventType> = EventType.entries.toSet()
     ): AnalysisSnapshot {
 
-        val filteredEvents = events.filter { event ->
-            EventType.forClass(event) in eventTypes
+        val filteredEvents = if (eventTypes.isEmpty()) {
+            events
+        } else {
+            events.filter { event ->
+                EventType.forClass(event) in eventTypes
+            }
         }
         val growthEvents = filteredEvents
             .filterIsInstance<GrowthEvent>()

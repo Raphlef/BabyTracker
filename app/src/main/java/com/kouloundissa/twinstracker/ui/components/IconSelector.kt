@@ -25,6 +25,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -120,9 +122,8 @@ private fun <T> IconSelectorItem(
     tint: Color
 ) {
     val itemColor = getColor?.invoke(option) ?: tint.copy(alpha = 0.2f)
-
+    val haptic = LocalHapticFeedback.current
     Surface(
-        onClick = { onSelect(option) },
         shape = RoundedCornerShape(16.dp),
         color = if (isSelected) itemColor.copy(alpha = 0.5f) else backgroundColor,
         border = if (isSelected)
@@ -134,10 +135,14 @@ private fun <T> IconSelectorItem(
             .then(
                 if (enabled) {
                     Modifier
-                        .clickable { onSelect(option) }
-                        .combinedClickable(  // Combine click + long press (UX fluide)
+                        .combinedClickable(
                             onClick = { onSelect(option) },
-                            onLongClick = { onLongPress?.invoke(option) }
+                            onLongClick = onLongPress?.let { callback ->
+                                {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    callback(option)
+                                }
+                            }
                         )
                 } else Modifier
             )
