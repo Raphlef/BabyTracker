@@ -45,7 +45,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
@@ -85,6 +87,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -95,7 +98,6 @@ import com.kouloundissa.twinstracker.data.BreastSide
 import com.kouloundissa.twinstracker.data.CustomDrugType
 import com.kouloundissa.twinstracker.data.DiaperType
 import com.kouloundissa.twinstracker.data.DrugType
-import com.kouloundissa.twinstracker.data.EventFormState
 import com.kouloundissa.twinstracker.data.EventFormState.Diaper
 import com.kouloundissa.twinstracker.data.EventFormState.Drugs
 import com.kouloundissa.twinstracker.data.EventFormState.Feeding
@@ -113,6 +115,7 @@ import com.kouloundissa.twinstracker.data.PseudoGenerator
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.getDisplayName
 import com.kouloundissa.twinstracker.data.toUiModel
+import com.kouloundissa.twinstracker.presentation.baby.BabyTreatmentsDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.BabyViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.EventViewModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
@@ -127,6 +130,8 @@ import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Date
 
@@ -167,8 +172,8 @@ fun EventFormDialog(
     Dialog(
         onDismissRequest = {
             isVisible = false
-            kotlinx.coroutines.GlobalScope.launch {
-                kotlinx.coroutines.delay(300)
+            GlobalScope.launch {
+                delay(300)
                 onDismiss()
             }
         },
@@ -198,8 +203,8 @@ fun EventFormDialog(
                 initialBabyId = initialBabyId,
                 onDismiss = {
                     isVisible = false
-                    kotlinx.coroutines.GlobalScope.launch {
-                        kotlinx.coroutines.delay(300)
+                    GlobalScope.launch {
+                        delay(300)
                         onDismiss()
                     }
                 },
@@ -299,7 +304,7 @@ fun EventFormDialogContent(
                 lastGrowthEvent?.let { event ->
                     // Only run this once—guarded by LaunchedEffect
                     eventViewModel.updateForm {
-                        (this as EventFormState.Growth).copy(
+                        (this as Growth).copy(
                             weightKg = event.weightKg?.toString().orEmpty(),
                             heightCm = event.heightCm?.toString().orEmpty(),
                             headCircumferenceCm = event.headCircumferenceCm?.toString().orEmpty()
@@ -550,7 +555,7 @@ fun EventFormDialogContent(
                             is Feeding -> FeedingForm(s, eventViewModel)
                             is Growth -> GrowthForm(s, eventViewModel)
                             is Pumping -> PumpingForm(s, eventViewModel)
-                            is Drugs -> DrugsForm(s, familyViewModel, eventViewModel)
+                            is Drugs -> DrugsForm(s, familyViewModel, eventViewModel, babyViewModel)
                             else -> {}
                         }
                     }
@@ -739,7 +744,7 @@ fun ViewerCannotModifyDialog(onDismiss: () -> Unit) {
 }
 
 @Composable
-fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
+fun DiaperForm(state: Diaper, viewModel: EventViewModel) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -749,7 +754,7 @@ fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
             title = stringResource(id = R.string.diaper_type_label),
             options = DiaperType.entries,
             selected = state.diaperType,
-            onSelect = { viewModel.updateForm { (this as EventFormState.Diaper).copy(diaperType = it) } },
+            onSelect = { viewModel.updateForm { (this as Diaper).copy(diaperType = it) } },
             getIcon = { type -> type.icon },
             getColor = { it.color },
             getLabel = { it.getDisplayName(LocalContext.current) }
@@ -772,7 +777,7 @@ fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
                     selected = state.poopColor,
                     onSelect = {
                         viewModel.updateForm {
-                            (this as EventFormState.Diaper).copy(
+                            (this as Diaper).copy(
                                 poopColor = it
                             )
                         }
@@ -788,7 +793,7 @@ fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
                     selected = state.poopConsistency,
                     onSelect = {
                         viewModel.updateForm {
-                            (this as EventFormState.Diaper).copy(
+                            (this as Diaper).copy(
                                 poopConsistency = it
                             )
                         }
@@ -810,7 +815,7 @@ fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
                     value = state.notes,
                     onValueChange = {
                         viewModel.updateForm {
-                            (this as EventFormState.Diaper).copy(
+                            (this as Diaper).copy(
                                 notes = it
                             )
                         }
@@ -827,7 +832,7 @@ fun DiaperForm(state: EventFormState.Diaper, viewModel: EventViewModel) {
 }
 
 @Composable
-fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
+fun SleepForm(state: Sleep, viewModel: EventViewModel) {
 
     val cornerShape = MaterialTheme.shapes.extraLarge
     val backgroundColor = BackgroundColor
@@ -843,7 +848,7 @@ fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
             val now = Date()
             viewModel.updateForm {
                 when (this) {
-                    is EventFormState.Sleep -> copy(
+                    is Sleep -> copy(
                         beginTime = now,
                         durationMinutes = computeDuration(now, endTime)
                     )
@@ -870,7 +875,7 @@ fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
                     onDateSelected = { newBegin ->
                         viewModel.updateEventTimestamp(newBegin)
                         viewModel.updateForm {
-                            val s = this as EventFormState.Sleep
+                            val s = this as Sleep
                             s.copy(
                                 beginTime = newBegin,
                                 durationMinutes = computeDuration(newBegin, s.endTime)
@@ -884,7 +889,7 @@ fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
                     selectedDate = state.endTime,
                     onDateSelected = { newEnd ->
                         viewModel.updateForm {
-                            val s = this as EventFormState.Sleep
+                            val s = this as Sleep
                             s.copy(
                                 endTime = newEnd,
                                 durationMinutes = computeDuration(s.beginTime, newEnd)
@@ -945,7 +950,7 @@ fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
                     value = state.notes,
                     onValueChange = {
                         viewModel.updateForm {
-                            (this as EventFormState.Sleep).copy(
+                            (this as Sleep).copy(
                                 notes = it
                             )
                         }
@@ -962,7 +967,7 @@ fun SleepForm(state: EventFormState.Sleep, viewModel: EventViewModel) {
 }
 
 @Composable
-fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
+fun FeedingForm(state: Feeding, viewModel: EventViewModel) {
     val contentColor = BackgroundColor
     val cornerShape = MaterialTheme.shapes.extraLarge
 
@@ -973,7 +978,7 @@ fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
         selected = state.feedType,
         onSelect = {
             viewModel.updateForm {
-                (this as EventFormState.Feeding).copy(feedType = it)
+                (this as Feeding).copy(feedType = it)
             }
         },
         getIcon = { type ->
@@ -1008,7 +1013,7 @@ fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
             return@LaunchedEffect
         if (state.feedType != FeedType.BREAST_MILK && amountPreset.size > 1) {
             viewModel.updateForm {
-                (this as EventFormState.Feeding).copy(
+                (this as Feeding).copy(
                     durationMin = "",
                     amountMl = amountPreset[1].toString(),
                     breastSide = null
@@ -1017,7 +1022,7 @@ fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
         }
         if (state.feedType == FeedType.BREAST_MILK && durationPreset.size > 1) {
             viewModel.updateForm {
-                (this as EventFormState.Feeding).copy(
+                (this as Feeding).copy(
                     durationMin = durationPreset[1].toString(),
                     amountMl = "",
                     breastSide = BreastSide.BOTH
@@ -1032,7 +1037,7 @@ fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
             value = state.amountMl,
             onValueChange = { newAmount ->
                 viewModel.updateForm {
-                    (this as EventFormState.Feeding).copy(amountMl = newAmount)
+                    (this as Feeding).copy(amountMl = newAmount)
                 }
             },
             min = 0,
@@ -1054,7 +1059,7 @@ fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
                 value = state.durationMin,
                 onValueChange = { newDuration ->
                     viewModel.updateForm {
-                        (this as EventFormState.Feeding).copy(durationMin = newDuration)
+                        (this as Feeding).copy(durationMin = newDuration)
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -1068,7 +1073,7 @@ fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
                 selected = state.breastSide,
                 onSelect = {
                     viewModel.updateForm {
-                        (this as EventFormState.Feeding).copy(breastSide = it)
+                        (this as Feeding).copy(breastSide = it)
                     }
                 },
                 getIcon = { side -> side.icon },
@@ -1086,7 +1091,7 @@ fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
                 value = state.notes,
                 onValueChange = {
                     viewModel.updateForm {
-                        (this as EventFormState.Feeding).copy(
+                        (this as Feeding).copy(
                             notes = it
                         )
                     }
@@ -1102,7 +1107,7 @@ fun FeedingForm(state: EventFormState.Feeding, viewModel: EventViewModel) {
 }
 
 @Composable
-fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) {
+fun GrowthForm(state: Growth, viewModel: EventViewModel) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -1119,7 +1124,7 @@ fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) {
                         value = state.weightKg,
                         onValueChange = {
                             viewModel.updateForm {
-                                (this as EventFormState.Growth).copy(
+                                (this as Growth).copy(
                                     weightKg = it
                                 )
                             }
@@ -1133,7 +1138,7 @@ fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) {
                         value = state.heightCm,
                         onValueChange = {
                             viewModel.updateForm {
-                                (this as EventFormState.Growth).copy(
+                                (this as Growth).copy(
                                     heightCm = it
                                 )
                             }
@@ -1148,7 +1153,7 @@ fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) {
                     value = state.headCircumferenceCm,
                     onValueChange = {
                         viewModel.updateForm {
-                            (this as EventFormState.Growth).copy(
+                            (this as Growth).copy(
                                 headCircumferenceCm = it
                             )
                         }
@@ -1169,7 +1174,7 @@ fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) {
                     value = state.notes,
                     onValueChange = {
                         viewModel.updateForm {
-                            (this as EventFormState.Growth).copy(
+                            (this as Growth).copy(
                                 notes = it
                             )
                         }
@@ -1186,7 +1191,7 @@ fun GrowthForm(state: EventFormState.Growth, viewModel: EventViewModel) {
 }
 
 @Composable
-fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
+fun PumpingForm(state: Pumping, viewModel: EventViewModel) {
     val contentColor = BackgroundColor
     val cornerShape = MaterialTheme.shapes.extraLarge
 
@@ -1212,12 +1217,12 @@ fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
     LaunchedEffect(Unit) {
         if (state.amountMl.isEmpty()) {
             viewModel.updateForm {
-                (this as EventFormState.Pumping).copy(amountMl = amountPreset[1].toString())
+                (this as Pumping).copy(amountMl = amountPreset[1].toString())
             }
         }
         if (state.durationMin.isEmpty()) {
             viewModel.updateForm {
-                (this as EventFormState.Pumping).copy(durationMin = durationPreset[1].toString())
+                (this as Pumping).copy(durationMin = durationPreset[1].toString())
             }
         }
     }
@@ -1226,7 +1231,7 @@ fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
         value = state.amountMl,
         onValueChange = { newAmount ->
             viewModel.updateForm {
-                (this as EventFormState.Pumping).copy(amountMl = newAmount)
+                (this as Pumping).copy(amountMl = newAmount)
             }
         },
         min = 0,
@@ -1239,7 +1244,7 @@ fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
         value = state.durationMin,
         onValueChange = { newDuration ->
             viewModel.updateForm {
-                (this as EventFormState.Pumping).copy(durationMin = newDuration)
+                (this as Pumping).copy(durationMin = newDuration)
             }
         },
         modifier = Modifier
@@ -1255,7 +1260,7 @@ fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
         selected = state.breastSide,
         onSelect = {
             viewModel.updateForm {
-                (this as EventFormState.Pumping).copy(breastSide = it)
+                (this as Pumping).copy(breastSide = it)
             }
         },
         getColor = { it.color },
@@ -1275,7 +1280,7 @@ fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
                 value = state.notes,
                 onValueChange = {
                     viewModel.updateForm {
-                        (this as EventFormState.Pumping).copy(
+                        (this as Pumping).copy(
                             notes = it
                         )
                     }
@@ -1292,12 +1297,24 @@ fun PumpingForm(state: EventFormState.Pumping, viewModel: EventViewModel) {
 
 @Composable
 fun DrugsForm(
-    state: EventFormState.Drugs,
+    state: Drugs,
     familyViewModel: FamilyViewModel,
-    viewModel: EventViewModel
+    viewModel: EventViewModel,
+    babyViewModel: BabyViewModel
 ) {
     val context = LocalContext.current
     var showCustomDialog by remember { mutableStateOf(false) }
+    var showTreatments by remember { mutableStateOf(false) }
+
+    val selectedBaby by babyViewModel.selectedBaby.collectAsState()
+    val treatments = remember(selectedBaby) {
+        selectedBaby?.treatments ?: emptyList()
+    }
+    val treatmentTrad = stringResource(id = R.string.treatments_label)
+    val treatmentsSummary = remember(treatments) {
+        if (treatments.isEmpty()) "" else
+            "${treatments.size} $treatmentTrad"
+    }
 
     val selectedFamily by familyViewModel.selectedFamily.collectAsState()
     val builtInOptions = remember {
@@ -1323,6 +1340,42 @@ fun DrugsForm(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        if (treatments.isNotEmpty()) {
+            Button(
+                onClick = { showTreatments = true },
+                modifier = Modifier
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = BackgroundColor.copy(alpha = 0.5f)
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MedicalServices,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = DarkGrey
+                    )
+                    Text(
+                        text = treatmentsSummary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color =DarkGrey
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = DarkGrey
+                    )
+                }
+            }
+        }
         // Drug Type Picker
         IconSelector(
             title = stringResource(id = R.string.drug_type_label),
@@ -1330,7 +1383,7 @@ fun DrugsForm(
             selected = selectedOption,
             onSelect = { selected ->
                 viewModel.updateForm {
-                    (this as EventFormState.Drugs).copy(
+                    (this as Drugs).copy(
                         drugType = selected.backingEnum ?: DrugType.CUSTOM,
                         customDrugTypeId = selected.backingCustomId
                     )
@@ -1391,14 +1444,48 @@ fun DrugsForm(
                 onDismiss = { showCustomDialog = false }
             )
         }
-
+        if (showTreatments) {
+            BabyTreatmentsDialog(
+                treatments = treatments,
+                onDismiss = { showTreatments = false },
+                onSave = {treatments->
+                    selectedBaby?.let { baby ->
+                        selectedFamily?.let { family ->
+                            babyViewModel.saveBaby(
+                                family = family,
+                                id = baby.id,
+                                name = baby.name,
+                                familyViewModel = familyViewModel,
+                                birthDate = baby.birthDate,
+                                gender = baby.gender,
+                                birthWeightKg = baby.birthWeightKg,
+                                birthLengthCm = baby.birthLengthCm,
+                                birthHeadCircumferenceCm = baby.birthHeadCircumferenceCm,
+                                birthTime = baby.birthTime,
+                                bloodType = baby.bloodType,
+                                allergies = baby.allergies,
+                                medicalConditions = baby.medicalConditions,
+                                treatments = treatments,
+                                pediatricianName = baby.pediatricianName,
+                                pediatricianPhone = baby.pediatricianPhone,
+                                notes = baby.notes,
+                                existingPhotoUrl = baby.photoUrl,
+                                newPhotoUri = null,
+                                photoRemoved = false
+                            )
+                        }
+                    }
+                    showTreatments = false
+                }
+            )
+        }
         // Dosage information section
         FormFieldVisibility(visible = state.drugType != DrugType.CREAM) {
             FormSection(title = stringResource(id = R.string.dosage_information_title)) {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    androidx.compose.foundation.layout.Row(
+                    Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -1406,7 +1493,7 @@ fun DrugsForm(
                             value = state.dosage,
                             onValueChange = { newValue ->
                                 viewModel.updateForm {
-                                    (this as EventFormState.Drugs).copy(dosage = newValue)
+                                    (this as Drugs).copy(dosage = newValue)
                                 }
                             },
                             label = stringResource(id = R.string.dosage_amount_label),
@@ -1418,7 +1505,7 @@ fun DrugsForm(
                             value = state.unit,
                             onValueChange = { newValue ->
                                 viewModel.updateForm {
-                                    (this as EventFormState.Drugs).copy(unit = newValue)
+                                    (this as Drugs).copy(unit = newValue)
                                 }
                             },
                             label = stringResource(id = R.string.dosage_unit_label),
@@ -1439,7 +1526,7 @@ fun DrugsForm(
                     value = state.notes,
                     onValueChange = {
                         viewModel.updateForm {
-                            (this as EventFormState.Drugs).copy(
+                            (this as Drugs).copy(
                                 notes = it
                             )
                         }
@@ -1454,8 +1541,6 @@ fun DrugsForm(
         }
     }
 }
-
-
 
 @Composable
 fun FormFieldVisibility(
