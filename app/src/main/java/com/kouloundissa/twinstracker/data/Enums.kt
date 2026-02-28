@@ -4,14 +4,17 @@ import android.content.Context
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.BabyChangingStation
+import androidx.compose.material.icons.filled.Bathtub
 import androidx.compose.material.icons.filled.Bedtime
-import androidx.compose.material.icons.filled.Biotech
 import androidx.compose.material.icons.filled.Bloodtype
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
@@ -28,13 +31,14 @@ import androidx.compose.material.icons.filled.Grain
 import androidx.compose.material.icons.filled.Healing
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.InvertColorsOff
-import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.LocalDrink
+import androidx.compose.material.icons.filled.LocalFlorist
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Male
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Merge
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Mood
 import androidx.compose.material.icons.filled.MoreHoriz
@@ -44,7 +48,6 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.SentimentSatisfied
 import androidx.compose.material.icons.filled.SentimentVeryDissatisfied
-import androidx.compose.material.icons.filled.Shop
 import androidx.compose.material.icons.filled.Sick
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -186,36 +189,58 @@ data class DrugIconOption(
 )
 
 val drugIconOptions = listOf(
+    // 💊 Medical / Treatment
     DrugIconOption("pill", Icons.Default.MedicalServices),
-    DrugIconOption("coffee", Icons.Default.Coffee),
-    DrugIconOption("changing", Icons.Default.BabyChangingStation),
-    DrugIconOption("Twilight", Icons.Default.WbTwilight),
-    DrugIconOption("healing", Icons.Default.Healing),
+    DrugIconOption("prescription", Icons.AutoMirrored.Filled.ReceiptLong),
+    DrugIconOption("suppository", Icons.Default.Sick),
     DrugIconOption("vaccines", Icons.Default.Vaccines),
-    DrugIconOption("monitor", Icons.Default.MonitorHeart),
+    DrugIconOption("healing", Icons.Default.Healing),
     DrugIconOption("blood", Icons.Default.Bloodtype),
+    DrugIconOption("monitor", Icons.Default.MonitorHeart),
     DrugIconOption("science", Icons.Default.Science),
-    DrugIconOption("biotech", Icons.Default.Biotech),
+    DrugIconOption("antibiotic", Icons.Default.BugReport),
+
+    // 🌬️ Respiratory & nebulizer (no Air reuse)
+    DrugIconOption("cough", Icons.Default.Mic),
+    DrugIconOption("nebulizer", Icons.Default.LocalFlorist),
+    DrugIconOption("inhaler", Icons.Default.Air),
+
+    // 👂 Eye/ear & digestion (unique)
+    DrugIconOption("ear-eye-drop", Icons.Default.VisibilityOff),
+
+    // 👶 Baby care & hygiene
+    DrugIconOption("changing", Icons.Default.BabyChangingStation),
+    DrugIconOption("bath", Icons.Default.Bathtub),
+
+    // ☕ Nutrition & hydration
+    DrugIconOption("coffee", Icons.Default.Coffee),
+    DrugIconOption("nutrition", Icons.Default.Restaurant),
+    DrugIconOption("water", Icons.Default.WaterDrop),
+
+    // 😌 Wellness & spa
     DrugIconOption("spa", Icons.Default.Spa),
     DrugIconOption("favorite", Icons.Default.Favorite),
-    DrugIconOption("child", Icons.Default.ChildCare),
-    DrugIconOption("water", Icons.Default.WaterDrop),
-    DrugIconOption("nutrition", Icons.Default.Restaurant),
-    DrugIconOption("syringe", Icons.Default.Sick),
+    DrugIconOption("weight", Icons.Default.FitnessCenter),
+
+    // 🌞 Sleep & daily rhythm
     DrugIconOption("sleep", Icons.Default.Bedtime),
+    DrugIconOption("sun", Icons.Default.WbSunny),
+    DrugIconOption("moon", Icons.Default.DarkMode),
+    DrugIconOption("Twilight", Icons.Default.WbTwilight),
+
+    // 😊 Emotions & mood
+    DrugIconOption("mood", Icons.Default.SentimentSatisfied),
+    DrugIconOption("crying", Icons.Default.SentimentVeryDissatisfied),
+    DrugIconOption("smile", Icons.Default.Mood),
+
+    // 🌡️ Monitoring & environment
     DrugIconOption("temperature", Icons.Default.Thermostat),
     DrugIconOption("alert", Icons.Default.Warning),
+
+    // ⏰ Time & reminders
     DrugIconOption("clock", Icons.Default.Alarm),
     DrugIconOption("calendar", Icons.Default.CalendarToday),
     DrugIconOption("check", Icons.Default.CheckCircle),
-    DrugIconOption("lightbulb", Icons.Default.Lightbulb),
-    DrugIconOption("weight", Icons.Default.FitnessCenter),
-    DrugIconOption("mood", Icons.Default.SentimentSatisfied),
-    DrugIconOption("crying", Icons.Default.SentimentVeryDissatisfied),
-    DrugIconOption("sun", Icons.Default.WbSunny),
-    DrugIconOption("moon", Icons.Default.DarkMode),
-    DrugIconOption("diaper", Icons.Default.Shop),
-    DrugIconOption("smile", Icons.Default.Mood),
 )
 enum class DrugType(
     internal @StringRes val displayNameRes: Int,
