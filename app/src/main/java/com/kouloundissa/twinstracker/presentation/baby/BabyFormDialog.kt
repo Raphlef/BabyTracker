@@ -809,7 +809,7 @@ fun TreatmentSummaryCard(
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = stringResource(R.string.treatments_label),
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleSmall
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -817,7 +817,7 @@ fun TreatmentSummaryCard(
             if (treatments.isEmpty()) {
                 Text(
                     text = stringResource(R.string.no_treatment_configured),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodySmall
                 )
             } else {
                 treatments.take(3).forEach {
