@@ -86,8 +86,10 @@ import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.Baby
+import com.kouloundissa.twinstracker.data.BabyTreatment
 import com.kouloundissa.twinstracker.data.BloodType
 import com.kouloundissa.twinstracker.data.Gender
+import com.kouloundissa.twinstracker.data.buildTreatmentSummary
 import com.kouloundissa.twinstracker.data.getDisplayName
 import com.kouloundissa.twinstracker.presentation.event.FormNumericInput
 import com.kouloundissa.twinstracker.presentation.settings.SectionCard
@@ -721,6 +723,7 @@ private fun BabyFormMeasurementsSection(
 @Composable
 private fun BabyFormMedicalSection(
     state: BabyFormState,
+    familyViewModel: FamilyViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
 
     val backgroundColor = BackgroundColor
@@ -728,8 +731,16 @@ private fun BabyFormMedicalSection(
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
 
+    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
+    val customOptions = selectedFamily?.settings?.customDrugTypes.orEmpty()
+
     var showTreatments by remember { mutableStateOf(false) }
-    var showAddTreatment by remember { mutableStateOf(false) }
+    var showTreatmentFormDialog by remember { mutableStateOf(false) }
+
+    var editingTreatment by remember { mutableStateOf<BabyTreatment?>(null) }
+
+    var treatmentToDelete by remember { mutableStateOf<BabyTreatment?>(null) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     IconSelector(
         title = stringResource(id = R.string.blood_type_label),
@@ -769,7 +780,11 @@ private fun BabyFormMedicalSection(
     TreatmentSummaryCard(
         treatments = state.treatments,
         onTreatmentsClick = { showTreatments = true },
-        onAddNewTreatment = { showAddTreatment = true },
+        onAddNewTreatment = { showTreatmentFormDialog = true },
+        onTreatmentEdit = { treatment ->
+            editingTreatment = treatment
+            showTreatmentFormDialog = true
+        },
     )
     if (showTreatments) {
         BabyTreatmentsDialog(
@@ -781,12 +796,73 @@ private fun BabyFormMedicalSection(
             }
         )
     }
-    if (showAddTreatment) {
+    if (showTreatmentFormDialog) {
         TreatmentFormDialog(
-            onDismiss = { showAddTreatment = false },
+            existing = editingTreatment,
+            onDismiss = {
+                showTreatmentFormDialog = false
+                editingTreatment = null
+            },
             onSave = { newTreatment ->
                 state.treatments = state.treatments + newTreatment
-                showAddTreatment = false
+                state.treatments = if (editingTreatment == null) {
+                    state.treatments + newTreatment
+                } else {
+                    state.treatments.map {
+                        if (it.id == newTreatment.id) newTreatment else it
+                    }
+                }
+                showTreatmentFormDialog = false
+                editingTreatment = null
+            },
+            onDelete = {
+                treatmentToDelete = editingTreatment
+                showDeleteConfirm = true
+            }
+        )
+    }
+    if (showDeleteConfirm && treatmentToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            icon = {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = { Text(stringResource(R.string.delete_treatment) + "?") },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.confirm_delete_treatment,
+                        buildTreatmentSummary(
+                            treatmentToDelete!!,
+                            LocalContext.current,
+                            customOptions
+                        )
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        state.treatments =
+                            state.treatments.filterNot { it.id == treatmentToDelete!!.id }
+                        showDeleteConfirm = false
+                        treatmentToDelete = null
+                    }
+                ) {
+                    Text(stringResource(R.string.delete_button))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showDeleteConfirm = false
+                    treatmentToDelete = null
+                }) {
+                    Text(stringResource(R.string.cancel_button))
+                }
             }
         )
     }
