@@ -173,27 +173,22 @@ private fun EventTypeDialogContent(
 
     val lazyListState = rememberLazyListState()
     val context = LocalContext.current
-    val growthMeasurement = lastGrowthEvent?.let { event ->
-        GrowthMeasurement(
-            weightKg = event.weightKg?.toFloat() ?: Float.NaN,
-            heightCm = event.heightCm?.toFloat() ?: Float.NaN,
-            headCircumferenceCm = event.headCircumferenceCm?.toFloat() ?: Float.NaN,
-            timestamp = event.timestamp.time
-        )
+
+    val todayDailyAnalysis = remember(analysisSnapshot, lastGrowthEvent) {
+        analysisSnapshot.dailyAnalysis.find { it.date == today }
+            ?.copy(  // Immutable update, preserves all other fields
+                growthMeasurements = lastGrowthEvent?.let { event ->
+                    GrowthMeasurement(
+                        weightKg = event.weightKg?.toFloat() ?: Float.NaN,
+                        heightCm = event.heightCm?.toFloat() ?: Float.NaN,
+                        headCircumferenceCm = event.headCircumferenceCm?.toFloat() ?: Float.NaN,
+                        timestamp = event.timestamp.time
+                    )
+                }
+            ) ?: DailyAnalysis(date = today)
     }
-    val todayDailyAnalysis = analysisSnapshot.dailyAnalysis.find { it.date == today }
-        ?.copy(  // Immutable update, preserves all other fields
-            growthMeasurements = lastGrowthEvent?.let { event ->
-                GrowthMeasurement(
-                    weightKg = event.weightKg?.toFloat() ?: Float.NaN,
-                    heightCm = event.heightCm?.toFloat() ?: Float.NaN,
-                    headCircumferenceCm = event.headCircumferenceCm?.toFloat() ?: Float.NaN,
-                    timestamp = event.timestamp.time
-                )
-            }
-        )?: DailyAnalysis(date = today)
     val summary = remember(todayDailyAnalysis, lastGrowthEvent) {
-        type.generateSummary( listOf(todayDailyAnalysis), context)
+        type.generateSummary(listOf(todayDailyAnalysis), context)
     }
     LaunchedEffect(selectedBaby)
     {
@@ -207,7 +202,10 @@ private fun EventTypeDialogContent(
 
                 val analysisFilters = AnalysisFilters(
                     babyFilter = babyFilter,
-                    dateRange = AnalysisFilter.DateRange(AnalysisRange.ONE_MONTH)
+                    dateRange = AnalysisFilter.DateRange(AnalysisRange.ONE_MONTH),
+                    eventTypeFilter = AnalysisFilter.EventTypeFilter(
+                        setOf(EventType.GROWTH)
+                    )
                 )
 
                 eventViewModel.refreshWithFilters(analysisFilters)
@@ -308,10 +306,12 @@ private fun EventTypeDialogContent(
                     Text(
                         stringResource(id = R.string.event_type_add_event),
                         color = contentColor,
-                        modifier = Modifier.background(
-                            backgroundColor.copy(alpha = 0.9f),
-                            cornerShape
-                        ).padding(12.dp)
+                        modifier = Modifier
+                            .background(
+                                backgroundColor.copy(alpha = 0.9f),
+                                cornerShape
+                            )
+                            .padding(12.dp)
                     )
                 }
             }
