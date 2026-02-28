@@ -19,12 +19,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -76,11 +78,11 @@ fun BabyTreatmentsDialog(
     var treatmentToDelete by remember { mutableStateOf<BabyTreatment?>(null) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
-
     val selectedFamily by familyViewModel.selectedFamily.collectAsState()
     val customOptions = selectedFamily?.settings?.customDrugTypes.orEmpty()
 
     AlertDialog(
+        containerColor = BackgroundColor,
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
         title = { Text(stringResource(R.string.treatments_label)) },
@@ -163,7 +165,10 @@ fun BabyTreatmentsDialog(
     if (showTreatmentFormDialog) {
         TreatmentFormDialog(
             existing = editingTreatment,
-            onDismiss = { showTreatmentFormDialog = false },
+            onDismiss = {
+                showTreatmentFormDialog = false
+                editingTreatment = null
+            },
             onSave = { newTreatment ->
                 treatments = if (editingTreatment == null) {
                     treatments + newTreatment
@@ -173,6 +178,11 @@ fun BabyTreatmentsDialog(
                     }
                 }
                 showTreatmentFormDialog = false
+                editingTreatment = null
+            },
+            onDelete = {
+                treatmentToDelete = editingTreatment
+                showDeleteConfirm = true
             }
         )
     }
@@ -290,6 +300,7 @@ fun TreatmentFormDialog(
     existing: BabyTreatment? = null,
     onDismiss: () -> Unit,
     onSave: (BabyTreatment) -> Unit,
+    onDelete: (() -> Unit)? = null,
     familyViewModel: FamilyViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -329,6 +340,7 @@ fun TreatmentFormDialog(
         }
     }
     AlertDialog(
+        containerColor = BackgroundColor,
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
         confirmButton = {
@@ -359,11 +371,9 @@ fun TreatmentFormDialog(
             Text(if (existing == null) stringResource(R.string.add_treatment) else stringResource(R.string.edit_treatment))
         },
         text = {
-
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-
                 // Drug selector
                 IconSelector(
                     title = stringResource(id = R.string.drug_type_label),
@@ -416,6 +426,26 @@ fun TreatmentFormDialog(
                     label = { Text(stringResource(R.string.notes_label)) },
                     modifier = Modifier.fillMaxWidth()
                 )
+                Row(
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Spacer(Modifier.weight(1f))
+
+                    // Delete button only when editing and onDelete is provided
+                    if (existing != null && onDelete != null) {
+                        TextButton(
+                            onClick = onDelete,
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text(stringResource(R.string.delete_button))
+                        }
+                        Spacer(Modifier.width(8.dp))
+                    }
+                }
             }
         }
     )
@@ -462,11 +492,13 @@ fun TreatmentFormDialog(
         )
     }
 }
+
 @Composable
 fun TreatmentSummaryCard(
     treatments: List<BabyTreatment>,
     onTreatmentsClick: () -> Unit,
     onAddNewTreatment: () -> Unit,
+    onTreatmentEdit: (BabyTreatment) -> Unit,
     familyViewModel: FamilyViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
     val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
@@ -499,12 +531,13 @@ fun TreatmentSummaryCard(
                     color = contentColor
                 )
             } else {
-                treatments.take(3).forEach {
-                    Text(
-                        text = buildTreatmentSummary(it, LocalContext.current, customOptions),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = contentColor
+                treatments.take(3).forEach { treatment ->
+                    TreatmentItem(
+                        treatment = treatment,
+                        customOptions = customOptions,
+                        onEdit = { onTreatmentEdit(treatment) }
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
 
                 if (treatments.size > 3) {
@@ -531,6 +564,41 @@ fun TreatmentSummaryCard(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(stringResource(R.string.add_treatment))
+            }
+        }
+    }
+}
+
+@Composable
+private fun TreatmentItem(
+    treatment: BabyTreatment,
+    customOptions: List<CustomDrugType>,
+    onEdit: () -> Unit
+) {
+    val context = LocalContext.current
+
+    val contentColor = DarkGrey
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onEdit() }
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Nom + bouton edit inline
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = buildTreatmentSummary(treatment, context, customOptions),
+                style = MaterialTheme.typography.bodyMedium,
+                color = contentColor,
+                modifier = Modifier.weight(1f),
+                maxLines = 1
+            )
+            IconButton(onClick = onEdit, modifier = Modifier.size(24.dp)) {
+                Icon(Icons.Default.Edit, null, tint = DarkBlue)
             }
         }
     }
