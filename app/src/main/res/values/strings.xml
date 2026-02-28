@@ -499,4 +499,8 @@
     <string name="Every">Every</string>
     <string name="confirm_delete_treatment">This action is irreversible. Are you sure you want to delete « %1$s »?</string>
     <string name="delete_drug">Delete drug</string>
+    <string name="frequency_hourly">Every %d h</string>
+    <string name="frequency_daily">Every %d day(s)</string>
+    <string name="frequency_weekly">Every %d week(s)</string>
+    <string name="dosage_label">Dosage: %s</string>
 </resources>

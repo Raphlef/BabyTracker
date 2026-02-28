@@ -270,7 +270,7 @@ fun TreatmentItem(
 
             treatment.dosage?.let {
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("Dosage: $it")
+                Text(  text = stringResource(R.string.dosage_label, it))
             }
 
             Spacer(modifier = Modifier.height(12.dp))
