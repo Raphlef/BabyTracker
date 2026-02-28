@@ -74,7 +74,7 @@ fun BabyTreatmentsDialog(
 ) {
     var treatments by remember { mutableStateOf(treatments) }
     var editingTreatment by remember { mutableStateOf<BabyTreatment?>(null) }
-    var showFormDialog by remember { mutableStateOf(false) }
+    var showTreatmentFormDialog by remember { mutableStateOf(false) }
 
     var treatmentToDelete by remember { mutableStateOf<BabyTreatment?>(null) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -110,7 +110,7 @@ fun BabyTreatmentsDialog(
                     FloatingActionButton(
                         onClick = {
                             editingTreatment = null
-                            showFormDialog = true
+                            showTreatmentFormDialog = true
                         }
                     ) {
                         Icon(Icons.Default.Add, null)
@@ -145,7 +145,7 @@ fun BabyTreatmentsDialog(
                                     treatment = treatment,
                                     onEdit = {
                                         editingTreatment = treatment
-                                        showFormDialog = true
+                                        showTreatmentFormDialog = true
                                     },
                                     onDelete = {
                                         treatmentToDelete = treatment
@@ -160,10 +160,10 @@ fun BabyTreatmentsDialog(
         }
     }
 
-    if (showFormDialog) {
+    if (showTreatmentFormDialog) {
         TreatmentFormDialog(
             existing = editingTreatment,
-            onDismiss = { showFormDialog = false },
+            onDismiss = { showTreatmentFormDialog = false },
             onSave = { newTreatment ->
                 treatments = if (editingTreatment == null) {
                     treatments + newTreatment
@@ -172,7 +172,7 @@ fun BabyTreatmentsDialog(
                         if (it.id == newTreatment.id) newTreatment else it
                     }
                 }
-                showFormDialog = false
+                showTreatmentFormDialog = false
             }
         )
     }
@@ -188,8 +188,13 @@ fun BabyTreatmentsDialog(
             },
             title = { Text("Supprimer le traitement ?") },
             text = {
-                Text("Cette action est irréversible. Êtes-vous sûr de vouloir supprimer « ${buildTreatmentSummary(
-                    treatmentToDelete!!,LocalContext.current)} » ?")
+                Text(
+                    "Cette action est irréversible. Êtes-vous sûr de vouloir supprimer « ${
+                        buildTreatmentSummary(
+                            treatmentToDelete!!, LocalContext.current
+                        )
+                    } » ?"
+                )
             },
             confirmButton = {
                 TextButton(
@@ -218,8 +223,11 @@ fun BabyTreatmentsDialog(
 fun TreatmentItem(
     treatment: BabyTreatment,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    familyViewModel: FamilyViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
+    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
+    val customOptions = selectedFamily?.settings?.customDrugTypes.orEmpty()
     Card(
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = DarkGrey.copy(alpha = 0.1f)),
@@ -227,15 +235,22 @@ fun TreatmentItem(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
+            val drugName =
+                if (treatment.drugType == DrugType.CUSTOM) {
+                    customOptions.find { it.id == treatment.customDrugTypeId }?.name
+                        ?: stringResource(treatment.drugType.displayNameRes)
+                } else {
+                    stringResource(treatment.drugType.displayNameRes)
+                }
             Text(
-                text = treatment.drugType.name,
+                text = drugName,
                 style = MaterialTheme.typography.titleMedium
             )
 
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = buildTreatmentSummary(treatment,LocalContext.current),
+                text = buildTreatmentSummary(treatment, LocalContext.current),
                 style = MaterialTheme.typography.bodyMedium
             )
 
