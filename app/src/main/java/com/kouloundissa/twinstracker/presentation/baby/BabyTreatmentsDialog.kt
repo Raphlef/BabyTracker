@@ -5,36 +5,28 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FabPosition
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -47,7 +39,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.kouloundissa.twinstracker.R
@@ -58,8 +49,8 @@ import com.kouloundissa.twinstracker.data.TreatmentFrequencyType
 import com.kouloundissa.twinstracker.data.buildTreatmentSummary
 import com.kouloundissa.twinstracker.data.getDisplayName
 import com.kouloundissa.twinstracker.data.toUiModel
-import com.kouloundissa.twinstracker.presentation.event.CustomDrugTypeDialog
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
+import com.kouloundissa.twinstracker.ui.components.CustomDrugTypeDialog
 import com.kouloundissa.twinstracker.ui.components.IconSelector
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import java.util.UUID
@@ -84,86 +75,85 @@ fun BabyTreatmentsDialog(
     val selectedFamily by familyViewModel.selectedFamily.collectAsState()
     val customOptions = selectedFamily?.settings?.customDrugTypes.orEmpty()
 
-    Dialog(
+    AlertDialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier
-                .widthIn(min = 280.dp, max = 400.dp)
-                .wrapContentHeight()
-        ) {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text(stringResource(R.string.treatments_label)) },
-                        navigationIcon = {
-                            IconButton(onClick = onDismiss) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
-                            }
-                        },
-                        actions = {
-                            IconButton(onClick = { onSave(treatments) }) {
-                                Icon(Icons.Default.Check, null)
-                            }
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+        title = { Text(stringResource(R.string.treatments_label)) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 480.dp)
+            ) {
+                if (treatments.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(R.string.no_treatment_configured),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(
+                            items = treatments,
+                            key = { it.id }
+                        ) { treatment ->
+                            TreatmentItem(
+                                treatment = treatment,
+                                onEdit = {
+                                    editingTreatment = treatment
+                                    showTreatmentFormDialog = true
+                                },
+                                onDelete = {
+                                    treatmentToDelete = treatment
+                                    showDeleteConfirm = true
+                                }
+                            )
                         }
-                    )
-                },
-                floatingActionButton = {
-                    FloatingActionButton(
+                    }
+                }
+                // Add button at bottom of list, above the actions
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    TextButton(
                         onClick = {
                             editingTreatment = null
                             showTreatmentFormDialog = true
                         }
                     ) {
-                        Icon(Icons.Default.Add, null)
-                    }
-                },
-                floatingActionButtonPosition = FabPosition.Center // Ou End pour coin droit
-            ) { paddingValues ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues) // Gère automatiquement l'espace FAB
-                        .padding(16.dp)
-                ) {
-                    if (treatments.isEmpty()) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(stringResource(R.string.no_treatment_configured))
-                        }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                            // Retirez contentPadding(bottom) : Scaffold gère ça
-                        ) {
-                            items(
-                                items = treatments,
-                                key = { it.id }
-                            ) { treatment ->
-                                TreatmentItem(
-                                    treatment = treatment,
-                                    onEdit = {
-                                        editingTreatment = treatment
-                                        showTreatmentFormDialog = true
-                                    },
-                                    onDelete = {
-                                        treatmentToDelete = treatment
-                                        showDeleteConfirm = true
-                                    }
-                                )
-                            }
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.add_treatment))
                     }
                 }
             }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(treatments) }) {
+                Text(stringResource(R.string.save_button))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel_button))
+            }
         }
-    }
+    )
 
     if (showTreatmentFormDialog) {
         TreatmentFormDialog(
@@ -191,14 +181,17 @@ fun BabyTreatmentsDialog(
                     tint = MaterialTheme.colorScheme.error
                 )
             },
-            title = { Text("Supprimer le traitement ?") },
+            title = { Text(stringResource(R.string.delete_treatment) + "?") },
             text = {
                 Text(
-                    "Cette action est irréversible. Êtes-vous sûr de vouloir supprimer « ${
+                    stringResource(
+                        R.string.confirm_delete_treatment,
                         buildTreatmentSummary(
-                            treatmentToDelete!!, LocalContext.current, customOptions
+                            treatmentToDelete!!,
+                            LocalContext.current,
+                            customOptions
                         )
-                    } » ?"
+                    )
                 )
             },
             confirmButton = {
@@ -209,7 +202,7 @@ fun BabyTreatmentsDialog(
                         treatmentToDelete = null
                     }
                 ) {
-                    Text("Supprimer")
+                    Text(stringResource(R.string.delete_button))
                 }
             },
             dismissButton = {
@@ -217,7 +210,7 @@ fun BabyTreatmentsDialog(
                     showDeleteConfirm = false
                     treatmentToDelete = null
                 }) {
-                    Text("Annuler")
+                    Text(stringResource(R.string.cancel_button))
                 }
             }
         )
@@ -255,7 +248,7 @@ fun TreatmentItem(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = buildTreatmentSummary(treatment, LocalContext.current,customOptions),
+                text = buildTreatmentSummary(treatment, LocalContext.current, customOptions),
                 style = MaterialTheme.typography.bodyMedium
             )
 
@@ -288,7 +281,7 @@ fun TreatmentItem(
 
 @Composable
 fun TreatmentFormDialog(
-    existing: BabyTreatment?,
+    existing: BabyTreatment? = null,
     onDismiss: () -> Unit,
     onSave: (BabyTreatment) -> Unit,
     familyViewModel: FamilyViewModel = hiltViewModel()
@@ -448,7 +441,8 @@ fun TreatmentFormDialog(
                 editingDrug?.let { drugToDelete ->
                     selectedFamily?.let { family ->
                         val currentCustomTypes = family.settings.customDrugTypes
-                        val updatedCustomTypes = currentCustomTypes.filter { it.id != drugToDelete.id }
+                        val updatedCustomTypes =
+                            currentCustomTypes.filter { it.id != drugToDelete.id }
 
                         val updated = family.copy(
                             settings = family.settings.copy(customDrugTypes = updatedCustomTypes)
