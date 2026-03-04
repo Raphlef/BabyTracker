@@ -27,6 +27,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -71,6 +72,10 @@ fun BabyTreatmentsDialog(
     modifier: Modifier = Modifier,
     familyViewModel: FamilyViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
+    val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+
     var treatments by remember { mutableStateOf(treatments) }
     var editingTreatment by remember { mutableStateOf<BabyTreatment?>(null) }
     var showTreatmentFormDialog by remember { mutableStateOf(false) }
@@ -85,7 +90,7 @@ fun BabyTreatmentsDialog(
         containerColor = BackgroundColor,
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
-        title = { Text(stringResource(R.string.treatments_label)) },
+        title = { Text(stringResource(R.string.treatments_label), color = contentColor) },
         text = {
             Column(
                 modifier = Modifier
@@ -101,7 +106,7 @@ fun BabyTreatmentsDialog(
                     ) {
                         Text(
                             text = stringResource(R.string.no_treatment_configured),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium, color = contentColor
                         )
                     }
                 } else {
@@ -145,19 +150,19 @@ fun BabyTreatmentsDialog(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(R.string.add_treatment))
+                        Text(stringResource(R.string.add_treatment), color = tint)
                     }
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = { onSave(treatments) }) {
-                Text(stringResource(R.string.save_button))
+                Text(stringResource(R.string.save_button), color = tint)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel_button))
+                Text(stringResource(R.string.cancel_button), color = tint)
             }
         }
     )
@@ -241,10 +246,15 @@ fun TreatmentItem(
 ) {
     val selectedFamily by familyViewModel.selectedFamily.collectAsState()
     val customOptions = selectedFamily?.settings?.customDrugTypes.orEmpty()
+
+    val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+
     Card(
         shape = MaterialTheme.shapes.extraLarge,
         onClick = onEdit,
-        colors = CardDefaults.cardColors(containerColor = DarkGrey.copy(alpha = 0.1f)),
+        colors = CardDefaults.cardColors(containerColor = contentColor.copy(alpha = 0.1f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -258,19 +268,24 @@ fun TreatmentItem(
                 }
             Text(
                 text = drugName,
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                color = contentColor
             )
 
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = buildTreatmentSummary(treatment, LocalContext.current, customOptions),
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
+                color = contentColor
             )
 
             treatment.dosage?.let {
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = stringResource(R.string.dosage_label, it))
+                Text(
+                    text = stringResource(R.string.dosage_label, it),
+                    color = contentColor
+                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -280,15 +295,18 @@ fun TreatmentItem(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 TextButton(onClick = onEdit) {
-                    Text(stringResource(R.string.edit_treatment))
+                    Text(
+                        stringResource(R.string.edit_treatment),
+                        color = tint
+                    )
                 }
                 TextButton(
-                    onClick = onDelete,
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error  // Rouge simple
-                    )
+                    onClick = onDelete
                 ) {
-                    Text(stringResource(R.string.delete_treatment))
+                    Text(
+                        stringResource(R.string.delete_treatment),
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
             }
         }
@@ -303,6 +321,11 @@ fun TreatmentFormDialog(
     onDelete: (() -> Unit)? = null,
     familyViewModel: FamilyViewModel = hiltViewModel()
 ) {
+    val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
+    val contentColor = DarkGrey
+    val tint = DarkBlue
+    val cornerShape = MaterialTheme.shapes.extraLarge
+
     val context = LocalContext.current
     var showCustomDrugTypeDialog by remember { mutableStateOf(false) }
     var editingDrug by remember { mutableStateOf<CustomDrugType?>(null) }
@@ -340,7 +363,7 @@ fun TreatmentFormDialog(
         }
     }
     AlertDialog(
-        containerColor = BackgroundColor,
+        containerColor = BackgroundColor.copy(alpha = 0.9f),
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
         confirmButton = {
@@ -359,16 +382,25 @@ fun TreatmentFormDialog(
                     onSave(newTreatment)
                 }
             ) {
-                Text(stringResource(R.string.save_button))
+                Text(
+                    stringResource(R.string.save_button),
+                    color = tint
+                )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel_button))
+                Text(
+                    stringResource(R.string.cancel_button),
+                    color = tint
+                )
             }
         },
         title = {
-            Text(if (existing == null) stringResource(R.string.add_treatment) else stringResource(R.string.edit_treatment))
+            Text(
+                if (existing == null) stringResource(R.string.add_treatment) else stringResource(R.string.edit_treatment),
+                color = contentColor
+            )
         },
         text = {
             Column(
@@ -395,12 +427,6 @@ fun TreatmentFormDialog(
                         }
                     }
                 )
-                OutlinedTextField(
-                    value = dosage,
-                    onValueChange = { dosage = it },
-                    label = { Text(stringResource(R.string.dosage_information_title)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
 
                 IconSelector(
                     title = stringResource(id = R.string.frequency_label),
@@ -415,15 +441,31 @@ fun TreatmentFormDialog(
                 OutlinedTextField(
                     value = interval,
                     onValueChange = { interval = it.filter { c -> c.isDigit() } },
-                    label = { Text(stringResource(R.string.interval)) },
+                    label = { Text(stringResource(R.string.interval),
+                        color = contentColor) },
+                    textStyle = LocalTextStyle.current.copy(color = contentColor),
+                    shape = cornerShape,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = dosage,
+                    onValueChange = { dosage = it },
+                    label = { Text(stringResource(R.string.dosage_information_title),
+                        color = contentColor) },
+                    textStyle = LocalTextStyle.current.copy(color = contentColor),
+                    shape = cornerShape,
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text(stringResource(R.string.notes_label)) },
+                    label = { Text(stringResource(R.string.notes_label),
+                        color = contentColor) },
+                    textStyle = LocalTextStyle.current.copy(color = contentColor),
+                    shape = cornerShape,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Row(
@@ -437,11 +479,9 @@ fun TreatmentFormDialog(
                     if (existing != null && onDelete != null) {
                         TextButton(
                             onClick = onDelete,
-                            colors = ButtonDefaults.textButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            )
                         ) {
-                            Text(stringResource(R.string.delete_button))
+                            Text(stringResource(R.string.delete_button),
+                                color = MaterialTheme.colorScheme.error)
                         }
                         Spacer(Modifier.width(8.dp))
                     }
