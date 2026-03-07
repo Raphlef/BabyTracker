@@ -860,6 +860,7 @@ fun SleepForm(state: Sleep, viewModel: EventViewModel) {
                     }
                 }
             }
+
             state.endTime == null -> {
                 viewModel.updateForm {
                     when (this) {
@@ -1047,10 +1048,18 @@ fun FeedingForm(state: Feeding, viewModel: EventViewModel) {
                 )
             }
         }
+        if (state.feedType == FeedType.SOLID && (durationPreset.size > 1 || durationMin != "")) {
+            viewModel.updateForm {
+                (this as Feeding).copy(
+                    durationMin = "",
+                    amountMl = "",
+                    breastSide = null
+                )
+            }
+        }
     }
 
-    // Amount (hidden for breast milk)
-    FormFieldVisibility(visible = state.feedType != FeedType.BREAST_MILK) {
+    FormFieldVisibility(visible = state.feedType == FeedType.FORMULA) {
         AmountInput(
             value = state.amountMl,
             onValueChange = { newAmount ->
