@@ -78,13 +78,11 @@ import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.delay
-import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.util.Date
 import kotlin.math.abs
 
 
@@ -274,7 +272,7 @@ fun DrawEventsForDay(
                     span = span,
                     widthFraction = 1f / numConcurrent,
                     xOffsetFraction = index.toFloat() / numConcurrent,
-                    stackIndex = sleepEvents.size,
+                    stackIndex = eventsInSameHour.size,
                     hourRowHeight = hourRowHeight,
                     onEdit = onEdit
                 )
@@ -674,99 +672,56 @@ fun computeDaySpans(events: List<Event>): List<DaySpan> {
     val systemZone = ZoneId.systemDefault()
 
     return events.flatMap { evt ->
-        val startInstant = evt.timestamp.toInstant()
-        val startZ = startInstant.atZone(systemZone)
-
-        // Calculate end time based on event type
-        val endInstant = when (evt) {
-            is SleepEvent -> evt.endTime?.toInstant() ?: startInstant.plusSeconds(30 * 60)
-            is FeedingEvent -> if ((evt.durationMinutes ?: 0) > 0) {
-                startInstant.plusSeconds((evt.durationMinutes!! * 60).toLong())
-            } else {
-                startInstant.plusSeconds(30 * 60)
+        val (startInstant, endInstant) = when (evt) {
+            is SleepEvent -> {
+                val begin = evt.beginTime?.toInstant() ?: evt.timestamp.toInstant()
+                val end = evt.endTime?.toInstant() ?: begin.plusSeconds(30 * 60)
+                begin to end
             }
-
-            is PumpingEvent -> if ((evt.durationMinutes ?: 0) > 0) {
-                startInstant.plusSeconds((evt.durationMinutes!! * 60).toLong())
-            } else {
-                startInstant.plusSeconds(30 * 60)
+            is FeedingEvent -> {
+                val start = evt.timestamp.toInstant()
+                val end = if ((evt.durationMinutes ?: 0) > 0) {
+                    start.plusSeconds((evt.durationMinutes!! * 60).toLong())
+                } else {
+                    start.plusSeconds(30 * 60)
+                }
+                start to end
             }
-
-            else -> startInstant.plusSeconds(30 * 60)
+            is PumpingEvent -> {
+                val start = evt.timestamp.toInstant()
+                val end = if ((evt.durationMinutes ?: 0) > 0) {
+                    start.plusSeconds((evt.durationMinutes!! * 60).toLong())
+                } else {
+                    start.plusSeconds(30 * 60)
+                }
+                start to end
+            }
+            else -> {
+                val start = evt.timestamp.toInstant()
+                start to start.plusSeconds(30 * 60)
+            }
         }
+
+        val startZ = startInstant.atZone(systemZone)
         val endZ = endInstant.atZone(systemZone)
 
         // Split multi-day events
         if (endZ.toLocalDate().isAfter(startZ.toLocalDate())) {
-            // Multi-day event - split into spans for each day
             val spans = mutableListOf<DaySpan>()
             var currentDate = startZ.toLocalDate()
             var currentStart = startZ
 
             while (currentDate < endZ.toLocalDate()) {
-                // Span until end of current day
                 val currentEnd = currentDate.atTime(23, 59, 59).atZone(systemZone)
                 spans.add(DaySpan(evt, currentStart, currentEnd))
-
-                // Move to next day
                 currentDate = currentDate.plusDays(1)
                 currentStart = currentDate.atStartOfDay(systemZone)
             }
-
-            // Add final day span
             spans.add(DaySpan(evt, currentStart, endZ))
             spans
         } else {
-            // Single day event
             listOf(DaySpan(evt, startZ, endZ))
         }
     }
-    //    .filter { it.start.toLocalDate() == date }  // Keep only spans for requested day
-//    val systemZone = ZoneId.systemDefault()
-//    return events.mapNotNull { event ->
-//        val startZdt = event.timestamp.toInstant().atZone(systemZone)
-//        val endZdt = when (event) {
-//            is SleepEvent -> event.endTime?.toInstant()?.atZone(systemZone) ?: startZdt.plusHours(1)
-//            is FeedingEvent -> startZdt.plusMinutes((event.durationMinutes ?: 0).toLong())
-//            is PumpingEvent -> startZdt.plusMinutes((event.durationMinutes ?: 0).toLong())
-//            else -> startZdt.plusMinutes(6)
-//        }
-//        DaySpan(event, startZdt, endZdt)
-//    }
 }
-
-fun calculateTotalHeightFraction(span: DaySpan): Float {
-    val startHour = span.startHour
-    val endHour = span.endHour
-    val startMinute = span.startMinute
-    val endMinute = span.endMinute
-
-    return when {
-        startHour == endHour -> {
-            (endMinute - startMinute) / 60f
-        }
-
-        else -> {
-            var totalMinutes = 0
-            totalMinutes += (60 - startMinute)
-
-            for (h in (startHour + 1) until endHour) {
-                totalMinutes += 60
-            }
-
-            totalMinutes += endMinute
-            totalMinutes / 60f
-        }
-    }
-}
-
-private val systemZone: ZoneId
-    get() = ZoneId.systemDefault()
-
-private fun Date.toInstant() = Instant.ofEpochMilli(time)
-
-private fun Date.toZoned() = toInstant().atZone(systemZone)
-
-// Minimum visible height for punctual events (10% of hour)
-val MIN_INSTANT_FRAC = 0.1f
 
