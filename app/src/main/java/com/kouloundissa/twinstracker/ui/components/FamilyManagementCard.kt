@@ -1,5 +1,6 @@
 package com.kouloundissa.twinstracker.ui.components
 
+import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -675,6 +676,7 @@ fun JoinFamilyDialog(
     )
 }
 
+@SuppressLint("FlowOperatorInvokedInComposition")
 @Composable
 fun FamilyLeaveButton(
     selectedFamily: Family?,
@@ -707,7 +709,7 @@ fun FamilyLeaveButton(
                 Text(
                     stringResource(
                         if (isOnlyAdmin) R.string.family_leave_button_cannot_leave
-                        else R.string.family_leave_button_leave
+                        else R.string.button_leave
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -746,7 +748,7 @@ fun FamilyLeaveButton(
                             }
                         ) {
                             Text(
-                                stringResource(R.string.family_leave_dialog_confirm_button),
+                                stringResource(R.string.button_leave),
                                 color = MaterialTheme.colorScheme.error
                             )
                         }

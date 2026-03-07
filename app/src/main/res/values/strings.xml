@@ -132,6 +132,7 @@
     <string name="baby_form_title_edit">Edit Baby</string>
     <string name="baby_form_title_create">Create Baby</string>
     <string name="baby_form_title_add">Add New Baby</string>
+    <string name="select_baby_to_see_data">Select a baby to see data</string>
 
     <!-- ========== BABY FORM - FIELDS ========== -->
     <string name="baby_name_label">Baby Name</string>
@@ -140,12 +141,32 @@
     <string name="date_of_birth_label">Date of Birth</string>
     <string name="gender_label">Gender</string>
     <string name="head_circumference">Head Circumference (cm)</string>
-    <string name="no_growth_data">Pas de données de croissance</string>
+    <string name="no_growth_data">No growth data</string>
     <string name="blood_type_label">Blood Type</string>
     <string name="allergies_label">Allergies</string>
     <string name="medical_conditions_label">Medical Conditions</string>
     <string name="pediatrician_label">Pediatrician</string>
     <string name="pick_contact_description">Pick Contact</string>
+    <string name="out_of_range">out of range</string>
+
+    <!-- ========== Treatment ========== -->
+    <string name="treatments_label">Treatments</string>
+    <string name="no_treatment_configured">No treatment configured</string>
+    <string name="manage_treatments">Manage treatements</string>
+    <string name="frequency_label">Frequency</string>
+    <string name="hourly">Hourly</string>
+    <string name="daily">Daily</string>
+    <string name="weekly">Weekly</string>
+    <string name="edit_treatment">Edit treatment</string>
+    <string name="delete_treatment">Delete treatment</string>
+    <string name="add_treatment">Add treatment</string>
+    <string name="interval">Interval</string>
+    <string name="Every">Every</string>
+    <string name="confirm_delete_treatment">This action is irreversible. Are you sure you want to delete « %1$s »?</string>
+    <string name="frequency_hourly">Every %d h</string>
+    <string name="frequency_daily">Every %d day(s)</string>
+    <string name="frequency_weekly">Every %d week(s)</string>
+    <string name="dosage_label">Dosage: %s</string>
 
     <!-- ========== BABY FORM - VALIDATION ========== -->
     <string name="invalid_number">Invalid number</string>
@@ -170,6 +191,7 @@
     <string name="event_type_drugs">Drugs</string>
     <string name="event_type_today_summary">Today\'s Summary</string>
     <string name="event_type_add_event">Add New Event</string>
+    <string name="add_label">Add</string>
     <string name="no_pumping">No Pumping</string>
 
     <!-- ========== DIAPER TYPE ========== -->
@@ -284,6 +306,8 @@
     <string name="duration">Duration</string>
     <string name="no_sleep">No Sleep</string>
     <string name="total_sleep_summary">Total sleep: %1$dh %2$dm</string>
+    <string name="sleep_event_sleeping">Sleeping</string>
+    <string name="sleep_event_slept">Slept</string>
 
     <!-- ========== EVENT FORM DIALOG - GROWTH ========== -->
     <string name="body_measurements_title">Body Measurements</string>
@@ -302,12 +326,16 @@
     <string name="drug_edit_label">Edit drug</string>
     <string name="dosage_amount_label">Amount</string>
     <string name="dosage_unit_label">Unit</string>
+    <string name="no_drug">No drug</string>
+    <string name="delete_drug">Delete drug</string>
 
     <!-- ========== EVENT FORM DIALOG - BUTTONS ========== -->
     <string name="event_form_add_event">Add Event</string>
     <string name="event_form_edit_event">Edit Event</string>
     <string name="cancel_button">Cancel</string>
     <string name="delete_button">Delete</string>
+    <string name="button_leave">Leave</string>
+    <string name="back_again_to_exit">Press back again to leave</string>
     <string name="create_event_button">Create Event</string>
     <string name="update_event_button">Update Event</string>
     <string name="saving_button">Saving…</string>
@@ -362,8 +390,6 @@
 
 
     <!-- ========== LEAVE BUTTON ========== -->
-    <string name="family_leave_button_leave">Leave</string>
-    <string name="back_again_to_exit">Press back again to leave</string>
     <string name="family_leave_button_cannot_leave">Cannot leave</string>
     <string name="family_leave_dialog_title">Leave family</string>
     <string name="family_leave_dialog_only_admin_message">You cannot leave this family because you are the only administrator. Please assign another member as administrator first.</string>
@@ -371,7 +397,6 @@
     <string name="family_user_leave_dialog_only_admin_message">%1$s cannot leave this family because they are the only administrator. Please assign another member as administrator first.</string>
     <string name="family_user_leave_dialog_confirm_message">Are you sure you want to remove %1$s from \"%2$s\"? They will lose access to all babies and data in this family.</string>
     <string name="family_remove_dialog_confirm_button">Remove</string>
-    <string name="family_leave_dialog_confirm_button">Leave</string>
     <string name="family_leave_dialog_dismiss_only_admin">Understood</string>
 
     <!-- ========== PHOTO PICKER ========== -->
@@ -488,28 +513,7 @@
     <string name="pseudo_family_23">Caretaker</string>
     <string name="pseudo_family_24">Angel</string>
 
-    <string name="select_baby_to_see_data">Select a baby to see data</string>
-    <string name="sleep_event_sleeping">Sleeping</string>
-    <string name="sleep_event_slept">Slept</string>
-    <string name="out_of_range">out of range</string>
-    <string name="add_label">Add</string>
-    <string name="no_drug">No drug</string>
-    <string name="treatments_label">Treatments</string>
-    <string name="no_treatment_configured">No treatment configured</string>
-    <string name="manage_treatments">Manage treatements</string>
-    <string name="frequency_label">Frequency</string>
-    <string name="hourly">Hourly</string>
-    <string name="daily">Daily</string>
-    <string name="weekly">Weekly</string>
-    <string name="edit_treatment">Edit treatment</string>
-    <string name="delete_treatment">Delete treatment</string>
-    <string name="add_treatment">Add treatment</string>
-    <string name="interval">Interval</string>
-    <string name="Every">Every</string>
-    <string name="confirm_delete_treatment">This action is irreversible. Are you sure you want to delete « %1$s »?</string>
-    <string name="delete_drug">Delete drug</string>
-    <string name="frequency_hourly">Every %d h</string>
-    <string name="frequency_daily">Every %d day(s)</string>
-    <string name="frequency_weekly">Every %d week(s)</string>
-    <string name="dosage_label">Dosage: %s</string>
+
+
+
 </resources>

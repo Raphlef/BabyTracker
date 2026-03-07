@@ -210,6 +210,7 @@ class EventViewModel @Inject constructor(
     fun clearEditingEvent() {
         _notificationEvent.value = null
     }
+
     /**
      * Safe date range expansion for loading more history
      * Calculates new range without race conditions
@@ -227,7 +228,8 @@ class EventViewModel @Inject constructor(
 
         val additionalDays = AnalysisRange.THREE_DAYS.days
 
-        val newStartDate = Date(currentRequest.dateRange.startDate.time - TimeUnit.DAYS.toMillis(additionalDays.toLong()))
+        val newStartDate =
+            Date(currentRequest.dateRange.startDate.time - TimeUnit.DAYS.toMillis(additionalDays.toLong()))
 
         Log.d("LoadMore", "Extending from ${currentRequest.dateRange.startDate} to $newStartDate")
 
@@ -509,7 +511,7 @@ class EventViewModel @Inject constructor(
         viewModelScope.launch {
             val userId = repository.getCurrentUserProfile().id
             val state = _formState.value
-            state.validateAndToEvent(babyId, userId).fold(
+            state.validateAndToEvent(babyId, userId, context).fold(
                 onFailure = { err ->
                     _errorMessage.value = err.message
                     _isSaving.value = false
@@ -555,7 +557,8 @@ class EventViewModel @Inject constructor(
 
                     // Mise à jour immédiate : ajoute ou met à jour l'event
                     val currentSnapshot = _analysisSnapshot.value
-                    val existingIndex = currentSnapshot.events.indexOfFirst { it.id == eventWithPhoto.id }
+                    val existingIndex =
+                        currentSnapshot.events.indexOfFirst { it.id == eventWithPhoto.id }
 
                     val updatedEvents = if (existingIndex >= 0) {
                         // Update si l'event existe déjà (cas rare mais possible)
@@ -768,9 +771,11 @@ class EventViewModel @Inject constructor(
     fun resetFormState() {
         _formState.value = EventFormState.Diaper()
     }
+
     fun resetIsSaving() {
         _isSaving.value = false
     }
+
     fun resetSaveSuccess() {
         _saveSuccess.value = false
     }
