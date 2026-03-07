@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -14,8 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -59,9 +62,11 @@ import com.kouloundissa.twinstracker.data.toUiModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.components.CustomDrugTypeDialog
 import com.kouloundissa.twinstracker.ui.components.IconSelector
+import com.kouloundissa.twinstracker.ui.components.ModernDateSelector
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
+import java.util.Date
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -355,6 +360,11 @@ fun TreatmentFormDialog(
     }
     var notes by remember { mutableStateOf(treatment?.notes ?: "") }
 
+    val startDateMillis = treatment?.startDate
+    val endDateMillis = treatment?.endDate
+    var startDate by remember { mutableStateOf<Date?>(startDateMillis?.let { Date(it) }) }
+    var endDate by remember { mutableStateOf<Date?>(endDateMillis?.let { Date(it) }) }
+
     val selectedOption = remember(drugType, customDrugTypeId) {
         when {
             drugType == DrugType.CUSTOM && customDrugTypeId != null ->
@@ -377,6 +387,8 @@ fun TreatmentFormDialog(
                         dosage = dosage.ifBlank { null },
                         frequencyType = frequencyType,
                         frequencyInterval = interval.toIntOrNull() ?: 1,
+                        startDate = startDate?.time,
+                        endDate = endDate?.time,
                         notes = notes.ifBlank { null },
                         updatedAt = System.currentTimeMillis()
                     )
@@ -405,7 +417,10 @@ fun TreatmentFormDialog(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                    .fillMaxHeight()
             ) {
                 // Drug selector
                 IconSelector(
@@ -453,7 +468,17 @@ fun TreatmentFormDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
+                ModernDateSelector(
+                    label = stringResource(id = R.string.begin_treatment_label),
+                    selectedDate = startDate,
+                    onDateSelected = { startDate = it }
+                )
 
+                ModernDateSelector(
+                    label = stringResource(id = R.string.end_treatment_label),
+                    selectedDate = endDate,
+                    onDateSelected = { endDate = it }
+                )
                 OutlinedTextField(
                     value = dosage,
                     onValueChange = { dosage = it },
