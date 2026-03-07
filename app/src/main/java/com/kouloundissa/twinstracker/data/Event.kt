@@ -388,17 +388,14 @@ sealed class Event {
             } catch (e: Exception) {
                 null
             }
-
-            if (value != null) {
-                // Convert special types for JSON serialization
-                val converted = when (value) {
-                    is Date -> com.google.firebase.Timestamp(value)
-                    is Enum<*> -> value.name
-                    else -> value
-                }
-
-                result[prop.name] = converted
+            // Convert special types for JSON serialization
+            val converted = when (value) {
+                is Date -> com.google.firebase.Timestamp(value)
+                is Enum<*> -> value.name
+                else -> value
             }
+
+            result[prop.name] = converted
         }
 
         // Add eventTypeString for polymorphic deserialization
@@ -609,9 +606,10 @@ sealed class EventFormState {
     abstract var photoUrl: String?
     abstract var newPhotoUrl: Uri?
     abstract var photoRemoved: Boolean
-    fun validateAndToEvent(babyId: String, userId: String,context: Context): Result<Event> {
+    fun validateAndToEvent(babyId: String, userId: String, context: Context): Result<Event> {
         return validate(context).map { toEvent(babyId, userId) }
     }
+
     fun EventFormState.toEvent(babyId: String, userId: String): Event = when (this) {
         is EventFormState.Diaper -> toDiaperEvent(babyId, userId)
         is EventFormState.Sleep -> toSleepEvent(babyId, userId)
@@ -620,6 +618,7 @@ sealed class EventFormState {
         is EventFormState.Pumping -> toPumpingEvent(babyId, userId)
         is EventFormState.Drugs -> toDrugsEvent(babyId, userId)
     }
+
     fun EventFormState.validate(context: Context): Result<Unit> = when (this) {
         is EventFormState.Diaper -> validateDiaper(context)
         is EventFormState.Sleep -> validateSleep(context)
@@ -628,6 +627,7 @@ sealed class EventFormState {
         is EventFormState.Pumping -> validatePumping(context)
         is EventFormState.Drugs -> Result.success(Unit)
     }
+
     private fun EventFormState.Diaper.validateDiaper(context: Context): Result<Unit> {
         return if ((diaperType == DiaperType.DIRTY || diaperType == DiaperType.MIXED)
             && poopColor == null && poopConsistency == null
@@ -643,6 +643,7 @@ sealed class EventFormState {
             !isSleeping && beginTime == null && endTime == null -> {
                 Result.failure(IllegalArgumentException(context.getString(R.string.event_error_sleep_not_started)))
             }
+
             durationMinutes != null -> validateDuration(durationMinutes, context, 1440)
             else -> Result.success(Unit)
         }
@@ -658,11 +659,13 @@ sealed class EventFormState {
                     Result.failure(IllegalArgumentException(context.getString(R.string.event_error_breast_milk_missing)))
                 } else Result.success(Unit)
             }
+
             FeedType.FORMULA -> {
                 if (amount == null) {
                     Result.failure(IllegalArgumentException(context.getString(R.string.event_error_formula_amount)))
                 } else Result.success(Unit)
             }
+
             FeedType.SOLID -> Result.success(Unit)
         }
     }
@@ -687,10 +690,12 @@ sealed class EventFormState {
             amount == null && duration == null -> {
                 Result.failure(IllegalArgumentException(context.getString(R.string.event_error_pumping_none)))
             }
+
             duration != null -> validateDuration(duration, context, 120)
             else -> Result.success(Unit)
         }
     }
+
     private fun EventFormState.Diaper.toDiaperEvent(babyId: String, userId: String) = DiaperEvent(
         id = eventId ?: UUID.randomUUID().toString(),
         babyId = babyId,
@@ -716,18 +721,19 @@ sealed class EventFormState {
         photoUrl = photoUrl
     )
 
-    private fun EventFormState.Feeding.toFeedingEvent(babyId: String, userId: String) = FeedingEvent(
-        id = eventId ?: UUID.randomUUID().toString(),
-        babyId = babyId,
-        userId = userId,
-        timestamp = eventTimestamp,
-        feedType = feedType,
-        amountMl = amountMl.toDoubleOrNull(),
-        durationMinutes = durationMin.toIntOrNull(),
-        breastSide = breastSide,
-        notes = notes.takeIf(String::isNotBlank),
-        photoUrl = photoUrl
-    )
+    private fun EventFormState.Feeding.toFeedingEvent(babyId: String, userId: String) =
+        FeedingEvent(
+            id = eventId ?: UUID.randomUUID().toString(),
+            babyId = babyId,
+            userId = userId,
+            timestamp = eventTimestamp,
+            feedType = feedType,
+            amountMl = amountMl.toDoubleOrNull(),
+            durationMinutes = durationMin.toIntOrNull(),
+            breastSide = breastSide,
+            notes = notes.takeIf(String::isNotBlank),
+            photoUrl = photoUrl
+        )
 
     private fun EventFormState.Growth.toGrowthEvent(babyId: String, userId: String) = GrowthEvent(
         id = eventId ?: UUID.randomUUID().toString(),
@@ -741,17 +747,18 @@ sealed class EventFormState {
         photoUrl = photoUrl
     )
 
-    private fun EventFormState.Pumping.toPumpingEvent(babyId: String, userId: String) = PumpingEvent(
-        id = eventId ?: UUID.randomUUID().toString(),
-        babyId = babyId,
-        userId = userId,
-        timestamp = eventTimestamp,
-        amountMl = amountMl.toDoubleOrNull(),
-        durationMinutes = durationMin.toLongOrNull()?.toInt(),
-        breastSide = breastSide,
-        notes = notes.takeIf(String::isNotBlank),
-        photoUrl = photoUrl
-    )
+    private fun EventFormState.Pumping.toPumpingEvent(babyId: String, userId: String) =
+        PumpingEvent(
+            id = eventId ?: UUID.randomUUID().toString(),
+            babyId = babyId,
+            userId = userId,
+            timestamp = eventTimestamp,
+            amountMl = amountMl.toDoubleOrNull(),
+            durationMinutes = durationMin.toLongOrNull()?.toInt(),
+            breastSide = breastSide,
+            notes = notes.takeIf(String::isNotBlank),
+            photoUrl = photoUrl
+        )
 
     private fun EventFormState.Drugs.toDrugsEvent(babyId: String, userId: String) = DrugsEvent(
         id = eventId ?: UUID.randomUUID().toString(),
@@ -855,9 +862,17 @@ sealed class EventFormState {
         val otherDrugName: String = "",   // when drugType == OTHER
         val notes: String = ""
     ) : EventFormState()
+
     private fun validateDuration(minutes: Long, context: Context, maxMinutes: Int): Result<Unit> {
         return if (minutes !in 1..maxMinutes) {
-            Result.failure(IllegalArgumentException(context.getString(R.string.event_error_duration, maxMinutes)))
+            Result.failure(
+                IllegalArgumentException(
+                    context.getString(
+                        R.string.event_error_duration,
+                        maxMinutes
+                    )
+                )
+            )
         } else Result.success(Unit)
     }
 }
