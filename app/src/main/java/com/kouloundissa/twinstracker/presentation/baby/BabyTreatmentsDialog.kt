@@ -41,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -321,7 +322,7 @@ fun TreatmentFormDialog(
     onDelete: (() -> Unit)? = null,
     familyViewModel: FamilyViewModel = hiltViewModel()
 ) {
-    val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
+    val backgroundcolor = lerp(BackgroundColor, DarkGrey, 0.07f)
     val contentColor = DarkGrey
     val tint = DarkBlue
     val cornerShape = MaterialTheme.shapes.extraLarge
@@ -363,7 +364,7 @@ fun TreatmentFormDialog(
         }
     }
     AlertDialog(
-        containerColor = BackgroundColor.copy(alpha = 0.9f),
+        containerColor = backgroundcolor,
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
         confirmButton = {
@@ -441,8 +442,12 @@ fun TreatmentFormDialog(
                 OutlinedTextField(
                     value = interval,
                     onValueChange = { interval = it.filter { c -> c.isDigit() } },
-                    label = { Text(stringResource(R.string.interval),
-                        color = contentColor) },
+                    label = {
+                        Text(
+                            stringResource(R.string.interval),
+                            color = contentColor
+                        )
+                    },
                     textStyle = LocalTextStyle.current.copy(color = contentColor),
                     shape = cornerShape,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -452,8 +457,12 @@ fun TreatmentFormDialog(
                 OutlinedTextField(
                     value = dosage,
                     onValueChange = { dosage = it },
-                    label = { Text(stringResource(R.string.dosage_information_title),
-                        color = contentColor) },
+                    label = {
+                        Text(
+                            stringResource(R.string.dosage_information_title),
+                            color = contentColor
+                        )
+                    },
                     textStyle = LocalTextStyle.current.copy(color = contentColor),
                     shape = cornerShape,
                     modifier = Modifier.fillMaxWidth()
@@ -462,8 +471,12 @@ fun TreatmentFormDialog(
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text(stringResource(R.string.notes_label),
-                        color = contentColor) },
+                    label = {
+                        Text(
+                            stringResource(R.string.notes_label),
+                            color = contentColor
+                        )
+                    },
                     textStyle = LocalTextStyle.current.copy(color = contentColor),
                     shape = cornerShape,
                     modifier = Modifier.fillMaxWidth()
@@ -480,8 +493,10 @@ fun TreatmentFormDialog(
                         TextButton(
                             onClick = onDelete,
                         ) {
-                            Text(stringResource(R.string.delete_button),
-                                color = MaterialTheme.colorScheme.error)
+                            Text(
+                                stringResource(R.string.delete_button),
+                                color = MaterialTheme.colorScheme.error
+                            )
                         }
                         Spacer(Modifier.width(8.dp))
                     }
