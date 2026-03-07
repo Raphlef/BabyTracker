@@ -24,9 +24,9 @@ import com.google.firebase.firestore.IgnoreExtraProperties
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.presentation.event.EventWithAmount
 import com.kouloundissa.twinstracker.presentation.event.predictNextFeedingTime
+import com.kouloundissa.twinstracker.ui.components.DecreaseTimer
 import com.kouloundissa.twinstracker.ui.components.EventOverlayInfo
-import com.kouloundissa.twinstracker.ui.components.FeedingTimer
-import com.kouloundissa.twinstracker.ui.components.SleepTimer
+import com.kouloundissa.twinstracker.ui.components.IncreaseTimer
 import java.util.Date
 import java.util.UUID
 import kotlin.reflect.KClass
@@ -110,9 +110,10 @@ enum class EventType(
                 context.lastEvents.filterIsInstance<EventWithAmount>().predictNextFeedingTime()
             nextFeedingMs?.let { nextTime ->
                 {
-                    FeedingTimer(
+                    DecreaseTimer(
                         nextFeedingTimeMs = nextTime.nextFeedingTimeMs,
                         onClick = context.onClick,
+                        textIcon = "🍼",
                         modifier = Modifier.align(Alignment.CenterStart)
                     )
                 }
@@ -159,7 +160,7 @@ enum class EventType(
 
             activeSleepEvent?.let { sleepEvent ->
                 {
-                    SleepTimer(
+                    IncreaseTimer(
                         sleepEvent = sleepEvent,
                         onClick = context.onClick,
                         modifier = Modifier.align(Alignment.CenterStart)
@@ -258,8 +259,24 @@ enum class EventType(
         Icons.Filled.MedicalServices,
         R.drawable.drugs,
         DrugsEvent::class,
-        overlayBuilder = { null },
-        overlayDescriptionRes = null
+        overlayBuilder = { context ->
+            val nextDoseTime =
+                context.activeTreatments.mapNotNull { treatment ->
+                    val lastEvent = findLastDrugEvent(context.lastEvents, treatment)
+                    TreatmentScheduler.computeNextDose(treatment, lastEvent)
+                }.minOrNull()
+            nextDoseTime?.let { nextTime ->
+                {
+                    DecreaseTimer(
+                        nextFeedingTimeMs = nextDoseTime,
+                        onClick = context.onClick,
+                        textIcon = "\uD83D\uDC8A",
+                        modifier = Modifier.align(Alignment.CenterStart)
+                    )
+                }
+            }
+        },
+        overlayDescriptionRes = R.string.next_treatment_is,
     ) {
 
         override fun generateSummary(
@@ -882,5 +899,6 @@ sealed class EventFormState {
  */
 data class EventTypeOverlayContext(
     val lastEvents: List<Event>,
+    val activeTreatments: List<BabyTreatment>,
     val onClick: () -> Unit
 )
