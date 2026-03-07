@@ -543,11 +543,6 @@ fun eventLabel(
 ): String {
     val context = LocalContext.current
 
-    val notesPart = event.notes
-        ?.takeIf { it.isNotBlank() }
-        ?.let { " • $it" }
-        ?: ""
-
     fun breastSideLabel(side: BreastSide?): String {
         val sideLabel = when (side) {
             BreastSide.LEFT -> "L"
@@ -560,7 +555,7 @@ fun eventLabel(
 
     return when (event) {
         is DiaperEvent -> {
-            stringResource(event.diaperType.displayNameRes) + notesPart
+            stringResource(event.diaperType.displayNameRes)
         }
 
         is DrugsEvent -> {
@@ -574,7 +569,7 @@ fun eventLabel(
 
             val dosageInfo = event.dosage?.let { " • ${it}${event.unit}" } ?: ""
 
-            drugName + dosageInfo + notesPart
+            drugName + dosageInfo
         }
 
         is FeedingEvent -> {
@@ -590,7 +585,7 @@ fun eventLabel(
 
             val side = breastSideLabel(event.breastSide)
 
-            base + amount + duration + side + notesPart
+            base + amount + duration + side
         }
 
         is PumpingEvent -> {
@@ -614,7 +609,7 @@ fun eventLabel(
                     " • $sideLabel"
                 } ?: ""
 
-            base + amount + duration + side + notesPart
+            base + amount + duration + side
         }
 
         is SleepEvent -> {
@@ -648,11 +643,11 @@ fun eventLabel(
                 eventType.getDisplayName(context)
             }
 
-            base + notesPart
+            base
         }
 
         else -> {
-            eventType.getDisplayName(context) + notesPart
+            eventType.getDisplayName(context)
         }
     }
 }
@@ -678,6 +673,7 @@ fun computeDaySpans(events: List<Event>): List<DaySpan> {
                 val end = evt.endTime?.toInstant() ?: begin.plusSeconds(30 * 60)
                 begin to end
             }
+
             is FeedingEvent -> {
                 val start = evt.timestamp.toInstant()
                 val end = if ((evt.durationMinutes ?: 0) > 0) {
@@ -687,6 +683,7 @@ fun computeDaySpans(events: List<Event>): List<DaySpan> {
                 }
                 start to end
             }
+
             is PumpingEvent -> {
                 val start = evt.timestamp.toInstant()
                 val end = if ((evt.durationMinutes ?: 0) > 0) {
@@ -696,6 +693,7 @@ fun computeDaySpans(events: List<Event>): List<DaySpan> {
                 }
                 start to end
             }
+
             else -> {
                 val start = evt.timestamp.toInstant()
                 start to start.plusSeconds(30 * 60)
