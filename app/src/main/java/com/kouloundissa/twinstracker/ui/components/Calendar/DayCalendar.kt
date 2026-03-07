@@ -438,7 +438,7 @@ fun EventContent(span: DaySpan, eventType: EventType, customOptions: List<Custom
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         when {
             // ✅ LARGE: Icon + Rich text
-            maxWidth > 150.dp -> {
+            maxWidth > 100.dp -> {
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
@@ -501,7 +501,7 @@ fun EventContent(span: DaySpan, eventType: EventType, customOptions: List<Custom
                         iconSize = 12.dp
                     )
                     Text(
-                        text = span.evt.notes?.take(3) ?: eventType.getDisplayName(context).take(1),
+                        text =  eventType.getDisplayName(context),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimary,
                         maxLines = 1,
