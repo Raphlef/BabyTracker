@@ -219,6 +219,14 @@
 
     <!-- ========== EVENT FORM DIALOG - Error ========== -->
     <string name="event_error_permission_denied"> "You don't have permission to save events. Only members and admins can save."</string>
+    <string name="event_error_diaper_color_consistency">For dirty diapers, specify color or consistency.</string>
+
+    <string name="event_error_sleep_not_started">"Please start and stop sleep before saving."</string>
+    <string name="event_error_breast_milk_missing">"Provide duration/side or amount for breast milk."</string>
+    <string name="event_error_formula_amount">"Amount required for formula."</string>
+    <string name="event_error_growth_none">"At least one measurement required."</string>
+    <string name="event_error_pumping_none">"Provide amount or duration for pumping."</string>
+    <string name="event_error_duration">"Duration must be between 1 and %d minutes."</string>
 
     <!-- ========== EVENT FORM DIALOG - DATE & TIME ========== -->
     <string name="date_label">Date</string>
@@ -353,8 +361,9 @@
     <string name="bagin_message_join_or_create_family">To begin you must create a family or join an existing family</string>
 
 
-    <!-- ========== FAMILY LEAVE BUTTON ========== -->
+    <!-- ========== LEAVE BUTTON ========== -->
     <string name="family_leave_button_leave">Leave</string>
+    <string name="back_again_to_exit">Press back again to leave</string>
     <string name="family_leave_button_cannot_leave">Cannot leave</string>
     <string name="family_leave_dialog_title">Leave family</string>
     <string name="family_leave_dialog_only_admin_message">You cannot leave this family because you are the only administrator. Please assign another member as administrator first.</string>
@@ -478,7 +487,7 @@
     <string name="pseudo_family_22">Defender</string>
     <string name="pseudo_family_23">Caretaker</string>
     <string name="pseudo_family_24">Angel</string>
-    <string name="back_again_to_exit">Press back again to leave</string>
+
     <string name="select_baby_to_see_data">Select a baby to see data</string>
     <string name="sleep_event_sleeping">Sleeping</string>
     <string name="sleep_event_slept">Slept</string>

@@ -609,170 +609,163 @@ sealed class EventFormState {
     abstract var photoUrl: String?
     abstract var newPhotoUrl: Uri?
     abstract var photoRemoved: Boolean
-    fun validateAndToEvent(babyId: String, userId: String): Result<Event> {
-        return when (this) {
-            is Diaper -> {
-                if ((diaperType == DiaperType.DIRTY || diaperType == DiaperType.MIXED)
-                    && poopColor == null && poopConsistency == null
-                ) {
-                    Result.failure(
-                        IllegalArgumentException("For dirty diapers, specify color or consistency.")
-                    )
-                } else {
-                    Result.success(
-                        DiaperEvent(
-                            id = eventId ?: UUID.randomUUID().toString(),
-                            babyId = babyId,
-                            userId = userId,
-                            timestamp = eventTimestamp,
-                            diaperType = diaperType,
-                            poopColor = poopColor,
-                            poopConsistency = poopConsistency,
-                            notes = notes.takeIf(String::isNotBlank),
-                            photoUrl = photoUrl
-                        )
-                    )
-                }
-            }
-
-            is Sleep -> {
-                if (!isSleeping && beginTime == null && endTime == null) {
-                    Result.failure(
-                        IllegalArgumentException("Please start and stop sleep before saving.")
-                    )
-                } else if (!validateDuration(durationMinutes)) {
-                    Result.failure(
-                        IllegalArgumentException("Sleep duration must be between 1 and 1440 minutes (24h).")
-                    )
-                }else {
-                    Result.success(
-                        SleepEvent(
-                            id = eventId ?: UUID.randomUUID().toString(),
-                            babyId = babyId,
-                            userId = userId,
-                            timestamp = eventTimestamp,
-                            isSleeping = isSleeping,
-                            beginTime = beginTime,
-                            endTime = endTime,
-                            durationMinutes = durationMinutes,
-                            notes = notes.takeIf(String::isNotBlank),
-                            photoUrl = photoUrl
-                        )
-                    )
-                }
-            }
-
-            is Feeding -> {
-                val amount = amountMl.toDoubleOrNull()
-                val duration = durationMin.toIntOrNull()
-                when (feedType) {
-                    FeedType.BREAST_MILK -> {
-                        if (amount == null && duration == null && breastSide == null) {
-                            return Result.failure(
-                                IllegalArgumentException("Provide duration/side or amount for breast milk.")
-                            )
-                        }
-                    }
-
-                    FeedType.FORMULA -> {
-                        if (amount == null) {
-                            return Result.failure(
-                                IllegalArgumentException("Amount is required for formula.")
-                            )
-                        }
-                    }
-
-                    FeedType.SOLID -> {
-                        //ok
-                    }
-                }
-                Result.success(
-                    FeedingEvent(
-                        id = eventId ?: UUID.randomUUID().toString(),
-                        babyId = babyId,
-                        userId = userId,
-                        timestamp = eventTimestamp,
-                        feedType = feedType,
-                        amountMl = amount,
-                        durationMinutes = duration,
-                        breastSide = breastSide,
-                        notes = notes.takeIf(String::isNotBlank),
-                        photoUrl = photoUrl
-                    )
-                )
-            }
-
-            is Growth -> {
-                val weight = weightKg.toDoubleOrNull()
-                val height = heightCm.toDoubleOrNull()
-                val head = headCircumferenceCm.toDoubleOrNull()
-                if (weight == null && height == null && head == null) {
-                    Result.failure(IllegalArgumentException("At least one measurement required."))
-                } else {
-                    Result.success(
-                        GrowthEvent(
-                            id = eventId ?: UUID.randomUUID().toString(),
-                            babyId = babyId,
-                            userId = userId,
-                            timestamp = eventTimestamp,
-                            weightKg = weight,
-                            heightCm = height,
-                            headCircumferenceCm = head,
-                            notes = notes.takeIf(String::isNotBlank),
-                            photoUrl = photoUrl
-                        )
-                    )
-                }
-            }
-
-            is Pumping -> {
-                val amount = amountMl.toDoubleOrNull()
-                val duration = durationMin.toLongOrNull()
-                if (amount == null && duration == null) {
-                    Result.failure(
-                        IllegalArgumentException("Provide amount or duration for pumping.")
-                    )
-                } else if (duration != null && !validateDuration(duration)) {
-                    Result.failure(
-                        IllegalArgumentException("Pumping duration must be between 1 and 120 minutes.")
-                    )
-                } else {
-                    Result.success(
-                        PumpingEvent(
-                            id = eventId ?: UUID.randomUUID().toString(),
-                            babyId = babyId,
-                            userId = userId,
-                            timestamp = eventTimestamp,
-                            amountMl = amount,
-                            durationMinutes = duration?.toInt(),
-                            breastSide = breastSide,
-                            notes = notes.takeIf(String::isNotBlank),
-                            photoUrl = photoUrl
-                        )
-                    )
-                }
-            }
-
-            is EventFormState.Drugs -> {
-                val dose = dosage.toDoubleOrNull()
-                Result.success(
-                    DrugsEvent(
-                        id = eventId ?: UUID.randomUUID().toString(),
-                        babyId = babyId,
-                        userId = userId,
-                        timestamp = eventTimestamp,
-                        notes = notes.takeIf(String::isNotBlank),
-                        photoUrl = photoUrl,
-                        drugType = drugType,
-                        dosage = dose,
-                        unit = unit,
-                        otherDrugName = otherDrugName.takeIf(String::isNotBlank),
-                        customDrugTypeId = customDrugTypeId
-                    )
-                )
-            }
+    fun validateAndToEvent(babyId: String, userId: String,context: Context): Result<Event> {
+        return validate(context).map { toEvent(babyId, userId) }
+    }
+    fun EventFormState.toEvent(babyId: String, userId: String): Event = when (this) {
+        is EventFormState.Diaper -> toDiaperEvent(babyId, userId)
+        is EventFormState.Sleep -> toSleepEvent(babyId, userId)
+        is EventFormState.Feeding -> toFeedingEvent(babyId, userId)
+        is EventFormState.Growth -> toGrowthEvent(babyId, userId)
+        is EventFormState.Pumping -> toPumpingEvent(babyId, userId)
+        is EventFormState.Drugs -> toDrugsEvent(babyId, userId)
+    }
+    fun EventFormState.validate(context: Context): Result<Unit> = when (this) {
+        is EventFormState.Diaper -> validateDiaper(context)
+        is EventFormState.Sleep -> validateSleep(context)
+        is EventFormState.Feeding -> validateFeeding(context)
+        is EventFormState.Growth -> validateGrowth(context)
+        is EventFormState.Pumping -> validatePumping(context)
+        is EventFormState.Drugs -> Result.success(Unit)
+    }
+    private fun EventFormState.Diaper.validateDiaper(context: Context): Result<Unit> {
+        return if ((diaperType == DiaperType.DIRTY || diaperType == DiaperType.MIXED)
+            && poopColor == null && poopConsistency == null
+        ) {
+            Result.failure(IllegalArgumentException(context.getString(R.string.event_error_diaper_color_consistency)))
+        } else {
+            Result.success(Unit)
         }
     }
+
+    private fun EventFormState.Sleep.validateSleep(context: Context): Result<Unit> {
+        return when {
+            !isSleeping && beginTime == null && endTime == null -> {
+                Result.failure(IllegalArgumentException(context.getString(R.string.event_error_sleep_not_started)))
+            }
+            durationMinutes != null -> validateDuration(durationMinutes, context, 1440)
+            else -> Result.success(Unit)
+        }
+    }
+
+    private fun EventFormState.Feeding.validateFeeding(context: Context): Result<Unit> {
+        val amount = amountMl.toDoubleOrNull()
+        val duration = durationMin.toIntOrNull()
+
+        return when (feedType) {
+            FeedType.BREAST_MILK -> {
+                if (amount == null && duration == null && breastSide == null) {
+                    Result.failure(IllegalArgumentException(context.getString(R.string.event_error_breast_milk_missing)))
+                } else Result.success(Unit)
+            }
+            FeedType.FORMULA -> {
+                if (amount == null) {
+                    Result.failure(IllegalArgumentException(context.getString(R.string.event_error_formula_amount)))
+                } else Result.success(Unit)
+            }
+            FeedType.SOLID -> Result.success(Unit)
+        }
+    }
+
+    private fun EventFormState.Growth.validateGrowth(context: Context): Result<Unit> {
+        val weight = weightKg.toDoubleOrNull()
+        val height = heightCm.toDoubleOrNull()
+        val head = headCircumferenceCm.toDoubleOrNull()
+
+        return if (weight == null && height == null && head == null) {
+            Result.failure(IllegalArgumentException(context.getString(R.string.event_error_growth_none)))
+        } else {
+            Result.success(Unit)
+        }
+    }
+
+    private fun EventFormState.Pumping.validatePumping(context: Context): Result<Unit> {
+        val amount = amountMl.toDoubleOrNull()
+        val duration = durationMin.toLongOrNull()
+
+        return when {
+            amount == null && duration == null -> {
+                Result.failure(IllegalArgumentException(context.getString(R.string.event_error_pumping_none)))
+            }
+            duration != null -> validateDuration(duration, context, 120)
+            else -> Result.success(Unit)
+        }
+    }
+    private fun EventFormState.Diaper.toDiaperEvent(babyId: String, userId: String) = DiaperEvent(
+        id = eventId ?: UUID.randomUUID().toString(),
+        babyId = babyId,
+        userId = userId,
+        timestamp = eventTimestamp,
+        diaperType = diaperType,
+        poopColor = poopColor,
+        poopConsistency = poopConsistency,
+        notes = notes.takeIf(String::isNotBlank),
+        photoUrl = photoUrl
+    )
+
+    private fun EventFormState.Sleep.toSleepEvent(babyId: String, userId: String) = SleepEvent(
+        id = eventId ?: UUID.randomUUID().toString(),
+        babyId = babyId,
+        userId = userId,
+        timestamp = eventTimestamp,
+        isSleeping = isSleeping,
+        beginTime = beginTime,
+        endTime = endTime,
+        durationMinutes = durationMinutes,
+        notes = notes.takeIf(String::isNotBlank),
+        photoUrl = photoUrl
+    )
+
+    private fun EventFormState.Feeding.toFeedingEvent(babyId: String, userId: String) = FeedingEvent(
+        id = eventId ?: UUID.randomUUID().toString(),
+        babyId = babyId,
+        userId = userId,
+        timestamp = eventTimestamp,
+        feedType = feedType,
+        amountMl = amountMl.toDoubleOrNull(),
+        durationMinutes = durationMin.toIntOrNull(),
+        breastSide = breastSide,
+        notes = notes.takeIf(String::isNotBlank),
+        photoUrl = photoUrl
+    )
+
+    private fun EventFormState.Growth.toGrowthEvent(babyId: String, userId: String) = GrowthEvent(
+        id = eventId ?: UUID.randomUUID().toString(),
+        babyId = babyId,
+        userId = userId,
+        timestamp = eventTimestamp,
+        weightKg = weightKg.toDoubleOrNull(),
+        heightCm = heightCm.toDoubleOrNull(),
+        headCircumferenceCm = headCircumferenceCm.toDoubleOrNull(),
+        notes = notes.takeIf(String::isNotBlank),
+        photoUrl = photoUrl
+    )
+
+    private fun EventFormState.Pumping.toPumpingEvent(babyId: String, userId: String) = PumpingEvent(
+        id = eventId ?: UUID.randomUUID().toString(),
+        babyId = babyId,
+        userId = userId,
+        timestamp = eventTimestamp,
+        amountMl = amountMl.toDoubleOrNull(),
+        durationMinutes = durationMin.toLongOrNull()?.toInt(),
+        breastSide = breastSide,
+        notes = notes.takeIf(String::isNotBlank),
+        photoUrl = photoUrl
+    )
+
+    private fun EventFormState.Drugs.toDrugsEvent(babyId: String, userId: String) = DrugsEvent(
+        id = eventId ?: UUID.randomUUID().toString(),
+        babyId = babyId,
+        userId = userId,
+        timestamp = eventTimestamp,
+        notes = notes.takeIf(String::isNotBlank),
+        photoUrl = photoUrl,
+        drugType = drugType,
+        dosage = dosage.toDoubleOrNull(),
+        unit = unit,
+        otherDrugName = otherDrugName.takeIf(String::isNotBlank),
+        customDrugTypeId = customDrugTypeId
+    )
 
     data class Diaper(
         override val event: Event? = null,
@@ -864,6 +857,11 @@ sealed class EventFormState {
     ) : EventFormState()
     private fun validateDuration(duration: Long?): Boolean {
         return duration?.let { it > 0 && it <= 1440 } ?: true // 24h max, > 0
+    }
+    private fun validateDuration(minutes: Long, context: Context, maxMinutes: Int): Result<Unit> {
+        return if (minutes < 1 || minutes > maxMinutes) {
+            Result.failure(IllegalArgumentException(context.getString(R.string.event_error_duration, maxMinutes)))
+        } else Result.success(Unit)
     }
 }
 
