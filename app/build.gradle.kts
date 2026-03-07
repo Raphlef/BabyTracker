@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "com.kouloundissa.twinstracker"
-        minSdk = 31
+        minSdk = 28
         targetSdk = 36
         versionCode = providers.exec {
             commandLine("git", "rev-list", "--count", "HEAD")
