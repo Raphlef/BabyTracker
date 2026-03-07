@@ -663,8 +663,11 @@ private fun BabyFormBirthDetailsSection(
     ModernDateSelector(
         label = stringResource(id = R.string.date_of_birth_label),
         selectedDate = Date(state.birthDateTimeMillis),
-        onDateSelected = { dt -> state.birthDateTimeMillis = dt.time },
-        modifier = Modifier.fillMaxWidth()
+        onDateSelected = { dt ->
+            state.birthDateTimeMillis = dt?.time ?: System.currentTimeMillis()
+        },
+        modifier = Modifier.fillMaxWidth(),
+        showReset = false
     )
 
     IconSelector(

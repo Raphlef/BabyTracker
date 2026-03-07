@@ -14,12 +14,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -35,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -53,8 +56,9 @@ import java.util.Locale
 fun ModernDateSelector(
     label: String = stringResource(id = R.string.date_time_label),
     selectedDate: Date?,
-    onDateSelected: (Date) -> Unit,
-    modifier: Modifier = Modifier
+    onDateSelected: (Date?) -> Unit,
+    modifier: Modifier = Modifier,
+    showReset: Boolean = selectedDate != null
 ) {
     // State control for dialogs
     var showDatePicker by remember { mutableStateOf(false) }
@@ -69,13 +73,13 @@ fun ModernDateSelector(
         }
     }
     val displayDate = calendar.time
+    val isDateSelected = selectedDate != null
 
     // UI Colors
     val backgroundcolor = BackgroundColor.copy(alpha = 0.5f)
     val contentcolor = DarkGrey
     val tint = DarkBlue
 
-    // --- UI surface with 2 chips/buttons ---
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = backgroundcolor,
@@ -117,7 +121,7 @@ fun ModernDateSelector(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(8.dp))
 
                 // Time chip
                 OutlinedButton(
@@ -141,6 +145,21 @@ fun ModernDateSelector(
                             ).format(displayDate),
                             style = MaterialTheme.typography.labelMedium,
                             color = contentcolor
+                        )
+                    }
+                }
+
+                if (showReset && isDateSelected) {
+                    Spacer(Modifier.width(4.dp))
+                    IconButton(
+                        onClick = { onDateSelected(null) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "reset_date",
+                            tint = Color.Red,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }

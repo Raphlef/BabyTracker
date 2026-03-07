@@ -548,9 +548,12 @@ fun EventFormDialogContent(
                         ModernDateSelector(
                             selectedDate = selectedDate,
                             onDateSelected = {
-                                selectedDate = it
-                                eventViewModel.updateEventTimestamp(it)
-                            }
+                                if (it != null) {
+                                    selectedDate = it
+                                    eventViewModel.updateEventTimestamp(it)
+                                }
+                            },
+                            showReset = false
                         )
                         when (s) {
                             is Diaper -> DiaperForm(s, eventViewModel)
@@ -875,8 +878,10 @@ fun SleepForm(state: Sleep, viewModel: EventViewModel) {
                     }
                 }
             }
+
+            else ->
+                viewModel.updateEventTimestamp(state.beginTime)
         }
-        viewModel.updateEventTimestamp(now)
     }
 
 
@@ -893,7 +898,7 @@ fun SleepForm(state: Sleep, viewModel: EventViewModel) {
                     label = stringResource(id = R.string.begin_sleep_label),
                     selectedDate = state.beginTime ?: Date(),
                     onDateSelected = { newBegin ->
-                        viewModel.updateEventTimestamp(newBegin)
+                        newBegin?.let { viewModel.updateEventTimestamp(it) }
                         viewModel.updateForm {
                             val s = this as Sleep
                             s.copy(
@@ -902,7 +907,8 @@ fun SleepForm(state: Sleep, viewModel: EventViewModel) {
                             )
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    showReset = false
                 )
                 ModernDateSelector(
                     label = stringResource(id = R.string.end_sleep_label),
@@ -920,7 +926,6 @@ fun SleepForm(state: Sleep, viewModel: EventViewModel) {
                 )
             }
         }
-
 
         // Duration display
         state.durationMinutes?.let { minutes ->
