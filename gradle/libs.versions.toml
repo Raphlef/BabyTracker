@@ -1,7 +1,7 @@
 [versions]
 # Build Tools & Gradle
-agp = "9.0.1"
-gradle = "9.0.1"
+agp = "9.1.0"
+gradle = "9.1.0"
 
 # Kotlin
 kotlin = "2.3.0"
