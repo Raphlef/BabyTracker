@@ -855,11 +855,8 @@ sealed class EventFormState {
         val otherDrugName: String = "",   // when drugType == OTHER
         val notes: String = ""
     ) : EventFormState()
-    private fun validateDuration(duration: Long?): Boolean {
-        return duration?.let { it > 0 && it <= 1440 } ?: true // 24h max, > 0
-    }
     private fun validateDuration(minutes: Long, context: Context, maxMinutes: Int): Result<Unit> {
-        return if (minutes < 1 || minutes > maxMinutes) {
+        return if (minutes !in 1..maxMinutes) {
             Result.failure(IllegalArgumentException(context.getString(R.string.event_error_duration, maxMinutes)))
         } else Result.success(Unit)
     }
