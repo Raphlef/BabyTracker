@@ -287,11 +287,12 @@ fun DrugType.getDisplayName(context: Context): String {
 enum class TreatmentFrequencyType(
     @StringRes val displayNameRes: Int,
     val icon: ImageVector,
-    val color: Color
+    val color: Color,
+    val millisPerInterval: Long
 ) {
-    HOURLY(R.string.hourly, Icons.Default.AccessTime, Color.Blue),
-    DAILY(R.string.daily, Icons.Default.DateRange, Color.Green),
-    WEEKLY(R.string.weekly, Icons.Default.Schedule, Color(0xFFFF9800))
+    HOURLY(R.string.hourly, Icons.Default.AccessTime, Color.Blue, 60L * 60L * 1000L),
+    DAILY(R.string.daily, Icons.Default.DateRange, Color.Green, 24L * 60L * 60L * 1000L),
+    WEEKLY(R.string.weekly, Icons.Default.Schedule, Color(0xFFFF9800), 7L * 24L * 60L * 60L * 1000L)
 }
 fun TreatmentFrequencyType.getDisplayName(context: Context): String {
     return context.getString(this.displayNameRes)
