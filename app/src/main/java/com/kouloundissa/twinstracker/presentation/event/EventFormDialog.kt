@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -425,7 +424,6 @@ fun EventFormDialogContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .imePadding()
-                    .consumeWindowInsets(WindowInsets.systemBars)
                     .padding(top = headerHeight, bottom = footerHeight)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 12.dp, vertical = 16.dp),
