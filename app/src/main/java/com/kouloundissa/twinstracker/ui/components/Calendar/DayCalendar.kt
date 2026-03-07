@@ -24,8 +24,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -66,8 +71,11 @@ import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
+import com.kouloundissa.twinstracker.ui.components.DurationBadge
 import com.kouloundissa.twinstracker.ui.components.EventTypeIndicator
+import com.kouloundissa.twinstracker.ui.components.TimeDisplay
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.delay
 import java.time.Instant
@@ -425,15 +433,20 @@ fun EventBar(
 @Composable
 fun EventContent(span: DaySpan, eventType: EventType, customOptions: List<CustomDrugType>) {
     val context = LocalContext.current
+    val event = span.evt
+
+    val tint = DarkBlue
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         when {
             // ✅ LARGE: Icon + Rich text
-            maxWidth > 80.dp -> {
+            maxWidth > 150.dp -> {
                 Row(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start,
                 ) {
 
                     EventTypeIndicator(
@@ -443,21 +456,43 @@ fun EventContent(span: DaySpan, eventType: EventType, customOptions: List<Custom
                         iconSize = 24.dp
                     )
 
-                    Spacer(modifier = Modifier.width(3.dp))
-
-                    Text(
-                        text = eventLabel(span.evt, eventType, customOptions),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = BackgroundColor,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        fontSize = 12.sp
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = eventLabel(event, eventType, customOptions),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = tint
+                        )
+                        TimeDisplay(event)
+                        event.notes?.takeIf(String::isNotBlank)?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = tint.copy(alpha = 0.85f),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    if (event is SleepEvent && event.endTime != null) DurationBadge(event)
+                    event.photoUrl?.takeIf(String::isNotBlank)?.let {
+                        Icon(
+                            Icons.Default.PhotoCamera,
+                            contentDescription = "Photo attached",
+                            tint = tint,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = tint,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
 
-            // 🟡 MEDIUM: unchanged
-            maxWidth > 40.dp -> {
+            // 🟡 MEDIUM
+            maxWidth > 60.dp -> {
                 Row(
                     modifier = Modifier.fillMaxSize(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -478,7 +513,7 @@ fun EventContent(span: DaySpan, eventType: EventType, customOptions: List<Custom
                 }
             }
 
-            // 🔴 SMALL: unchanged
+            // 🔴 SMALL
             maxWidth > 20.dp -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -491,7 +526,7 @@ fun EventContent(span: DaySpan, eventType: EventType, customOptions: List<Custom
                 }
             }
 
-            // ⚫ TINY: unchanged
+            // ⚫ TINY
             else -> {
                 Box(
                     modifier = Modifier
@@ -583,28 +618,14 @@ fun eventLabel(
 
             base + amount + duration + side + notesPart
         }
-    
+
         is SleepEvent -> {
             val base = if (event.isSleeping) {
                 stringResource(R.string.sleep_event_sleeping) // e.g. "Sommeil"
             } else {
                 stringResource(R.string.sleep_event_slept)  // e.g. "Sommeil terminé"
             }
-
-            val minutes = event.durationMinutes
-                ?: run {
-                    val start = event.beginTime?.time
-                    val end = event.endTime?.time
-                    if (start != null && end != null && end > start) {
-                        ((end - start) / (60_000L))
-                    } else null
-                }
-
-            val duration = minutes
-                ?.takeIf { it > 0 }
-                ?.let { " • ${formatDuration(it)}" } ?: ""
-
-            base + duration + notesPart
+            base
         }
 
         is GrowthEvent -> {
@@ -635,19 +656,6 @@ fun eventLabel(
         else -> {
             eventType.getDisplayName(context) + notesPart
         }
-    }
-}
-
-/**
- * 75 -> "1h15", 45 -> "45 min"
- */
-private fun formatDuration(totalMinutes: Long): String {
-    val hours = totalMinutes / 60
-    val minutes = totalMinutes % 60
-    return when {
-        hours > 0 && minutes > 0 -> "${hours}h${minutes}"
-        hours > 0 -> "${hours}h"
-        else -> "${minutes} min"
     }
 }
 

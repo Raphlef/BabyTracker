@@ -558,7 +558,7 @@ fun EventTypeIndicator(
 }
 
 @Composable
-private fun TimeDisplay(event: Event) {
+fun TimeDisplay(event: Event) {
     val formatter = DateTimeFormatter.ofPattern("MMM dd, HH:mm")  // e.g. "Sep 30, 14:45"
     val contentColor = DarkBlue
     val timeText = when (event) {
@@ -593,7 +593,7 @@ private fun TimeDisplay(event: Event) {
 
 
 @Composable
-private fun DurationBadge(event: SleepEvent) {
+fun DurationBadge(event: SleepEvent) {
     if (event.endTime == null) return
 
     val duration = Duration.between(
