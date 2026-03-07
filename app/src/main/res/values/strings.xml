@@ -167,6 +167,9 @@
     <string name="frequency_daily">Every %d day(s)</string>
     <string name="frequency_weekly">Every %d week(s)</string>
     <string name="dosage_label">Dosage: %s</string>
+    <string name="begin_treatment_label">Begin treatment</string>
+    <string name="end_treatment_label">End treatment</string>
+    <string name="next_treatment_is">Next treatmen is:</string>
 
     <!-- ========== BABY FORM - VALIDATION ========== -->
     <string name="invalid_number">Invalid number</string>
@@ -512,8 +515,6 @@
     <string name="pseudo_family_22">Defender</string>
     <string name="pseudo_family_23">Caretaker</string>
     <string name="pseudo_family_24">Angel</string>
-
-
 
 
 </resources>
