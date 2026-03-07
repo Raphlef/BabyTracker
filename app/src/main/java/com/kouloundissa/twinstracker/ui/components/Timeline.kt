@@ -1,7 +1,6 @@
 package com.kouloundissa.twinstracker.ui.components
 
 
-import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
@@ -64,26 +63,21 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kouloundissa.twinstracker.R
-import com.kouloundissa.twinstracker.data.DiaperEvent
-import com.kouloundissa.twinstracker.data.DrugType
+import com.kouloundissa.twinstracker.data.CustomDrugType
 import com.kouloundissa.twinstracker.data.DrugsEvent
 import com.kouloundissa.twinstracker.data.Event
 import com.kouloundissa.twinstracker.data.EventType
-import com.kouloundissa.twinstracker.data.EventType.Companion.getDisplayName
-import com.kouloundissa.twinstracker.data.Family
-import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.Firestore.FirestoreTimestampUtils.toLocalDate
-import com.kouloundissa.twinstracker.data.GrowthEvent
-import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
-import com.kouloundissa.twinstracker.data.getDisplayName
 import com.kouloundissa.twinstracker.data.toUiModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
 import com.kouloundissa.twinstracker.ui.components.Ad.InlineBannerAd
+import com.kouloundissa.twinstracker.ui.components.Calendar.eventLabel
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
@@ -352,6 +346,7 @@ fun EventCard(
 ) {
     val eventType = EventType.forClass(event::class)
     val selectedFamily by familyViewModel.selectedFamily.collectAsState()
+    val customOptions = selectedFamily?.settings?.customDrugTypes.orEmpty()
     val backgroundColor = BackgroundColor
     val grey = DarkGrey
     val tint = DarkBlue
@@ -439,10 +434,10 @@ fun EventCard(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                EventTypeIndicator(eventType, event, selectedFamily)
+                EventTypeIndicator(eventType, event, customOptions)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        buildEventTitle(event, eventType, context, selectedFamily),
+                        text = eventLabel(event, eventType, customOptions),
                         style = MaterialTheme.typography.titleMedium,
                         color = tint
                     )
@@ -517,45 +512,47 @@ fun EventCard(
 
 
 @Composable
-private fun EventTypeIndicator(
+fun EventTypeIndicator(
     eventType: EventType,
     event: Event,
-    family: Family?
+    customOptions: List<CustomDrugType>,
+    iconSize: Dp = 24.dp
 ) {
     val backgroundColor = BackgroundColor
     val grey = DarkGrey
     val tint = DarkBlue
+    val boxSize = iconSize + 4.dp
 
-    val customOptions = family?.settings?.customDrugTypes.orEmpty()
+    val customDrugOption = if (event is DrugsEvent) {
+        val drugsEvent = event as DrugsEvent
+        customOptions.find { it.id == drugsEvent.customDrugTypeId }
+    } else null
+
+    val icon = customDrugOption?.toUiModel()?.icon ?: eventType.icon
+    val iconTint: Color = when {
+        // 1. Custom trouvé
+        customDrugOption != null -> customDrugOption.color.let { Color(it.toInt()) }
+            ?: (event as? DrugsEvent)?.drugType?.color
+
+        // 2. DrugsEvent sans custom → event.drugType.color
+        event is DrugsEvent -> event.drugType.color
+
+        // 3. Autres cas
+        else -> eventType.color
+    } ?: BackgroundColor
     Box(
         modifier = Modifier
-            .size(48.dp)
+            .size(boxSize)
             .clip(CircleShape)
             .background(grey.copy(alpha = 0.45f)),
         contentAlignment = Alignment.Center
     ) {
-        val customDrugOption = if (event is DrugsEvent) {
-            val drugsEvent = event as DrugsEvent
-            customOptions.find { it.id == drugsEvent.customDrugTypeId }
-        } else null
-
-        val icon = customDrugOption?.toUiModel()?.icon ?: eventType.icon
-        val iconTint: Color = when {
-            // 1. Custom trouvé
-            customDrugOption != null -> customDrugOption.color?.let { Color(it.toInt()) }
-                ?: (event as? DrugsEvent)?.drugType?.color
-
-            // 2. DrugsEvent sans custom → event.drugType.color
-            event is DrugsEvent -> event.drugType.color
-
-            // 3. Autres cas
-            else -> eventType.color
-        } ?: BackgroundColor
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = iconTint,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier
+                .size(iconSize)
         )
     }
 }
@@ -618,102 +615,5 @@ private fun DurationBadge(event: SleepEvent) {
             color = MaterialTheme.colorScheme.onSecondaryContainer,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
-    }
-}
-
-// Build event-specific titles using your existing data classes
-private fun buildEventTitle(
-    event: Event,
-    eventType: EventType,
-    context: Context,
-    family: Family?
-): String {
-    val customOptions = family?.settings?.customDrugTypes.orEmpty()
-
-    return when (event) {
-        is DiaperEvent -> {
-            val typeInfo = event.diaperType.getDisplayName(context)
-            "${eventType.getDisplayName(context)} - $typeInfo"
-        }
-
-        is FeedingEvent -> {
-            val details = buildString {
-                append(eventType.getDisplayName(context))
-                event.amountMl?.takeIf { it > 0 }?.let { append(" - ${it.toInt()}ml") }
-                event.durationMinutes?.takeIf { it > 0 }?.let { append(" (${it}min)") }
-                event.breastSide?.let {
-                    append(
-                        " - ${
-                            it.name.lowercase().replaceFirstChar { char -> char.uppercase() }
-                        }"
-                    )
-                }
-            }
-            details
-        }
-
-        is SleepEvent -> {
-            if (event.isSleeping) {
-                "${eventType.getDisplayName(context)} - Ongoing"
-            } else {
-                eventType.getDisplayName(context)
-            }
-        }
-
-        is GrowthEvent -> {
-            val measurements = buildString {
-                append(eventType.getDisplayName(context))
-                val parts = mutableListOf<String>()
-                event.weightKg?.let { parts.add("${String.format("%.1f", it)}kg") }
-                event.heightCm?.let { parts.add("${it.toInt()}cm") }
-                val head = context.getString(R.string.head_circumference)
-                event.headCircumferenceCm?.let {
-                    parts.add(
-                        "$head: ${
-                            String.format(
-                                "%.1f",
-                                it
-                            )
-                        }cm"
-                    )
-                }
-                if (parts.isNotEmpty()) {
-                    append(" - ${parts.joinToString(", ")}")
-                }
-            }
-            measurements
-        }
-
-        is PumpingEvent -> {
-            val details = buildString {
-                append(eventType.getDisplayName(context))
-                event.amountMl?.let { append(" - ${it.toInt()}ml") }
-                event.durationMinutes?.let { append(" (${it}min)") }
-                event.breastSide?.let {
-                    append(
-                        " - ${
-                            it.name.lowercase().replaceFirstChar { char -> char.uppercase() }
-                        }"
-                    )
-                }
-            }
-            details
-        }
-
-        is DrugsEvent -> {
-            val details = buildString {
-                append(eventType.getDisplayName(context))
-                val drugName = if (event.drugType == DrugType.CUSTOM) {
-                    customOptions.find { it.id == event.customDrugTypeId }?.name ?:  event.drugType.getDisplayName(context)
-                } else {
-                    event.drugType.getDisplayName(context)
-                }
-                append(" - $drugName")
-                event.dosage?.let { append(" ${it.toInt()}${event.unit}") }
-            }
-            details
-        }
-
-        else -> eventType.getDisplayName(context)
     }
 }

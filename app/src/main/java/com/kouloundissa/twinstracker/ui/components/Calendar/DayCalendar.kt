@@ -24,10 +24,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -67,8 +65,8 @@ import com.kouloundissa.twinstracker.data.FeedingEvent
 import com.kouloundissa.twinstracker.data.GrowthEvent
 import com.kouloundissa.twinstracker.data.PumpingEvent
 import com.kouloundissa.twinstracker.data.SleepEvent
-import com.kouloundissa.twinstracker.data.toUiModel
 import com.kouloundissa.twinstracker.presentation.viewmodel.FamilyViewModel
+import com.kouloundissa.twinstracker.ui.components.EventTypeIndicator
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkGrey
 import kotlinx.coroutines.delay
@@ -418,14 +416,14 @@ fun EventBar(
                 .padding(4.dp),
             contentAlignment = Alignment.TopStart
         ) {
-            EventContent(span = span, type = type, customOptions)
+            EventContent(span = span, eventType = type, customOptions)
         }
     }
 }
 
 
 @Composable
-fun EventContent(span: DaySpan, type: EventType, customOptions: List<CustomDrugType>) {
+fun EventContent(span: DaySpan, eventType: EventType, customOptions: List<CustomDrugType>) {
     val context = LocalContext.current
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -438,34 +436,17 @@ fun EventContent(span: DaySpan, type: EventType, customOptions: List<CustomDrugT
                     horizontalArrangement = Arrangement.Start,
                 ) {
 
-                    val customDrugOption = if (span.evt is DrugsEvent) {
-                        val drugsEvent = span.evt as DrugsEvent
-                        customOptions.find { it.id == drugsEvent.customDrugTypeId }
-                    } else null
-
-                    val icon = customDrugOption?.toUiModel()?.icon ?: type.icon
-                    val iconTint: Color = when {
-                        // 1. Custom trouvé
-                        customDrugOption != null -> customDrugOption.color?.let { Color(it.toInt()) }
-                            ?: (span.evt as? DrugsEvent)?.drugType?.color
-
-                        // 2. DrugsEvent sans custom → event.drugType.color
-                        span.evt is DrugsEvent -> span.evt.drugType.color
-
-                        // 3. Autres cas
-                        else -> type.color
-                    } ?: BackgroundColor
-                    Icon(
-                        imageVector = type.icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(16.dp)
+                    EventTypeIndicator(
+                        eventType,
+                        span.evt,
+                        customOptions,
+                        iconSize = 24.dp
                     )
 
                     Spacer(modifier = Modifier.width(3.dp))
 
                     Text(
-                        text = eventLabel(span = span, type = type),
+                        text = eventLabel(span.evt, eventType, customOptions),
                         style = MaterialTheme.typography.labelSmall,
                         color = BackgroundColor,
                         maxLines = 1,
@@ -482,14 +463,12 @@ fun EventContent(span: DaySpan, type: EventType, customOptions: List<CustomDrugT
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                 ) {
-                    Icon(
-                        imageVector = type.icon,
-                        contentDescription = null,
-                        tint = BackgroundColor,
-                        modifier = Modifier.size(12.dp)
+                    EventTypeIndicator(
+                        eventType, span.evt, customOptions,
+                        iconSize = 12.dp
                     )
                     Text(
-                        text = span.evt.notes?.take(3) ?: type.getDisplayName(context).take(1),
+                        text = span.evt.notes?.take(3) ?: eventType.getDisplayName(context).take(1),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimary,
                         maxLines = 1,
@@ -505,11 +484,9 @@ fun EventContent(span: DaySpan, type: EventType, customOptions: List<CustomDrugT
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = type.icon,
-                        contentDescription = type.getDisplayName(context),
-                        tint = BackgroundColor,
-                        modifier = Modifier.size(10.dp)
+                    EventTypeIndicator(
+                        eventType, span.evt, customOptions,
+                        iconSize = 10.dp
                     )
                 }
             }
@@ -526,64 +503,59 @@ fun EventContent(span: DaySpan, type: EventType, customOptions: List<CustomDrugT
 }
 
 @Composable
-private fun eventLabel(
-    span: DaySpan, type: EventType,
-    familyViewModel: FamilyViewModel = hiltViewModel()
+fun eventLabel(
+    event: Event,
+    eventType: EventType,
+    customOptions: List<CustomDrugType>
 ): String {
     val context = LocalContext.current
-    val evt = span.evt
-    val eventType = EventType.forClass(evt::class)
 
-    val selectedFamily by familyViewModel.selectedFamily.collectAsState()
-    val customOptions = remember(selectedFamily?.settings?.customDrugTypes) {
-        selectedFamily?.settings?.customDrugTypes.orEmpty()
-    }
-
-    val notesPart = evt.notes
+    val notesPart = event.notes
         ?.takeIf { it.isNotBlank() }
         ?.let { " • $it" }
         ?: ""
 
-    return when (evt) {
+    fun breastSideLabel(side: BreastSide?): String {
+        val sideLabel = when (side) {
+            BreastSide.LEFT -> "L"
+            BreastSide.RIGHT -> "R"
+            BreastSide.BOTH -> "LR"
+            null -> return ""
+        }
+        return " • $sideLabel"
+    }
+
+    return when (event) {
         is DiaperEvent -> {
-            // Existing behavior
-            stringResource(evt.diaperType.displayNameRes) + notesPart
+            stringResource(event.diaperType.displayNameRes) + notesPart
         }
 
         is DrugsEvent -> {
             val drugName =
-                if (evt.drugType == DrugType.CUSTOM) {
-                    customOptions.find { it.id == evt.customDrugTypeId }?.name
-                        ?: stringResource(evt.drugType.displayNameRes)
+                if (event.drugType == DrugType.CUSTOM) {
+                    customOptions.find { it.id == event.customDrugTypeId }?.name
+                        ?: stringResource(event.drugType.displayNameRes)
                 } else {
-                    stringResource(evt.drugType.displayNameRes)
+                    stringResource(event.drugType.displayNameRes)
                 }
 
-            val dosageInfo = evt.dosage?.let { " • ${it}${evt.unit}" } ?: ""
+            val dosageInfo = event.dosage?.let { " • ${it}${event.unit}" } ?: ""
 
             drugName + dosageInfo + notesPart
         }
 
         is FeedingEvent -> {
-            val base = stringResource(evt.feedType.displayNameRes)
+            val base = stringResource(event.feedType.displayNameRes)
 
-            val amount = evt.amountMl
+            val amount = event.amountMl
                 ?.takeIf { it > 0 }
                 ?.let { " • ${it.toInt()} ml" } ?: ""
 
-            val duration = evt.durationMinutes
+            val duration = event.durationMinutes
                 ?.takeIf { it > 0 }
                 ?.let { " • ${it} min" } ?: ""
 
-            val side = evt.breastSide
-                ?.let { side ->
-                    val sideLabel = when (side) {
-                        BreastSide.LEFT -> "L"
-                        BreastSide.RIGHT -> "R"
-                        BreastSide.BOTH -> "LR"
-                    }
-                    " • $sideLabel"
-                } ?: ""
+            val side = breastSideLabel(event.breastSide)
 
             base + amount + duration + side + notesPart
         }
@@ -591,15 +563,15 @@ private fun eventLabel(
         is PumpingEvent -> {
             val base = eventType.getDisplayName(context)
 
-            val amount = evt.amountMl
+            val amount = event.amountMl
                 ?.takeIf { it > 0 }
                 ?.let { " • ${it.toInt()} ml" } ?: ""
 
-            val duration = evt.durationMinutes
+            val duration = event.durationMinutes
                 ?.takeIf { it > 0 }
                 ?.let { " • ${it} min" } ?: ""
 
-            val side = evt.breastSide
+            val side = event.breastSide
                 ?.let { side ->
                     val sideLabel = when (side) {
                         BreastSide.LEFT -> "L"
@@ -611,18 +583,18 @@ private fun eventLabel(
 
             base + amount + duration + side + notesPart
         }
-
+    
         is SleepEvent -> {
-            val base = if (evt.isSleeping) {
+            val base = if (event.isSleeping) {
                 stringResource(R.string.sleep_event_sleeping) // e.g. "Sommeil"
             } else {
                 stringResource(R.string.sleep_event_slept)  // e.g. "Sommeil terminé"
             }
 
-            val minutes = evt.durationMinutes
+            val minutes = event.durationMinutes
                 ?: run {
-                    val start = evt.beginTime?.time
-                    val end = evt.endTime?.time
+                    val start = event.beginTime?.time
+                    val end = event.endTime?.time
                     if (start != null && end != null && end > start) {
                         ((end - start) / (60_000L))
                     } else null
@@ -636,15 +608,15 @@ private fun eventLabel(
         }
 
         is GrowthEvent -> {
-            val weight = evt.weightKg
+            val weight = event.weightKg
                 ?.takeIf { it > 0 }
                 ?.let { "${it} kg" } ?: ""
 
-            val height = evt.heightCm
+            val height = event.heightCm
                 ?.takeIf { it > 0 }
                 ?.let { "${if (weight.isNotEmpty()) " • " else ""}${it.toInt()} cm" } ?: ""
 
-            val head = evt.headCircumferenceCm
+            val head = event.headCircumferenceCm
                 ?.takeIf { it > 0 }
                 ?.let {
                     val sep = if (weight.isNotEmpty() || height.isNotEmpty()) " • " else ""
@@ -654,14 +626,14 @@ private fun eventLabel(
             val base = if (weight.isNotEmpty() || height.isNotEmpty() || head.isNotEmpty()) {
                 weight + height + head
             } else {
-                type.getDisplayName(context)
+                eventType.getDisplayName(context)
             }
 
             base + notesPart
         }
 
         else -> {
-            type.getDisplayName(context) + notesPart
+            eventType.getDisplayName(context) + notesPart
         }
     }
 }
