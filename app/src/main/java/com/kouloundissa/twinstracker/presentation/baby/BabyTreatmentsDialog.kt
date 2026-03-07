@@ -169,7 +169,7 @@ fun BabyTreatmentsDialog(
 
     if (showTreatmentFormDialog) {
         TreatmentFormDialog(
-            existing = editingTreatment,
+            treatment = editingTreatment,
             onDismiss = {
                 showTreatmentFormDialog = false
                 editingTreatment = null
@@ -315,7 +315,7 @@ fun TreatmentItem(
 
 @Composable
 fun TreatmentFormDialog(
-    existing: BabyTreatment? = null,
+    treatment: BabyTreatment? = null,
     onDismiss: () -> Unit,
     onSave: (BabyTreatment) -> Unit,
     onDelete: (() -> Unit)? = null,
@@ -341,18 +341,18 @@ fun TreatmentFormDialog(
         builtInOptions + customOptions
     }
 
-    var drugType by remember { mutableStateOf(existing?.drugType ?: DrugType.PARACETAMOL) }
-    var dosage by remember { mutableStateOf(existing?.dosage ?: "") }
+    var drugType by remember { mutableStateOf(treatment?.drugType ?: DrugType.PARACETAMOL) }
+    var dosage by remember { mutableStateOf(treatment?.dosage ?: "") }
     var frequencyType by remember {
-        mutableStateOf(existing?.frequencyType ?: TreatmentFrequencyType.DAILY)
+        mutableStateOf(treatment?.frequencyType ?: TreatmentFrequencyType.DAILY)
     }
     var customDrugTypeId by remember {
-        mutableStateOf(existing?.customDrugTypeId)
+        mutableStateOf(treatment?.customDrugTypeId)
     }
     var interval by remember {
-        mutableStateOf(existing?.frequencyInterval?.toString() ?: "1")
+        mutableStateOf(treatment?.frequencyInterval?.toString() ?: "1")
     }
-    var notes by remember { mutableStateOf(existing?.notes ?: "") }
+    var notes by remember { mutableStateOf(treatment?.notes ?: "") }
 
     val selectedOption = remember(drugType, customDrugTypeId) {
         when {
@@ -370,7 +370,7 @@ fun TreatmentFormDialog(
             TextButton(
                 onClick = {
                     val newTreatment = BabyTreatment(
-                        id = existing?.id ?: UUID.randomUUID().toString(),
+                        id = treatment?.id ?: UUID.randomUUID().toString(),
                         drugType = drugType,
                         customDrugTypeId = customDrugTypeId,
                         dosage = dosage.ifBlank { null },
@@ -398,7 +398,7 @@ fun TreatmentFormDialog(
         },
         title = {
             Text(
-                if (existing == null) stringResource(R.string.add_treatment) else stringResource(R.string.edit_treatment),
+                if (treatment == null) stringResource(R.string.add_treatment) else stringResource(R.string.edit_treatment),
                 color = contentColor
             )
         },
@@ -476,7 +476,7 @@ fun TreatmentFormDialog(
                     Spacer(Modifier.weight(1f))
 
                     // Delete button only when editing and onDelete is provided
-                    if (existing != null && onDelete != null) {
+                    if (treatment != null && onDelete != null) {
                         TextButton(
                             onClick = onDelete,
                         ) {

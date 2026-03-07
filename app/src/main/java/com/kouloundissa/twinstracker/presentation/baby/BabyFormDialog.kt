@@ -798,13 +798,12 @@ private fun BabyFormMedicalSection(
     }
     if (showTreatmentFormDialog) {
         TreatmentFormDialog(
-            existing = editingTreatment,
+            treatment = editingTreatment,
             onDismiss = {
                 showTreatmentFormDialog = false
                 editingTreatment = null
             },
             onSave = { newTreatment ->
-                state.treatments = state.treatments + newTreatment
                 state.treatments = if (editingTreatment == null) {
                     state.treatments + newTreatment
                 } else {
