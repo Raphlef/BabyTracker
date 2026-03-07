@@ -18,37 +18,38 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.kouloundissa.twinstracker.data.SleepEvent
 import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
 import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import kotlinx.coroutines.delay
+import java.time.Duration
+import java.time.Instant
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
 @Composable
-fun FeedingTimer(
-    nextFeedingTimeMs: Long,
+fun IncreaseTimer(
+    sleepEvent: SleepEvent,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var millisecondsUntil by remember { mutableStateOf(0L) }
+    var elapsedSeconds by remember { mutableStateOf(0L) }
     val colorContent = DarkBlue
-
-    LaunchedEffect(nextFeedingTimeMs) {
+    // Launch a ticker that updates every minute
+    LaunchedEffect(sleepEvent) {
         while (true) {
-            millisecondsUntil = maxOf(0, nextFeedingTimeMs - System.currentTimeMillis())
+            elapsedSeconds = Duration.between(
+                sleepEvent.timestamp.toInstant(),
+                Instant.now()
+            ).seconds
             delay(1_000L)
         }
     }
 
-    val hours = millisecondsUntil / (1000 * 60 * 60)
-    val minutes = (millisecondsUntil % (1000 * 60 * 60)) / (1000 * 60)
-    val seconds = (millisecondsUntil % (1000 * 60)) / 1000
-
-    val timeText = if (millisecondsUntil > 0) {
-        String.format("%02d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        "Now!"
-    }
+    val h = elapsedSeconds / 3600
+    val m = (elapsedSeconds % 3600) / 60
+    val s = elapsedSeconds % 60
+    val timeText = String.format("%02d:%02d:%02d", h, m, s)
 
     Row(
         modifier = modifier
@@ -58,7 +59,7 @@ fun FeedingTimer(
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Text(
-            text = "🍼",
+            text = "\uD83D\uDCA4",
             style = MaterialTheme.typography.labelSmall,
         )
         Spacer(Modifier.width(8.dp))

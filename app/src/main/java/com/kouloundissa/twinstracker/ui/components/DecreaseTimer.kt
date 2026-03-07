@@ -5,12 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bedtime
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,44 +15,41 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import com.kouloundissa.twinstracker.data.SleepEvent
-import com.kouloundissa.twinstracker.ui.theme.*
+import com.kouloundissa.twinstracker.ui.theme.BackgroundColor
+import com.kouloundissa.twinstracker.ui.theme.DarkBlue
 import kotlinx.coroutines.delay
-
 import kotlin.time.ExperimentalTime
-import java.time.Duration
-import java.time.Instant
-import java.time.ZoneId
 
 @OptIn(ExperimentalTime::class)
 @Composable
-fun SleepTimer(
-    sleepEvent: SleepEvent,
+fun DecreaseTimer(
+    nextFeedingTimeMs: Long,
     onClick: () -> Unit,
+    textIcon: String,
     modifier: Modifier = Modifier
 ) {
-    var elapsedSeconds by remember { mutableStateOf(0L) }
+    var millisecondsUntil by remember { mutableStateOf(0L) }
     val colorContent = DarkBlue
-    // Launch a ticker that updates every minute
-    LaunchedEffect(sleepEvent) {
+
+    LaunchedEffect(nextFeedingTimeMs) {
         while (true) {
-            elapsedSeconds = Duration.between(
-                sleepEvent.timestamp.toInstant(),
-                Instant.now()
-            ).seconds
+            millisecondsUntil = maxOf(0, nextFeedingTimeMs - System.currentTimeMillis())
             delay(1_000L)
         }
     }
 
-    val h = elapsedSeconds / 3600
-    val m = (elapsedSeconds % 3600) / 60
-    val s = elapsedSeconds % 60
-    val timeText = String.format("%02d:%02d:%02d", h, m, s)
+    val hours = millisecondsUntil / (1000 * 60 * 60)
+    val minutes = (millisecondsUntil % (1000 * 60 * 60)) / (1000 * 60)
+    val seconds = (millisecondsUntil % (1000 * 60)) / 1000
+
+    val timeText = if (millisecondsUntil > 0) {
+        String.format("%02d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        "Now!"
+    }
 
     Row(
         modifier = modifier
@@ -66,7 +59,7 @@ fun SleepTimer(
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Text(
-            text = "\uD83D\uDCA4",
+            text = textIcon,
             style = MaterialTheme.typography.labelSmall,
         )
         Spacer(Modifier.width(8.dp))
