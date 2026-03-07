@@ -1048,7 +1048,7 @@ fun FeedingForm(state: Feeding, viewModel: EventViewModel) {
                 )
             }
         }
-        if (state.feedType == FeedType.SOLID && (durationPreset.size > 1 || durationMin != "")) {
+        if (state.feedType == FeedType.SOLID && (durationPreset.size > 1 || state.durationMin != "")) {
             viewModel.updateForm {
                 (this as Feeding).copy(
                     durationMin = "",

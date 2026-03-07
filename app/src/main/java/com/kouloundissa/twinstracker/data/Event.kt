@@ -636,8 +636,6 @@ sealed class EventFormState {
             }
 
             is Sleep -> {
-
-
                 if (!isSleeping && beginTime == null && endTime == null) {
                     Result.failure(
                         IllegalArgumentException("Please start and stop sleep before saving.")
@@ -685,11 +683,7 @@ sealed class EventFormState {
                     }
 
                     FeedType.SOLID -> {
-                        if (amount == null && notes.isBlank()) {
-                            return Result.failure(
-                                IllegalArgumentException("Provide notes or amount for solids.")
-                            )
-                        }
+                        //ok
                     }
                 }
                 Result.success(
