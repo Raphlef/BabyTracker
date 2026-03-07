@@ -39,9 +39,12 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.kouloundissa.twinstracker.R
 import com.kouloundissa.twinstracker.data.AnalysisRange
 import com.kouloundissa.twinstracker.data.Event
+import com.kouloundissa.twinstracker.data.EventFormState
 import com.kouloundissa.twinstracker.data.EventType
 import com.kouloundissa.twinstracker.data.EventTypeOverlayContext
 import com.kouloundissa.twinstracker.data.SleepEvent
+import com.kouloundissa.twinstracker.data.activeTreatments
+import com.kouloundissa.twinstracker.data.nextTreatmentToTake
 import com.kouloundissa.twinstracker.data.toEventOverlayInfo
 import com.kouloundissa.twinstracker.presentation.baby.CreateBabiesDialog
 import com.kouloundissa.twinstracker.presentation.event.EventFormDialog
@@ -84,6 +87,7 @@ fun HomeScreen(
 
     val selectedBaby by babyViewModel.selectedBaby.collectAsState()
     val babies by babyViewModel.babies.collectAsState()
+
 
     var editingEvent by remember { mutableStateOf<Event?>(null) }
     var showEventDialog by remember { mutableStateOf(false) }
@@ -161,9 +165,23 @@ fun HomeScreen(
                         editingEvent?.let { event ->
                             eventViewModel.loadEventIntoForm(event)
                         }
+                        val nextTreatment =
+                            selectedBaby?.nextTreatmentToTake(filteredEvents)
+                        nextTreatment?.let { treatment ->
+                            if (selectedType == EventType.DRUGS) {
+                                eventViewModel.updateForm {
+                                    val s = EventFormState.Drugs()
+                                    s.copy(
+                                        drugType = treatment.drugType,
+                                        customDrugTypeId = treatment.customDrugTypeId,
+                                    )
+                                }
+                            }
+                        }
                         showEventDialog = true
                     },
-                    lastEvents = filteredEvents
+                    lastEvents = filteredEvents,
+                    activeTreatments = selectedBaby?.activeTreatments() ?: emptyList()
                 )
             )
         }
@@ -262,9 +280,24 @@ fun HomeScreen(
                                                 event
                                             )
                                         }
+                                        val nextTreatment =
+                                            selectedBaby?.nextTreatmentToTake(filteredEvents)
+                                        nextTreatment?.let { treatment ->
+                                            if (selectedType == EventType.DRUGS) {
+                                                eventViewModel.updateForm {
+                                                    val s = EventFormState.Drugs()
+                                                    s.copy(
+                                                        drugType = treatment.drugType,
+                                                        customDrugTypeId = treatment.customDrugTypeId,
+                                                    )
+                                                }
+                                            }
+                                        }
                                         showEventDialog = true
                                     },
-                                    lastEvents = filterEvents
+                                    lastEvents = filterEvents,
+                                    activeTreatments = selectedBaby?.activeTreatments()
+                                        ?: emptyList()
                                 )
                             )
                         )
