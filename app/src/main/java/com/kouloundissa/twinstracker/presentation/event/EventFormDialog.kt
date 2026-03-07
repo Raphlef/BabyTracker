@@ -99,6 +99,7 @@ import com.kouloundissa.twinstracker.data.BreastSide
 import com.kouloundissa.twinstracker.data.CustomDrugType
 import com.kouloundissa.twinstracker.data.DiaperType
 import com.kouloundissa.twinstracker.data.DrugType
+import com.kouloundissa.twinstracker.data.EventFormState
 import com.kouloundissa.twinstracker.data.EventFormState.Diaper
 import com.kouloundissa.twinstracker.data.EventFormState.Drugs
 import com.kouloundissa.twinstracker.data.EventFormState.Feeding
@@ -293,7 +294,15 @@ fun EventFormDialogContent(
                 EventType.SLEEP -> Sleep()
                 EventType.GROWTH -> Growth()
                 EventType.PUMPING -> Pumping()
-                EventType.DRUGS -> Drugs()
+                EventType.DRUGS ->
+                {
+                    val currentDrugs = if (formState is EventFormState.Drugs) {
+                        formState
+                    } else {
+                        Drugs()
+                    }
+                    currentDrugs
+                }
             }
             eventViewModel.updateForm { newState }
         }
