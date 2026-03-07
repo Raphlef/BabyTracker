@@ -636,11 +636,17 @@ sealed class EventFormState {
             }
 
             is Sleep -> {
+
+
                 if (!isSleeping && beginTime == null && endTime == null) {
                     Result.failure(
                         IllegalArgumentException("Please start and stop sleep before saving.")
                     )
-                } else {
+                } else if (!validateDuration(durationMinutes)) {
+                    Result.failure(
+                        IllegalArgumentException("Sleep duration must be between 1 and 1440 minutes (24h).")
+                    )
+                }else {
                     Result.success(
                         SleepEvent(
                             id = eventId ?: UUID.randomUUID().toString(),
@@ -727,10 +733,14 @@ sealed class EventFormState {
 
             is Pumping -> {
                 val amount = amountMl.toDoubleOrNull()
-                val duration = durationMin.toIntOrNull()
+                val duration = durationMin.toLongOrNull()
                 if (amount == null && duration == null) {
                     Result.failure(
                         IllegalArgumentException("Provide amount or duration for pumping.")
+                    )
+                } else if (duration != null && !validateDuration(duration)) {
+                    Result.failure(
+                        IllegalArgumentException("Pumping duration must be between 1 and 120 minutes.")
                     )
                 } else {
                     Result.success(
@@ -740,7 +750,7 @@ sealed class EventFormState {
                             userId = userId,
                             timestamp = eventTimestamp,
                             amountMl = amount,
-                            durationMinutes = duration,
+                            durationMinutes = duration?.toInt(),
                             breastSide = breastSide,
                             notes = notes.takeIf(String::isNotBlank),
                             photoUrl = photoUrl
@@ -858,7 +868,9 @@ sealed class EventFormState {
         val otherDrugName: String = "",   // when drugType == OTHER
         val notes: String = ""
     ) : EventFormState()
-
+    private fun validateDuration(duration: Long?): Boolean {
+        return duration?.let { it > 0 && it <= 1440 } ?: true // 24h max, > 0
+    }
 }
 
 /**

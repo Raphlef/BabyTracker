@@ -837,28 +837,45 @@ fun SleepForm(state: Sleep, viewModel: EventViewModel) {
     val cornerShape = MaterialTheme.shapes.extraLarge
     val backgroundColor = BackgroundColor
     val tint = DarkBlue
+    val errorColor = MaterialTheme.colorScheme.error
 
     fun computeDuration(begin: Date?, end: Date?): Long? =
         if (begin != null && end != null)
-            ((end.time - begin.time) / 60000).coerceAtLeast(0L)
+            ((end.time - begin.time) / 60000)
         else null
 
     LaunchedEffect(Unit) {
-        if (state.beginTime == null) {
-            val now = Date()
-            viewModel.updateForm {
-                when (this) {
-                    is Sleep -> copy(
-                        beginTime = now,
-                        durationMinutes = computeDuration(now, endTime)
-                    )
+        val now = Date()
 
-                    else -> this  // Pas de changement pour autres types, évite crash
+        when {
+            state.beginTime == null -> {
+                viewModel.updateForm {
+                    when (this) {
+                        is Sleep -> copy(
+                            beginTime = now,
+                            durationMinutes = computeDuration(now, endTime)
+                        )
+
+                        else -> this  // Pas de changement pour autres types, évite crash
+                    }
                 }
             }
-            viewModel.updateEventTimestamp(now)
+            state.endTime == null -> {
+                viewModel.updateForm {
+                    when (this) {
+                        is Sleep -> copy(
+                            endTime = now,
+                            durationMinutes = computeDuration(beginTime, now)
+                        )
+
+                        else -> this  // Pas de changement pour autres types, évite crash
+                    }
+                }
+            }
         }
+        viewModel.updateEventTimestamp(now)
     }
+
 
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -904,10 +921,11 @@ fun SleepForm(state: Sleep, viewModel: EventViewModel) {
 
         // Duration display
         state.durationMinutes?.let { minutes ->
+            val isValid = minutes in 0..60 * 24
             Surface(
                 shape = cornerShape,
-                color = tint.copy(alpha = 0.4f),
-                border = BorderStroke(1.dp, tint.copy(alpha = 0.6f))
+                color = if (isValid) tint.copy(alpha = 0.4f) else errorColor.copy(alpha = 0.2f),
+                border = BorderStroke(1.dp, if (isValid) tint else errorColor)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -1365,7 +1383,7 @@ fun DrugsForm(
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color =DarkGrey
+                        color = DarkGrey
                     )
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
@@ -1448,7 +1466,7 @@ fun DrugsForm(
             BabyTreatmentsDialog(
                 treatments = treatments,
                 onDismiss = { showTreatments = false },
-                onSave = {treatments->
+                onSave = { treatments ->
                     selectedBaby?.let { baby ->
                         selectedFamily?.let { family ->
                             babyViewModel.saveBaby(
