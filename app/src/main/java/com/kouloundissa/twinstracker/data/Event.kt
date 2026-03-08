@@ -22,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.IgnoreExtraProperties
 import com.kouloundissa.twinstracker.R
+import com.kouloundissa.twinstracker.data.TreatmentScheduler.nextDoseTime
 import com.kouloundissa.twinstracker.presentation.event.EventWithAmount
 import com.kouloundissa.twinstracker.presentation.event.predictNextFeedingTime
 import com.kouloundissa.twinstracker.ui.components.DecreaseTimer
@@ -260,11 +261,8 @@ enum class EventType(
         R.drawable.drugs,
         DrugsEvent::class,
         overlayBuilder = { context ->
-            val nextDoseTime =
-                context.activeTreatments.mapNotNull { treatment ->
-                    val lastEvent = findLastDrugEvent(context.lastEvents, treatment)
-                    TreatmentScheduler.computeNextDose(treatment, lastEvent)
-                }.minOrNull()
+            val nextDoseTime = nextDoseTime(context.activeTreatments, context.lastEvents)
+
             nextDoseTime?.let { nextTime ->
                 {
                     DecreaseTimer(
