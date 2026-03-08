@@ -155,6 +155,11 @@ fun HomeScreen(
     val filteredEvents = analysisSnapshot.events
         .filter { EventType.forClass(it::class) == selectedType }
 
+    val nextTreatment by remember(analysisSnapshot.events, selectedBaby) {
+        derivedStateOf {
+            selectedBaby?.nextTreatmentToTake(analysisSnapshot.events)
+        }
+    }
     val currentOverlayData by remember(selectedType, filteredEvents) {
         derivedStateOf {
             selectedType?.createOverlayData(
@@ -165,8 +170,6 @@ fun HomeScreen(
                         editingEvent?.let { event ->
                             eventViewModel.loadEventIntoForm(event)
                         }
-                        val nextTreatment =
-                            selectedBaby?.nextTreatmentToTake(filteredEvents)
                         nextTreatment?.let { treatment ->
                             if (selectedType == EventType.DRUGS) {
                                 eventViewModel.updateForm {
@@ -269,37 +272,36 @@ fun HomeScreen(
                             },
                             width = cardDimensions.cardWidth,
                             height = cardDimensions.cardHeight,
-                            overlayContent = type.overlayBuilder(
-                                EventTypeOverlayContext(
-                                    onClick = {
-                                        selectedType = type
-                                        editingEvent =
-                                            if (type == EventType.SLEEP) activeSleepEvent else null
-                                        editingEvent?.let { event ->
-                                            eventViewModel.loadEventIntoForm(
-                                                event
-                                            )
-                                        }
-                                        val nextTreatment =
-                                            selectedBaby?.nextTreatmentToTake(filteredEvents)
-                                        nextTreatment?.let { treatment ->
-                                            if (selectedType == EventType.DRUGS) {
-                                                eventViewModel.updateForm {
-                                                    val s = EventFormState.Drugs()
-                                                    s.copy(
-                                                        drugType = treatment.drugType,
-                                                        customDrugTypeId = treatment.customDrugTypeId,
-                                                    )
+                            overlayContent =
+                                type.overlayBuilder(
+                                    EventTypeOverlayContext(
+                                        onClick = {
+                                            selectedType = type
+                                            editingEvent =
+                                                if (type == EventType.SLEEP) activeSleepEvent else null
+                                            editingEvent?.let { event ->
+                                                eventViewModel.loadEventIntoForm(
+                                                    event
+                                                )
+                                            }
+                                            nextTreatment?.let { treatment ->
+                                                if (selectedType == EventType.DRUGS) {
+                                                    eventViewModel.updateForm {
+                                                        val s = EventFormState.Drugs()
+                                                        s.copy(
+                                                            drugType = treatment.drugType,
+                                                            customDrugTypeId = treatment.customDrugTypeId,
+                                                        )
+                                                    }
                                                 }
                                             }
-                                        }
-                                        showEventDialog = true
-                                    },
-                                    lastEvents = filterEvents,
-                                    activeTreatments = selectedBaby?.activeTreatments()
-                                        ?: emptyList()
+                                            showEventDialog = true
+                                        },
+                                        lastEvents = filterEvents,
+                                        activeTreatments = selectedBaby?.activeTreatments()
+                                            ?: emptyList()
+                                    )
                                 )
-                            )
                         )
                     }
                 }
